@@ -10,7 +10,6 @@ class TestDuelArena(unittest.TestCase):
     def setUp(self):
         self.plugin = duelarena()
         setup_plugin(self.plugin)
-        self.plugin.player = mock(spec=minqlx.Player, strict=False)
         setup_game_in_progress()
         self.activate_duelarena_mode()
 
