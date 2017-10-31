@@ -1,14 +1,15 @@
+from minqlx_plugin_test import *
+
 import unittest
 from mockito import *
 from mockito.matchers import *
 from hamcrest import *
-from minqlx_plugin_test import *
 
 class TestDuelArena(unittest.TestCase):
 
     def setUp(self):
         self.plugin = duelarena()
-        setUp_plugin(self.plugin)
+        setup_plugin(self.plugin)
         self.plugin.player = mock(spec=minqlx.Player, strict=False)
         setup_game_in_progress()
         self.activate_duelarena_mode()
@@ -852,18 +853,16 @@ class TestDuelArena(unittest.TestCase):
         assert_player_was_told(requesting_player, "^6!queue^7 command not available with ^66^7 or more players connected")
 
 
-# DuelArena will start automatically if at least 3 players
-# opted in (!duel or !d) to the queue.
-# DuelArena will be deactivated automatically if connected players
-# exceed the player_limit (default 5), or if there are only 2 players left, or
-# if too many players opted out.
-
 import minqlx
 
-MIN_ACTIVE_PLAYERS = 3  # with <3 connected and subscribed players we deactive DuelArena
-MAX_ACTIVE_PLAYERS = 5  # with >5 connected players we deactivate DuelArena
+MIN_ACTIVE_PLAYERS = 3  """with <3 connected and subscribed players we deactive DuelArena"""
+MAX_ACTIVE_PLAYERS = 5  """with >5 connected players we deactivate DuelArena"""
 
 class duelarena(minqlx.Plugin):
+    """DuelArena will start automatically if at least 3 players opted in (!duel or !d) to the queue.
+
+    DuelArena will be deactivated automatically if connected players exceed the player_limit (default 5), or if there are only 2 players left, or if too many players opted out.
+    """
 
     def __init__(self):
 

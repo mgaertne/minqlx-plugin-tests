@@ -5,7 +5,7 @@ from mockito.matchers import *
 
 """Functions for setting up unit tests for a :class:`minqlx.Plugin` and checking interactions with class methods provided by minqlx.  
 """
-def setUp_plugin(plugin: minqlx.Plugin):
+def setup_plugin(plugin: minqlx.Plugin):
     """Setup a minqlx.Plugin passed in for unit testing.
 
     This function will enable spying on certain functions like messages sent to the console through msg,
@@ -21,6 +21,26 @@ def setUp_plugin(plugin: minqlx.Plugin):
     when2(plugin.msg, ANY(str)).thenReturn(None)
     spy2(plugin.center_print)
     when2(plugin.center_print, ANY(str)).thenReturn(None)
+    spy2(plugin.play_sound)
+    when2(plugin.play_sound, ANY(str)).thenReturn(None)
+
+def setup_cvar(plugin, cvar_name, cvar_value, return_type=None):
+    """Setup a minqlx.Plugin passed in with the provided cvar and value.
+
+    **Make sure to use :func:`mockito.unstub()` after calling this function to avoid side effects spilling into the next test.**
+
+    :param plugin: the plugin to prepare with the cvar
+    :param cvar_name: the name of the cvar
+    :param cvar_value: the value the plugin should return for the cvar
+    :param return_type: the type that the get_cvar call shall be casting to. (Default: None)
+    """
+    plugin.get_cvar = mock()
+    if return_type == None:
+        when2(plugin.get_cvar, cvar_name).thenReturn(cvar_value)
+        return
+
+    when2(plugin.get_cvar, cvar_name, return_type).thenReturn(cvar_value)
+
 
 def assert_plugin_sent_to_console(plugin, matcher, times=1):
     """Verify that a certain text was sent to the console by the plugin.
