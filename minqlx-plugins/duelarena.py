@@ -855,8 +855,8 @@ class TestDuelArena(unittest.TestCase):
 
 import minqlx
 
-MIN_ACTIVE_PLAYERS = 3  """with <3 connected and subscribed players we deactive DuelArena"""
-MAX_ACTIVE_PLAYERS = 5  """with >5 connected players we deactivate DuelArena"""
+MIN_ACTIVE_PLAYERS = 3  # with <3 connected and subscribed players we deactive DuelArena"""
+MAX_ACTIVE_PLAYERS = 5  # with >5 connected players we deactivate DuelArena"""
 
 class duelarena(minqlx.Plugin):
     """DuelArena will start automatically if at least 3 players opted in (!duel or !d) to the queue.
