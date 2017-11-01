@@ -15,4 +15,7 @@ def initialize(project):
     project.build_depends_on('PyHamcrest')
 
     project.set_property("coverage_threshold_warn", 0)
-    project.set_property("coverage_exceptions", "minqlx")
+    project.set_property("coverage_exceptions",
+                         ["minqlx.__init__", "minqlx._commands", "minqlx._core", "minqlx._events", "minqlx._game",
+                          "minqlx._handlers", "minqlx._minqlx", "minqlx._player", "minqlx._plugin", "minqlx._zmq",
+                          "minqlx.database"])
