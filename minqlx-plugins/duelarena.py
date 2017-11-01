@@ -670,6 +670,26 @@ class TestDuelArena(unittest.TestCase):
         assert_player_was_put_on(blue_player, "spectator")
         self.assert_player_queue(blue_player)
 
+    def test_round_end_with_no_next_player(self):
+        red_player = fake_player(1, "Player 1", team="red")
+        blue_player = fake_player(2, "Player 2", team="blue")
+        next_player = fake_player(3, "Player 3", team="free")
+        player4 = fake_player(4, "Player 4", team="free")
+        connected_players(self.plugin,
+                          red_player,
+                          blue_player,
+                          next_player,
+                          player4,
+                          fake_player(5, "Player 5"))
+        self.subscribe_players(red_player, blue_player, next_player, player4)
+        self.add_players_to_queue(next_player, player4)
+
+        self.plugin.undelayed_handle_round_end({"TEAM_WON": "RED"})
+
+        self.assert_player_queue()
+        self.assert_duelarena_deactivated()
+        assert_plugin_sent_to_console(self.plugin, "DuelArena has been deactivated! You are free to join.")
+
     def test_round_end_with_draw(self):
         red_player = fake_player(1, "Player 1", team="red")
         blue_player = fake_player(2, "Player 2", team="blue")
@@ -1061,8 +1081,12 @@ class duelarena(minqlx.Plugin):
 
         teams = self.teams()
 
-        while next_player not in teams['spectator']:
-            next_player = self.player(self.queue.pop())
+        while not next_player or next_player not in teams['spectator']:
+            try:
+                next_player = self.player(self.queue.pop())
+            except IndexError:
+                self.deactivate_duelarena_mode()
+                return
 
         losing_player = teams[losing_team][-1]
 
