@@ -18,12 +18,13 @@ def setup_plugin(plugin: minqlx.Plugin):
 
     """
     spy2(plugin.msg)
-    when2(plugin.msg, ANY(str)).thenReturn(None)
+    when2(plugin.msg, any(str)).thenReturn(None)
     spy2(plugin.center_print)
-    when2(plugin.center_print, ANY(str)).thenReturn(None)
+    when2(plugin.center_print, any(str)).thenReturn(None)
     spy2(plugin.play_sound)
-    when2(plugin.play_sound, ANY(str)).thenReturn(None)
+    when2(plugin.play_sound, any(str)).thenReturn(None)
     spy2(plugin.player)
+    when2(plugin.player, any()).thenReturn(None)
 
 def setup_cvar(plugin, cvar_name, cvar_value, return_type=None):
     """Setup a minqlx.Plugin passed in with the provided cvar and value.
