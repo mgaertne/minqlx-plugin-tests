@@ -12,7 +12,7 @@ def setup_no_game():
     """
     when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
 
-def setup_game_in_warmup():
+def setup_game_in_warmup(game_type="ca"):
     """Setup the server with a game currently in warmup mode.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the next test.**
@@ -20,6 +20,7 @@ def setup_game_in_warmup():
     mock_game = mock(spec=minqlx.Game, strict=False)
     when2(minqlx.Game).thenReturn(mock_game)
     mock_game.state = "warmup"
+    mock_game.type_short = game_type
 
 def setup_game_in_progress(game_type="ca", roundlimit=8, red_score=0, blue_score=0):
     """Setup the server with a game currently in progress. You may specify the game_type, roundlimit, and score for the red and blue teams with the optional parameters.

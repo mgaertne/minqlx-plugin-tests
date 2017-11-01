@@ -36,7 +36,7 @@ def setup_cvar(plugin, cvar_name, cvar_value, return_type=None):
     :param cvar_value: the value the plugin should return for the cvar
     :param return_type: the type that the get_cvar call shall be casting to. (Default: None)
     """
-    plugin.get_cvar = mock()
+    patch(plugin.get_cvar, lambda: None)
     if return_type == None:
         when2(plugin.get_cvar, cvar_name).thenReturn(cvar_value)
         return

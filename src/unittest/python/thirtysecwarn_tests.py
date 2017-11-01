@@ -18,24 +18,24 @@ class TestDuelArenaWorker(unittest.TestCase):
 
     def test_standard(self):
         setup_cvar(self.warner, "qlx_thirtySecondWarnAnnouncer", "standard")
-        assert_that(self.warner.get_announcer_sound(), "sound/vo/30_second_warning.ogg")
+        assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
 
     def test_female(self):
         setup_cvar(self.warner, "qlx_thirtySecondWarnAnnouncer", "female")
-        assert_that(self.warner.get_announcer_sound(), "sound/vo_female/30_second_warning.ogg")
+        assert_that(self.warner.get_announcer_sound(), is_("sound/vo_female/30_second_warning.ogg"))
 
     def test_evil(self):
         setup_cvar(self.warner, "qlx_thirtySecondWarnAnnouncer", "evil")
-        assert_that(self.warner.get_announcer_sound(), "sound/vo_evil/30_second_warning.ogg")
+        assert_that(self.warner.get_announcer_sound(), is_("sound/vo_evil/30_second_warning.ogg"))
 
     def test_non_existing_reverts_to_standard(self):
         setup_cvar(self.warner, "qlx_thirtySecondWarnAnnouncer", "invalid")
-        assert_that(self.warner.get_announcer_sound(), "sound/vo/30_second_warning.ogg")
+        assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
 
     def test_random(self):
         random.seed(42)
         setup_cvar(self.warner, "qlx_thirtySecondWarnAnnouncer", "random")
-        assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
+        assert_that(self.warner.get_announcer_sound(), is_("sound/vo_evil/30_second_warning.ogg"))
 
     def test_plays_no_sound_when_game_is_not_running_anymore(self):
         setup_no_game()
