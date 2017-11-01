@@ -28,8 +28,7 @@ class duelarena(minqlx.Plugin):
         self.initduel = False  # initial player setup switch
         self.psub = []  # steam_ids of players subscribed to DuelArena
         self.queue = []  # queue for rotating players
-        self.switching_player1 = None  # force spec exception for this player
-        self.switching_player2 = None  # force spec exception for this player
+        self.switching_players = [] # force spec exception for these players
 
     # Don't allow players to join manually when DuelArena is active
     def handle_team_switch_event(self, player, old, new):
@@ -38,12 +37,8 @@ class duelarena(minqlx.Plugin):
         if self.game.state == "warmup": return
 
         # If we initiated this switch, allow it
-        if player == self.switching_player1:
-            self.switching_player1 = None
-            return
-
-        if player == self.switching_player2:
-            self.switching_player2 = None
+        if player in self.switching_players:
+            self.switching_players.remove(player)
             return
 
         # If they wanted to join a team, halt this hook at enginge-level and other hooks from being called
@@ -152,6 +147,7 @@ class duelarena(minqlx.Plugin):
     def put_player_on_team(self, player, team):
         if team == "red": self.switching_player1 = player
         if team == "blue": self.switching_player2 = player
+        self.switching_players.append(player)
         player.put(team)
 
     def put_player_to_spectators_and_back_in_duel_queue(self, losing_player):
@@ -228,12 +224,11 @@ class duelarena(minqlx.Plugin):
 
         self.insert_subscribed_players_to_queue_if_necessary()
 
-        self.switching_player1 = self.player(self.queue.pop())
-        self.switching_player2 = self.player(self.queue.pop())
+        player1 = self.player(self.queue.pop())
+        player2 = self.player(self.queue.pop())
+        self.move_players_to_teams(player1, player2)
 
-        self.move_players_to_teams()
-
-        self.move_all_non_playing_players_to_spec()
+        self.move_all_non_playing_players_to_spec(player1, player2)
 
         self.initduel = False
 
@@ -293,35 +288,40 @@ class duelarena(minqlx.Plugin):
         self.duelmode = False
         self.msg("DuelArena has been deactivated! You are free to join.")
 
-    def move_players_to_teams(self):
+    def move_players_to_teams(self, player1, player2):
 
         teams = self.teams()
 
-        if self.switching_player1 in teams["red"]:
-            if self.switching_player2 not in teams["blue"]:
-                self.switching_player2.put("blue")
+        if player1 in teams["red"]:
+            if player2 not in teams["blue"]:
+                self.switching_players.append(player2)
+                player2.put("blue")
             return
 
-        if self.switching_player1 in teams["blue"]:
-            if self.switching_player2 not in teams["red"]:
-                self.switching_player2.put("red")
+        if player1 in teams["blue"]:
+            if player2 not in teams["red"]:
+                self.switching_players.append(player2)
+                player2.put("red")
             return
 
-        if self.switching_player2 in teams["blue"]:
-            self.switching_player1.put("red")
+        if player2 in teams["blue"]:
+            self.switching_players.append(player1)
+            player1.put("red")
             return
 
-        if self.switching_player2 in teams["red"]:
-            self.switching_player1.put("blue")
+        if player2 in teams["red"]:
+            self.switching_players.append(player1)
+            player1.put("blue")
             return
 
-        self.switching_player1.put("red")
-        self.switching_player2.put("blue")
+        self.switching_players.append(player1)
+        player1.put("red")
+        self.switching_players.append(player2)
+        player2.put("blue")
 
-    def move_all_non_playing_players_to_spec(self):
+    def move_all_non_playing_players_to_spec(self, *players):
 
         teams = self.teams()
 
-        for player in [player for player in teams['red'] + teams['blue']
-                       if player not in [self.switching_player1, self.switching_player2]]:
-                player.put("spectator")
+        for player in [player for player in teams['red'] + teams['blue'] if player not in players]:
+            player.put("spectator")

@@ -56,6 +56,15 @@ class TestDuelArena(unittest.TestCase):
         steam_ids.reverse()
         assert_that(self.plugin.queue, is_(steam_ids))
 
+    def assert_players_were_not_moved_to_any_team(self, *players):
+        assert_that(self.plugin.switching_players, is_not(has_items(players)))
+        for player in players:
+            assert_player_was_put_on(player, any_team, times=0)
+
+    def assert_player_was_put_to_team(self, player, matcher):
+        assert_that(self.plugin.switching_players, has_item(player))
+        assert_player_was_put_on(player, matcher)
+
     def test_enqueue_players(self):
         player1 = fake_player(1, "Player 1")
         player2 = fake_player(2, "Player 2")
@@ -87,19 +96,21 @@ class TestDuelArena(unittest.TestCase):
         assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
 
     def test_switch_player_to_red_initiated_by_plugin(self):
-        self.plugin.switching_player1 = fake_player(123, "Fake Player")
+        switching_player = fake_player(123, "Fake Player")
+        self.plugin.switching_players.append(switching_player)
 
-        return_code = self.plugin.handle_team_switch_event(self.plugin.switching_player1, "don't care", "don't care")
+        return_code = self.plugin.handle_team_switch_event(switching_player, "don't care", "don't care")
 
-        assert_that(self.plugin.switching_player1, is_(None))
+        assert_that(self.plugin.switching_players, is_not(has_item(switching_player)))
         assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
 
     def test_switch_player_to_blue_initiated_by_plugin(self):
-        self.plugin.switching_player2 = fake_player(123, "Fake Player")
+        switching_player = fake_player(123, "Fake Player")
+        self.plugin.switching_players.append(switching_player)
 
-        return_code = self.plugin.handle_team_switch_event(self.plugin.switching_player2, "don't care", "don't care")
+        return_code = self.plugin.handle_team_switch_event(switching_player, "don't care", "don't care")
 
-        assert_that(self.plugin.switching_player2, is_(None))
+        assert_that(self.plugin.switching_players, is_not(has_item(switching_player)))
         assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
 
     def test_unallowed_switch_from_spec_to_red(self):
@@ -350,9 +361,7 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.undelayed_handle_game_countdown()
 
-        assert_that(self.plugin.switching_player1, is_(red_player))
-        assert_that(self.plugin.switching_player2, is_(blue_player))
-        assert_player_was_put_on(blue_player, "red")
+        self.assert_player_was_put_to_team(blue_player, "red")
         assert_player_was_put_on(speccing_player, "spectator")
         self.assert_duelarena_finished_to_initialize()
         self.assert_player_queue(speccing_player, player4)
@@ -360,7 +369,7 @@ class TestDuelArena(unittest.TestCase):
     def test_game_countdown_inits_duelarena_when_activated_and_keeps_red_player_on_red_team(self):
         red_player = fake_player(1, "Player 1", team="red")
         blue_player = fake_player(2, "Player 2", team="blue")
-        player3 = fake_player(3, "Player 3")
+        player3 = fake_player(3, "Player 3", team="blue")
         player4 = fake_player(4, "Player 4")
         connected_players(self.plugin,
                           red_player,
@@ -372,112 +381,98 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.undelayed_handle_game_countdown()
 
-        assert_that(self.plugin.switching_player1, is_(red_player))
-        assert_that(self.plugin.switching_player2, is_(blue_player))
-        assert_player_was_put_on(blue_player, any_team, times=0)
+        self.assert_players_were_not_moved_to_any_team(red_player, blue_player)
         self.assert_duelarena_finished_to_initialize()
         self.assert_player_queue(player3, player4)
 
     def test_move_players_to_teams_players_already_on_right_team(self):
         red_player = fake_player(1, "Player 1", team="red")
         blue_player = fake_player(2, "Player 2", team="blue")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3"))
 
-        self.plugin.move_players_to_teams()
+        self.plugin.move_players_to_teams(red_player, blue_player)
 
-        assert_player_was_put_on(red_player, any_team, times=0)
-        assert_player_was_put_on(blue_player, any_team, times=0)
+        self.assert_players_were_not_moved_to_any_team(red_player, blue_player)
 
     def test_move_players_to_teams_players_on_opposing_teams(self):
         red_player = fake_player(1, "Player 1", team="blue")
         blue_player = fake_player(2, "Player 2", team="red")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3"))
 
-        self.plugin.move_players_to_teams()
+        self.plugin.move_players_to_teams(red_player, blue_player)
 
-        assert_player_was_put_on(red_player, any_team, times=0)
-        assert_player_was_put_on(blue_player, any_team, times=0)
+        self.assert_players_were_not_moved_to_any_team(red_player, blue_player)
 
     def test_move_players_to_teams_players_on_blue_team(self):
         red_player = fake_player(1, "Player 1", team="blue")
         blue_player = fake_player(2, "Player 2", team="blue")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3", "red"))
+        self.plugin.switching_players.append(red_player)
+        self.plugin.switching_players.append(blue_player)
 
-        self.plugin.move_players_to_teams()
+        self.plugin.move_players_to_teams(red_player, blue_player)
 
-        assert_player_was_put_on(red_player, any_team, times=0)
-        assert_player_was_put_on(blue_player, "red")
+        self.assert_players_were_not_moved_to_any_team(red_player)
+        self.assert_player_was_put_to_team(blue_player, "red")
 
     def test_move_players_to_teams_players_on_red_team(self):
         red_player = fake_player(1, "Player 1", team="red")
         blue_player = fake_player(2, "Player 2", team="red")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3", "red"))
 
-        self.plugin.move_players_to_teams()
+        self.plugin.move_players_to_teams(red_player, blue_player)
 
-        assert_player_was_put_on(red_player, any_team, times=0)
-        assert_player_was_put_on(blue_player, "blue")
+        self.assert_players_were_not_moved_to_any_team(red_player)
+        self.assert_player_was_put_to_team(blue_player, "blue")
 
     def test_move_players_to_teams_one_player_speccing(self):
         red_player = fake_player(1, "Player 1", team="red")
         blue_player = fake_player(2, "Player 2", "spectator")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3", "red"))
 
-        self.plugin.move_players_to_teams()
+        self.plugin.move_players_to_teams(red_player, blue_player)
 
-        assert_player_was_put_on(red_player, any_team, times=0)
-        assert_player_was_put_on(blue_player, "blue")
+        self.assert_players_were_not_moved_to_any_team(red_player)
+        self.assert_player_was_put_to_team(blue_player, "blue")
 
     def test_move_players_to_teams_both_players_speccing(self):
         red_player = fake_player(1, "Player 1", "spectator")
         blue_player = fake_player(2, "Player 2", "spectator")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3", "red"))
 
-        self.plugin.move_players_to_teams()
+        self.plugin.move_players_to_teams(red_player, blue_player)
 
-        assert_player_was_put_on(red_player, "red")
-        assert_player_was_put_on(blue_player, "blue")
+        self.assert_player_was_put_to_team(red_player, "red")
+        self.assert_player_was_put_to_team(blue_player, "blue")
 
     def test_move_non_players_to_spec_from_blue_team(self):
         red_player = fake_player(1, "Player 1", team="red")
         blue_player = fake_player(2, "Player 2", team="red")
         speccing_player = fake_player(3, "Player 3", team="blue")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           speccing_player)
+        self.plugin.switching_players.append(red_player)
+        self.plugin.switching_players.append(blue_player)
 
         self.plugin.move_all_non_playing_players_to_spec()
 
@@ -625,8 +620,7 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.undelayed_handle_round_end({"TEAM_WON": "RED"})
 
-        assert_player_was_put_on(next_player, "blue")
-        assert_that(self.plugin.switching_player2, is_(next_player))
+        self.assert_player_was_put_to_team(next_player, "blue")
         assert_player_was_put_on(blue_player, "spectator")
         self.assert_player_queue(player4, blue_player)
 
@@ -646,8 +640,7 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.undelayed_handle_round_end({"TEAM_WON": "BLUE"})
 
-        assert_player_was_put_on(next_player, "red")
-        assert_that(self.plugin.switching_player1, is_(next_player))
+        self.assert_player_was_put_to_team(next_player, "red")
         assert_player_was_put_on(red_player, "spectator")
         self.assert_player_queue(player4, red_player)
 
@@ -667,8 +660,7 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.undelayed_handle_round_end({"TEAM_WON": "RED"})
 
-        assert_player_was_put_on(player4, "blue")
-        assert_that(self.plugin.switching_player2, is_(player4))
+        self.assert_player_was_put_to_team(player4, "blue")
         assert_player_was_put_on(blue_player, "spectator")
         self.assert_player_queue(blue_player)
 
