@@ -9,7 +9,8 @@ DUEL_ARENA_ANNOUNCEMENT = "Type ^6!d ^7for DuelArena!"
 class duelarena(minqlx.Plugin):
     """DuelArena will start automatically if at least 3 players opted in (!duel or !d) to the queue.
 
-    DuelArena will be deactivated automatically if connected players exceed the player_limit (default 5), or if there are only 2 players left, or if too many players opted out.
+    DuelArena will be deactivated automatically if connected players exceed the player_limit (default 5),
+    or if there are only 2 players left, or if too many players opted out.
     """
 
     def __init__(self):
@@ -28,13 +29,16 @@ class duelarena(minqlx.Plugin):
         self.initduel = False  # initial player setup switch
         self.psub = []  # steam_ids of players subscribed to DuelArena
         self.queue = []  # queue for rotating players
-        self.switching_players = [] # force spec exception for these players
+        self.switching_players = []  # force spec exception for these players
 
     # Don't allow players to join manually when DuelArena is active
     def handle_team_switch_event(self, player, old, new):
-        if not self.duelmode: return
-        if not self.game: return
-        if self.game.state == "warmup": return
+        if not self.duelmode:
+            return
+        if not self.game:
+            return
+        if self.game.state == "warmup":
+            return
 
         # If we initiated this switch, allow it
         if player in self.switching_players:
@@ -44,7 +48,8 @@ class duelarena(minqlx.Plugin):
         # If they wanted to join a team, halt this hook at enginge-level and other hooks from being called
         if new in ['red', 'blue']:
             player.tell(
-                "Server is in DuelArena mode. You will automatically join. Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
+                "Server is in DuelArena mode. You will automatically join. "
+                "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
             return minqlx.RET_STOP_ALL
 
     # When a player connects, display them a message and check if we should switch duel arena
@@ -68,7 +73,8 @@ class duelarena(minqlx.Plugin):
 
     def handle_round_countdown(self, *args, **kwargs):
 
-        if not self.duelmode: return
+        if not self.duelmode:
+            return
 
         teams = self.teams()
         self.center_print("{} ^2vs {}".format(teams["red"][-1].name, teams["blue"][-1].name))
@@ -79,12 +85,15 @@ class duelarena(minqlx.Plugin):
         self.undelayed_handle_game_countdown()
 
     def undelayed_handle_game_countdown(self):
-        if not self.duelmode: return
+        if not self.duelmode:
+            return
         self.init_duel()
 
     def handle_game_end(self, data):
-        if not self.game: return
-        if not self.duelmode: return
+        if not self.game:
+            return
+        if not self.duelmode:
+            return
 
         # put both players back to the queue, winner first position, loser last position
         winner, loser = self.extract_winning_and_losing_team_from_game_end_data(data)
@@ -106,7 +115,8 @@ class duelarena(minqlx.Plugin):
     def undelayed_handle_round_end(self, data):
 
         # Not in CA? Do nothing
-        if (not self.game) or (self.game.type_short != "ca"): return
+        if (not self.game) or (self.game.type_short != "ca"):
+            return
 
         # Last round? Do nothing
         if self.game.roundlimit in [self.game.blue_score, self.game.red_score]:
@@ -140,13 +150,13 @@ class duelarena(minqlx.Plugin):
         self.put_player_to_spectators_and_back_in_duel_queue(losing_player)
 
     def extract_losing_team_from_round_end_data(self, data):
-        if data["TEAM_WON"] == "RED": return "blue"
-        if data["TEAM_WON"] == "BLUE": return "red"
+        if data["TEAM_WON"] == "RED":
+            return "blue"
+        if data["TEAM_WON"] == "BLUE":
+            return "red"
         return None
 
     def put_player_on_team(self, player, team):
-        if team == "red": self.switching_player1 = player
-        if team == "blue": self.switching_player2 = player
         self.switching_players.append(player)
         player.put(team)
 
@@ -174,8 +184,9 @@ class duelarena(minqlx.Plugin):
         self.subscribe_player(player)
         if not self.should_duelmode_be_activated():
             self.msg(
-                "{} ^7entered the DuelArena queue. ^6{}^7 more players needed to start DuelArena. Type ^6!duel ^73or ^6!d ^7to enter DuelArena queue."
-                    .format(player.name, MIN_ACTIVE_PLAYERS - len(self.psub)))
+                "{} ^7entered the DuelArena queue. ^6{}^7 more players needed to start DuelArena. "
+                "Type ^6!duel ^73or ^6!d ^7to enter DuelArena queue."
+                .format(player.name, MIN_ACTIVE_PLAYERS - len(self.psub)))
             self.printqueue()
             return
 
@@ -253,7 +264,7 @@ class duelarena(minqlx.Plugin):
 
         self.psub[:] = [sid for sid in self.psub if self.player(sid) and self.player(sid).ping < 990]
 
-    ## Helper functions
+    # Helper functions
 
     def count_connected_players(self):
         return len(self.players())
@@ -265,17 +276,20 @@ class duelarena(minqlx.Plugin):
         return player.steam_id in self.queue
 
     def subscribe_player(self, player):
-        if not self.player_is_enqueued(player): self.queue.insert(0, player.steam_id)
+        if not self.player_is_enqueued(player):
+            self.queue.insert(0, player.steam_id)
         self.psub.append(player.steam_id)
 
     def unsubscribe_player(self, player):
-        if self.player_is_enqueued(player): self.queue.remove(player.steam_id)
+        if self.player_is_enqueued(player):
+            self.queue.remove(player.steam_id)
         self.psub.remove(player.steam_id)
 
     def should_duelmode_be_activated(self):
         player_count = self.count_connected_players()
 
-        return player_count in range(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS+1) and len(self.psub) >= MIN_ACTIVE_PLAYERS
+        return player_count in range(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS + 1) \
+            and len(self.psub) >= MIN_ACTIVE_PLAYERS
 
     def activate_duelarena_mode(self):
         self.duelmode = True
@@ -294,30 +308,24 @@ class duelarena(minqlx.Plugin):
 
         if player1 in teams["red"]:
             if player2 not in teams["blue"]:
-                self.switching_players.append(player2)
-                player2.put("blue")
+                self.put_player_on_team(player2, "blue")
             return
 
         if player1 in teams["blue"]:
             if player2 not in teams["red"]:
-                self.switching_players.append(player2)
-                player2.put("red")
+                self.put_player_on_team(player2, "red")
             return
 
         if player2 in teams["blue"]:
-            self.switching_players.append(player1)
-            player1.put("red")
+            self.put_player_on_team(player1, "red")
             return
 
         if player2 in teams["red"]:
-            self.switching_players.append(player1)
-            player1.put("blue")
+            self.put_player_on_team(player1, "blue")
             return
 
-        self.switching_players.append(player1)
-        player1.put("red")
-        self.switching_players.append(player2)
-        player2.put("blue")
+        self.put_player_on_team(player1, "red")
+        self.put_player_on_team(player2, "blue")
 
     def move_all_non_playing_players_to_spec(self, *players):
 

@@ -6,6 +6,7 @@ import unittest
 
 from thirtysecwarn import *
 
+
 class TestDuelArenaWorker(unittest.TestCase):
 
     def setUp(self):
@@ -58,7 +59,6 @@ class TestDuelArenaWorker(unittest.TestCase):
 
         verify(self.warner, times=0).play_sound(any(str))
 
-
     def test_plays_no_sound_when_next_round_started(self):
         calling_round_number = 4
         setup_game_in_progress(game_type="ca")
@@ -90,4 +90,3 @@ class TestDuelArenaWorker(unittest.TestCase):
         self.warner.handle_round_end(None)
 
         assert_that(self.warner.timer_round_number, is_(5))
-

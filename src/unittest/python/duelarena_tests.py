@@ -7,8 +7,8 @@ from hamcrest import *
 
 from duelarena import *
 
-class TestDuelArena(unittest.TestCase):
 
+class TestDuelArena(unittest.TestCase):
     def setUp(self):
         self.plugin = duelarena()
         setup_plugin(self.plugin)
@@ -65,7 +65,6 @@ class TestDuelArena(unittest.TestCase):
         assert_that(self.plugin.switching_players, has_item(player))
         assert_player_was_put_on(player, matcher)
 
-
     def test_enqueue_players(self):
         player1 = fake_player(1, "Player 1")
         player2 = fake_player(2, "Player 2")
@@ -120,7 +119,9 @@ class TestDuelArena(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_event(switching_player, "spectators", "red")
 
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player, "Server is in DuelArena mode. You will automatically join. Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
+        assert_player_was_told(switching_player,
+                               "Server is in DuelArena mode. You will automatically join. "
+                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
 
     def test_unallowed_switch_from_spec_to_blue(self):
         switching_player = fake_player(123, "Fake Player")
@@ -128,7 +129,9 @@ class TestDuelArena(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_event(switching_player, "spectators", "blue")
 
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player, "Server is in DuelArena mode. You will automatically join. Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
+        assert_player_was_told(switching_player,
+                               "Server is in DuelArena mode. You will automatically join. "
+                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
 
     def test_unallowed_switch_from_blue_to_red(self):
         switching_player = fake_player(123, "Fake Player")
@@ -136,7 +139,9 @@ class TestDuelArena(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_event(switching_player, "blue", "red")
 
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player, "Server is in DuelArena mode. You will automatically join. Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
+        assert_player_was_told(switching_player,
+                               "Server is in DuelArena mode. You will automatically join. "
+                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
 
     def test_unallowed_switch_from_red_to_blue(self):
         switching_player = fake_player(123, "Fake Player")
@@ -144,7 +149,9 @@ class TestDuelArena(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_event(switching_player, "red", "blue")
 
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player, "Server is in DuelArena mode. You will automatically join. Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
+        assert_player_was_told(switching_player,
+                               "Server is in DuelArena mode. You will automatically join. "
+                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
 
     def test_switching_to_spectators_is_always_allowed(self):
         switching_player = fake_player(123, "Fake Player")
@@ -550,12 +557,12 @@ class TestDuelArena(unittest.TestCase):
         red_player = fake_player(1, "Player 1", team="blue")
         blue_player = fake_player(2, "Player 2", team="red")
         speccing_player = fake_player(3, "Player 3", team="red")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           speccing_player)
+        self.plugin.switching_players.append(red_player)
+        self.plugin.switching_players.append(blue_player)
 
         self.plugin.move_all_non_playing_players_to_spec()
 
@@ -566,13 +573,13 @@ class TestDuelArena(unittest.TestCase):
         blue_player = fake_player(2, "Player 2", team="red")
         speccing_player1 = fake_player(3, "Player 3", team="blue")
         speccing_player2 = fake_player(4, "Player 4", team="red")
-        self.plugin.switching_player1 = red_player
-        self.plugin.switching_player2 = blue_player
         connected_players(self.plugin,
                           red_player,
                           blue_player,
                           speccing_player1,
                           speccing_player2)
+        self.plugin.switching_players.append(red_player)
+        self.plugin.switching_players.append(blue_player)
 
         self.plugin.move_all_non_playing_players_to_spec()
 
@@ -796,7 +803,8 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_duel(requesting_player, "!d", None)
 
-        assert_player_was_told(requesting_player, "^6!duel^7 command not available with ^66^7 or more players connected")
+        assert_player_was_told(requesting_player,
+                               "^6!duel^7 command not available with ^66^7 or more players connected")
 
     def test_duel_cmd_second_player_subscribes(self):
         self.deactivate_duelarena_mode()
@@ -813,7 +821,10 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_duel(requesting_player, "!d", None)
 
-        assert_plugin_sent_to_console(self.plugin, "Player 3 ^7entered the DuelArena queue. ^61^7 more players needed to start DuelArena. Type ^6!duel ^73or ^6!d ^7to enter DuelArena queue.")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "Player 3 ^7entered the DuelArena queue. "
+                                      "^61^7 more players needed to start DuelArena. "
+                                      "Type ^6!duel ^73or ^6!d ^7to enter DuelArena queue.")
         assert_plugin_sent_to_console(self.plugin, "DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 3 ")
         self.assert_subscribed_players(player2, requesting_player)
         self.assert_player_queue(player2, requesting_player)
@@ -834,8 +845,11 @@ class TestDuelArena(unittest.TestCase):
         self.add_players_to_queue(player2, player1)
         self.plugin.cmd_duel(requesting_player, "!d", None)
 
-        assert_plugin_sent_to_console(self.plugin, "Player 3 ^7entered the DuelArena. Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
-        assert_plugin_sent_to_console(self.plugin, "DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 3 ")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "Player 3 ^7entered the DuelArena. "
+                                      "Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 3 ")
         self.assert_subscribed_players(player1, player2, requesting_player)
         self.assert_player_queue(player2, player1, requesting_player)
         self.assert_duelarena_activated()
@@ -856,8 +870,12 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_duel(requesting_player, "!d", None)
 
-        assert_plugin_sent_to_console(self.plugin, "Player 3 ^7entered the DuelArena. Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
-        assert_plugin_sent_to_console(self.plugin, "DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 5 ^64th^7: Player 3 ")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "Player 3 ^7entered the DuelArena. "
+                                      "Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "DuelArena queue: "
+                                      "^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 5 ^64th^7: Player 3 ")
         self.assert_subscribed_players(requesting_player, player5, player1, player2)
         self.assert_player_queue(player2, player1, player5, requesting_player)
         self.assert_duelarena_activated()
@@ -879,8 +897,13 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_duel(requesting_player, "!d", None)
 
-        assert_plugin_sent_to_console(self.plugin, "Player 3 ^7entered the DuelArena. Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
-        assert_plugin_sent_to_console(self.plugin, "DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 5 ^64th^7: Player 4 ^65th^7: Player 3 ")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "Player 3 ^7entered the DuelArena. "
+                                      "Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "DuelArena queue: "
+                                      "^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 5 "
+                                      "^64th^7: Player 4 ^65th^7: Player 3 ")
         self.assert_subscribed_players(requesting_player, player5, player1, player2, player4)
         self.assert_player_queue(player2, player1, player5, player4, requesting_player)
         self.assert_duelarena_activated()
@@ -979,7 +1002,8 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_printqueue(requesting_player, "!q", None)
 
-        assert_plugin_sent_to_console(self.plugin, "There's no one in the queue yet. Type ^6!d ^7or ^6!duel ^7to enter the queue.")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "There's no one in the queue yet. Type ^6!d ^7or ^6!duel ^7to enter the queue.")
 
     def test_print_queue_with_players(self):
         requesting_player = fake_player(3, "Player 3")
@@ -997,7 +1021,9 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_printqueue(requesting_player, "!q", None)
 
-        assert_plugin_sent_to_console(self.plugin, "DuelArena queue: ^61st^7: Player 1 ^62nd^7: Player 2 ^63rd^7: Player 3 ^64th^7: Player 4 ^65th^7: Player 5 ")
+        assert_plugin_sent_to_console(self.plugin,
+                                      "DuelArena queue: ^61st^7: Player 1 ^62nd^7: Player 2 ^63rd^7: Player 3 "
+                                      "^64th^7: Player 4 ^65th^7: Player 5 ")
 
     def test_print_queue_with_too_many_connected_players(self):
         requesting_player = fake_player(6, "Player 6")
@@ -1017,5 +1043,5 @@ class TestDuelArena(unittest.TestCase):
 
         self.plugin.cmd_printqueue(requesting_player, "!q", None)
 
-        assert_player_was_told(requesting_player, "^6!queue^7 command not available with ^66^7 or more players connected")
-
+        assert_player_was_told(requesting_player,
+                               "^6!queue^7 command not available with ^66^7 or more players connected")

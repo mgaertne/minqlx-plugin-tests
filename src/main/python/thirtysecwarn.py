@@ -1,16 +1,21 @@
-import minqlx, time
+import minqlx
+import time
 import random
+
 
 class thirtysecwarn(minqlx.Plugin):
     """Created by Thomas Jones on 01/09/2016 - thomas@tomtecsolutions.com
 
 thirtysecwarn.py - a minqlx plugin to play unused VO when a CA game is nearing the round time limit.
 
-This plugin is released to everyone, for any purpose. It comes with no warranty, no guarantee it works, it's released AS IS.
+This plugin is released to everyone, for any purpose. It comes with no warranty, no guarantee it works, it's
+released AS IS.
 
-You can modify everything, except for lines 1-4 and the !tomtec_versions code. They're there to indicate I whacked this together originally. Please make it better :D
+You can modify everything, except for lines 1-4 and the !tomtec_versions code. They're there to indicate I whacked this
+together originally. Please make it better :D
 
-Completely rebuild by iouonegirl and Gelenkbusfahrer on 25/09/2017, customization of sounds and unit tests added by ShiN0 somewhen in October 2017
+Completely rebuild by iouonegirl and Gelenkbusfahrer on 25/09/2017, customization of sounds and unit tests added by
+ShiN0 somewhen in October 2017
     """
     def __init__(self):
 
@@ -49,10 +54,14 @@ Completely rebuild by iouonegirl and Gelenkbusfahrer on 25/09/2017, customizatio
         self.undelayed_player_thirty_second_warning(roundnumber)
 
     def undelayed_player_thirty_second_warning(self, roundnumber):
-        if not self.game: return
-        if not self.game.type_short == "ca": return
-        if not self.game.state == "in_progress": return
-        if not self.timer_round_number == roundnumber: return
+        if not self.game:
+            return
+        if not self.game.type_short == "ca":
+            return
+        if not self.game.state == "in_progress":
+            return
+        if not self.timer_round_number == roundnumber:
+            return
 
         # passed all conditions, play sound
         self.play_sound(self.get_announcer_sound())
@@ -63,7 +72,8 @@ Completely rebuild by iouonegirl and Gelenkbusfahrer on 25/09/2017, customizatio
         if qlx_thirtySecondWarnAnnouncer == "random":
             return self.random_announcer()
 
-        if not qlx_thirtySecondWarnAnnouncer in self.announcerMap: qlx_thirtySecondWarnAnnouncer = "standard"
+        if qlx_thirtySecondWarnAnnouncer not in self.announcerMap:
+            qlx_thirtySecondWarnAnnouncer = "standard"
         return self.announcerMap[qlx_thirtySecondWarnAnnouncer]
 
     def random_announcer(self):
