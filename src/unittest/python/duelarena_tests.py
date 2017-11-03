@@ -270,29 +270,6 @@ class TestDuelArena(unittest.TestCase):
         assert_plugin_center_printed(self.plugin, ANY(str), times=0)
         self.assert_duelarena_deactivated()
 
-    def test_handle_round_count_when_duelarena_activated(self):
-        connected_players(self.plugin,
-                          fake_player(1, "Player 1", team="blue"),
-                          fake_player(2, "Player 2"),
-                          fake_player(3, "Player 3", team="red"),
-                          fake_player(4, "Player 4"))
-
-        self.plugin.handle_round_countdown()
-
-        assert_plugin_center_printed(self.plugin, "Player 3 ^2vs Player 1")
-
-    def test_handle_round_count_when_duelarena_deactivated(self):
-        self.deactivate_duelarena_mode()
-        connected_players(self.plugin,
-                          fake_player(1, "Player 1", team="blue"),
-                          fake_player(2, "Player 2"),
-                          fake_player(3, "Player 3", team="red"),
-                          fake_player(4, "Player 4"))
-
-        self.plugin.handle_round_countdown()
-
-        assert_plugin_center_printed(self.plugin, ANY(str), times=0)
-
     def test_handle_player_disconnect_broadcast_when_minimum_players_are_left(self):
         self.deactivate_duelarena_mode()
         connected_players(self.plugin,
@@ -412,6 +389,29 @@ class TestDuelArena(unittest.TestCase):
         assert_plugin_sent_to_console(self.plugin, "Type ^6!d ^7for DuelArena!")
         assert_plugin_center_printed(self.plugin, "Type ^6!d ^7for DuelArena!")
         self.assert_duelarena_deactivated()
+
+    def test_handle_round_count_when_duelarena_activated(self):
+        connected_players(self.plugin,
+                          fake_player(1, "Player 1", team="blue"),
+                          fake_player(2, "Player 2"),
+                          fake_player(3, "Player 3", team="red"),
+                          fake_player(4, "Player 4"))
+
+        self.plugin.handle_round_countdown()
+
+        assert_plugin_center_printed(self.plugin, "Player 3 ^2vs Player 1")
+
+    def test_handle_round_count_when_duelarena_deactivated(self):
+        self.deactivate_duelarena_mode()
+        connected_players(self.plugin,
+                          fake_player(1, "Player 1", team="blue"),
+                          fake_player(2, "Player 2"),
+                          fake_player(3, "Player 3", team="red"),
+                          fake_player(4, "Player 4"))
+
+        self.plugin.handle_round_countdown()
+
+        assert_plugin_center_printed(self.plugin, ANY(str), times=0)
 
     def test_game_countdown_doesn_t_do_anything_when_not_activated(self):
         self.deactivate_duelarena_mode()
