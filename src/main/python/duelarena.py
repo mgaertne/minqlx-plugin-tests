@@ -29,6 +29,7 @@ class duelarena(minqlx.Plugin):
         self.psub = []  # steam_ids of players subscribed to DuelArena
         self.queue = []  # queue for rotating players
         self.switching_players = []  # force spec exception for these players
+        self.scores = {}
 
     # Don't allow players to join manually when DuelArena is active
     def handle_team_switch_event(self, player, old, new):
@@ -41,6 +42,7 @@ class duelarena(minqlx.Plugin):
 
         # If we initiated this switch, allow it
         if player in self.switching_players:
+            self.restore_score(player)
             self.switching_players.remove(player)
             return
 
@@ -51,18 +53,28 @@ class duelarena(minqlx.Plugin):
                 "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
             return minqlx.RET_STOP_ALL
 
+    def restore_score(self, player):
+        if player.steam_id not in self.scores:
+            return
+        player.score = self.scores[player.steam_id]
+
     # When a player connects, display them a message and check if we should switch duel arena
     @minqlx.delay(4)
     def handle_player_connect(self, player):
-        self.undelayed_handle_player_connected_or_disconnected()
+        self.undelayed_handle_player_connected_or_disconnected(player)
 
     # When a player disconnects, display them a message and check if we should switch duel arena
     @minqlx.delay(3)
     def handle_player_disco(self, player, reason):
-        self.undelayed_handle_player_connected_or_disconnected()
+        self.undelayed_handle_player_connected_or_disconnected(player)
 
-    def undelayed_handle_player_connected_or_disconnected(self):
+    def undelayed_handle_player_connected_or_disconnected(self, player):
         self.switch_duelarena_if_necessary()
+
+        if self.duelmode:
+            if player.steam_id in self.scores:
+                del self.scores[player.steam_id]
+            return
 
         player_count = self.count_connected_players()
 
@@ -128,6 +140,7 @@ class duelarena(minqlx.Plugin):
         self.checklists()
 
         self.insert_subscribed_players_to_queue_if_necessary()
+        self.scores = {}
 
         player1 = self.player(self.queue.pop())
         player2 = self.player(self.queue.pop())
@@ -230,6 +243,7 @@ class duelarena(minqlx.Plugin):
         losing_player = self.weakest_player_on(losing_team)
 
         self.put_player_on_team(next_player, losing_team)
+        self.save_scores(losing_player)
         self.put_player_to_spectators_and_back_in_duel_queue(losing_player)
 
     def extract_losing_team_from_round_end_data(self, data):
@@ -254,6 +268,9 @@ class duelarena(minqlx.Plugin):
     def weakest_player_on(self, losing_team):
         teams = self.teams()
         return teams[losing_team][-1]
+
+    def save_scores(self, player):
+        self.scores[player.steam_id] = player.score
 
     def put_player_to_spectators_and_back_in_duel_queue(self, losing_player):
         self.append_player_to_end_of_queue(losing_player.steam_id)
@@ -325,7 +342,7 @@ class duelarena(minqlx.Plugin):
         return len(self.queue) - self.queue.index(player.steam_id)
 
     def subscribe_player(self, player):
-        if not self.player_is_enqueued(player):
+        if not self.player_is_enqueued(player):  # check: this condition will never (or shouldn't) be False.
             self.append_player_to_end_of_queue(player.steam_id)
         self.psub.append(player.steam_id)
 

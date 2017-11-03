@@ -9,7 +9,7 @@ from mockito.matchers import *
 any_team = any(str)
 
 
-def fake_player(steam_id, name, team="spectator", ping=0):
+def fake_player(steam_id, name, team="spectator", score=0, ping=0):
     """A builder for mocked players that assertion can be used to check for certain interactions.
 
     **Make sure to use :func:`mockito.unstub()` after calling this function to avoid side effects spilling into the
@@ -27,6 +27,7 @@ def fake_player(steam_id, name, team="spectator", ping=0):
     player.name = name
     player.team = team
     player.ping = ping
+    player.score = score
     return player
 
 
