@@ -72,13 +72,12 @@ class duelarena(minqlx.Plugin):
         self.switch_duelarena_if_necessary()
 
         if self.duelmode:
-            if player.steam_id in self.scores:
-                del self.scores[player.steam_id]
+            self.delete_saved_score_of(player)
             return
 
         player_count = self.count_connected_players()
 
-        if (player_count == MIN_ACTIVE_PLAYERS or player_count == MAX_ACTIVE_PLAYERS) and not self.duelmode:
+        if player_count == MIN_ACTIVE_PLAYERS or player_count == MAX_ACTIVE_PLAYERS:
             self.center_print(DUEL_ARENA_ANNOUNCEMENT)
             self.msg(DUEL_ARENA_ANNOUNCEMENT)
 
@@ -91,6 +90,10 @@ class duelarena(minqlx.Plugin):
 
         if not self.duelmode and self.should_duelmode_be_activated():
             self.activate_duelarena_mode()
+
+    def delete_saved_score_of(self, player):
+        if player.steam_id in self.scores:
+            del self.scores[player.steam_id]
 
     def checklists(self):
         self.queue[:] = [sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990]
