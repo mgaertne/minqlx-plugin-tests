@@ -1,9 +1,6 @@
+from collections import deque
+
 import minqlx
-
-MIN_ACTIVE_PLAYERS = 3  # with <3 connected and subscribed players we deactive DuelArena
-MAX_ACTIVE_PLAYERS = 5  # with >5 connected players we deactivate DuelArena
-
-DUEL_ARENA_ANNOUNCEMENT = "Type ^6!d ^7for DuelArena!"
 
 
 def in_duelmode(func):
@@ -49,6 +46,12 @@ def game_type(types):
     return _game_decorator
 
 
+MIN_ACTIVE_PLAYERS = 3  # with <3 connected and subscribed players we deactive DuelArena
+MAX_ACTIVE_PLAYERS = 5  # with >5 connected players we deactivate DuelArena
+
+DUEL_ARENA_ANNOUNCEMENT = "Type ^6!d ^7for DuelArena!"
+
+
 class duelarena(minqlx.Plugin):
     """DuelArena will start automatically if at least 3 players opted in (!duel or !d) to the queue.
 
@@ -72,7 +75,7 @@ class duelarena(minqlx.Plugin):
         self.duelmode = False  # global gametype switch
         self.initduel = False  # initial player setup switch
         self.psub = set()  # steam_ids of players subscribed to DuelArena
-        self.queue = []  # queue for rotating players
+        self.queue = deque()  # queue for rotating players
         self.switching_players = set()  # force spec exception for these players
         self.scores = {}
 
@@ -125,7 +128,7 @@ class duelarena(minqlx.Plugin):
         self.deactivate_duelarena_mode()
 
     def checklists(self):
-        self.queue[:] = [sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990]
+        self.queue = deque([sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990])
         self.psub = {sid for sid in self.psub if self.player(sid) and self.player(sid).ping < 990}
 
     def should_duelmode_be_activated(self):
@@ -187,8 +190,8 @@ class duelarena(minqlx.Plugin):
         self.insert_subscribed_players_to_queue_if_necessary()
         self.scores = {}
 
-        player1 = self.player(self.queue.pop())
-        player2 = self.player(self.queue.pop())
+        player1 = self.player(self.queue.popleft())
+        player2 = self.player(self.queue.popleft())
         self.move_players_to_teams(player1, player2)
 
         self.move_all_non_playing_players_to_spec(player1, player2)
@@ -200,7 +203,7 @@ class duelarena(minqlx.Plugin):
             self.append_player_to_end_of_queue(player)
 
     def append_player_to_end_of_queue(self, player):
-        self.queue.insert(0, player)
+        self.queue.append(player)
 
     def move_players_to_teams(self, player1, player2):
         teams = self.teams()
@@ -245,7 +248,7 @@ class duelarena(minqlx.Plugin):
         teams = self.teams()
 
         self.append_player_to_end_of_queue(teams[loser][-1].steam_id)
-        self.queue.append(teams[winner][-1].steam_id)
+        self.queue.appendleft(teams[winner][-1].steam_id)
 
     def extract_winning_and_losing_team_from_game_end_data(self, data):
         if int(data['TSCORE1']) > int(data['TSCORE0']):
@@ -292,13 +295,13 @@ class duelarena(minqlx.Plugin):
         return None
 
     def next_player(self):
-        next_player = self.player(self.queue.pop())
+        next_player = self.player(self.queue.popleft())
 
         teams = self.teams()
 
         while not next_player or next_player not in teams['spectator']:
             try:
-                next_player = self.player(self.queue.pop())
+                next_player = self.player(self.queue.popleft())
             except IndexError:
                 return None
         return next_player
@@ -372,12 +375,12 @@ class duelarena(minqlx.Plugin):
                 place = "2nd"
             elif indicator == 3:
                 place = "3rd"
-            qstring = "^6{}^7: {} ".format(place, player.name) + qstring
+            qstring += "^6{}^7: {} ".format(place, player.name)
 
         self.msg("DuelArena queue: {}".format(qstring))
 
     def position_of_player_in_queue(self, player):
-        return len(self.queue) - self.queue.index(player.steam_id)
+        return self.queue.index(player.steam_id) + 1
 
     def subscribe_player(self, player):
         if not self.player_is_enqueued(player):  # check: this condition will never (or shouldn't) be False.

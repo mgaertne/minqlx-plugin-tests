@@ -24,7 +24,7 @@ class TestDuelArena(unittest.TestCase):
 
     def add_players_to_queue(self, *players):
         for player in players:
-            self.plugin.queue.insert(0, player.steam_id)
+            self.plugin.queue.append(player.steam_id)
 
     def deactivate_duelarena_mode(self):
         self.plugin.duelmode = False
@@ -52,8 +52,7 @@ class TestDuelArena(unittest.TestCase):
         assert_that(self.plugin.psub, contains_inanyorder(*steam_ids))
 
     def assert_player_queue(self, *players):
-        steam_ids = [player.steam_id for player in players]
-        steam_ids.reverse()
+        steam_ids = deque([player.steam_id for player in players])
         assert_that(self.plugin.queue, is_(steam_ids))
 
     def assert_players_were_not_moved_to_any_team(self, *players):
