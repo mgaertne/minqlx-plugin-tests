@@ -7,7 +7,7 @@ import unittest
 from thirtysecwarn import *
 
 
-class TestDuelArenaWorker(unittest.TestCase):
+class test_thirty_second_warn_plugin(unittest.TestCase):
 
     def setUp(self):
         self.warner = thirtysecwarn()
