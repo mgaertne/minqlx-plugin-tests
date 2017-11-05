@@ -14,6 +14,8 @@ class duelarena(minqlx.Plugin):
     """
 
     def __init__(self):
+        super().__init__()
+
         self.add_hook("team_switch_attempt", self.handle_team_switch_event)
         self.add_hook("player_disconnect", self.handle_player_disco)
         self.add_hook("player_connect", self.handle_player_connect)
@@ -26,9 +28,9 @@ class duelarena(minqlx.Plugin):
 
         self.duelmode = False  # global gametype switch
         self.initduel = False  # initial player setup switch
-        self.psub = []  # steam_ids of players subscribed to DuelArena
+        self.psub = set()  # steam_ids of players subscribed to DuelArena
         self.queue = []  # queue for rotating players
-        self.switching_players = []  # force spec exception for these players
+        self.switching_players = set()  # force spec exception for these players
         self.scores = {}
 
     # Don't allow players to join manually when DuelArena is active
@@ -97,7 +99,7 @@ class duelarena(minqlx.Plugin):
 
     def checklists(self):
         self.queue[:] = [sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990]
-        self.psub[:] = [sid for sid in self.psub if self.player(sid) and self.player(sid).ping < 990]
+        self.psub = [sid for sid in self.psub if self.player(sid) and self.player(sid).ping < 990]
 
     def should_duelmode_be_activated(self):
         player_count = self.count_connected_players()
@@ -185,7 +187,7 @@ class duelarena(minqlx.Plugin):
         self.put_player_on_team(player2, "blue")
 
     def put_player_on_team(self, player, team):
-        self.switching_players.append(player)
+        self.switching_players.add(player)
         player.put(team)
 
     def move_all_non_playing_players_to_spec(self, *players):

@@ -20,7 +20,7 @@ class TestDuelArena(unittest.TestCase):
 
     def subscribe_players(self, *players):
         for player in players:
-            self.plugin.psub.insert(0, player.steam_id)
+            self.plugin.psub.add(player.steam_id)
 
     def add_players_to_queue(self, *players):
         for player in players:
@@ -97,7 +97,7 @@ class TestDuelArena(unittest.TestCase):
 
     def test_switch_player_to_red_initiated_by_plugin(self):
         switching_player = fake_player(123, "Fake Player")
-        self.plugin.switching_players.append(switching_player)
+        self.plugin.switching_players.add(switching_player)
         self.plugin.scores[switching_player.steam_id] = 3
 
         return_code = self.plugin.handle_team_switch_event(switching_player, "don't care", "don't care")
@@ -108,7 +108,7 @@ class TestDuelArena(unittest.TestCase):
 
     def test_switch_player_to_blue_initiated_by_plugin(self):
         switching_player = fake_player(123, "Fake Player")
-        self.plugin.switching_players.append(switching_player)
+        self.plugin.switching_players.add(switching_player)
 
         return_code = self.plugin.handle_team_switch_event(switching_player, "don't care", "don't care")
 
@@ -491,8 +491,8 @@ class TestDuelArena(unittest.TestCase):
                           red_player,
                           blue_player,
                           fake_player(3, "Player 3", "red"))
-        self.plugin.switching_players.append(red_player)
-        self.plugin.switching_players.append(blue_player)
+        self.plugin.switching_players.add(red_player)
+        self.plugin.switching_players.add(blue_player)
 
         self.plugin.move_players_to_teams(red_player, blue_player)
 
@@ -572,8 +572,8 @@ class TestDuelArena(unittest.TestCase):
                           red_player,
                           blue_player,
                           speccing_player)
-        self.plugin.switching_players.append(red_player)
-        self.plugin.switching_players.append(blue_player)
+        self.plugin.switching_players.add(red_player)
+        self.plugin.switching_players.add(blue_player)
 
         self.plugin.move_all_non_playing_players_to_spec()
 
@@ -587,8 +587,8 @@ class TestDuelArena(unittest.TestCase):
                           red_player,
                           blue_player,
                           speccing_player)
-        self.plugin.switching_players.append(red_player)
-        self.plugin.switching_players.append(blue_player)
+        self.plugin.switching_players.add(red_player)
+        self.plugin.switching_players.add(blue_player)
 
         self.plugin.move_all_non_playing_players_to_spec()
 
@@ -604,8 +604,8 @@ class TestDuelArena(unittest.TestCase):
                           blue_player,
                           speccing_player1,
                           speccing_player2)
-        self.plugin.switching_players.append(red_player)
-        self.plugin.switching_players.append(blue_player)
+        self.plugin.switching_players.add(red_player)
+        self.plugin.switching_players.add(blue_player)
 
         self.plugin.move_all_non_playing_players_to_spec()
 
