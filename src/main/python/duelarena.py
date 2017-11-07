@@ -168,6 +168,7 @@ class duelarena(minqlx.Plugin):
     @in_duelmode
     def handle_round_countdown(self, *args, **kwargs):
         self.center_print(self.round_announcement())
+        self.msg(self.round_announcement())
 
     def round_announcement(self):
         teams = self.teams()

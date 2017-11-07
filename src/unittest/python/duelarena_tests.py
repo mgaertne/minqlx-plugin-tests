@@ -193,8 +193,8 @@ class test_duel_arena_plugin(unittest.TestCase):
 
         self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
 
-        assert_plugin_sent_to_console(self.plugin, ANY(str), times=0)
-        assert_plugin_center_printed(self.plugin, ANY(str), times=0)
+        assert_plugin_sent_to_console(self.plugin, any(str), times=0)
+        assert_plugin_center_printed(self.plugin, any(str), times=0)
         self.assert_duelarena_deactivated()
 
     def test_5th_player_connects_when_duelarena_deactivated(self):
@@ -249,7 +249,7 @@ class test_duel_arena_plugin(unittest.TestCase):
         self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
 
         assert_plugin_sent_to_console(self.plugin, "DuelArena has been deactivated! You are free to join.")
-        assert_plugin_center_printed(self.plugin, ANY(str), times=0)
+        assert_plugin_center_printed(self.plugin, any(str), times=0)
         self.assert_duelarena_deactivated()
 
     def test_6th_player_connects(self):
@@ -265,8 +265,8 @@ class test_duel_arena_plugin(unittest.TestCase):
 
         self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
 
-        assert_plugin_sent_to_console(self.plugin, ANY(str), times=0)
-        assert_plugin_center_printed(self.plugin, ANY(str), times=0)
+        assert_plugin_sent_to_console(self.plugin, any(str), times=0)
+        assert_plugin_center_printed(self.plugin, any(str), times=0)
         self.assert_duelarena_deactivated()
 
     def test_handle_player_disconnect_broadcast_when_minimum_players_are_left(self):
@@ -399,6 +399,7 @@ class test_duel_arena_plugin(unittest.TestCase):
         self.plugin.handle_round_countdown()
 
         assert_plugin_center_printed(self.plugin, "Player 3 ^2vs Player 1")
+        assert_plugin_sent_to_console(self.plugin, "Player 3 ^2vs Player 1")
 
     def test_handle_round_count_when_duelarena_deactivated(self):
         self.deactivate_duelarena_mode()
@@ -410,7 +411,8 @@ class test_duel_arena_plugin(unittest.TestCase):
 
         self.plugin.handle_round_countdown()
 
-        assert_plugin_center_printed(self.plugin, ANY(str), times=0)
+        assert_plugin_center_printed(self.plugin, any(str), times=0)
+        assert_plugin_sent_to_console(self.plugin, any(str), times=0)
 
     def test_game_countdown_doesn_t_do_anything_when_not_activated(self):
         self.deactivate_duelarena_mode()
