@@ -1,4 +1,3 @@
-from minqlx import Plugin
 from minqlx_plugin_test import *
 
 from mockito import *
@@ -8,7 +7,7 @@ import unittest
 from thirtysecwarn import *
 
 
-class test_thirty_second_warn_plugin(unittest.TestCase):
+class TestThirtySecondWarnPlugin(unittest.TestCase):
 
     def setUp(self):
         self.warner = thirtysecwarn()

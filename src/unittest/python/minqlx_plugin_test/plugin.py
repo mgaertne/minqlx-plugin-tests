@@ -9,7 +9,7 @@ provided by minqlx.
 
 
 def setup_plugin():
-    """Setup a minqlx.Plugin passed in for unit testing.
+    """Setup a minqlx.Plugin for unit testing.
 
     This function will enable spying on certain functions like messages sent to the console through msg,
     and center_prints on the screen.
@@ -30,7 +30,7 @@ def setup_plugin():
 
 
 def setup_cvar(cvar_name, cvar_value, return_type=None):
-    """Setup a minqlx.Plugin passed in with the provided cvar and value.
+    """Setup a minqlx.Plugin with the provided cvar and value.
 
     **Make sure to use :func:`mockito.unstub()` after calling this function to avoid side effects spilling into the
     next test.**
@@ -39,7 +39,7 @@ def setup_cvar(cvar_name, cvar_value, return_type=None):
     :param cvar_value: the value the plugin should return for the cvar
     :param return_type: the type that the get_cvar call shall be casting to. (Default: None)
     """
-    patch(Plugin.get_cvar, lambda: None)
+    spy2(Plugin.get_cvar)
     if return_type is None:
         when2(Plugin.get_cvar, cvar_name).thenReturn(cvar_value)
         return
@@ -48,9 +48,9 @@ def setup_cvar(cvar_name, cvar_value, return_type=None):
 
 
 def assert_plugin_sent_to_console(matcher, times=1):
-    """Verify that a certain text was sent to the console by the plugin.
+    """Verify that a certain text was sent to the console.
 
-    **The plugin needs to be set up via :func:`.setUp_plugin(plugin)` before using this assertion.**
+    **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
@@ -65,7 +65,7 @@ def assert_plugin_sent_to_console(matcher, times=1):
 def assert_plugin_center_printed(matcher, times=1):
     """Verify that a certain text was printed for each player to see.
 
-    **The plugin needs to be set up via :func:`.setUp_plugin(plugin)` before using this assertion.**
+    **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**

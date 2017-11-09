@@ -8,7 +8,7 @@ from hamcrest import *
 from duelarena import *
 
 
-class test_duel_arena_plugin(unittest.TestCase):
+class TestDuelArenaPlugin(unittest.TestCase):
     def setUp(self):
         self.plugin = duelarena()
         setup_plugin()
