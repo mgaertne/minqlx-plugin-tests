@@ -76,3 +76,19 @@ def assert_plugin_center_printed(matcher, times=1):
     message having been shown. (default: 1).
     """
     verify(Plugin, times=times).center_print(matcher)
+
+
+def assert_plugin_played_sound(matcher, times=1):
+    """Verifiy that a certain sound was played for all players.
+
+    **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+
+    :param matcher: A :class:`mockito.matchers` that should match the sound file player for all players and
+    spectators.
+    :param times: The amount of times the plugin should have played the matching sound, set to 0 for no matching
+    sound to have been played. (default: 1).
+    """
+    verify(Plugin, times=times).play_sound(matcher)

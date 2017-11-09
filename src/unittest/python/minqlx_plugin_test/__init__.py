@@ -9,7 +9,8 @@ objects, and interactions with players being simulated to be connected to the se
 """
 __all__ = ['setup_plugin', 'setup_cvar', 'setup_no_game', 'setup_game_in_warmup', 'setup_game_in_progress',
            'assert_plugin_sent_to_console', 'assert_plugin_center_printed',
-           'fake_player', 'connected_players', 'assert_player_was_put_on', 'any_team', 'assert_player_was_told']
+           'fake_player', 'connected_players', 'assert_player_was_put_on', 'any_team', 'assert_player_was_told',
+           'assert_plugin_played_sound']
 
 __package__ = "minqlx_plugin_test"
 __name__ = "minqlx-plugin_test"

@@ -43,21 +43,21 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
 
         self.warner.undelayed_player_thirty_second_warning(4)
 
-        verify(Plugin, times=0).play_sound(any(str))
+        assert_plugin_played_sound(any(str), times=0)
 
     def test_plays_no_sound_when_game_is_not_clan_arena(self):
         setup_game_in_progress(game_type="ft")
 
         self.warner.undelayed_player_thirty_second_warning(4)
 
-        verify(Plugin, times=0).play_sound(any(str))
+        assert_plugin_played_sound(any(str), times=0)
 
     def test_plays_no_sound_when_game_not_in_progress(self):
         setup_game_in_warmup()
 
         self.warner.undelayed_player_thirty_second_warning(4)
 
-        verify(Plugin, times=0).play_sound(any(str))
+        assert_plugin_played_sound(any(str), times=0)
 
     def test_plays_no_sound_when_next_round_started(self):
         calling_round_number = 4
@@ -66,7 +66,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
 
         self.warner.undelayed_player_thirty_second_warning(calling_round_number)
 
-        verify(Plugin, times=0).play_sound(any(str))
+        assert_plugin_played_sound(any(str), times=0)
 
     def test_plays_sound_when_round_still_running(self):
         calling_round_number = 4
@@ -75,7 +75,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
 
         self.warner.undelayed_player_thirty_second_warning(calling_round_number)
 
-        verify(Plugin).play_sound(any(str))
+        assert_plugin_played_sound(any(str))
 
     def test_game_start_initializes_timer_round_number(self):
         self.warner.timer_round_number = 7
