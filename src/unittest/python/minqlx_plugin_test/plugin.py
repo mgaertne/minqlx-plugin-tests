@@ -23,6 +23,8 @@ def setup_plugin():
     when2(Plugin.center_print, any(str)).thenReturn(None)
     spy2(Plugin.play_sound)
     when2(Plugin.play_sound, any(str)).thenReturn(None)
+    spy2(Plugin.players)
+    when2(Plugin.players).thenReturn(None)
     spy2(Plugin.player)
     when2(Plugin.player, any()).thenReturn(None)
 

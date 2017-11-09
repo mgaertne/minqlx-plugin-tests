@@ -1,5 +1,5 @@
 import minqlx
-from minqlx import NonexistentGameError
+from minqlx import Game, NonexistentGameError
 
 from mockito import *
 
@@ -22,7 +22,7 @@ def setup_game_in_warmup(game_type="ca"):
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
     """
-    mock_game = mock(spec=minqlx.Game, strict=False)
+    mock_game = mock(spec=Game, strict=False)
     when2(minqlx.Game).thenReturn(mock_game)
     mock_game.state = "warmup"
     mock_game.type_short = game_type
@@ -40,7 +40,7 @@ def setup_game_in_progress(game_type="ca", roundlimit=8, red_score=0, blue_score
     :param red_score: the current score of the red team (default: 0)
     :param blue_score: the current score of the blue team (default: 0)
     """
-    mock_game = mock(spec=minqlx.Game, strict=False)
+    mock_game = mock(spec=Game, strict=False)
     when2(minqlx.Game).thenReturn(mock_game)
     mock_game.state = "in_progress"
     mock_game.type_short = game_type

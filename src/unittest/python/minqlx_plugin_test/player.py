@@ -40,7 +40,7 @@ def connected_players(*players):
     :param players: the players that are currently on the server, in all possible teams: "red", "blue", "spectator",
     and "free"
     """
-    patch(Plugin.players, lambda: players)
+    when2(Plugin.players).thenReturn(players)
     for player in players:
         when2(Plugin.player, player.steam_id).thenReturn(player)
 
