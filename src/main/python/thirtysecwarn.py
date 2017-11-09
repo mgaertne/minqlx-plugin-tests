@@ -1,9 +1,9 @@
-import minqlx
+from minqlx import Plugin, thread, next_frame
 import time
 import random
 
 
-class thirtysecwarn(minqlx.Plugin):
+class thirtysecwarn(Plugin):
     """Created by Thomas Jones on 01/09/2016 - thomas@tomtecsolutions.com
 
 thirtysecwarn.py - a minqlx plugin to play unused VO when a CA game is nearing the round time limit.
@@ -43,13 +43,13 @@ ShiN0 somewhen in October 2017
         self.timer_round_number = round_number
         self.warntimer(round_number)
 
-    @minqlx.thread
+    @thread
     def warntimer(self, roundnumber):
         timer_delay = self.get_cvar("roundtimelimit", int) - 30
         time.sleep(timer_delay)
         self.play_thirty_second_warning(roundnumber)
 
-    @minqlx.next_frame
+    @next_frame
     def play_thirty_second_warning(self, roundnumber):
         self.undelayed_player_thirty_second_warning(roundnumber)
 
@@ -64,7 +64,7 @@ ShiN0 somewhen in October 2017
             return
 
         # passed all conditions, play sound
-        self.play_sound(self.get_announcer_sound())
+        Plugin.play_sound(self.get_announcer_sound())
 
     def get_announcer_sound(self):
         qlx_thirtySecondWarnAnnouncer = self.get_cvar("qlx_thirtySecondWarnAnnouncer")

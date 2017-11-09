@@ -1,4 +1,4 @@
-import minqlx
+from minqlx import Player, Plugin
 
 from mockito import *
 from mockito.matchers import *
@@ -22,7 +22,7 @@ def fake_player(steam_id, name, team="spectator", score=0, ping=0):
     :return: a mocked player that might be used to set up the game and interactions can be checked with assertion
     functions afterwards.
     """
-    player = mock(spec=minqlx.Player, strict=False)
+    player = mock(spec=Player, strict=False)
     player.steam_id = steam_id
     player.name = name
     player.team = team
@@ -31,19 +31,18 @@ def fake_player(steam_id, name, team="spectator", score=0, ping=0):
     return player
 
 
-def connected_players(plugin, *players):
+def connected_players(*players):
     """Sets up a plugin with the provided players being connected to the server.
 
     **Make sure to use :func:`mockito.unstub()` after calling this function to avoid side effects spilling into the
     next test.**
 
-    :param plugin: the plugin to set up the players given with as being connected to the server
     :param players: the players that are currently on the server, in all possible teams: "red", "blue", "spectator",
     and "free"
     """
-    patch(plugin.players, lambda: players)
+    patch(Plugin.players, lambda: players)
     for player in players:
-        when2(plugin.player, player.steam_id).thenReturn(player)
+        when2(Plugin.player, player.steam_id).thenReturn(player)
 
 
 def assert_player_was_put_on(player, matcher, times=1):

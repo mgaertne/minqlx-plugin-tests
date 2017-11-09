@@ -1,6 +1,6 @@
 from collections import deque
 
-import minqlx
+from minqlx import *
 
 
 def in_duelmode(func):
@@ -128,8 +128,8 @@ class duelarena(minqlx.Plugin):
         self.deactivate_duelarena_mode()
 
     def checklists(self):
-        self.queue = deque([sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990])
-        self.psub = {sid for sid in self.psub if self.player(sid) and self.player(sid).ping < 990}
+        self.queue = deque([sid for sid in self.queue if Plugin.player(sid) and Plugin.player(sid).ping < 990])
+        self.psub = {sid for sid in self.psub if Plugin.player(sid) and Plugin.player(sid).ping < 990}
 
     def should_duelmode_be_activated(self):
         player_count = self.count_connected_players()
@@ -140,13 +140,13 @@ class duelarena(minqlx.Plugin):
     @in_duelmode
     def deactivate_duelarena_mode(self):
         self.duelmode = False
-        self.msg("DuelArena has been deactivated! You are free to join.")
+        Plugin.msg("DuelArena has been deactivated! You are free to join.")
 
     @not_in_duelmode
     def activate_duelarena_mode(self):
         self.duelmode = True
-        self.msg("DuelArena activated!")
-        self.center_print("DuelArena activated!")
+        Plugin.msg("DuelArena activated!")
+        Plugin.center_print("DuelArena activated!")
         if self.game and self.game.state == "in_progress":
             self.initduel = True
 
@@ -159,16 +159,16 @@ class duelarena(minqlx.Plugin):
     def announce_duelarena(self):
         player_count = self.count_connected_players()
         if player_count == MIN_ACTIVE_PLAYERS or player_count == MAX_ACTIVE_PLAYERS:
-            self.center_print(DUEL_ARENA_ANNOUNCEMENT)
-            self.msg(DUEL_ARENA_ANNOUNCEMENT)
+            Plugin.center_print(DUEL_ARENA_ANNOUNCEMENT)
+            Plugin.msg(DUEL_ARENA_ANNOUNCEMENT)
 
     def count_connected_players(self):
         return len(self.players())
 
     @in_duelmode
     def handle_round_countdown(self, *args, **kwargs):
-        self.center_print(self.round_announcement())
-        self.msg(self.round_announcement())
+        Plugin.center_print(self.round_announcement())
+        Plugin.msg(self.round_announcement())
 
     def round_announcement(self):
         teams = self.teams()
@@ -207,7 +207,7 @@ class duelarena(minqlx.Plugin):
         self.queue.append(player)
 
     def move_players_to_teams(self, player1, player2):
-        teams = self.teams()
+        teams = Plugin.teams()
 
         if player1 in teams["red"]:
             if player2 not in teams["blue"]:
@@ -235,7 +235,7 @@ class duelarena(minqlx.Plugin):
         player.put(team)
 
     def move_all_non_playing_players_to_spec(self, *players):
-        teams = self.teams()
+        teams = Plugin.teams()
 
         for player in [player for player in teams['red'] + teams['blue'] if player not in players]:
             player.put("spectator")
@@ -246,7 +246,7 @@ class duelarena(minqlx.Plugin):
         # put both players back to the queue, winner first position, loser last position
         winner, loser = self.extract_winning_and_losing_team_from_game_end_data(data)
 
-        teams = self.teams()
+        teams = Plugin.teams()
 
         self.append_player_to_end_of_queue(teams[loser][-1].steam_id)
         self.queue.appendleft(teams[winner][-1].steam_id)
@@ -296,19 +296,19 @@ class duelarena(minqlx.Plugin):
         return None
 
     def next_player(self):
-        next_player = self.player(self.queue.popleft())
+        next_player = Plugin.player(self.queue.popleft())
 
-        teams = self.teams()
+        teams = Plugin.teams()
 
         while not next_player or next_player not in teams['spectator']:
             try:
-                next_player = self.player(self.queue.popleft())
+                next_player = Plugin.player(self.queue.popleft())
             except IndexError:
                 return None
         return next_player
 
     def weakest_player_on(self, losing_team):
-        teams = self.teams()
+        teams = Plugin.teams()
         return teams[losing_team][-1]
 
     def save_scores(self, player):
@@ -328,7 +328,7 @@ class duelarena(minqlx.Plugin):
 
         if self.player_is_subscribed(player):
             self.unsubscribe_player(player)
-            self.msg("{} ^7left DuelArena.".format(player.name))
+            Plugin.msg("{} ^7left DuelArena.".format(player.name))
             self.printqueue()
             if not self.should_duelmode_be_activated():
                 self.deactivate_duelarena_mode()
@@ -336,14 +336,14 @@ class duelarena(minqlx.Plugin):
 
         self.subscribe_player(player)
         if not self.should_duelmode_be_activated():
-            self.msg(
+            Plugin.msg(
                 "{} ^7entered the DuelArena queue. ^6{}^7 more players needed to start DuelArena. "
                 "Type ^6!duel ^73or ^6!d ^7to enter DuelArena queue."
                 .format(player.name, MIN_ACTIVE_PLAYERS - len(self.psub)))
             self.printqueue()
             return
 
-        self.msg(
+        Plugin.msg(
             "{} ^7entered the DuelArena. Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.".format(player.name))
         self.printqueue()
         self.activate_duelarena_mode()
@@ -361,13 +361,13 @@ class duelarena(minqlx.Plugin):
 
     def printqueue(self):
         if len(self.queue) == 0:
-            self.msg("There's no one in the queue yet. Type ^6!d ^7or ^6!duel ^7to enter the queue.")
+            Plugin.msg("There's no one in the queue yet. Type ^6!d ^7or ^6!duel ^7to enter the queue.")
             return
 
         qstring = ""
 
         for steam_id in self.queue:
-            player = self.player(steam_id)
+            player = Plugin.player(steam_id)
             indicator = self.position_of_player_in_queue(player)
             place = "{}th".format(indicator)
             if indicator == 1:
@@ -378,7 +378,7 @@ class duelarena(minqlx.Plugin):
                 place = "3rd"
             qstring += "^6{}^7: {} ".format(place, player.name)
 
-        self.msg("DuelArena queue: {}".format(qstring))
+        Plugin.msg("DuelArena queue: {}".format(qstring))
 
     def position_of_player_in_queue(self, player):
         return self.queue.index(player.steam_id) + 1
