@@ -8,7 +8,7 @@ from hamcrest import *
 from undecorated import undecorated
 
 from duelarena2 import *
-
+from minqlx import Game
 
 class DuelArenaTests(unittest.TestCase):
 
@@ -420,7 +420,7 @@ class DuelArenaTests(unittest.TestCase):
         connected_players(red_player, blue_player, spec_player)
         self.setup_duelarena_players(red_player, blue_player, spec_player)
         self.queue_up_players(spec_player)
-        self.plugin.scores = {red_player.steam_id: 7, blue_player.steam_id: 5, spec_player.steam_id: 7}
+        self.setup_scores({red_player: 7, blue_player: 5, spec_player: 7})
 
         self.plugin.handle_game_end({"TSCORE0": 8, "TSCORE1": 3})
 
@@ -428,6 +428,10 @@ class DuelArenaTests(unittest.TestCase):
         assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^28^7)")
         assert_plugin_sent_to_console("Place ^32.^7 Speccing Player ^7(Wins:^27^7)")
         assert_plugin_sent_to_console("Place ^33.^7 Blue Player ^7(Wins:^25^7)")
+
+    def setup_scores(self, scores):
+        for player in scores.keys():
+            self.plugin.scores[player.steam_id] = scores[player]
 
     def test_handle_game_end_winner_already_quit(self):
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -450,3 +454,134 @@ class DuelArenaTests(unittest.TestCase):
         return_code = self.plugin.handle_game_end({"TSCORE0": 6, "TSCORE1": 8})
 
         assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_no_game(self):
+        setup_no_game()
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_wrong_gametype(self):
+        setup_game_in_progress("ft")
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_red_team_hit_roundlimit(self):
+        setup_game_in_progress(roundlimit=8, red_score=8, blue_score=4)
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_blue_team_hit_roundlimit(self):
+        setup_game_in_progress(roundlimit=8, red_score=3, blue_score=8)
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_inits_duelarena(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_that(self.plugin.duelmode, is_(True))
+        assert_that(self.plugin.initduel, is_(False))
+
+    def test_handle_round_end_with_no_duelarena_active(self):
+        self.deactivate_duelarena()
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_a_draw(self):
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_red_player_won_stores_red_score(self):
+        setup_game_in_progress(red_score=6, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        self.assert_scores_are({red_player: 6, blue_player: 3, spec_player: 7})
+
+    def assert_scores_are(self, scores):
+        scores_with_steam_ids = {player.steam_id: value for player, value in scores.items()}
+        assert_that(self.plugin.scores, is_(scores_with_steam_ids))
+
+    def test_handle_round_end_blue_player_won_stores_blue_score(self):
+        setup_game_in_progress(red_score=5, blue_score=4)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        self.assert_scores_are({red_player: 5, blue_player: 4, spec_player: 7})
+
+    def test_handle_round_end_next_player_already_on_team(self):
+        setup_game_in_progress(red_score=6, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(self.plugin.duelmode, is_(False))
+
+    def test_handle_round_end_red_player_won_puts_switching_queued_player_to_losing_team(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_player_was_put_on(spec_player, "blue")
+        assert_player_was_put_on(blue_player, "spectator")
+        assert_player_was_told(
+            blue_player, "Blue Player, you've been put back to DuelArena queue. Prepare for your next duel!")
+        self.assert_queue_contains(blue_player)
+
+    def test_handle_round_end_red_player_won_puts_blue_player_on_spec(self):
+        when(self.plugin.game).addteamscore(any(), any()).thenReturn(None)
+        setup_game_in_progress(red_score=6, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        verify(self.plugin.game).addteamscore("blue", 4)
