@@ -335,3 +335,38 @@ class DuelArenaTests(unittest.TestCase):
         assert_player_was_told(
             loaded_player,
             "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
+
+    def test_inits_duelmode_when_game_countdown_starts(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+
+        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+
+        assert_that(self.plugin.duelmode, is_(True))
+
+    def test_deactivates_duelarena_when_game_countdown_starts_with_too_few_players(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player)
+
+        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+
+        self.assert_duelarena_deactivated()
+
+    def test_does_nothing_when_game_countdown_starts_with_too_many_players(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1")
+        spec_player2 = fake_player(4, "Speccing Player2")
+
+        connected_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_duelarena_players(red_player, blue_player)
+
+        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+
+        self.assert_duelarena_deactivated()
+
