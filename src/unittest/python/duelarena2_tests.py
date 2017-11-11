@@ -74,7 +74,7 @@ class DuelArenaTests(unittest.TestCase):
         self.setup_duelarena_players(switching_player, blue_player, spec_player)
         self.activate_duelarena()
 
-        self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
+        self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
         self.assert_playerset_does_not_contain(switching_player)
 
