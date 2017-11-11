@@ -8,7 +8,7 @@ from hamcrest import *
 from undecorated import undecorated
 
 from duelarena2 import *
-from minqlx import Game
+
 
 class DuelArenaTests(unittest.TestCase):
 
@@ -204,7 +204,7 @@ class DuelArenaTests(unittest.TestCase):
 
     def queue_up_players(self, *players):
         for player in players:
-            self.plugin.queue.append(player.steam_id)
+            self.plugin.queue.insert(0, player.steam_id)
 
     def test_handle_round_countdown_with_one_team_empty(self):
         red_player = fake_player(1, "Red Player", "red")
@@ -489,12 +489,39 @@ class DuelArenaTests(unittest.TestCase):
         spec_player = fake_player(3, "Speccing Player")
         connected_players(red_player, blue_player, spec_player)
         self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.initduel = True
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_that(self.plugin.duelmode, is_(True))
         assert_that(self.plugin.initduel, is_(False))
+
+    def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        self.assert_queue_contains(spec_player)
+
+    def test_handle_round_end_puts_specs_on_teams_to_spec(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(spec_player, "spectator")
 
     def test_handle_round_end_with_no_duelarena_active(self):
         self.deactivate_duelarena()

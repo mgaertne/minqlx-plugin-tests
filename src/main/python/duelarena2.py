@@ -166,11 +166,7 @@ class duelarena(minqlx.Plugin):
                 self.player_red = _p
                 loser = teams[empty_team][-1]
                 _p.put(empty_team)
-                score_add = self.scores[next_player] - loser_team_score
-                self.game.addteamscore(empty_team, score_add)  # restore switched player team score
-                minqlx.console_command(
-                    "echo addteamscore empty_team={}, score_add={}, next_player_score={}, loser_team_score={}".format(
-                        empty_team, score_add, self.scores[next_player], loser_team_score))
+                self.game.addteamscore(empty_team, self.scores[next_player] - loser_team_score)
                 self.queue.insert(0, loser.steam_id)
                 self.player_spec = loser.steam_id
                 self.scores[loser.steam_id] = loser_team_score  # store loser team score
