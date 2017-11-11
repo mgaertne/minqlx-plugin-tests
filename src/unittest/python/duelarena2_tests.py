@@ -69,6 +69,8 @@ class DuelArenaTests(unittest.TestCase):
 
     def assert_duelarena_activated(self):
         assert_that(self.plugin.duelmode, is_(True))
+        assert_plugin_center_printed("DuelArena activated!")
+        assert_plugin_sent_to_console("DuelArena activated! Round winner stays in, loser rotates with spectator.")
 
     def deactivate_duelarena(self):
         self.plugin.duelmode = False
@@ -180,6 +182,43 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_that(self.plugin.player_blue, is_(None))
 
+    def test_handle_round_countdown_when_not_in_duelmode(self):
+        self.deactivate_duelarena()
+
+        return_code = self.plugin.handle_round_countdown(42)
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_countdown_announces_matching_parties(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        speccing_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, speccing_player)
+        self.setup_duelarena_players(red_player, blue_player, speccing_player)
+        self.queue_up_players(speccing_player)
+
+        self.plugin.handle_round_countdown(3)
+
+        assert_plugin_center_printed("Red Player ^2vs^7 Blue Player")
+        assert_plugin_sent_to_console("DuelArena: Red Player ^2vs^7 Blue Player")
+
+    def queue_up_players(self, *players):
+        for player in players:
+            self.plugin.queue.append(player)
+
+    def test_handle_round_countdown_with_one_team_empty(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "spectator")
+        speccing_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, speccing_player)
+        self.setup_duelarena_players(red_player, blue_player, speccing_player)
+        self.queue_up_players(speccing_player)
+
+        self.plugin.handle_round_countdown(3)
+
+        assert_plugin_center_printed(any(str), times=0)
+        assert_plugin_sent_to_console(any(str), times=0)
+
     def test_when_player_disconnects_she_gets_removed_from_playerset(self):
         red_player = fake_player(1, "Red Player", "red")
         disconnecting_player = fake_player(2, "Disconnecting Player")
@@ -201,7 +240,98 @@ class DuelArenaTests(unittest.TestCase):
                           disconnecting_player,
                           spec_player)
         self.setup_duelarena_players(red_player, spec_player)
+        self.activate_duelarena()
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
         self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_in_duelarena_third_player_disconnects_duelarena_deactivates(self):
+        red_player = fake_player(1, "Red Player", "red")
+        disconnecting_player = fake_player(2, "Disconnecting Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, disconnecting_player, spec_player)
+        self.setup_duelarena_players(red_player, disconnecting_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.activate_duelarena()
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_duelarena_deactivated()
+
+    def assert_duelarena_deactivated(self):
+        assert_that(self.plugin.duelmode, is_(False))
+        assert_plugin_center_printed("DuelArena deactivated!")
+        assert_plugin_sent_to_console("DuelArena has been deactivated!")
+
+    def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
+        self.queue_up_players(spec_player, disconnecting_player)
+        self.deactivate_duelarena()
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_duelarena_activated()
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_third_player_loaded_announce_duelarena_to_her(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        loaded_player = fake_player(3, "Loaded Player")
+        connected_players(red_player, blue_player, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.deactivate_duelarena()
+
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.")
+
+    def test_when_player_was_loaded_directly_on_team(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        loaded_player = fake_player(3, "Loaded Player", "red")
+        connected_players(red_player, blue_player, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.deactivate_duelarena()
+
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
+
+    def test_when_second_player_was_loaded(self):
+        red_player = fake_player(1, "Red Player", "red")
+        loaded_player = fake_player(3, "Loaded Player")
+        connected_players(red_player, loaded_player)
+        self.setup_duelarena_players(red_player)
+        self.deactivate_duelarena()
+
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
+
+    def test_when_fourth_player_was_loaded(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "spectator")
+        loaded_player = fake_player(4, "Loaded Player")
+        connected_players(red_player, blue_player, spec_player, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.activate_duelarena()
+
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
