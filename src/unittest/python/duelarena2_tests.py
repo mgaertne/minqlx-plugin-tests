@@ -5,6 +5,8 @@ from mockito import *
 from mockito.matchers import *
 from hamcrest import *
 
+from undecorated import undecorated
+
 from duelarena2 import *
 
 
@@ -179,3 +181,29 @@ class DuelArenaTests(unittest.TestCase):
         self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
 
         assert_that(self.plugin.player_blue, is_(None))
+
+    def test_when_player_disconnects_she_gets_removed_from_playerset(self):
+        red_player = fake_player(1, "Red Player", "red")
+        disconnecting_player = fake_player(2, "Disconnecting Player")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player,
+                          disconnecting_player,
+                          spec_player)
+        self.setup_duelarena_players(red_player, disconnecting_player, spec_player)
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_player_not_in_playerset_disconnects_nothing_happens(self):
+        red_player = fake_player(1, "Red Player", "red")
+        disconnecting_player = fake_player(2, "Disconnecting Player")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player,
+                          disconnecting_player,
+                          spec_player)
+        self.setup_duelarena_players(red_player, spec_player)
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_playerset_does_not_contain(disconnecting_player)
