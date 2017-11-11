@@ -87,9 +87,6 @@ class DuelArenaTests(unittest.TestCase):
 
         self.assert_playerset_does_not_contain(switching_player)
 
-    def activate_duelarena(self):
-        self.plugin.duelmode = True
-
     def assert_playerset_does_not_contain(self, *players):
         for player in players:
             assert_that(self.plugin.playerset, not_(contains_inanyorder(player.steam_id)))
@@ -138,7 +135,8 @@ class DuelArenaTests(unittest.TestCase):
         self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
 
         assert_plugin_center_printed("Ready up for ^6DuelArena^7!", times=0)
-        assert_plugin_sent_to_console("Ready up for ^6DuelArena^7! Round winner stays in, loser rotates with spectator.", times=0)
+        assert_plugin_sent_to_console(
+            "Ready up for ^6DuelArena^7! Round winner stays in, loser rotates with spectator.", times=0)
 
     def test_when_duelarena_not_activated_allow_switch(self):
         switching_player = fake_player(3, "Switching Player")
