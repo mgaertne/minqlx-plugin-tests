@@ -1,6 +1,7 @@
 from minqlx import Plugin, thread, next_frame
 import time
 import random
+import threading
 
 
 class thirtysecwarn(Plugin):
@@ -31,33 +32,34 @@ ShiN0 somewhen in October 2017
             "evil": "sound/vo_evil/30_second_warning.ogg"
         }
 
-        self.timer_round_number = 0
+        self.warner_thread_name = None
 
     def handle_game_start(self, game):
-        self.timer_round_number = 0
+        self.warner_thread_name = None
 
     def handle_round_end(self, data):
-        self.timer_round_number += 1
+        self.warner_thread_name = None
 
     def handle_round_start(self, round_number):
-        self.timer_round_number = round_number
-        self.warntimer(round_number)
+        self.warntimer()
 
     @thread
-    def warntimer(self, roundnumber):
+    def warntimer(self):
+        warner_thread_name = threading.current_thread().name
+        self.warner_thread_name = warner_thread_name
         timer_delay = self.get_cvar("roundtimelimit", int) - 30
         time.sleep(timer_delay)
-        self.play_thirty_second_warning(roundnumber)
+        self.play_thirty_second_warning(warner_thread_name)
 
     @next_frame
-    def play_thirty_second_warning(self, roundnumber):
+    def play_thirty_second_warning(self, warner_thread_name):
         if not self.game:
             return
         if not self.game.type_short == "ca":
             return
         if not self.game.state == "in_progress":
             return
-        if not self.timer_round_number == roundnumber:
+        if not self.warner_thread_name == warner_thread_name:
             return
 
         # passed all conditions, play sound

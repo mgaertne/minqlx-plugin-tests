@@ -8,6 +8,7 @@ from thirtysecwarn import *
 
 from undecorated import undecorated
 
+
 class TestThirtySecondWarnPlugin(unittest.TestCase):
 
     def setUp(self):
@@ -70,24 +71,24 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         assert_plugin_played_sound(any(str), times=0)
 
     def test_plays_sound_when_round_still_running(self):
-        calling_round_number = 4
+        warner_thread_name = "test_plays_sound_when_round_still_running1"
         setup_game_in_progress(game_type="ca")
-        self.warner.timer_round_number = calling_round_number
+        self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
+        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any(str))
 
     def test_game_start_initializes_timer_round_number(self):
-        self.warner.timer_round_number = 7
+        self.warner.warner_thread_name = "test_game_start_initializes_timer_round_number1"
 
         self.warner.handle_game_start(None)
 
-        assert_that(self.warner.timer_round_number, is_(0))
+        assert_that(self.warner.warner_thread_name, is_(None))
 
     def test_round_end_increases_round_number(self):
-        self.warner.timer_round_number = 4
+        self.warner.warner_thread_name = "test_round_end_increases_round_number1"
 
         self.warner.handle_round_end(None)
 
-        assert_that(self.warner.timer_round_number, is_(5))
+        assert_that(self.warner.warner_thread_name, is_(None))
