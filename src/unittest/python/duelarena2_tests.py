@@ -295,6 +295,88 @@ class DuelArenaTests(unittest.TestCase):
         self.assert_duelarena_activated()
         self.assert_playerset_does_not_contain(disconnecting_player)
 
+    def test_when_not_in_duelarena_fifth_player_disconnects_duelarena_activates_with_forceduel(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1")
+        spec_player2 = fake_player(5, "Speccing Player2")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2, disconnecting_player)
+        self.queue_up_players(spec_player1, disconnecting_player, spec_player2)
+        self.deactivate_duelarena()
+        self.plugin.forceduel = True
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        assert_that(self.plugin.duelmode, is_(True))
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_not_in_duelarena_fifth_player_disconnects_duelarena_activates_with_forceduel_during_warmup(self):
+        setup_game_in_warmup()
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1")
+        spec_player2 = fake_player(5, "Speccing Player2")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2, disconnecting_player)
+        self.queue_up_players(spec_player1, disconnecting_player, spec_player2)
+        self.deactivate_duelarena()
+        self.plugin.forceduel = True
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        assert_that(self.plugin.duelmode, is_(True))
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_in_duelarena_fourth_player_disconnects_duelarena_activates_with_forceduel(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
+        self.queue_up_players(spec_player, disconnecting_player)
+        self.plugin.forceduel = True
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        assert_that(self.plugin.duelmode, is_(True))
+
+    def test_third_player_disconnects_duelarena_deactivates_with_forceduel(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        disconnecting_player = fake_player(3, "Disconnecting Player")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player, disconnecting_player)
+        self.queue_up_players(disconnecting_player)
+        self.plugin.forceduel = True
+        self.setup_scores({red_player: 7, blue_player: 5, disconnecting_player: 7})
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        assert_that(self.plugin.duelmode, is_(False))
+        assert_that(self.plugin.initduel, is_(False))
+        assert_plugin_sent_to_console("DuelArena results:")
+        assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^27^7)")
+        assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^25^7)")
+
+    def test_third_player_disconnects_duelarena_deactivates_with_forceduel_during_warmup(self):
+        setup_game_in_warmup()
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player, disconnecting_player)
+        self.queue_up_players(disconnecting_player)
+        self.plugin.forceduel = True
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        assert_that(self.plugin.duelmode, is_(False))
+        assert_that(self.plugin.initduel, is_(False))
+
     def test_when_third_player_loaded_announce_duelarena_to_her(self):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
