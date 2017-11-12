@@ -279,6 +279,22 @@ class DuelArenaTests(unittest.TestCase):
         self.assert_duelarena_activated()
         self.assert_playerset_does_not_contain(disconnecting_player)
 
+    def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates_during_warmup(self):
+        setup_game_in_warmup()
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
+        self.queue_up_players(spec_player, disconnecting_player)
+        self.deactivate_duelarena()
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_duelarena_activated()
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
     def test_when_third_player_loaded_announce_duelarena_to_her(self):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -496,6 +512,7 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_that(self.plugin.duelmode, is_(True))
         assert_that(self.plugin.initduel, is_(False))
+        self.assert_scores_are({red_player: 0, blue_player: 0, spec_player: 0})
 
     def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self):
         red_player = fake_player(1, "Red Player" "red")
