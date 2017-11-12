@@ -12,7 +12,7 @@ from undecorated import undecorated
 class TestThirtySecondWarnPlugin(unittest.TestCase):
 
     def setUp(self):
-        self.warner = thirtysecwarn()
+        self.warner = ThirtySecondWarner()
         setup_plugin()
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "standard")
 
@@ -92,3 +92,19 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         self.warner.handle_round_end(None)
 
         assert_that(self.warner.warner_thread_name, is_(None))
+
+    def test_warntimer_sets_thread_name(self):
+        setup_cvar("roundtimelimit", 180, int)
+        patch(time.sleep, lambda int: None)
+
+        undecorated(self.warner.warntimer)(self.warner)
+
+        assert_that(self.warner.warner_thread_name, any(str))
+
+    def test_warntimer_waits_until_30_seconds_before_roundtimelimit(self):
+        setup_cvar("roundtimelimit", 180, int)
+        patch(time.sleep, lambda int: None)
+
+        undecorated(self.warner.warntimer)(self.warner)
+
+        verify(time).sleep(150)
