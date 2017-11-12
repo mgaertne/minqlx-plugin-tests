@@ -345,6 +345,7 @@ class DuelArenaTests(unittest.TestCase):
         assert_that(self.plugin.duelmode, is_(True))
 
     def test_third_player_disconnects_duelarena_deactivates_with_forceduel(self):
+        setup_game_in_progress(red_score=5, blue_score=3)
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         disconnecting_player = fake_player(3, "Disconnecting Player")
@@ -361,6 +362,9 @@ class DuelArenaTests(unittest.TestCase):
         assert_plugin_sent_to_console("DuelArena results:")
         assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^27^7)")
         assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^25^7)")
+        verify(self.plugin.game).addteamscore("red", -5)
+        verify(self.plugin.game).addteamscore("blue", -3)
+
 
     def test_third_player_disconnects_duelarena_deactivates_with_forceduel_during_warmup(self):
         setup_game_in_warmup()
@@ -582,6 +586,7 @@ class DuelArenaTests(unittest.TestCase):
         assert_that(return_code, is_(None))
 
     def test_handle_round_end_inits_duelarena(self):
+        setup_game_in_progress(red_score=5, blue_score=7)
         red_player = fake_player(1, "Red Player" "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -595,6 +600,9 @@ class DuelArenaTests(unittest.TestCase):
         assert_that(self.plugin.duelmode, is_(True))
         assert_that(self.plugin.initduel, is_(False))
         self.assert_scores_are({red_player: 0, blue_player: 0, spec_player: 0})
+        verify(self.plugin.game).addteamscore("red", -5)
+        verify(self.plugin.game).addteamscore("blue", -7)
+
 
     def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self):
         red_player = fake_player(1, "Red Player" "red")
