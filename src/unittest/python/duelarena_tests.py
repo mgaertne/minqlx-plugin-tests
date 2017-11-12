@@ -7,7 +7,7 @@ from hamcrest import *
 
 from undecorated import undecorated
 
-from duelarena2 import *
+from duelarena import *
 
 
 class DuelArenaTests(unittest.TestCase):
