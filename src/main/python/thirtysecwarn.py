@@ -51,9 +51,6 @@ ShiN0 somewhen in October 2017
 
     @next_frame
     def play_thirty_second_warning(self, roundnumber):
-        self.undelayed_player_thirty_second_warning(roundnumber)
-
-    def undelayed_player_thirty_second_warning(self, roundnumber):
         if not self.game:
             return
         if not self.game.type_short == "ca":
