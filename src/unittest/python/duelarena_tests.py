@@ -5,878 +5,840 @@ from mockito import *
 from mockito.matchers import *
 from hamcrest import *
 
-from duelarena import *
+from undecorated import undecorated
+
+from duelarena2 import *
 
 
-class TestDuelArenaPlugin(unittest.TestCase):
+class DuelArenaTests(unittest.TestCase):
+
     def setUp(self):
-        self.plugin = duelarena()
         setup_plugin()
-        setup_game_in_progress()
-        self.activate_duelarena_mode()
+        setup_game_in_progress("ca")
+        connected_players()
+        self.plugin = duelarena()
+        self.activate_duelarena()
+
+    def activate_duelarena(self):
+        self.plugin.duelmode = True
 
     def tearDown(self):
         unstub()
 
-    def subscribe_players(self, *players):
-        for player in players:
-            self.plugin.psub.add(player.steam_id)
-
-    def add_players_to_queue(self, *players):
-        for player in players:
-            self.plugin.queue.append(player.steam_id)
-
-    def deactivate_duelarena_mode(self):
-        self.plugin.duelmode = False
-
-    def activate_duelarena_mode(self):
-        self.plugin.duelmode = True
-
-    def activate_init_duelarena_mode(self):
-        self.plugin.initduel = True
-
-    def assert_duelarena_deactivated(self):
-        assert_that(self.plugin.duelmode, is_(False), "DuelArena should have been deactivated, but was activated")
-
-    def assert_duelarena_activated(self):
-        assert_that(self.plugin.duelmode, is_(True), "DuelArena should have been activated, but was deactivated")
-
-    def assert_duelarena_about_to_initialize(self):
-        assert_that(self.plugin.initduel, is_(True), "DuelArena should have been set for initialization, but was not")
-
-    def assert_duelarena_finished_to_initialize(self):
-        assert_that(self.plugin.initduel, is_(False), "DuelArena should not have been set for initialization, but was")
-
-    def assert_subscribed_players(self, *players):
-        steam_ids = [player.steam_id for player in players]
-        assert_that(self.plugin.psub, contains_inanyorder(*steam_ids))
-
-    def assert_player_queue(self, *players):
-        steam_ids = deque([player.steam_id for player in players])
-        assert_that(self.plugin.queue, is_(steam_ids))
-
-    def assert_players_were_not_moved_to_any_team(self, *players):
-        assert_that(self.plugin.switching_players, is_not(has_items(players)))
-        for player in players:
-            assert_player_was_put_on(player, any_team, times=0)
-
-    def assert_player_was_put_to_team(self, player, matcher):
-        assert_that(self.plugin.switching_players, has_item(player))
-        assert_player_was_put_on(player, matcher)
-
-    def test_enqueue_players(self):
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        player3 = fake_player(3, "Player 3")
-        self.add_players_to_queue(player1, player2, player3)
-
-        self.assert_player_queue(player1, player2, player3)
-
-    def test_switch_player_with_no_duelmode_active(self):
-        self.deactivate_duelarena_mode()
-
-        return_code = self.plugin.handle_team_switch_event(fake_player(123, "Fake Player"), "don't care",
-                                                           "don't care")
-
-        assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
-
-    def test_switch_player_with_no_active_game(self):
+    def test_when_no_running_game_allow_player_switch_attempt(self):
+        switching_player = fake_player(1, "Switching Player")
+        connected_players(switching_player)
         setup_no_game()
-
-        return_code = self.plugin.handle_team_switch_event(fake_player(123, "Fake Player"), "don't care", "don't care")
-
-        assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
-
-    def test_switch_player_with_no_game_in_warmup(self):
-        setup_game_in_warmup()
-
-        return_code = self.plugin.handle_team_switch_event(fake_player(123, "Fake Player"), "don't care", "don't care")
-
-        assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
-
-    def test_switch_player_to_red_initiated_by_plugin(self):
-        switching_player = fake_player(123, "Fake Player")
-        self.plugin.switching_players.add(switching_player)
-        self.plugin.scores[switching_player.steam_id] = 3
-
-        return_code = self.plugin.handle_team_switch_event(switching_player, "don't care", "don't care")
-
-        assert_that(self.plugin.switching_players, is_not(has_item(switching_player)))
-        assert_that(switching_player.score, is_(3))
-        assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
-
-    def test_switch_player_to_blue_initiated_by_plugin(self):
-        switching_player = fake_player(123, "Fake Player")
-        self.plugin.switching_players.add(switching_player)
-
-        return_code = self.plugin.handle_team_switch_event(switching_player, "don't care", "don't care")
-
-        assert_that(self.plugin.switching_players, is_not(has_item(switching_player)))
-        assert_that(switching_player.score, is_(0))
-        assert_that(return_code, is_not(minqlx.RET_STOP_ALL))
-
-    def test_unallowed_switch_from_spec_to_red(self):
-        switching_player = fake_player(123, "Fake Player")
-
-        return_code = self.plugin.handle_team_switch_event(switching_player, "spectators", "red")
-
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player,
-                               "Server is in DuelArena mode. You will automatically join. "
-                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
-
-    def test_unallowed_switch_from_spec_to_blue(self):
-        switching_player = fake_player(123, "Fake Player")
-
-        return_code = self.plugin.handle_team_switch_event(switching_player, "spectators", "blue")
-
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player,
-                               "Server is in DuelArena mode. You will automatically join. "
-                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
-
-    def test_unallowed_switch_from_blue_to_red(self):
-        switching_player = fake_player(123, "Fake Player")
-
-        return_code = self.plugin.handle_team_switch_event(switching_player, "blue", "red")
-
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player,
-                               "Server is in DuelArena mode. You will automatically join. "
-                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
-
-    def test_unallowed_switch_from_red_to_blue(self):
-        switching_player = fake_player(123, "Fake Player")
-
-        return_code = self.plugin.handle_team_switch_event(switching_player, "red", "blue")
-
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_player_was_told(switching_player,
-                               "Server is in DuelArena mode. You will automatically join. "
-                               "Type ^6!duel ^7or ^6!d ^7to enter or to leave the queue")
-
-    def test_switching_to_spectators_is_always_allowed(self):
-        switching_player = fake_player(123, "Fake Player")
 
         return_code = self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
         assert_that(return_code, is_(None))
 
-    def test_2nd_player_connects(self):
-        self.deactivate_duelarena_mode()
-        connecting_player = fake_player(2, "Player 2")
-        connected_players(fake_player(1, "Player 1"), connecting_player)
+    def test_when_player_tries_to_join_any_team_she_gets_added_to_playerset(self):
+        switching_player = fake_player(1, "Switching Player")
+        connected_players(switching_player)
 
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
 
-        self.assert_duelarena_deactivated()
+        self.assert_playerset_contains(switching_player)
 
-    def test_3rd_player_connects(self):
-        self.deactivate_duelarena_mode()
-        connecting_player = fake_player(3, "Player 3")
-        connected_players(fake_player(1, "Player 1"), fake_player(2, "Player 2"), connecting_player)
+    def assert_playerset_contains(self, *players):
+        for player in players:
+            assert_that(self.plugin.playerset, contains_inanyorder(player.steam_id))
 
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
+    def test_when_third_player_tries_to_join_duelarena_gets_activated(self):
+        switching_player = fake_player(3, "Switching Player")
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player,
+                          blue_player,
+                          switching_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.deactivate_duelarena()
 
-        assert_plugin_sent_to_console("Type ^6!d ^7for DuelArena!")
-        assert_plugin_center_printed("Type ^6!d ^7for DuelArena!")
-        self.assert_duelarena_deactivated()
+        return_code = self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
 
-    def test_4th_player_connects(self):
-        self.deactivate_duelarena_mode()
-        connecting_player = fake_player(4, "Player 4")
-        connected_players(fake_player(1, "Player 1"), fake_player(2, "Player 2"), fake_player(3, "Player 3"),
-                          connecting_player)
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
-
-        assert_plugin_sent_to_console(any(str), times=0)
-        assert_plugin_center_printed(any(str), times=0)
-        self.assert_duelarena_deactivated()
-
-    def test_5th_player_connects_when_duelarena_deactivated(self):
-        self.deactivate_duelarena_mode()
-        connecting_player = fake_player(5, "Player 5")
-        connected_players(fake_player(1, "Player 1"), fake_player(2, "Player 2"), fake_player(3, "Player 3"),
-                          fake_player(4, "Player 4"), connecting_player)
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
-
-        assert_plugin_sent_to_console("Type ^6!d ^7for DuelArena!")
-        assert_plugin_center_printed("Type ^6!d ^7for DuelArena!")
-        self.assert_duelarena_deactivated()
-
-    def test_5th_player_connects_when_duelarena_activated(self):
-        connecting_player = fake_player(5, "Player 5")
-        player1 = fake_player(1, "Player 1")
-        player3 = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(player1, fake_player(2, "Player 2"), player3, player4, connecting_player)
-        self.subscribe_players(player1, player3, player4)
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
-
-        assert_plugin_sent_to_console(any(str), times=0)
-        assert_plugin_center_printed(any(str), times=0)
         self.assert_duelarena_activated()
+        assert_player_was_told(switching_player,
+                               "Server is now in ^6DuelArena^7 mode. You will automatically rotate with round loser.")
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
 
-    def test_6th_player_connects_when_duelarena_activated(self):
-        connecting_player = fake_player(5, "Player 5")
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        player6 = fake_player(6, "Player 6")
-        connected_players(player1, player2, fake_player(3, "Player 3"), fake_player(4, "Player 4"), connecting_player,
-                          player6)
-        self.subscribe_players(player1, player6, player2)
+    def setup_duelarena_players(self, *players):
+        for player in players:
+            self.plugin.playerset.append(player.steam_id)
 
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
-
-        assert_plugin_sent_to_console("DuelArena has been deactivated! You are free to join.")
-        assert_plugin_center_printed(any(str), times=0)
-        self.assert_duelarena_deactivated()
-
-    def test_6th_player_connects(self):
-        self.deactivate_duelarena_mode()
-        connecting_player = fake_player(6, "Player 6")
-        connected_players(fake_player(1, "Player 1"), fake_player(2, "Player 2"), fake_player(3, "Player 3"),
-                          fake_player(4, "Player 4"), fake_player(5, "Player 5"), connecting_player)
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(connecting_player)
-
-        assert_plugin_sent_to_console(any(str), times=0)
-        assert_plugin_center_printed(any(str), times=0)
-        self.assert_duelarena_deactivated()
-
-    def test_handle_player_disconnect_broadcast_when_minimum_players_are_left(self):
-        self.deactivate_duelarena_mode()
-        connected_players(fake_player(1, "Player 1", team="blue"), fake_player(2, "Player 2"),
-                          fake_player(3, "Player 3", team="red"))
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(fake_player(5, "Player 5"))
-
-        assert_plugin_sent_to_console("Type ^6!d ^7for DuelArena!")
-        assert_plugin_center_printed("Type ^6!d ^7for DuelArena!")
-        self.assert_duelarena_deactivated()
-
-    def test_handle_player_disconnect_deactivates_duelarena(self):
-        player1 = fake_player(1, "Player 1", team="blue")
-        player2 = fake_player(2, "Player 2")
-        disconnecting_player = fake_player(4, "Player 4")
-        connected_players(player1, player2, fake_player(3, "Player 3", team="red"))
-        self.subscribe_players(player1, player2, disconnecting_player)
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(disconnecting_player)
-
-        assert_plugin_sent_to_console("DuelArena has been deactivated! You are free to join.")
-        self.assert_duelarena_deactivated()
-        self.assert_subscribed_players(player2, player1)
-
-    def test_handle_player_disconnect_activates_duelarena(self):
-        self.deactivate_duelarena_mode()
-        player1 = fake_player(1, "Player 1", team="blue")
-        player2 = fake_player(2, "Player 2")
-        player3 = fake_player(3, "Player 3", team="red")
-        player4 = fake_player(4, "Player 4")
-        disconnecting_player = fake_player(6, "Player 6")
-        connected_players(player1, player2, player3, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(player1, player2, disconnecting_player, player3, player4)
-        self.add_players_to_queue(player1, player2, disconnecting_player, player3, player4)
-        when2(self.plugin.player, 6).thenReturn(None)
-
-        self.plugin.undelayed_handle_player_connected_or_disconnected(disconnecting_player)
-
-        assert_plugin_sent_to_console("DuelArena activated!")
+    def assert_duelarena_activated(self):
+        assert_that(self.plugin.duelmode, is_(True))
         assert_plugin_center_printed("DuelArena activated!")
-        self.assert_duelarena_activated()
-        self.assert_duelarena_about_to_initialize()
-        self.assert_subscribed_players(player1, player2, player3, player4)
-        self.assert_player_queue(player1, player2, player3, player4)
+        assert_plugin_sent_to_console("DuelArena activated! Round winner stays in, loser rotates with spectator.")
 
-    def test_handle_player_disconnect_removes_stored_score_when_duelarena_activated(self):
-        self.activate_duelarena_mode()
-        player1 = fake_player(1, "Player 1", team="blue")
-        disconnecting_player = fake_player(2, "Player 2")
-        player3 = fake_player(3, "Player 3", team="red")
-        player4 = fake_player(4, "Player 4")
-        connected_players(player1, player3, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(player1, disconnecting_player, player3, player4)
-        self.add_players_to_queue(disconnecting_player, player4)
-        self.plugin.scores[disconnecting_player.steam_id] = 5
-        when2(self.plugin.player, 2).thenReturn(None)
+    def deactivate_duelarena(self):
+        self.plugin.duelmode = False
 
-        self.plugin.undelayed_handle_player_connected_or_disconnected(disconnecting_player)
+    def test_when_red_player_switches_to_spec_she_is_removed_from_playerset(self):
+        switching_player = fake_player(1, "Switching Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(spec_player,
+                          blue_player,
+                          switching_player)
+        self.setup_duelarena_players(switching_player, blue_player, spec_player)
+        self.activate_duelarena()
 
-        self.assert_duelarena_activated()
-        self.assert_subscribed_players(player1, player3, player4)
-        self.assert_player_queue(player4)
-        assert_that(self.plugin.scores, not_(has_item(disconnecting_player.steam_id)))
+        self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
-    def test_handle_player_disconnect_activates_duelarena_in_warmup(self):
-        self.deactivate_duelarena_mode()
-        player1 = fake_player(1, "Player 1", team="blue")
-        player2 = fake_player(2, "Player 2")
-        player3 = fake_player(3, "Player 3", team="red")
-        player4 = fake_player(4, "Player 4")
-        disconnecting_player = fake_player(6, "Player 6")
-        connected_players(player1, player2, player3, player4, fake_player(5, "Player 5"))
+        self.assert_playerset_does_not_contain(switching_player)
+
+    def assert_playerset_does_not_contain(self, *players):
+        for player in players:
+            assert_that(self.plugin.playerset, not_(contains_inanyorder(player.steam_id)))
+
+    def test_when_player_switch_to_spec_initiiated_by_plugin_clear_field(self):
+        switching_player = fake_player(1, "Switching Player", "blue")
+        red_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(spec_player,
+                          red_player,
+                          switching_player)
+        self.setup_duelarena_players(switching_player, red_player, spec_player)
+        self.plugin.player_spec = switching_player.steam_id
+        self.activate_duelarena()
+
+        self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
+
+        assert_that(self.plugin.player_spec, is_(None))
+
+    def test_when_game_in_warmup_announcement_is_shown(self):
         setup_game_in_warmup()
-        self.subscribe_players(player1, player2, disconnecting_player, player3, player4)
-        self.add_players_to_queue(player1, player2, disconnecting_player, player3, player4)
-        when2(self.plugin.player, 6).thenReturn(None)
+        switching_player = fake_player(3, "Switching Player")
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player,
+                          blue_player,
+                          switching_player)
+        self.setup_duelarena_players(red_player, blue_player, switching_player)
 
-        self.plugin.undelayed_handle_player_connected_or_disconnected(disconnecting_player)
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
 
-        assert_plugin_sent_to_console("DuelArena activated!")
-        assert_plugin_center_printed("DuelArena activated!")
-        self.assert_duelarena_activated()
-        self.assert_duelarena_finished_to_initialize()
-        self.assert_subscribed_players(player1, player2, player3, player4)
-        self.assert_player_queue(player1, player2, player3, player4)
+        assert_plugin_center_printed("Ready up for ^6DuelArena^7!")
+        assert_plugin_sent_to_console(
+            "Ready up for ^6DuelArena^7! Round winner stays in, loser rotates with spectator.")
 
-    def test_handle_player_disconnect_broadcasts_duelarena(self):
-        self.deactivate_duelarena_mode()
-        connected_players(fake_player(1, "Player 1", team="blue"), fake_player(2, "Player 2"),
-                          fake_player(3, "Player 3", team="red"), fake_player(4, "Player 4"),
-                          fake_player(5, "Player 5"))
+    def test_when_game_in_warmup_with_too_few_players(self):
+        setup_game_in_warmup()
+        switching_player = fake_player(3, "Switching Player")
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player,
+                          blue_player,
+                          switching_player)
+        self.setup_duelarena_players(red_player)
 
-        self.plugin.undelayed_handle_player_connected_or_disconnected(fake_player(6, "Player 6"))
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
 
-        assert_plugin_sent_to_console("Type ^6!d ^7for DuelArena!")
-        assert_plugin_center_printed("Type ^6!d ^7for DuelArena!")
-        self.assert_duelarena_deactivated()
+        assert_plugin_center_printed("Ready up for ^6DuelArena^7!", times=0)
+        assert_plugin_sent_to_console(
+            "Ready up for ^6DuelArena^7! Round winner stays in, loser rotates with spectator.", times=0)
 
-    def test_handle_round_count_when_duelarena_activated(self):
-        connected_players(fake_player(1, "Player 1", team="blue"), fake_player(2, "Player 2"),
-                          fake_player(3, "Player 3", team="red"), fake_player(4, "Player 4"))
+    def test_when_duelarena_not_activated_allow_switch(self):
+        switching_player = fake_player(3, "Switching Player")
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player,
+                          blue_player,
+                          switching_player)
+        self.setup_duelarena_players(red_player)
+        self.deactivate_duelarena()
 
-        self.plugin.handle_round_countdown()
+        return_code = self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
 
-        assert_plugin_center_printed("Player 3 ^2vs Player 1")
-        assert_plugin_sent_to_console("Player 3 ^2vs Player 1")
+        assert_that(return_code, is_(None))
 
-    def test_handle_round_count_when_duelarena_deactivated(self):
-        self.deactivate_duelarena_mode()
-        connected_players(fake_player(1, "Player 1", team="blue"), fake_player(2, "Player 2"),
-                          fake_player(3, "Player 3", team="red"), fake_player(4, "Player 4"))
+    def test_plugin_initiated_switch_to_red(self):
+        switching_player = fake_player(1, "Switching Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(switching_player,
+                          blue_player,
+                          spec_player)
+        self.plugin.player_red = switching_player
+        self.setup_duelarena_players(switching_player, blue_player, spec_player)
 
-        self.plugin.handle_round_countdown()
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "red")
+
+        assert_that(self.plugin.player_red, is_(None))
+
+    def test_plugin_initiated_switch_to_blue(self):
+        red_player = fake_player(1, "Red Player", "red")
+        switching_player = fake_player(2, "Switching Player")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player,
+                          switching_player,
+                          spec_player)
+        self.plugin.player_blue = switching_player
+        self.setup_duelarena_players(red_player, switching_player, spec_player)
+
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
+
+        assert_that(self.plugin.player_blue, is_(None))
+
+    def test_handle_round_countdown_when_not_in_duelmode(self):
+        self.deactivate_duelarena()
+
+        return_code = self.plugin.handle_round_countdown(42)
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_countdown_announces_matching_parties(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        speccing_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, speccing_player)
+        self.setup_duelarena_players(red_player, blue_player, speccing_player)
+        self.queue_up_players(speccing_player)
+
+        self.plugin.handle_round_countdown(3)
+
+        assert_plugin_center_printed("Red Player ^2vs^7 Blue Player")
+        assert_plugin_sent_to_console("DuelArena: Red Player ^2vs^7 Blue Player")
+
+    def queue_up_players(self, *players):
+        for player in players:
+            self.plugin.queue.insert(0, player.steam_id)
+
+    def test_handle_round_countdown_with_one_team_empty(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "spectator")
+        speccing_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, speccing_player)
+        self.setup_duelarena_players(red_player, blue_player, speccing_player)
+        self.queue_up_players(speccing_player)
+
+        self.plugin.handle_round_countdown(3)
 
         assert_plugin_center_printed(any(str), times=0)
         assert_plugin_sent_to_console(any(str), times=0)
 
-    def test_game_countdown_doesn_t_do_anything_when_not_activated(self):
-        self.deactivate_duelarena_mode()
+    def test_when_player_disconnects_she_gets_removed_from_playerset(self):
+        red_player = fake_player(1, "Red Player", "red")
+        disconnecting_player = fake_player(2, "Disconnecting Player")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player,
+                          disconnecting_player,
+                          spec_player)
+        self.setup_duelarena_players(red_player, disconnecting_player, spec_player)
 
-        self.plugin.undelayed_handle_game_countdown()
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_player_not_in_playerset_disconnects_nothing_happens(self):
+        red_player = fake_player(1, "Red Player", "red")
+        disconnecting_player = fake_player(2, "Disconnecting Player")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player,
+                          disconnecting_player,
+                          spec_player)
+        self.setup_duelarena_players(red_player, spec_player)
+        self.activate_duelarena()
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
+
+        self.assert_playerset_does_not_contain(disconnecting_player)
+
+    def test_when_in_duelarena_third_player_disconnects_duelarena_deactivates(self):
+        red_player = fake_player(1, "Red Player", "red")
+        disconnecting_player = fake_player(2, "Disconnecting Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, disconnecting_player, spec_player)
+        self.setup_duelarena_players(red_player, disconnecting_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.activate_duelarena()
+
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
         self.assert_duelarena_deactivated()
 
-    def test_game_countdown_inits_duelarena_when_activated_and_moved_players_to_right_teams(self):
-        red_player = fake_player(1, "Player 1", team="blue")
-        blue_player = fake_player(2, "Player 2")
-        speccing_player = fake_player(3, "Player 3", team="red")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, speccing_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, speccing_player, player4)
-        self.add_players_to_queue(red_player, blue_player, speccing_player, player4)
+    def assert_duelarena_deactivated(self):
+        assert_that(self.plugin.duelmode, is_(False))
+        assert_plugin_center_printed("DuelArena deactivated!")
+        assert_plugin_sent_to_console("DuelArena has been deactivated!")
 
-        self.plugin.undelayed_handle_game_countdown()
+    def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
+        self.queue_up_players(spec_player, disconnecting_player)
+        self.deactivate_duelarena()
 
-        self.assert_player_was_put_to_team(blue_player, "red")
-        assert_player_was_put_on(speccing_player, "spectator")
-        self.assert_duelarena_finished_to_initialize()
-        self.assert_player_queue(speccing_player, player4)
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_game_countdown_inits_duelarena_when_activated_and_keeps_red_player_on_red_team(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        player3 = fake_player(3, "Player 3", team="blue")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, player3, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(player4, player3, blue_player, red_player)
+        self.assert_duelarena_activated()
+        self.assert_playerset_does_not_contain(disconnecting_player)
 
-        self.plugin.undelayed_handle_game_countdown()
+    def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates_during_warmup(self):
+        setup_game_in_warmup()
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
+        self.queue_up_players(spec_player, disconnecting_player)
+        self.deactivate_duelarena()
 
-        self.assert_players_were_not_moved_to_any_team(red_player, blue_player)
-        self.assert_duelarena_finished_to_initialize()
-        self.assert_player_queue(player3, player4)
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_move_players_to_teams_players_already_on_right_team(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3"))
+        self.assert_duelarena_activated()
+        self.assert_playerset_does_not_contain(disconnecting_player)
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_when_not_in_duelarena_fifth_player_disconnects_duelarena_activates_with_forceduel(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1")
+        spec_player2 = fake_player(5, "Speccing Player2")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2, disconnecting_player)
+        self.queue_up_players(spec_player1, disconnecting_player, spec_player2)
+        self.deactivate_duelarena()
+        self.plugin.forceduel = True
 
-        self.assert_players_were_not_moved_to_any_team(red_player, blue_player)
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_move_players_to_teams_players_on_opposing_teams(self):
-        red_player = fake_player(1, "Player 1", team="blue")
-        blue_player = fake_player(2, "Player 2", team="red")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3"))
+        assert_that(self.plugin.duelmode, is_(True))
+        self.assert_playerset_does_not_contain(disconnecting_player)
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_when_not_in_duelarena_fifth_player_disconnects_duelarena_activates_with_forceduel_during_warmup(self):
+        setup_game_in_warmup()
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1")
+        spec_player2 = fake_player(5, "Speccing Player2")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2, disconnecting_player)
+        self.queue_up_players(spec_player1, disconnecting_player, spec_player2)
+        self.deactivate_duelarena()
+        self.plugin.forceduel = True
 
-        self.assert_players_were_not_moved_to_any_team(red_player, blue_player)
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_move_players_to_teams_players_on_blue_team(self):
-        red_player = fake_player(1, "Player 1", team="blue")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3", "red"))
-        self.plugin.switching_players.add(red_player)
-        self.plugin.switching_players.add(blue_player)
+        assert_that(self.plugin.duelmode, is_(True))
+        self.assert_playerset_does_not_contain(disconnecting_player)
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_when_in_duelarena_fourth_player_disconnects_duelarena_activates_with_forceduel(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
+        self.queue_up_players(spec_player, disconnecting_player)
+        self.plugin.forceduel = True
 
-        self.assert_players_were_not_moved_to_any_team(red_player)
-        self.assert_player_was_put_to_team(blue_player, "red")
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_move_players_to_teams_players_on_red_team(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="red")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3", "red"))
+        assert_that(self.plugin.duelmode, is_(True))
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_third_player_disconnects_duelarena_deactivates_with_forceduel(self):
+        setup_game_in_progress(red_score=5, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        disconnecting_player = fake_player(3, "Disconnecting Player")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player, disconnecting_player)
+        self.queue_up_players(disconnecting_player)
+        self.plugin.forceduel = True
+        self.setup_scores({red_player: 7, blue_player: 5, disconnecting_player: 7})
 
-        self.assert_players_were_not_moved_to_any_team(red_player)
-        self.assert_player_was_put_to_team(blue_player, "blue")
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_move_players_to_teams_one_player_speccing(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", "spectator")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3", "red"))
+        assert_that(self.plugin.duelmode, is_(False))
+        assert_that(self.plugin.initduel, is_(False))
+        assert_plugin_sent_to_console("DuelArena results:")
+        assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^27^7)")
+        assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^25^7)")
+        verify(self.plugin.game).addteamscore("red", -5)
+        verify(self.plugin.game).addteamscore("blue", -3)
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_third_player_disconnects_duelarena_deactivates_with_forceduel_during_warmup(self):
+        setup_game_in_warmup()
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        disconnecting_player = fake_player(4, "Disconnecting Player")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player, disconnecting_player)
+        self.queue_up_players(disconnecting_player)
+        self.plugin.forceduel = True
 
-        self.assert_players_were_not_moved_to_any_team(red_player)
-        self.assert_player_was_put_to_team(blue_player, "blue")
+        undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-    def test_move_players_to_teams_both_players_speccing(self):
-        red_player = fake_player(1, "Player 1", "spectator")
-        blue_player = fake_player(2, "Player 2", "spectator")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3", "red"))
+        assert_that(self.plugin.duelmode, is_(False))
+        assert_that(self.plugin.initduel, is_(False))
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_when_third_player_loaded_announce_duelarena_to_her(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        loaded_player = fake_player(3, "Loaded Player")
+        connected_players(red_player, blue_player, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.deactivate_duelarena()
 
-        self.assert_player_was_put_to_team(red_player, "red")
-        self.assert_player_was_put_to_team(blue_player, "blue")
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-    def test_move_players_to_teams_red_player_speccing_blue_player_on_blue_team(self):
-        red_player = fake_player(1, "Player 1", "spectator")
-        blue_player = fake_player(2, "Player 2", "blue")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3", "red"))
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.")
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_when_player_was_loaded_directly_on_team(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        loaded_player = fake_player(3, "Loaded Player", "red")
+        connected_players(red_player, blue_player, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.deactivate_duelarena()
 
-        self.assert_player_was_put_to_team(red_player, "red")
-        self.assert_players_were_not_moved_to_any_team(blue_player)
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-    def test_move_players_to_teams_red_player_speccing_blue_player_on_red_team(self):
-        red_player = fake_player(1, "Player 1", "spectator")
-        blue_player = fake_player(2, "Player 2", "red")
-        connected_players(red_player, blue_player, fake_player(3, "Player 3", "red"))
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
 
-        self.plugin.move_players_to_teams(red_player, blue_player)
+    def test_when_second_player_was_loaded(self):
+        red_player = fake_player(1, "Red Player", "red")
+        loaded_player = fake_player(3, "Loaded Player")
+        connected_players(red_player, loaded_player)
+        self.setup_duelarena_players(red_player)
+        self.deactivate_duelarena()
 
-        self.assert_player_was_put_to_team(red_player, "blue")
-        self.assert_players_were_not_moved_to_any_team(blue_player)
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-    def test_move_non_players_to_spec_from_blue_team(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="red")
-        speccing_player = fake_player(3, "Player 3", team="blue")
-        connected_players(red_player, blue_player, speccing_player)
-        self.plugin.switching_players.add(red_player)
-        self.plugin.switching_players.add(blue_player)
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
 
-        self.plugin.move_all_non_playing_players_to_spec()
+    def test_when_fourth_player_was_loaded(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "spectator")
+        loaded_player = fake_player(4, "Loaded Player")
+        connected_players(red_player, blue_player, spec_player, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.activate_duelarena()
 
-        assert_player_was_put_on(speccing_player, "spectator")
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-    def test_move_non_players_to_spec_from_red_team(self):
-        red_player = fake_player(1, "Player 1", team="blue")
-        blue_player = fake_player(2, "Player 2", team="red")
-        speccing_player = fake_player(3, "Player 3", team="red")
-        connected_players(red_player, blue_player, speccing_player)
-        self.plugin.switching_players.add(red_player)
-        self.plugin.switching_players.add(blue_player)
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, join to activate DuelArena! Round winner stays in, loser rotates with spectator.", times=0)
 
-        self.plugin.move_all_non_playing_players_to_spec()
+    def test_inits_duelmode_when_game_countdown_starts(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
 
-        assert_player_was_put_on(speccing_player, "spectator")
+        undecorated(self.plugin.handle_game_countdown)(self.plugin)
 
-    def test_move_non_players_to_spec_from_red_and_blue_team(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="red")
-        speccing_player1 = fake_player(3, "Player 3", team="blue")
-        speccing_player2 = fake_player(4, "Player 4", team="red")
-        connected_players(red_player, blue_player, speccing_player1, speccing_player2)
-        self.plugin.switching_players.add(red_player)
-        self.plugin.switching_players.add(blue_player)
+        assert_that(self.plugin.duelmode, is_(True))
 
-        self.plugin.move_all_non_playing_players_to_spec()
+    def test_deactivates_duelarena_when_game_countdown_starts_with_too_few_players(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player)
 
-        assert_player_was_put_on(speccing_player1, "spectator")
-        assert_player_was_put_on(speccing_player2, "spectator")
+        undecorated(self.plugin.handle_game_countdown)(self.plugin)
 
-    def test_game_end_with_no_active_game(self):
+        self.assert_duelarena_deactivated()
+
+    def test_does_nothing_when_game_countdown_starts_with_too_many_players(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1")
+        spec_player2 = fake_player(4, "Speccing Player2")
+
+        connected_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_duelarena_players(red_player, blue_player)
+
+        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+
+        self.assert_duelarena_deactivated()
+
+    def test_handle_game_end_with_no_game_ending(self):
         setup_no_game()
 
-        self.plugin.handle_game_end(None)
+        return_code = self.plugin.handle_game_end({})
 
-        verifyNoUnwantedInteractions()
+        assert_that(return_code, is_(None))
 
-    def test_game_end_with_deactivated_duelarena(self):
-        self.deactivate_duelarena_mode()
+    def test_handle_game_end_with_not_duelarena_active(self):
+        self.deactivate_duelarena()
 
-        self.plugin.handle_game_end(None)
+        return_code = self.plugin.handle_game_end({})
 
-        verifyNoUnwantedInteractions()
+        assert_that(return_code, is_(None))
 
-    def test_game_end_with_activated_duelarena_red_team_won_stores_players_back_in_queue(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        player3 = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, player3, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, player3, player4)
-        self.add_players_to_queue(player3, player4)
+    def test_handle_game_end_red_team_wins_puts_winner_back_to_queue(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
 
-        self.plugin.handle_game_end({"TSCORE0": 8, "TSCORE1": 2})
+        self.plugin.handle_game_end({"TSCORE0": 8, "TSCORE1": 3})
 
-        self.assert_player_queue(red_player, player3, player4, blue_player)
+        self.assert_queue_contains(red_player, spec_player, blue_player)
 
-    def test_game_end_with_activated_duelarena_blue_team_won_stores_players_back_in_queue(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        player3 = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, player3, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, player3, player4)
-        self.add_players_to_queue(player3, player4)
+    def assert_queue_contains(self, *players):
+        player_ids = [player.steam_id for player in players]
+        player_ids.reverse()
+        assert_that(self.plugin.queue, is_(player_ids))
 
-        self.plugin.handle_game_end({"TSCORE0": 5, "TSCORE1": 8})
+    def test_handle_game_end_blue_team_wins_puts_winner_back_to_queue(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
 
-        self.assert_player_queue(blue_player, player3, player4, red_player)
+        self.plugin.handle_game_end({"TSCORE0": 2, "TSCORE1": 8})
 
-    def test_round_end_with_no_active_game(self):
+        self.assert_queue_contains(blue_player, spec_player, red_player)
+
+    def test_handle_game_end_prints_results(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 7, blue_player: 5, spec_player: 7})
+
+        self.plugin.handle_game_end({"TSCORE0": 8, "TSCORE1": 3})
+
+        assert_plugin_sent_to_console("DuelArena results:")
+        assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^28^7)")
+        assert_plugin_sent_to_console("Place ^32.^7 Speccing Player ^7(Wins:^27^7)")
+        assert_plugin_sent_to_console("Place ^33.^7 Blue Player ^7(Wins:^25^7)")
+
+    def setup_scores(self, scores):
+        for player in scores.keys():
+            self.plugin.scores[player.steam_id] = scores[player]
+
+    def test_handle_game_end_winner_already_quit(self):
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(blue_player, spec_player)
+        self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
+        self.queue_up_players(spec_player)
+
+        return_code = self.plugin.handle_game_end({"TSCORE0": 8, "TSCORE1": 3})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_game_end_loser_already_quit(self):
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(blue_player, spec_player)
+        self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
+        self.queue_up_players(spec_player)
+
+        return_code = self.plugin.handle_game_end({"TSCORE0": 6, "TSCORE1": 8})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_no_game(self):
         setup_no_game()
 
-        self.plugin.undelayed_handle_round_end(None)
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
-        verifyNoUnwantedInteractions()
+        assert_that(return_code, is_(None))
 
-    def test_round_end_with_no_ca_active(self):
-        setup_game_in_progress(game_type="ft")
+    def test_handle_round_end_with_wrong_gametype(self):
+        setup_game_in_progress("ft")
 
-        self.plugin.undelayed_handle_round_end(None)
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
-        verifyNoUnwantedInteractions()
+        assert_that(return_code, is_(None))
 
-    def test_round_end_red_team_hit_roundlimit(self):
-        setup_game_in_progress(roundlimit=8, red_score=8, blue_score=5)
+    def test_handle_round_end_with_red_team_hit_roundlimit(self):
+        setup_game_in_progress(roundlimit=8, red_score=8, blue_score=4)
 
-        self.plugin.undelayed_handle_round_end(None)
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        verifyNoUnwantedInteractions()
+        assert_that(return_code, is_(None))
 
-    def test_round_end_blue_team_hit_roundlimit(self):
-        setup_game_in_progress(roundlimit=8, red_score=1, blue_score=8)
+    def test_handle_round_end_with_blue_team_hit_roundlimit(self):
+        setup_game_in_progress(roundlimit=8, red_score=3, blue_score=8)
 
-        self.plugin.undelayed_handle_round_end(None)
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        verifyNoUnwantedInteractions()
+        assert_that(return_code, is_(None))
 
-    def test_round_end_with_duelarena_deactived(self):
-        self.deactivate_duelarena_mode()
+    def test_handle_round_end_inits_duelarena(self):
+        setup_game_in_progress(red_score=5, blue_score=7)
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
 
-        self.plugin.undelayed_handle_round_end(None)
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
-        verifyNoUnwantedInteractions()
+        assert_that(self.plugin.duelmode, is_(True))
+        assert_that(self.plugin.initduel, is_(False))
+        self.assert_scores_are({red_player: 0, blue_player: 0, spec_player: 0})
+        verify(self.plugin.game).addteamscore("red", -5)
+        verify(self.plugin.game).addteamscore("blue", -7)
 
-    def test_round_end_with_duel_arena_about_to_init(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        next_player = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, next_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, next_player, player4)
-        self.deactivate_duelarena_mode()
-        self.activate_init_duelarena_mode()
-        self.plugin.scores = {player4.steam_id: 3, red_player.steam_id: 5}
+    def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player)
+        self.plugin.initduel = True
 
-        self.plugin.undelayed_handle_round_end(None)
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
-        self.assert_duelarena_finished_to_initialize()
-        assert_that(self.plugin.scores, is_({}))
+        self.assert_queue_contains(spec_player)
 
-    def test_round_end_with_red_player_won_duel(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        next_player = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, next_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, next_player, player4)
-        self.add_players_to_queue(next_player, player4)
+    def test_handle_round_end_puts_specs_on_teams_to_spec(self):
+        red_player = fake_player(1, "Red Player" "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
 
-        self.plugin.undelayed_handle_round_end({"TEAM_WON": "RED"})
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
-        self.assert_player_was_put_to_team(next_player, "blue")
+        assert_player_was_put_on(spec_player, "spectator")
+
+    def test_handle_round_end_players_already_on_correct_teams(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_players_already_on_opposing_teams(self):
+        red_player = fake_player(1, "Red Player", "blue")
+        blue_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_both_players_on_red(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, "blue")
+
+    def test_handle_round_end_just_red_player_on_blue_team(self):
+        red_player = fake_player(1, "Red Player", "blue")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, "red")
+
+    def test_handle_round_end_just_blue_player_on_blue_team_red_on_spec(self):
+        red_player = fake_player(1, "Red Player", "spectator")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, "red")
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_just_blue_player_on_red_team_red_on_spec(self):
+        red_player = fake_player(1, "Red Player", "spectator")
+        blue_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, "blue")
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_both_players_on_spec(self):
+        red_player = fake_player(1, "Red Player", "spectator")
+        blue_player = fake_player(2, "Blue Player", "spectator")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, "red")
+        assert_player_was_put_on(blue_player, "blue")
+
+    def test_handle_round_end_with_no_duelarena_active(self):
+        self.deactivate_duelarena()
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_with_a_draw(self):
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+
+        assert_that(return_code, is_(None))
+
+    def test_handle_round_end_red_player_won_stores_red_score(self):
+        setup_game_in_progress(red_score=6, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        self.assert_scores_are({red_player: 6, blue_player: 3, spec_player: 7})
+
+    def assert_scores_are(self, scores):
+        scores_with_steam_ids = {player.steam_id: value for player, value in scores.items()}
+        assert_that(self.plugin.scores, is_(scores_with_steam_ids))
+
+    def test_handle_round_end_blue_player_won_stores_blue_score(self):
+        setup_game_in_progress(red_score=5, blue_score=4)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        self.assert_scores_are({red_player: 5, blue_player: 4, spec_player: 7})
+
+    def test_handle_round_end_next_player_already_on_team(self):
+        setup_game_in_progress(red_score=6, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(self.plugin.duelmode, is_(False))
+
+    def test_handle_round_end_red_player_won_puts_switching_queued_player_to_losing_team(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_player_was_put_on(spec_player, "blue")
         assert_player_was_put_on(blue_player, "spectator")
-        self.assert_player_queue(player4, blue_player)
+        assert_player_was_told(
+            blue_player, "Blue Player, you've been put back to DuelArena queue. Prepare for your next duel!")
+        self.assert_queue_contains(blue_player)
 
-    def test_round_end_with_blue_player_won_duel(self):
-        red_player = fake_player(1, "Player 1", team="red", score=2)
-        blue_player = fake_player(2, "Player 2", team="blue", score=5)
-        next_player = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, next_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, next_player, player4)
-        self.add_players_to_queue(next_player, player4)
-        self.plugin.scores[next_player.steam_id] = 3
+    def test_handle_round_end_red_player_won_puts_blue_player_on_spec(self):
+        when(self.plugin.game).addteamscore(any(), any()).thenReturn(None)
+        setup_game_in_progress(red_score=6, blue_score=3)
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(spec_player)
+        self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
 
-        self.plugin.undelayed_handle_round_end({"TEAM_WON": "BLUE"})
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        self.assert_player_was_put_to_team(next_player, "red")
-        assert_player_was_put_on(red_player, "spectator")
-        self.assert_player_queue(player4, red_player)
-        assert_that(self.plugin.scores[red_player.steam_id], is_(2))
+        verify(self.plugin.game).addteamscore("blue", 4)
 
-    def test_round_end_with_next_player_not_a_spectator_picks_next_from_queue(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        next_player = fake_player(3, "Player 3", team="free")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, next_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, next_player, player4)
-        self.add_players_to_queue(next_player, player4)
+    def test_cmd_duelarena_wrong_usage_in_auto_state(self):
+        return_code = self.plugin.cmd_duelarena(None, "!duelarena", None)
 
-        self.plugin.undelayed_handle_round_end({"TEAM_WON": "RED"})
+        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_plugin_sent_to_console("Current DuelArena state is: ^6auto")
 
-        self.assert_player_was_put_to_team(player4, "blue")
-        assert_player_was_put_on(blue_player, "spectator")
-        self.assert_player_queue(blue_player)
+    def test_cmd_duelarena_invalid_parameter_in_force_state(self):
+        self.plugin.forceduel = True
 
-    def test_round_end_with_no_next_player(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        next_player = fake_player(3, "Player 3", team="free")
-        player4 = fake_player(4, "Player 4", team="free")
-        connected_players(red_player, blue_player, next_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, next_player, player4)
-        self.add_players_to_queue(next_player, player4)
+        return_code = self.plugin.cmd_duelarena(None, "!duelarena asdf", None)
 
-        self.plugin.undelayed_handle_round_end({"TEAM_WON": "RED"})
+        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_plugin_sent_to_console("Current DuelArena state is: ^6force")
 
-        self.assert_player_queue()
-        self.assert_duelarena_deactivated()
-        assert_plugin_sent_to_console("DuelArena has been deactivated! You are free to join.")
+    def test_cmd_duelarena_set_to_forced(self):
+        self.plugin.cmd_duelarena(None, ["!duelarena", "force"], None)
 
-    def test_round_end_with_draw(self):
-        red_player = fake_player(1, "Player 1", team="red")
-        blue_player = fake_player(2, "Player 2", team="blue")
-        next_player = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        connected_players(red_player, blue_player, next_player, player4, fake_player(5, "Player 5"))
-        self.subscribe_players(red_player, blue_player, next_player, player4)
-        self.add_players_to_queue(next_player, player4)
+        assert_plugin_sent_to_console("^7Duelarena is now ^6forced^7!")
+        assert_that(self.plugin.forceduel, is_(True))
 
-        self.plugin.undelayed_handle_round_end({"TEAM_WON": "DRAW"})
+    def test_cmd_duelarena_set_to_automatic(self):
+        self.plugin.forceduel = True
+        self.plugin.cmd_duelarena(None, ["!duelarena", "auto"], None)
 
-        assert_player_was_put_on(red_player, any_team, times=0)
-        assert_player_was_put_on(blue_player, any_team, times=0)
-        assert_player_was_put_on(next_player, any_team, times=0)
-        self.assert_player_queue(next_player, player4)
-
-    def test_duel_cmd_with_too_many_connected_players(self):
-        requesting_player = fake_player(6, "Player 6")
-        connected_players(fake_player(1, "Player 1"), fake_player(2, "Player 2"), fake_player(3, "Player 3"),
-                          fake_player(4, "Player 4"), fake_player(5, "Player 5"), requesting_player)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_player_was_told(requesting_player,
-                               "^6!duel^7 command not available with ^66^7 or more players connected")
-
-    def test_duel_cmd_second_player_subscribes(self):
-        self.deactivate_duelarena_mode()
-        player2 = fake_player(2, "Player 2")
-        requesting_player = fake_player(3, "Player 3")
-        connected_players(fake_player(1, "Player 1"), player2, requesting_player, fake_player(4, "Player 4"),
-                          fake_player(5, "Player 5"))
-        self.subscribe_players(player2)
-        self.add_players_to_queue(player2)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7entered the DuelArena queue. "
-                                      "^61^7 more players needed to start DuelArena. "
-                                      "Type ^6!duel ^73or ^6!d ^7to enter DuelArena queue.")
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 3 ")
-        self.assert_subscribed_players(player2, requesting_player)
-        self.assert_player_queue(player2, requesting_player)
-        self.assert_duelarena_deactivated()
-
-    def test_duel_cmd_third_player_subscribes(self):
-        self.deactivate_duelarena_mode()
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        requesting_player = fake_player(3, "Player 3")
-        connected_players(player1, player2, requesting_player, fake_player(4, "Player 4"), fake_player(5, "Player 5"))
-        self.subscribe_players(player2, player1)
-        self.add_players_to_queue(player2, player1)
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7entered the DuelArena. "
-                                      "Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 3 ")
-        self.assert_subscribed_players(player1, player2, requesting_player)
-        self.assert_player_queue(player2, player1, requesting_player)
-        self.assert_duelarena_activated()
-
-    def test_duel_cmd_fourth_player_subscribes(self):
-        requesting_player = fake_player(3, "Player 3")
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, requesting_player, fake_player(4, "Player 4"), player5)
-        self.subscribe_players(player2, player1, player5)
-        self.add_players_to_queue(player2, player1, player5)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7entered the DuelArena. "
-                                      "Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
-        assert_plugin_sent_to_console("DuelArena queue: "
-                                      "^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 5 ^64th^7: Player 3 ")
-        self.assert_subscribed_players(requesting_player, player5, player1, player2)
-        self.assert_player_queue(player2, player1, player5, requesting_player)
-        self.assert_duelarena_activated()
-
-    def test_duel_cmd_fifth_player_subscribes(self):
-        requesting_player = fake_player(3, "Player 3")
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        player4 = fake_player(4, "Player 4")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, requesting_player, player4, player5)
-        self.subscribe_players(player2, player1, player5, player4)
-        self.add_players_to_queue(player2, player1, player5, player4)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7entered the DuelArena. "
-                                      "Type ^6!duel ^7or ^6!d ^7to join DuelArena queue.")
-        assert_plugin_sent_to_console("DuelArena queue: "
-                                      "^61st^7: Player 2 ^62nd^7: Player 1 ^63rd^7: Player 5 "
-                                      "^64th^7: Player 4 ^65th^7: Player 3 ")
-        self.assert_subscribed_players(requesting_player, player5, player1, player2, player4)
-        self.assert_player_queue(player2, player1, player5, player4, requesting_player)
-        self.assert_duelarena_activated()
-
-    def test_duel_cmd_fifth_player_unsubscribes(self):
-        requesting_player = fake_player(3, "Player 3")
-        player1 = fake_player(1, "Player 1", "red")
-        player2 = fake_player(2, "Player 2", "blue")
-        player4 = fake_player(4, "Player 4")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, requesting_player, player4, player5)
-        self.subscribe_players(requesting_player, player2, player4, player1, player5)
-        self.add_players_to_queue(requesting_player, player4, player5)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7left DuelArena.")
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 4 ^62nd^7: Player 5 ")
-        self.assert_subscribed_players(player5, player4, player1, player2)
-        self.assert_player_queue(player4, player5)
-        self.assert_duelarena_activated()
-
-    def test_duel_cmd_fourth_player_unsubscribes(self):
-        requesting_player = fake_player(3, "Player 3")
-        player1 = fake_player(1, "Player 1", "red")
-        player2 = fake_player(2, "Player 2", "blue")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, requesting_player, fake_player(4, "Player 4"), player5)
-        self.subscribe_players(requesting_player, player2, player1, player5)
-        self.add_players_to_queue(requesting_player, player5)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7left DuelArena.")
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 5 ")
-        self.assert_subscribed_players(player5, player1, player2)
-        self.assert_player_queue(player5)
-        self.assert_duelarena_activated()
-
-    def test_duel_cmd_player_not_in_queue_unsubscribes(self):
-        requesting_player = fake_player(3, "Player 3", "red")
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2", "blue")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, requesting_player, fake_player(4, "Player 4"), player5)
-        self.subscribe_players(requesting_player, player2, player1, player5)
-        self.add_players_to_queue(player1, player5)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7left DuelArena.")
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 1 ^62nd^7: Player 5 ")
-        self.assert_subscribed_players(player5, player1, player2)
-        self.assert_player_queue(player1, player5)
-        self.assert_duelarena_activated()
-
-    def test_duel_cmd_third_player_unsubscribes(self):
-        requesting_player = fake_player(3, "Player 3")
-        player1 = fake_player(1, "Player 1", "red")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, fake_player(2, "Player 2", "blue"), requesting_player, fake_player(4, "Player 4"),
-                          player5)
-        self.subscribe_players(requesting_player, player1, player5)
-        self.add_players_to_queue(requesting_player, player5)
-
-        self.plugin.cmd_duel(requesting_player, "!d", None)
-
-        assert_plugin_sent_to_console("Player 3 ^7left DuelArena.")
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 5 ")
-        assert_plugin_sent_to_console("DuelArena has been deactivated! You are free to join.")
-        self.assert_subscribed_players(player5, player1)
-        self.assert_player_queue(player5)
-        self.assert_duelarena_deactivated()
-
-    def test_print_empty_queue(self):
-        requesting_player = fake_player(1, "Player 1")
-        connected_players(requesting_player)
-
-        self.plugin.cmd_printqueue(requesting_player, "!q", None)
-
-        assert_plugin_sent_to_console("There's no one in the queue yet. Type ^6!d ^7or ^6!duel ^7to enter the queue.")
-
-    def test_print_queue_with_players(self):
-        requesting_player = fake_player(3, "Player 3")
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        player4 = fake_player(4, "Player 4")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, requesting_player, player4, player5)
-        self.add_players_to_queue(player1, player2, requesting_player, player4, player5)
-
-        self.plugin.cmd_printqueue(requesting_player, "!q", None)
-
-        assert_plugin_sent_to_console("DuelArena queue: ^61st^7: Player 1 ^62nd^7: Player 2 ^63rd^7: Player 3 "
-                                      "^64th^7: Player 4 ^65th^7: Player 5 ")
-
-    def test_print_queue_with_too_many_connected_players(self):
-        requesting_player = fake_player(6, "Player 6")
-        player1 = fake_player(1, "Player 1")
-        player2 = fake_player(2, "Player 2")
-        player3 = fake_player(3, "Player 3")
-        player4 = fake_player(4, "Player 4")
-        player5 = fake_player(5, "Player 5")
-        connected_players(player1, player2, player3, player4, player5, requesting_player)
-        self.add_players_to_queue(player1, player2, player3, player4, player5)
-
-        self.plugin.cmd_printqueue(requesting_player, "!q", None)
-
-        assert_player_was_told(requesting_player,
-                               "^6!queue^7 command not available with ^66^7 or more players connected")
+        assert_plugin_sent_to_console("^7Duelarena is now ^6automatic^7!")
+        assert_that(self.plugin.forceduel, is_(False))
