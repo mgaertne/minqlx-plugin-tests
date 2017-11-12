@@ -365,7 +365,6 @@ class DuelArenaTests(unittest.TestCase):
         verify(self.plugin.game).addteamscore("red", -5)
         verify(self.plugin.game).addteamscore("blue", -3)
 
-
     def test_third_player_disconnects_duelarena_deactivates_with_forceduel_during_warmup(self):
         setup_game_in_warmup()
         red_player = fake_player(1, "Red Player", "red")
@@ -603,7 +602,6 @@ class DuelArenaTests(unittest.TestCase):
         verify(self.plugin.game).addteamscore("red", -5)
         verify(self.plugin.game).addteamscore("blue", -7)
 
-
     def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self):
         red_player = fake_player(1, "Red Player" "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -817,3 +815,30 @@ class DuelArenaTests(unittest.TestCase):
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         verify(self.plugin.game).addteamscore("blue", 4)
+
+    def test_cmd_duelarena_wrong_usage_in_auto_state(self):
+        return_code = self.plugin.cmd_duelarena(None, "!duelarena", None)
+
+        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_plugin_sent_to_console("Current DuelArena state is: ^6auto")
+
+    def test_cmd_duelarena_invalid_parameter_in_force_state(self):
+        self.plugin.forceduel = True
+
+        return_code = self.plugin.cmd_duelarena(None, "!duelarena asdf", None)
+
+        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_plugin_sent_to_console("Current DuelArena state is: ^6force")
+
+    def test_cmd_duelarena_set_to_forced(self):
+        self.plugin.cmd_duelarena(None, ["!duelarena", "force"], None)
+
+        assert_plugin_sent_to_console("^7Duelarena is now ^6forced^7!")
+        assert_that(self.plugin.forceduel, is_(True))
+
+    def test_cmd_duelarena_set_to_automatic(self):
+        self.plugin.forceduel = True
+        self.plugin.cmd_duelarena(None, ["!duelarena", "auto"], None)
+
+        assert_plugin_sent_to_console("^7Duelarena is now ^6automatic^7!")
+        assert_that(self.plugin.forceduel, is_(False))
