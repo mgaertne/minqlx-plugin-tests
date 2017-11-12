@@ -192,8 +192,8 @@ class duelarena(minqlx.Plugin):
         self.player_blue = self.player(self.queue.pop())
 
         # both players already on different teams? Do nothing
-        if (self.player_blue.team != 'blue' and self.player_red.team != 'red') or (
-                self.player_blue.team != 'red' and self.player_red.team != 'blue'):
+        if (self.player_blue.team != 'blue' or self.player_red.team != 'red') and \
+                (self.player_blue.team != 'red' or self.player_red.team != 'blue'):
             # only one player already in any team?
             if self.player_red.team == 'red':
                 self.player_blue.put("blue")

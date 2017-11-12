@@ -523,6 +523,104 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_player_was_put_on(spec_player, "spectator")
 
+    def test_handle_round_end_players_already_on_correct_teams(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_players_already_on_opposing_teams(self):
+        red_player = fake_player(1, "Red Player", "blue")
+        blue_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_both_players_on_red(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, "blue")
+
+    def test_handle_round_end_just_red_player_on_blue_team(self):
+        red_player = fake_player(1, "Red Player", "blue")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, "red")
+
+    def test_handle_round_end_just_blue_player_on_blue_team_red_on_spec(self):
+        red_player = fake_player(1, "Red Player", "spectator")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player = fake_player(3, "Speccing Player", "red")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, "red")
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_just_blue_player_on_red_team_red_on_spec(self):
+        red_player = fake_player(1, "Red Player", "spectator")
+        blue_player = fake_player(2, "Blue Player", "red")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, "blue")
+        assert_player_was_put_on(blue_player, any(str), times=0)
+
+    def test_handle_round_end_both_players_on_spec(self):
+        red_player = fake_player(1, "Red Player", "spectator")
+        blue_player = fake_player(2, "Blue Player", "spectator")
+        spec_player = fake_player(3, "Speccing Player", "blue")
+        connected_players(red_player, blue_player, spec_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player)
+        self.queue_up_players(red_player, blue_player, spec_player)
+        self.plugin.initduel = True
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+
+        assert_player_was_put_on(red_player, "red")
+        assert_player_was_put_on(blue_player, "blue")
+
     def test_handle_round_end_with_no_duelarena_active(self):
         self.deactivate_duelarena()
 
