@@ -40,12 +40,18 @@ class duelarena(minqlx.Plugin):
 
         if new in ['red', 'blue', 'any'] and player.steam_id not in self.playerset:
             self.playerset.add(player.steam_id)  # player joined a team? Add him to playerset
-            self.duelarena_switch(player)  # we good enough for DuelArena?
+            # Player switched into a team and game is already in progress? Give him first queue position!
+            if self.game.state == "in_progress":
+                self.queue.append(player.steam_id)
+            self.duelarena_switch()  # we good enough for DuelArena?
         elif new in ['spectator'] \
                 and player.steam_id in self.playerset:  # player left team? let's see what we do with him...
             if player.steam_id != self.player_spec:  # player initiated switch to spec? Remove him from playerset
                 self.playerset.remove(player.steam_id)
-                self.duelarena_switch(player)
+                # Player switched into a team and game is already in progress? Give him first queue position!
+                if self.game.state == "in_progress":
+                    self.queue.append(player.steam_id)
+                self.duelarena_switch()
             else:  # player.steam_id == self.player_spec:
                 #  we initiated switch to spec? Only remove him from exception list
                 self.player_spec = None
@@ -221,51 +227,44 @@ class duelarena(minqlx.Plugin):
 
         self.initduel = False
 
-    def duelarena_switch(self, player=None):
+    def duelarena_switch(self):
 
         self.checklists()
 
-        # admin forced Duelarena?
-        if self.forceduel:
-            if not self.duelmode and len(self.playerset) > 2:
-                self.duelmode = True
-                if self.game.state == "in_progress":
-                    self.initduel = True
-            elif self.duelmode and len(self.playerset) < 3:
-                self.duelmode = False
-                self.initduel = False
-                if self.game.state == "in_progress":
-                    self.print_results()
-                    self.reset_team_scores()
-            return
-
-        # Main conditions not true? Skip the switch
-        if not self.duelmode and len(self.playerset) != 3:
-            return
-
-        if self.duelmode:
-            if len(self.playerset) != 3:
-                self.duelmode = False
-                self.initduel = False
-                self.msg("DuelArena has been deactivated!")
-                self.center_print("DuelArena deactivated!")
-                if self.game.state == "in_progress":
-                    self.print_results()
-                    self.reset_team_scores()
-        else:  # we already left the switch for the relevant cases
-            self.duelmode = True
-            self.msg("DuelArena activated! Round winner stays in, loser rotates with spectator.")
-            self.center_print("DuelArena activated!")
-            if self.game and self.game.state == "in_progress":
-                if player:
-                    # Player switched into a team and game is already in progress? Give him first queue position!
-                    self.queue.append(player.steam_id)
-                self.initduel = True
+        if not self.duelmode and self.duelarena_should_be_activated():
+            self.activate_duelarena()
+        elif self.duelmode and not self.duelarena_should_be_activated():
+            self.deactivate_duelarena()
 
         minqlx.console_command(
             "echo duelarena_switch: duelmode={}, len_playerset={}, initduel={}".format(self.duelmode,
                                                                                        len(self.playerset),
                                                                                        self.initduel))
+
+    def duelarena_should_be_activated(self):
+        if len(self.playerset) == 3:
+            return True
+
+        if self.forceduel and len(self.playerset) > 2:
+            return True
+
+        return False
+
+    def deactivate_duelarena(self):
+        self.duelmode = False
+        self.initduel = False
+        self.msg("DuelArena has been deactivated!")
+        self.center_print("DuelArena deactivated!")
+        if self.game.state == "in_progress":
+            self.print_results()
+            self.reset_team_scores()
+
+    def activate_duelarena(self):
+        self.duelmode = True
+        self.msg("DuelArena activated! Round winner stays in, loser rotates with spectator.")
+        self.center_print("DuelArena activated!")
+        if self.game.state == "in_progress":
+            self.initduel = True
 
     def checklists(self):
         self.queue[:] = [sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990]

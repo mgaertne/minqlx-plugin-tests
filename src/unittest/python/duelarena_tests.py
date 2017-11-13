@@ -58,7 +58,7 @@ class DuelArenaTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
 
-        self.assert_duelarena_activated()
+        self.assert_duelarena_has_been_activated()
         assert_player_was_told(switching_player,
                                "Server is now in ^6DuelArena^7 mode. You will automatically rotate with round loser.")
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
@@ -67,7 +67,7 @@ class DuelArenaTests(unittest.TestCase):
         for player in players:
             self.plugin.playerset.add(player.steam_id)
 
-    def assert_duelarena_activated(self):
+    def assert_duelarena_has_been_activated(self):
         assert_that(self.plugin.duelmode, is_(True))
         assert_plugin_center_printed("DuelArena activated!")
         assert_plugin_sent_to_console("DuelArena activated! Round winner stays in, loser rotates with spectator.")
@@ -257,10 +257,11 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        self.assert_duelarena_deactivated()
+        self.assert_duelarena_has_been_deactivated()
 
-    def assert_duelarena_deactivated(self):
+    def assert_duelarena_has_been_deactivated(self):
         assert_that(self.plugin.duelmode, is_(False))
+        assert_that(self.plugin.initduel, is_(False))
         assert_plugin_center_printed("DuelArena deactivated!")
         assert_plugin_sent_to_console("DuelArena has been deactivated!")
 
@@ -276,7 +277,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        self.assert_duelarena_activated()
+        self.assert_duelarena_has_been_activated()
         self.assert_playerset_does_not_contain(disconnecting_player)
 
     def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates_during_warmup(self):
@@ -292,7 +293,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        self.assert_duelarena_activated()
+        self.assert_duelarena_has_been_activated()
         self.assert_playerset_does_not_contain(disconnecting_player)
 
     def test_when_not_in_duelarena_fifth_player_disconnects_duelarena_activates_with_forceduel(self):
@@ -309,7 +310,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.duelmode, is_(True))
+        self.assert_duelarena_has_been_activated()
         self.assert_playerset_does_not_contain(disconnecting_player)
 
     def test_when_not_in_duelarena_fifth_player_disconnects_duelarena_activates_with_forceduel_during_warmup(self):
@@ -327,10 +328,10 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.duelmode, is_(True))
+        self.assert_duelarena_has_been_activated()
         self.assert_playerset_does_not_contain(disconnecting_player)
 
-    def test_when_in_duelarena_fourth_player_disconnects_duelarena_activates_with_forceduel(self):
+    def test_when_in_forced_duelarena_fourth_player_disconnects_duelarena_stays_activated(self):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -357,8 +358,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.duelmode, is_(False))
-        assert_that(self.plugin.initduel, is_(False))
+        self.assert_duelarena_has_been_deactivated()
         assert_plugin_sent_to_console("DuelArena results:")
         assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^27^7)")
         assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^25^7)")
@@ -377,7 +377,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.duelmode, is_(False))
+        self.assert_duelarena_has_been_deactivated()
         assert_that(self.plugin.initduel, is_(False))
 
     def test_when_third_player_loaded_announce_duelarena_to_her(self):
@@ -456,7 +456,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_game_countdown)(self.plugin)
 
-        self.assert_duelarena_deactivated()
+        self.assert_duelarena_has_been_deactivated()
 
     def test_does_nothing_when_game_countdown_starts_with_too_many_players(self):
         red_player = fake_player(1, "Red Player" "red")
@@ -469,7 +469,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_game_countdown)(self.plugin)
 
-        self.assert_duelarena_deactivated()
+        self.assert_duelarena_has_been_deactivated()
 
     def test_handle_game_end_with_no_game_ending(self):
         setup_no_game()
