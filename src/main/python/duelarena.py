@@ -28,22 +28,25 @@ class duelarena(minqlx.Plugin):
         # initialize playerset on plugin reload
         teams = self.teams()
         for _p in teams['red'] + teams['blue']:
-            if _p.steam_id not in self.playerset: self.playerset.append(_p.steam_id)
+            if _p.steam_id not in self.playerset:
+                self.playerset.append(_p.steam_id)
 
     # Don't allow players to join manually when DuelArena is active
     def handle_team_switch_event(self, player, old, new):
 
-        if not self.game: return
+        if not self.game:
+            return
 
         if new in ['red', 'blue', 'any'] and player.steam_id not in self.playerset:
             self.playerset.append(player.steam_id)  # player joined a team? Add him to playerset
             self.duelarena_switch(player)  # we good enough for DuelArena?
-        elif new in [
-            'spectator'] and player.steam_id in self.playerset:  # oh, player left team? let's see what we do with him...
+        elif new in ['spectator'] \
+                and player.steam_id in self.playerset:  # player left team? let's see what we do with him...
             if player.steam_id != self.player_spec:  # player initiated switch to spec? Remove him from playerset
                 self.playerset.remove(player.steam_id)
                 self.duelarena_switch(player)
-            elif player.steam_id == self.player_spec:  # we initiated switch to spec? Only remove him from exception list
+            else:  # player.steam_id == self.player_spec:
+                #  we initiated switch to spec? Only remove him from exception list
                 self.player_spec = None
 
         if self.game.state == "warmup" and len(self.playerset) == 3:
@@ -53,7 +56,8 @@ class duelarena(minqlx.Plugin):
         elif self.game.state == "warmup":
             return
 
-        if not self.duelmode: return
+        if not self.duelmode:
+            return
 
         # If we initiated this switch, allow it
         if player == self.player_red or player == self.player_blue:
@@ -98,7 +102,8 @@ class duelarena(minqlx.Plugin):
 
     def handle_game_end(self, data):
 
-        if not self.game: return
+        if not self.game:
+            return
 
         # put both players back to the queue, winner first position, loser last position
         if self.duelmode:
@@ -112,15 +117,13 @@ class duelarena(minqlx.Plugin):
 
             teams = self.teams()
 
-            try:
+            if len(teams[loser]) == 1:
                 self.queue.insert(0, teams[loser][-1].steam_id)
-            except:
-                pass
-            try:
+            if len(teams[winner]) == 1:
                 self.queue.append(teams[winner][-1].steam_id)
+                if not teams[winner][-1].steam_id in self.scores.keys():
+                    self.scores[teams[winner][-1].steam_id] = 0
                 self.scores[teams[winner][-1].steam_id] += 1
-            except:
-                pass
 
             self.print_results()
 
@@ -128,7 +131,8 @@ class duelarena(minqlx.Plugin):
     def handle_round_end(self, data):
 
         # Not in CA? Do nothing
-        if (self.game is None) or (self.game.type_short != "ca"): return
+        if (self.game is None) or (self.game.type_short != "ca"):
+            return
 
         # Last round? Do nothing except adding last score point to winner
         if self.game.roundlimit in [self.game.blue_score, self.game.red_score]:
@@ -175,7 +179,8 @@ class duelarena(minqlx.Plugin):
                     "{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
                 cancelduel = False
 
-            if cancelduel: self.duelmode = False  # no specs found? Deactivate DuelArena
+            if cancelduel:
+                self.duelmode = False  # no specs found? Deactivate DuelArena
 
     def init_duel(self):
 
@@ -234,7 +239,8 @@ class duelarena(minqlx.Plugin):
             return
 
         # Main conditions not true? Skip the switch
-        if not self.duelmode and len(self.playerset) != 3: return
+        if not self.duelmode and len(self.playerset) != 3:
+            return
 
         if self.duelmode:
             if len(self.playerset) != 3:
@@ -245,20 +251,20 @@ class duelarena(minqlx.Plugin):
                 if self.game.state == "in_progress":
                     self.print_results()
                     self.reset_team_scores()
-        elif not self.duelmode:
-            if len(self.playerset) == 3:
-                self.duelmode = True
-                self.msg("DuelArena activated! Round winner stays in, loser rotates with spectator.")
-                self.center_print("DuelArena activated!")
-                if self.game and self.game.state == "in_progress":
-                    if player: self.queue.append(
-                        player.steam_id)  # Player switched into a team and game is already in progress? Give him first queue position!
-                    self.initduel = True
+        else:  # we already left the switch for the relevant cases
+            self.duelmode = True
+            self.msg("DuelArena activated! Round winner stays in, loser rotates with spectator.")
+            self.center_print("DuelArena activated!")
+            if self.game and self.game.state == "in_progress":
+                if player:
+                    # Player switched into a team and game is already in progress? Give him first queue position!
+                    self.queue.append(player.steam_id)
+                self.initduel = True
 
-        minqlx.console_command("echo duelarena_switch: duelmode={}, len_playerset={}, initduel={}".format(self.duelmode,
-                                                                                                          len(
-                                                                                                              self.playerset),
-                                                                                                          self.initduel))
+        minqlx.console_command(
+            "echo duelarena_switch: duelmode={}, len_playerset={}, initduel={}".format(self.duelmode,
+                                                                                       len(self.playerset),
+                                                                                       self.initduel))
 
     def checklists(self):
 
@@ -281,16 +287,19 @@ class duelarena(minqlx.Plugin):
         place = 0
         prev_score = -1
         for pscore in sorted(self.scores.items(), key=lambda x: x[1], reverse=True):
-            if pscore[1] != prev_score: place += 1
+            if pscore[1] != prev_score:
+                place += 1
             prev_score = pscore[1]
             player = self.player(pscore[0])
-            if player: self.msg("Place ^3{}.^7 {} ^7(Wins:^2{}^7)".format(place, player.name, pscore[1]))
+            if player:
+                self.msg("Place ^3{}.^7 {} ^7(Wins:^2{}^7)".format(place, player.name, pscore[1]))
 
     def cmd_duelarena(self, player, msg, channel):
 
         if len(msg) < 2 or msg[1] not in ["auto", "force"]:
             state = "auto"
-            if self.forceduel: state = "force"
+            if self.forceduel:
+                state = "force"
             self.msg("Current DuelArena state is: ^6{}".format(state))
             return minqlx.RET_USAGE
         if msg[1] == "force":
