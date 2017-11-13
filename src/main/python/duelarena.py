@@ -162,26 +162,23 @@ class duelarena(minqlx.Plugin):
 
             next_player = self.queue.pop()
 
-            cancelduel = True
-
             _p = self.player(next_player)
 
-            if _p.team == "spectator":
-                self.player_blue = _p
-                self.player_red = _p
-                loser = teams[empty_team][-1]
-                _p.put(empty_team)
-                self.game.addteamscore(empty_team, self.scores[next_player] - loser_team_score)
-                self.queue.insert(0, loser.steam_id)
-                self.player_spec = loser.steam_id
-                self.scores[loser.steam_id] = loser_team_score  # store loser team score
-                loser.put("spectator")
-                loser.tell(
-                    "{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
-                cancelduel = False
+            if _p.team != "spectator":
+                self.duelmode = False
+                return
 
-            if cancelduel:
-                self.duelmode = False  # no specs found? Deactivate DuelArena
+            self.player_blue = _p
+            self.player_red = _p
+            loser = teams[empty_team][-1]
+            _p.put(empty_team)
+            self.game.addteamscore(empty_team, self.scores[next_player] - loser_team_score)
+            self.queue.insert(0, loser.steam_id)
+            self.player_spec = loser.steam_id
+            self.scores[loser.steam_id] = loser_team_score  # store loser team score
+            loser.put("spectator")
+            loser.tell(
+                "{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
 
     def init_duel(self):
 
