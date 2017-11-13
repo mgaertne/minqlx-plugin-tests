@@ -2,6 +2,8 @@
 
 import minqlx
 
+from abc import abstractmethod
+
 
 class duelarena(minqlx.Plugin):
     def __init__(self):
@@ -16,7 +18,7 @@ class duelarena(minqlx.Plugin):
         self.add_hook("game_end", self.handle_game_end)
         self.add_command("duelarena", self.cmd_duelarena, 1, usage="[auto|force]")
 
-        self.forceduel = False  # False: Start Duelarena automatically, True: Force Duelarena
+        self.duelarenastrategy = AutoDuelArenaStrategy()
         self.duelmode = False  # global gametype switch
         self.initduel = False  # initial player setup switch
         self.playerset = set()  # collect players who joined a team
@@ -242,13 +244,7 @@ class duelarena(minqlx.Plugin):
                                                                                        self.initduel))
 
     def duelarena_should_be_activated(self):
-        if len(self.playerset) == 3:
-            return True
-
-        if self.forceduel and len(self.playerset) > 2:
-            return True
-
-        return False
+        return self.duelarenastrategy.duelarena_should_be_activated(self.playerset)
 
     def deactivate_duelarena(self):
         self.duelmode = False
@@ -298,15 +294,50 @@ class duelarena(minqlx.Plugin):
     def cmd_duelarena(self, player, msg, channel):
 
         if len(msg) < 2 or msg[1] not in ["auto", "force"]:
-            state = "auto"
-            if self.forceduel:
-                state = "force"
+            state = self.duelarenastrategy.state
             self.msg("Current DuelArena state is: ^6{}".format(state))
             return minqlx.RET_USAGE
         if msg[1] == "force":
-            self.forceduel = True
+            self.duelarenastrategy = ForcedDuelArenaStrategy()
             self.msg("^7Duelarena is now ^6forced^7!")
         elif msg[1] == "auto":
-            self.forceduel = False
+            self.duelarenastrategy = AutoDuelArenaStrategy()
             self.msg("^7Duelarena is now ^6automatic^7!")
         self.duelarena_switch()
+
+
+class DuelArenaStrategy():
+
+    @property
+    def state(self):
+        """
+        :rtype: str
+        """
+        pass
+
+    @abstractmethod
+    def duelarena_should_be_activated(self, playerset):
+        """
+        :rtype: bool
+        """
+        pass
+
+
+class AutoDuelArenaStrategy(DuelArenaStrategy):
+
+    @property
+    def state(self):
+        return "auto"
+
+    def duelarena_should_be_activated(self, playerset):
+        return len(playerset) == 3
+
+
+class ForcedDuelArenaStrategy(DuelArenaStrategy):
+
+    @property
+    def state(self):
+        return "force"
+
+    def duelarena_should_be_activated(self, playerset):
+        return len(playerset) > 2

@@ -306,7 +306,7 @@ class DuelArenaTests(unittest.TestCase):
         self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2, disconnecting_player)
         self.queue_up_players(spec_player1, disconnecting_player, spec_player2)
         self.deactivate_duelarena()
-        self.plugin.forceduel = True
+        self.plugin.duelarenastrategy = ForcedDuelArenaStrategy()
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
@@ -324,7 +324,7 @@ class DuelArenaTests(unittest.TestCase):
         self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2, disconnecting_player)
         self.queue_up_players(spec_player1, disconnecting_player, spec_player2)
         self.deactivate_duelarena()
-        self.plugin.forceduel = True
+        self.plugin.duelarenastrategy = ForcedDuelArenaStrategy()
 
         undecorated(self.plugin.handle_player_disco)(self.plugin, disconnecting_player, "ragequit")
 
@@ -823,7 +823,7 @@ class DuelArenaTests(unittest.TestCase):
         assert_plugin_sent_to_console("Current DuelArena state is: ^6auto")
 
     def test_cmd_duelarena_invalid_parameter_in_force_state(self):
-        self.plugin.forceduel = True
+        self.plugin.duelarenastrategy = ForcedDuelArenaStrategy()
 
         return_code = self.plugin.cmd_duelarena(None, "!duelarena asdf", None)
 
@@ -834,11 +834,11 @@ class DuelArenaTests(unittest.TestCase):
         self.plugin.cmd_duelarena(None, ["!duelarena", "force"], None)
 
         assert_plugin_sent_to_console("^7Duelarena is now ^6forced^7!")
-        assert_that(self.plugin.forceduel, is_(True))
+        assert_that(self.plugin.duelarenastrategy, instance_of(ForcedDuelArenaStrategy))
 
     def test_cmd_duelarena_set_to_automatic(self):
         self.plugin.forceduel = True
         self.plugin.cmd_duelarena(None, ["!duelarena", "auto"], None)
 
         assert_plugin_sent_to_console("^7Duelarena is now ^6automatic^7!")
-        assert_that(self.plugin.forceduel, is_(False))
+        assert_that(self.plugin.duelarenastrategy, instance_of(AutoDuelArenaStrategy))
