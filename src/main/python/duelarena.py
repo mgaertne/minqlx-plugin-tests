@@ -61,8 +61,10 @@ class duelarena(minqlx.Plugin):
             return
 
         # If we initiated this switch, allow it
-        if player == self.player_red or player == self.player_blue:
+        if player == self.player_red:
             self.player_red = None
+            return
+        if player == self.player_blue:
             self.player_blue = None
             return
 
@@ -170,8 +172,7 @@ class duelarena(minqlx.Plugin):
             self.duelmode = False
             return
 
-        self.player_blue = next_player
-        self.player_red = next_player
+        setattr(self, "player_" + empty_team, next_player)  # sets either player_blue or player_red to the next_player
         loser = teams[empty_team][-1]
         next_player.put(empty_team)
         self.game.addteamscore(empty_team, self.scores[next_player.steam_id] - loser_team_score)
