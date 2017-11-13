@@ -5,6 +5,7 @@ import minqlx
 
 class duelarena(minqlx.Plugin):
     def __init__(self):
+        super().__init__()
 
         self.add_hook("team_switch_attempt", self.handle_team_switch_event)
         self.add_hook("player_disconnect", self.handle_player_disco)
