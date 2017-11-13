@@ -65,7 +65,7 @@ class DuelArenaTests(unittest.TestCase):
 
     def setup_duelarena_players(self, *players):
         for player in players:
-            self.plugin.playerset.append(player.steam_id)
+            self.plugin.playerset.add(player.steam_id)
 
     def assert_duelarena_activated(self):
         assert_that(self.plugin.duelmode, is_(True))

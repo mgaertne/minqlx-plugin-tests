@@ -19,7 +19,7 @@ class duelarena(minqlx.Plugin):
         self.forceduel = False  # False: Start Duelarena automatically, True: Force Duelarena
         self.duelmode = False  # global gametype switch
         self.initduel = False  # initial player setup switch
-        self.playerset = []  # collect players who joined a team
+        self.playerset = set()  # collect players who joined a team
         self.queue = []  # queue for rotating players
         self.player_red = None  # force spec exception for this player
         self.player_blue = None  # force spec exception for this player
@@ -30,7 +30,7 @@ class duelarena(minqlx.Plugin):
         teams = self.teams()
         for _p in teams['red'] + teams['blue']:
             if _p.steam_id not in self.playerset:
-                self.playerset.append(_p.steam_id)
+                self.playerset.add(_p.steam_id)
 
     # Don't allow players to join manually when DuelArena is active
     def handle_team_switch_event(self, player, old, new):
@@ -39,7 +39,7 @@ class duelarena(minqlx.Plugin):
             return
 
         if new in ['red', 'blue', 'any'] and player.steam_id not in self.playerset:
-            self.playerset.append(player.steam_id)  # player joined a team? Add him to playerset
+            self.playerset.add(player.steam_id)  # player joined a team? Add him to playerset
             self.duelarena_switch(player)  # we good enough for DuelArena?
         elif new in ['spectator'] \
                 and player.steam_id in self.playerset:  # player left team? let's see what we do with him...
@@ -73,11 +73,13 @@ class duelarena(minqlx.Plugin):
 
     # Announce next duel
     def handle_round_countdown(self, round_number):
-        if self.duelmode:
-            teams = self.teams()
-            if teams["red"] and teams["blue"]:
-                self.center_print("{} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
-                self.msg("DuelArena: {} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
+        if not self.duelmode:
+            return
+
+        teams = self.teams()
+        if teams["red"] and teams["blue"]:
+            self.center_print("{} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
+            self.msg("DuelArena: {} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
 
     # check if we need to deavtivate DuelArena on player disconnect
     @minqlx.delay(3)
@@ -107,32 +109,33 @@ class duelarena(minqlx.Plugin):
             return
 
         # put both players back to the queue, winner first position, loser last position
-        if self.duelmode:
+        if not self.duelmode:
+            return
 
-            if int(data['TSCORE1']) > int(data['TSCORE0']):
-                loser = "red"
-                winner = "blue"
-            else:
-                loser = "blue"
-                winner = "red"
+        if int(data['TSCORE1']) > int(data['TSCORE0']):
+            loser = "red"
+            winner = "blue"
+        else:
+            loser = "blue"
+            winner = "red"
 
-            teams = self.teams()
+        teams = self.teams()
 
-            if len(teams[loser]) == 1:
-                self.queue.insert(0, teams[loser][-1].steam_id)
-            if len(teams[winner]) == 1:
-                self.queue.append(teams[winner][-1].steam_id)
-                if not teams[winner][-1].steam_id in self.scores.keys():
-                    self.scores[teams[winner][-1].steam_id] = 0
-                self.scores[teams[winner][-1].steam_id] += 1
+        if len(teams[loser]) == 1:
+            self.queue.insert(0, teams[loser][-1].steam_id)
+        if len(teams[winner]) == 1:
+            self.queue.append(teams[winner][-1].steam_id)
+            if not teams[winner][-1].steam_id in self.scores.keys():
+                self.scores[teams[winner][-1].steam_id] = 0
+            self.scores[teams[winner][-1].steam_id] += 1
 
-            self.print_results()
+        self.print_results()
 
     @minqlx.delay(1.5)
     def handle_round_end(self, data):
 
         # Not in CA? Do nothing
-        if (self.game is None) or (self.game.type_short != "ca"):
+        if not self.game or self.game.type_short != "ca":
             return
 
         # Last round? Do nothing except adding last score point to winner
@@ -143,42 +146,41 @@ class duelarena(minqlx.Plugin):
             self.init_duel()
             return
 
-        if self.duelmode:
+        if not self.duelmode:
+            return
 
-            teams = self.teams()
+        teams = self.teams()
 
-            if data['TEAM_WON'] == 'RED':
-                empty_team = 'blue'
-                loser_team_score = self.game.blue_score
-                winner = teams['red'][-1]
-                self.scores[winner.steam_id] = self.game.red_score
-            elif data['TEAM_WON'] == 'BLUE':
-                empty_team = 'red'
-                loser_team_score = self.game.red_score
-                winner = teams['blue'][-1]
-                self.scores[winner.steam_id] = self.game.blue_score
-            else:
-                return  # Draw? Do nothing
+        if data['TEAM_WON'] == 'RED':
+            empty_team = 'blue'
+            loser_team_score = self.game.blue_score
+            winner = teams['red'][-1]
+            self.scores[winner.steam_id] = self.game.red_score
+        elif data['TEAM_WON'] == 'BLUE':
+            empty_team = 'red'
+            loser_team_score = self.game.red_score
+            winner = teams['blue'][-1]
+            self.scores[winner.steam_id] = self.game.blue_score
+        else:
+            return  # Draw? Do nothing
 
-            next_player = self.queue.pop()
+        next_player = self.player(self.queue.pop())
 
-            _p = self.player(next_player)
+        if next_player.team != "spectator":
+            self.duelmode = False
+            return
 
-            if _p.team != "spectator":
-                self.duelmode = False
-                return
-
-            self.player_blue = _p
-            self.player_red = _p
-            loser = teams[empty_team][-1]
-            _p.put(empty_team)
-            self.game.addteamscore(empty_team, self.scores[next_player] - loser_team_score)
-            self.queue.insert(0, loser.steam_id)
-            self.player_spec = loser.steam_id
-            self.scores[loser.steam_id] = loser_team_score  # store loser team score
-            loser.put("spectator")
-            loser.tell(
-                "{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
+        self.player_blue = next_player
+        self.player_red = next_player
+        loser = teams[empty_team][-1]
+        next_player.put(empty_team)
+        self.game.addteamscore(empty_team, self.scores[next_player.steam_id] - loser_team_score)
+        self.queue.insert(0, loser.steam_id)
+        self.player_spec = loser.steam_id
+        self.scores[loser.steam_id] = loser_team_score  # store loser team score
+        loser.put("spectator")
+        loser.tell(
+            "{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
 
     def init_duel(self):
 
@@ -265,14 +267,15 @@ class duelarena(minqlx.Plugin):
                                                                                        self.initduel))
 
     def checklists(self):
-
         self.queue[:] = [sid for sid in self.queue if self.player(sid) and self.player(sid).ping < 990]
-        self.playerset[:] = [sid for sid in self.playerset if self.player(sid) and self.player(sid).ping < 990]
+        self.playerset = set([sid for sid in self.playerset if self.player(sid) and self.player(sid).ping < 990])
 
     def reset_team_scores(self):
-        if self.game.state == "in_progress":
-            self.game.addteamscore('red', -self.game.red_score)
-            self.game.addteamscore('blue', -self.game.blue_score)
+        if self.game.state != "in_progress":
+            return
+
+        self.game.addteamscore('red', -self.game.red_score)
+        self.game.addteamscore('blue', -self.game.blue_score)
 
     def init_duel_team_scores(self):
         self.reset_team_scores()
