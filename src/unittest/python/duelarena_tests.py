@@ -410,6 +410,10 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_that(self.plugin.duelvotes, not_(contains_inanyorder(disconnecting_player.steam_id)))
 
+    def players_voted_for_duelarena(self, *players):
+        for player in players:
+            self.plugin.duelvotes.add(player.steam_id)
+
     def test_when_third_player_loaded_announce_duelarena_to_her(self):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -978,6 +982,46 @@ class DuelArenaTests(unittest.TestCase):
         self.plugin.cmd_duel(voting_player, "!d", None)
 
         assert_plugin_sent_to_console("^7Total DuelArena votes = ^61^7, but I need ^62^7 more to activate DuelArena.")
+        self.assert_players_voted(voting_player)
+
+    def assert_players_voted(self, *players):
+        player_ids = [player.steam_id for player in players]
+        assert_that(self.plugin.duelvotes, contains_inanyorder(*player_ids))
+
+    def test_cmd_duel_second_player_of_four_votes(self):
+        setup_game_in_warmup()
+        self.deactivate_duelarena()
+        voting_player = fake_player(1, "Voting Player")
+        voted_player1 = fake_player(2, "Fake Player")
+        connected_players(
+            voting_player,
+            voted_player1,
+            fake_player(3, "Fake Player"),
+            fake_player(4, "Fake Player"))
+        self.players_voted_for_duelarena(voted_player1)
+
+        self.plugin.cmd_duel(voting_player, "!d", None)
+
+        assert_plugin_sent_to_console("^7Total DuelArena votes = ^62^7, but I need ^61^7 more to activate DuelArena.")
+        self.assert_players_voted(voting_player, voted_player1)
+
+    def test_cmd_duel_third_player_of_four_votes_and_vote_passes(self):
+        setup_game_in_warmup()
+        self.deactivate_duelarena()
+        voting_player = fake_player(1, "Voting Player")
+        voted_player1 = fake_player(2, "Fake Player")
+        voted_player2 = fake_player(3, "Fake Player")
+        connected_players(
+            voting_player,
+            voted_player1,
+            voted_player2,
+            fake_player(4, "Fake Player"))
+        self.players_voted_for_duelarena(voted_player1, voted_player2)
+
+        self.plugin.cmd_duel(voting_player, "!d", None)
+
+        assert_plugin_sent_to_console("^7Total DuelArena votes = ^63^7, vote passed!")
+        self.assert_players_voted(voting_player, voted_player1, voted_player2)
 
     def test_cmd_duel_vote_passes(self):
         setup_game_in_warmup()
@@ -991,13 +1035,12 @@ class DuelArenaTests(unittest.TestCase):
             voted_player2,
             fake_player(4, "Fake Player"),
             fake_player(5, "Fake Player"))
+        self.setup_duelarena_players(voted_player1, voted_player2, voting_player)
         self.players_voted_for_duelarena(voted_player1, voted_player2)
 
         self.plugin.cmd_duel(voting_player, "!d", None)
 
         assert_plugin_sent_to_console("^7Total DuelArena votes = ^63^7, vote passed!")
         assert_plugin_played_sound("sound/vo/vote_passed.ogg")
-
-    def players_voted_for_duelarena(self, *players):
-        for player in players:
-            self.plugin.duelvotes.add(player.steam_id)
+        assert_that(self.plugin.duelarenastrategy, instance_of(ForcedDuelArenaStrategy))
+        self.assert_duelarena_has_been_activated()
