@@ -3,6 +3,9 @@
 import minqlx
 
 from abc import abstractmethod
+from math import floor
+
+MAX_ACTIVE_PLAYERS = 5  # with >5 players duelarena votes are disabled
 
 
 class duelarena(minqlx.Plugin):
@@ -16,7 +19,9 @@ class duelarena(minqlx.Plugin):
         self.add_hook("game_countdown", self.handle_game_countdown)
         self.add_hook("round_end", self.handle_round_end)
         self.add_hook("game_end", self.handle_game_end)
-        self.add_command("duelarena", self.cmd_duelarena, 1, usage="[auto|force]")
+        self.add_hook("map", self.handle_map_change)
+        self.add_command("duelarena", self.cmd_duelarena, 5, usage="[auto|force]")
+        self.add_command(("duel", "d"), self.cmd_duel)
 
         self.duelarenastrategy = AutoDuelArenaStrategy()
         self.duelmode = False  # global gametype switch
@@ -27,6 +32,7 @@ class duelarena(minqlx.Plugin):
         self.player_blue = None  # force spec exception for this player
         self.player_spec = None  # force spec exception for this player
         self.scores = {}  # store/restore individual team scores
+        self.duelvotes = set()  # !d !duel votes counter
 
         # initialize playerset on plugin reload
         teams = self.teams()
@@ -98,11 +104,22 @@ class duelarena(minqlx.Plugin):
             self.playerset.remove(player.steam_id)
             self.duelarena_switch()
 
+        if player.steam_id in self.duelvotes:
+            self.duelvotes.remove(player.steam_id)
+
     @minqlx.delay(3)
     def handle_player_loaded(self, player):
-        if player.team == "spectator" and len(self.playerset) == 2:
+        if isinstance(self.duelarenastrategy, ForcedDuelArenaStrategy) and self.game.state == "in_progress":
+            player.tell(
+                "{}, DuelArena match is in progress. Join to enter DuelArena! Round winner stays in, loser rotates "
+                "with spectator.".format(player.name))
+        elif player.team == "spectator" and len(self.playerset) == 2:
             player.tell("{}, join to activate DuelArena! Round winner stays in, loser rotates with spectator.".format(
                 player.name))
+        elif self.connected_players() <= MAX_ACTIVE_PLAYERS:
+            player.tell(
+                "{}, type ^6!duel^7 or ^6!d^7 to vote for DuelArena! Round winner stays in, loser rotates with "
+                "spectator. Hit 8 rounds first to win!".format(player.name))
 
     # When a game is about to start and duelmode is active, initialize
     @minqlx.delay(3)
@@ -190,6 +207,12 @@ class duelarena(minqlx.Plugin):
         loser.put("spectator")
         loser.tell(
             "{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
+
+    def handle_map_change(self, mapname, factory):
+        self.duelarenastrategy = AutoDuelArenaStrategy()
+        self.duelvotes = set()
+        self.duelmode = False
+        self.initduel = False
 
     def init_duel(self):
 
@@ -305,8 +328,51 @@ class duelarena(minqlx.Plugin):
             self.msg("^7Duelarena is now ^6automatic^7!")
         self.duelarena_switch()
 
+    def cmd_duel(self, player, msg, channel):
 
-class DuelArenaStrategy():
+        if self.duelmode:
+            self.msg("^7DuelArena already active!")
+            return
+
+        if self.game.state == "warmup":
+
+            connected_players = self.connected_players()
+
+            if connected_players > MAX_ACTIVE_PLAYERS:
+                player.tell("^6!duel^7 votes not available with ^6{}^7 or more players connected".format(
+                    MAX_ACTIVE_PLAYERS + 1))
+                return
+
+            if player.steam_id in self.duelvotes:
+                self.msg("{}^7 you already voted for DuelArena!".format(player.name))
+                return
+
+            self.duelvotes.add(player.steam_id)
+
+            have = len(self.duelvotes)
+            need = int(floor(connected_players / 2)) + 1
+            votes_left = need - have
+
+            if votes_left <= 0 and have > 1:
+                self.msg("^7Total DuelArena votes = ^6{}^7, vote passed!".format(have))
+                self.play_sound("sound/vo/vote_passed.ogg")
+                self.duelarenastrategy = ForcedDuelArenaStrategy()
+                self.duelarena_switch()
+            elif votes_left > 0:
+                self.msg(
+                    "^7Total DuelArena votes = ^6{}^7, but I need ^6{}^7 more to activate DuelArena."
+                    .format(have, votes_left))
+
+        else:
+            self.msg("^7DuelArena votes only allowed in warmup!")
+
+    def connected_players(self):
+        teams = self.teams()
+        players = int(len(teams["red"] + teams["blue"] + teams["spectator"]))
+        return players
+
+
+class DuelArenaStrategy:
 
     @property
     def state(self):
