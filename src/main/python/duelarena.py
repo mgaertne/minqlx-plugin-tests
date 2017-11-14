@@ -22,7 +22,7 @@ class duelarena(minqlx.Plugin):
         self.add_hook("round_end", self.handle_round_end)
         self.add_hook("game_end", self.handle_game_end)
         self.add_hook("map", self.handle_map_change)
-        self.add_command("duelarena", self.cmd_duelarena, 5, usage="[auto|force]")
+        self.add_command("duelarena", self.cmd_duelarena, permission=5, usage="[auto|force]")
         self.add_command(("duel", "d"), self.cmd_duel)
 
         self.duelarenastrategy = AutoDuelArenaStrategy()
