@@ -6,6 +6,7 @@ from minqlx import Plugin
 from abc import abstractmethod
 from math import floor
 
+MIN_ACTIVE_PLAYERS = 3  # min players for vote condition
 MAX_ACTIVE_PLAYERS = 5  # with >5 players duelarena votes are disabled
 
 
@@ -118,7 +119,7 @@ class duelarena(minqlx.Plugin):
         elif player.team == "spectator" and len(self.playerset) == 2:
             player.tell("{}, join to activate DuelArena! Round winner stays in, loser rotates with spectator."
                         .format(player.name))
-        elif len(self.connected_players()) <= MAX_ACTIVE_PLAYERS:
+        elif not self.duelmode and len(self.connected_players()) in range(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS + 1):
             player.tell(
                 "{}, type ^6!duel^7 or ^6!d^7 to vote for DuelArena! Round winner stays in, loser rotates with "
                 "spectator. Hit 8 rounds first to win!"
@@ -276,7 +277,8 @@ class duelarena(minqlx.Plugin):
 
     def activate_duelarena(self):
         self.duelmode = True
-        Plugin.msg("DuelArena activated! Round winner stays in, loser rotates with spectator.")
+        Plugin.msg(
+            "DuelArena activated! Round winner stays in, loser rotates with spectator. Hit 8 rounds first to win!")
         Plugin.center_print("DuelArena activated!")
         if self.game.state == "in_progress":
             self.initduel = True
@@ -336,9 +338,9 @@ class duelarena(minqlx.Plugin):
 
         connected_players = len(self.connected_players())
 
-        if connected_players > MAX_ACTIVE_PLAYERS:
-            player.tell("^6!duel^7 votes not available with ^6{}^7 or more players connected"
-                        .format(MAX_ACTIVE_PLAYERS + 1))
+        if connected_players not in range(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS + 1):
+            Plugin.msg("^6!duel^7 votes only available with ^6{}-{}^7 players connected"
+                       .format(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS))
             return
 
         if player.steam_id in self.duelvotes:
@@ -401,4 +403,4 @@ class ForcedDuelArenaStrategy(DuelArenaStrategy):
         return "force"
 
     def duelarena_should_be_activated(self, playerset):
-        return len(playerset) > 2
+        return len(playerset) in range(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS + 1)
