@@ -6,8 +6,8 @@ from minqlx import Plugin
 from abc import abstractmethod
 from math import floor
 
-MIN_ACTIVE_PLAYERS = 3  # min players for vote condition
-MAX_ACTIVE_PLAYERS = 5  # with >5 players duelarena votes are disabled
+MIN_ACTIVE_PLAYERS = 3  # min players for duelarena
+MAX_ACTIVE_PLAYERS = 4  # max players for duelarena
 
 
 class duelarena(minqlx.Plugin):
@@ -50,17 +50,11 @@ class duelarena(minqlx.Plugin):
 
         if new in ['red', 'blue', 'any'] and player.steam_id not in self.playerset:
             self.playerset.add(player.steam_id)  # player joined a team? Add him to playerset
-            # Player switched into a team and game is already in progress? Give him first queue position!
-            if self.game.state == "in_progress":
-                self.queue.append(player.steam_id)
             self.duelarena_switch()  # we good enough for DuelArena?
         elif new in ['spectator'] \
                 and player.steam_id in self.playerset:  # player left team? let's see what we do with him...
             if player.steam_id != self.player_spec:  # player initiated switch to spec? Remove him from playerset
                 self.playerset.remove(player.steam_id)
-                # Player switched into a team and game is already in progress? Give him first queue position!
-                if self.game.state == "in_progress":
-                    self.queue.append(player.steam_id)
                 self.duelarena_switch()
             else:  # player.steam_id == self.player_spec:
                 #  we initiated switch to spec? Only remove him from exception list
@@ -112,10 +106,14 @@ class duelarena(minqlx.Plugin):
     @minqlx.delay(3)
     def handle_player_loaded(self, player):
         if isinstance(self.duelarenastrategy, ForcedDuelArenaStrategy) and self.game.state == "in_progress":
-            player.tell(
-                "{}, DuelArena match is in progress. Join to enter DuelArena! Round winner stays in, loser rotates "
-                "with spectator."
-                .format(player.name))
+            if self.check_duel_abort(1):
+                player.tell(
+                    "{}, by joining DuelArena will be aborted and server switches to standard CA!".format(player.name))
+            else:
+                player.tell(
+                    "{}, DuelArena match is in progress. Join to enter DuelArena! Round winner stays in, loser "
+                    "rotates with spectator."
+                    .format(player.name))
         elif player.team == "spectator" and len(self.playerset) == 2:
             player.tell("{}, join to activate DuelArena! Round winner stays in, loser rotates with spectator."
                         .format(player.name))
@@ -195,10 +193,14 @@ class duelarena(minqlx.Plugin):
         else:
             return  # Draw? Do nothing
 
+        if len(self.queue) == 0:
+            self.deactivate_duelarena()
+            return
+
         next_player = Plugin.player(self.queue.pop())
 
-        if next_player.team != "spectator":
-            self.duelmode = False
+        if not next_player or next_player.team != "spectator":
+            self.deactivate_duelarena()
             return
 
         setattr(self, "player_" + empty_team, next_player)  # sets either player_blue or player_red to the next_player
@@ -258,15 +260,28 @@ class duelarena(minqlx.Plugin):
     def duelarena_switch(self):
         self.checklists()
 
+        if self.check_duel_abort():
+            self.deactivate_duelarena()
+
         if not self.duelmode and self.duelarena_should_be_activated():
             self.activate_duelarena()
         elif self.duelmode and not self.duelarena_should_be_activated():
             self.deactivate_duelarena()
 
+    def check_duel_abort(self, joiner=0):
+        if not self.game or self.game.state != "in_progress":
+            return False
+
+        if len(self.playerset) + joiner <= MAX_ACTIVE_PLAYERS:
+            return False
+
+        return len(self.scores) == 0 or max(self.scores.values()) < 6
+
     def duelarena_should_be_activated(self):
         return self.duelarenastrategy.duelarena_should_be_activated(self.playerset)
 
     def deactivate_duelarena(self):
+        self.duelarenastrategy = AutoDuelArenaStrategy()
         self.duelmode = False
         self.initduel = False
         Plugin.msg("DuelArena has been deactivated!")

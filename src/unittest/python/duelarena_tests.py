@@ -183,11 +183,10 @@ class DuelArenaTests(unittest.TestCase):
         self.queue_up_players(spec_player1, spec_player2)
         self.setup_forced_duelmode()
 
-        return_code = self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         self.assert_playerset_contains(red_player, blue_player, spec_player1, spec_player2, switching_player)
-        self.assert_queue_contains(switching_player, spec_player1, spec_player2)
+        self.assert_queue_contains(spec_player1, spec_player2)
 
     def setup_forced_duelmode(self):
         self.plugin.duelarenastrategy = ForcedDuelArenaStrategy()
@@ -534,7 +533,7 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_player_was_told(loaded_player, any(str), times=0)
 
-    def test_when_player_is_loaded_during_running_forced_duelarena(self):
+    def test_when_fifth_player_is_loaded_during_running_forced_duelarena_that_just_started(self):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player1 = fake_player(3, "Speccing Player1", "spectator")
@@ -552,6 +551,25 @@ class DuelArenaTests(unittest.TestCase):
             loaded_player,
             "Loaded Player, DuelArena match is in progress. Join to enter DuelArena! Round winner stays in, loser "
             "rotates with spectator.")
+
+    def test_when_fifth_player_is_loaded_during_running_forced_duelarena_may_be_aborted(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        spec_player1 = fake_player(3, "Speccing Player1", "spectator")
+        spec_player2 = fake_player(4, "Speccing Player2", "spectator")
+        loaded_player = fake_player(5, "Loaded Player")
+        connected_players(red_player, blue_player, spec_player1, spec_player2, loaded_player)
+        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2)
+        self.queue_up_players(spec_player1, spec_player2)
+        self.setup_scores({red_player: 0, blue_player: 0, spec_player1: 2, spec_player2: 0})
+        self.activate_duelarena()
+        self.setup_forced_duelmode()
+
+        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+
+        assert_player_was_told(
+            loaded_player,
+            "Loaded Player, by joining DuelArena will be aborted and server switches to standard CA!")
 
     def test_inits_duelmode_when_game_countdown_starts(self):
         red_player = fake_player(1, "Red Player" "red")
@@ -932,6 +950,29 @@ class DuelArenaTests(unittest.TestCase):
 
         verify(self.plugin.game).addteamscore("blue", 4)
 
+    def test_handle_round_end_when_player_queue_empty_duelarena_is_deactivated(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.setup_scores({red_player: 5, blue_player: 3})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        self.assert_duelarena_has_been_deactivated()
+
+    def test_handle_round_end_when_next_player_no_longer_available(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        connected_players(red_player, blue_player)
+        self.setup_duelarena_players(red_player, blue_player)
+        self.queue_up_players(fake_player(42, "no longer connected Player"))
+        self.setup_scores({red_player: 5, blue_player: 3})
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        self.assert_duelarena_has_been_deactivated()
+
     def test_handle_map_change_resets_duelarena(self):
         self.setup_forced_duelmode()
         self.players_voted_for_duelarena(fake_player(42, "Fake Player"))
@@ -960,6 +1001,14 @@ class DuelArenaTests(unittest.TestCase):
         assert_plugin_sent_to_console("Current DuelArena state is: ^6force")
 
     def test_cmd_duelarena_set_to_forced(self):
+        setup_game_in_warmup()
+        self.deactivate_duelarena()
+        voting_player = fake_player(1, "Voting Player")
+        connected_players(
+            voting_player,
+            fake_player(2, "Fake Player"),
+            fake_player(3, "Fake Player"),
+            fake_player(4, "Fake Player"))
         self.plugin.cmd_duelarena(None, ["!duelarena", "force"], None)
 
         assert_plugin_sent_to_console("^7Duelarena is now ^6forced^7!")
@@ -994,7 +1043,7 @@ class DuelArenaTests(unittest.TestCase):
 
         self.plugin.cmd_duel(voting_player, "!d", None)
 
-        assert_plugin_sent_to_console("^6!duel^7 votes only available with ^63-5^7 players connected")
+        assert_plugin_sent_to_console("^6!duel^7 votes only available with ^63-4^7 players connected")
 
     def test_cmd_duel_with_too_many_connected_players(self):
         setup_game_in_warmup()
@@ -1010,7 +1059,7 @@ class DuelArenaTests(unittest.TestCase):
 
         self.plugin.cmd_duel(voting_player, "!d", None)
 
-        assert_plugin_sent_to_console("^6!duel^7 votes only available with ^63-5^7 players connected")
+        assert_plugin_sent_to_console("^6!duel^7 votes only available with ^63-4^7 players connected")
 
     def test_cmd_duel_player_already_voted(self):
         setup_game_in_warmup()
@@ -1034,8 +1083,7 @@ class DuelArenaTests(unittest.TestCase):
             voting_player,
             fake_player(2, "Fake Player"),
             fake_player(3, "Fake Player"),
-            fake_player(4, "Fake Player"),
-            fake_player(5, "Fake Player"))
+            fake_player(4, "Fake Player"))
 
         self.plugin.cmd_duel(voting_player, "!d", None)
 
@@ -1091,8 +1139,7 @@ class DuelArenaTests(unittest.TestCase):
             voting_player,
             voted_player1,
             voted_player2,
-            fake_player(4, "Fake Player"),
-            fake_player(5, "Fake Player"))
+            fake_player(4, "Fake Player"))
         self.setup_duelarena_players(voted_player1, voted_player2, voting_player)
         self.players_voted_for_duelarena(voted_player1, voted_player2)
 
@@ -1102,3 +1149,34 @@ class DuelArenaTests(unittest.TestCase):
         assert_plugin_played_sound("sound/vo/vote_passed.ogg")
         assert_that(self.plugin.duelarenastrategy, instance_of(ForcedDuelArenaStrategy))
         self.assert_duelarena_has_been_activated()
+
+    def test_check_abort_with_game_in_warmup(self):
+        setup_game_in_warmup()
+
+        assert_that(self.plugin.check_duel_abort(), is_(False))
+
+    def test_check_abort_with_just_right_connected_players(self):
+        self.setup_duelarena_players(
+            fake_player(1, "Fake Player"), fake_player(2, "Fake Player"), fake_player(3, "Fake Player"))
+
+        assert_that(self.plugin.check_duel_abort(), is_(False))
+
+    def test_check_abort_with_too_many_players_already_played_a_bit(self):
+        player1 = fake_player(1, "Fake Player")
+        player2 = fake_player(2, "Fake Player")
+        player3 = fake_player(3, "Fake Player")
+        player4 = fake_player(4, "Fake Player")
+        self.setup_duelarena_players(player1, player2, player3, player4)
+        self.setup_scores({player1: 6, player2: 6, player3: 7, player4: 3})
+
+        assert_that(self.plugin.check_duel_abort(1), is_(False))
+
+    def test_check_abort_with_too_many_players_already_not_played_enough(self):
+        player1 = fake_player(1, "Fake Player")
+        player2 = fake_player(2, "Fake Player")
+        player3 = fake_player(3, "Fake Player")
+        player4 = fake_player(4, "Fake Player")
+        self.setup_duelarena_players(player1, player2, player3, player4)
+        self.setup_scores({player1: 2, player2: 3, player3: 5, player4: 3})
+
+        assert_that(self.plugin.check_duel_abort(1), is_(True))
