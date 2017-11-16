@@ -47,3 +47,19 @@ def setup_game_in_progress(game_type="ca", roundlimit=8, red_score=0, blue_score
     mock_game.roundlimit = roundlimit
     mock_game.red_score = red_score
     mock_game.blue_score = blue_score
+
+
+def assert_game_addteamscore(team, score, times=1):
+    """Verify that the score of the team was manipulated by the given amount.
+
+    **The test needs to be set up via :func:`.setUp_game_in_warmup()` or :func:`.setup_game_in_progress()`
+    before using this assertion.**
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+
+    :param team: the team for which the team score should have been manipualted
+    :param score: the amount that should have been added to the team's score. This may be negative or a matcher.
+    :param times: the amount of times the function addteamscore should have been called. (default: 1)
+    """
+    verify(minqlx.Game(), times=times).addteamscore(team, score)

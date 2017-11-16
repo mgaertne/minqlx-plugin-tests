@@ -236,25 +236,6 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_that(self.plugin.player_blue, is_(None))
 
-    def test_when_player_switches_during_forced_duelarena_scores_are_kept(self):
-        red_player = fake_player(1, "Red Player", "red")
-        blue_player = fake_player(2, "Blue Player", "blue")
-        switching_player = fake_player(3, "Switching Player")
-        spec_player1 = fake_player(4, "Spec Player1")
-        spec_player2 = fake_player(5, "Spec Player2")
-        connected_players(red_player,
-                          switching_player,
-                          blue_player,
-                          spec_player1,
-                          spec_player2)
-        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2)
-        self.setup_scores({red_player: 5, switching_player: 3, blue_player: 6})
-        self.setup_forced_duelmode()
-
-        self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
-
-        self.assert_scores_are({red_player: 5, switching_player: 3, blue_player: 6})
-
     def test_handle_round_countdown_when_not_in_duelmode(self):
         self.deactivate_duelarena()
 
@@ -435,8 +416,8 @@ class DuelArenaTests(unittest.TestCase):
         assert_plugin_sent_to_console("DuelArena results:")
         assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^27^7)")
         assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^25^7)")
-        verify(self.plugin.game).addteamscore("red", -5)
-        verify(self.plugin.game).addteamscore("blue", -3)
+        assert_game_addteamscore("red", -5)
+        assert_game_addteamscore("blue", -3)
 
     def test_third_player_disconnects_duelarena_deactivates_with_forceduel_during_warmup(self):
         setup_game_in_warmup()
@@ -752,8 +733,8 @@ class DuelArenaTests(unittest.TestCase):
         assert_that(self.plugin.duelmode, is_(True))
         assert_that(self.plugin.initduel, is_(False))
         self.assert_scores_are({red_player: 0, blue_player: 0, spec_player: 0})
-        verify(self.plugin.game).addteamscore("red", -5)
-        verify(self.plugin.game).addteamscore("blue", -7)
+        assert_game_addteamscore("red", -5)
+        assert_game_addteamscore("blue", -7)
 
     def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self):
         red_player = fake_player(1, "Red Player" "red")
@@ -955,7 +936,6 @@ class DuelArenaTests(unittest.TestCase):
         self.assert_queue_contains(blue_player)
 
     def test_handle_round_end_red_player_won_puts_blue_player_on_spec(self):
-        when(self.plugin.game).addteamscore(any(), any()).thenReturn(None)
         setup_game_in_progress(red_score=6, blue_score=3)
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -967,7 +947,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        verify(self.plugin.game).addteamscore("blue", 4)
+        assert_game_addteamscore("blue", 4)
 
     def test_handle_round_end_when_player_queue_empty_duelarena_is_deactivated(self):
         red_player = fake_player(1, "Red Player", "red")

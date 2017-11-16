@@ -262,11 +262,12 @@ class duelarena(minqlx.Plugin):
     def duelarena_switch(self):
         self.checklists()
 
+        if self.duelmode and self.duelarena_should_be_aborted(self.game, self.playerset, self.scores):
+            self.deactivate_duelarena()
+
         if not self.duelmode and self.duelarena_should_be_activated():
             self.activate_duelarena()
         elif self.duelmode and not self.duelarena_should_be_activated():
-            self.deactivate_duelarena()
-        elif self.duelmode and self.duelarena_should_be_aborted(self.game, self.playerset, self.scores):
             self.deactivate_duelarena()
 
     def duelarena_should_be_aborted(self, game, playerset, scores):
