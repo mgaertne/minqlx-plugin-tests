@@ -236,6 +236,25 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_that(self.plugin.player_blue, is_(None))
 
+    def test_when_player_switches_during_forced_duelarena_scores_are_kept(self):
+        red_player = fake_player(1, "Red Player", "red")
+        blue_player = fake_player(2, "Blue Player", "blue")
+        switching_player = fake_player(3, "Switching Player")
+        spec_player1 = fake_player(4, "Spec Player1")
+        spec_player2 = fake_player(5, "Spec Player2")
+        connected_players(red_player,
+                          switching_player,
+                          blue_player,
+                          spec_player1,
+                          spec_player2)
+        self.setup_duelarena_players(red_player, blue_player, spec_player1, spec_player2)
+        self.setup_scores({red_player: 5, switching_player: 3, blue_player: 6})
+        self.setup_forced_duelmode()
+
+        self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
+
+        self.assert_scores_are({red_player: 5, switching_player: 3, blue_player: 6})
+
     def test_handle_round_countdown_when_not_in_duelmode(self):
         self.deactivate_duelarena()
 
@@ -1153,30 +1172,49 @@ class DuelArenaTests(unittest.TestCase):
     def test_check_abort_with_game_in_warmup(self):
         setup_game_in_warmup()
 
-        assert_that(self.plugin.check_duel_abort(), is_(False))
+        assert_that(self.plugin.duelarena_should_be_aborted(
+            self.plugin.game,
+            self.plugin.playerset,
+            self.plugin.scores
+        ), is_(False))
 
     def test_check_abort_with_just_right_connected_players(self):
         self.setup_duelarena_players(
             fake_player(1, "Fake Player"), fake_player(2, "Fake Player"), fake_player(3, "Fake Player"))
 
-        assert_that(self.plugin.check_duel_abort(), is_(False))
+        assert_that(self.plugin.duelarena_should_be_aborted(
+            self.plugin.game,
+            self.plugin.playerset,
+            self.plugin.scores
+        ), is_(False))
 
     def test_check_abort_with_too_many_players_already_played_a_bit(self):
         player1 = fake_player(1, "Fake Player")
         player2 = fake_player(2, "Fake Player")
         player3 = fake_player(3, "Fake Player")
         player4 = fake_player(4, "Fake Player")
-        self.setup_duelarena_players(player1, player2, player3, player4)
+        player5 = fake_player(5, "Fake Player")
+        self.setup_duelarena_players(player1, player2, player3, player4, player5)
         self.setup_scores({player1: 6, player2: 6, player3: 7, player4: 3})
 
-        assert_that(self.plugin.check_duel_abort(1), is_(False))
+        assert_that(self.plugin.duelarena_should_be_aborted(
+            self.plugin.game,
+            self.plugin.playerset,
+            self.plugin.scores
+        ), is_(False))
 
     def test_check_abort_with_too_many_players_already_not_played_enough(self):
         player1 = fake_player(1, "Fake Player")
         player2 = fake_player(2, "Fake Player")
         player3 = fake_player(3, "Fake Player")
         player4 = fake_player(4, "Fake Player")
+        player5 = fake_player(5, "Fake Player")
+        self.setup_duelarena_players(player1, player2, player3, player4, player5)
         self.setup_duelarena_players(player1, player2, player3, player4)
         self.setup_scores({player1: 2, player2: 3, player3: 5, player4: 3})
 
-        assert_that(self.plugin.check_duel_abort(1), is_(True))
+        assert_that(self.plugin.duelarena_should_be_aborted(
+            self.plugin.game,
+            self.plugin.playerset,
+            self.plugin.scores
+        ), is_(True))

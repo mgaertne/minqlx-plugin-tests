@@ -106,7 +106,9 @@ class duelarena(minqlx.Plugin):
     @minqlx.delay(3)
     def handle_player_loaded(self, player):
         if isinstance(self.duelarenastrategy, ForcedDuelArenaStrategy) and self.game.state == "in_progress":
-            if self.check_duel_abort(1):
+            playerset_with_loaded_player = self.playerset.copy()
+            playerset_with_loaded_player.add(player.steam_id)
+            if self.duelarena_should_be_aborted(self.game, playerset_with_loaded_player, self.scores):
                 player.tell(
                     "{}, by joining DuelArena will be aborted and server switches to standard CA!".format(player.name))
             else:
@@ -260,22 +262,15 @@ class duelarena(minqlx.Plugin):
     def duelarena_switch(self):
         self.checklists()
 
-        if self.check_duel_abort():
-            self.deactivate_duelarena()
-
         if not self.duelmode and self.duelarena_should_be_activated():
             self.activate_duelarena()
         elif self.duelmode and not self.duelarena_should_be_activated():
             self.deactivate_duelarena()
+        elif self.duelmode and self.duelarena_should_be_aborted(self.game, self.playerset, self.scores):
+            self.deactivate_duelarena()
 
-    def check_duel_abort(self, joiner=0):
-        if not self.game or self.game.state != "in_progress":
-            return False
-
-        if len(self.playerset) + joiner <= MAX_ACTIVE_PLAYERS:
-            return False
-
-        return len(self.scores) == 0 or max(self.scores.values()) < 6
+    def duelarena_should_be_aborted(self, game, playerset, scores):
+        return self.duelarenastrategy.duelarena_should_be_aborted(game, playerset, scores)
 
     def duelarena_should_be_activated(self):
         return self.duelarenastrategy.duelarena_should_be_activated(self.playerset)
@@ -399,6 +394,16 @@ class DuelArenaStrategy:
         :rtype: bool
         """
         pass
+
+    @abstractmethod
+    def duelarena_should_be_aborted(self, game, playerset, scores):
+        if not game or game.state != "in_progress":
+            return False
+
+        if len(playerset) <= MAX_ACTIVE_PLAYERS:
+            return False
+
+        return len(scores) == 0 or max(scores.values()) < 6
 
 
 class AutoDuelArenaStrategy(DuelArenaStrategy):
