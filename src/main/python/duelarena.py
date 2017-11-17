@@ -326,13 +326,15 @@ class duelarena(minqlx.Plugin):
         Plugin.msg("DuelArena results:")
         place = 0
         prev_score = -1
-        for pscore in sorted(self.scores.items(), key=lambda x: x[1], reverse=True):
-            if pscore[1] != prev_score:
+        for (steam_id, score) in sorted(self.scores.items(), key=lambda x: x[1], reverse=True):
+            if score != prev_score:
                 place += 1
-            prev_score = pscore[1]
-            player = Plugin.player(pscore[0])
+            prev_score = score
+            player = Plugin.player(steam_id)
             if player:
-                Plugin.msg("Place ^3{}.^7 {} ^7(Wins:^2{}^7)".format(place, player.name, pscore[1]))
+                Plugin.msg("Place ^3{}.^7 {} ^7(Wins:^2{}^7)".format(place, player.name, score))
+            else:
+                Plugin.msg("Place ^3{}.^7 <Player disconnected> ^7(Wins:^2{}^7)".format(place, score))
 
     def cmd_duelarena(self, player, msg, channel):
 

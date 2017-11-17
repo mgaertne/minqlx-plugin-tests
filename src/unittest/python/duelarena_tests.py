@@ -699,13 +699,14 @@ class DuelArenaTests(unittest.TestCase):
         connected_players(blue_player, spec_player)
         self.setup_duelarena_players(red_player, blue_player, spec_player)
         self.queue_up_players(spec_player)
-        self.setup_scores({red_player: 7, blue_player: 5, spec_player: 7})
+        self.setup_scores({red_player: 7, blue_player: 5, spec_player: 6})
 
         self.plugin.handle_game_end({"TSCORE0": 8, "TSCORE1": 3})
 
         assert_plugin_sent_to_console("DuelArena results:")
-        assert_plugin_sent_to_console("Place ^31.^7 Speccing Player ^7(Wins:^27^7)")
-        assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^25^7)")
+        assert_plugin_sent_to_console("Place ^31.^7 <Player disconnected> ^7(Wins:^27^7)")
+        assert_plugin_sent_to_console("Place ^32.^7 Speccing Player ^7(Wins:^26^7)")
+        assert_plugin_sent_to_console("Place ^33.^7 Blue Player ^7(Wins:^25^7)")
 
     def test_handle_game_end_loser_already_quit(self):
         blue_player = fake_player(2, "Blue Player", "blue")
