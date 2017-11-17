@@ -28,13 +28,14 @@ class duelarena(minqlx.Plugin):
         self.duelarenastrategy = AutoDuelArenaStrategy()
         self.duelmode = False  # global gametype switch
         self.initduel = False  # initial player setup switch
-        self.playerset = set()  # collect players who joined a team
-        self.queue = []  # queue for rotating players
+        self.print_reset_scores = False  # flag for round_countdown
         self.player_red = None  # force spec exception for this player
         self.player_blue = None  # force spec exception for this player
         self.player_spec = None  # force spec exception for this player
-        self.scores = {}  # store/restore individual team scores
+        self.playerset = set()  # collect players who joined a team
         self.duelvotes = set()  # !d !duel votes counter
+        self.queue = []  # queue for rotating players
+        self.scores = {}  # store/restore individual team scores
 
         # initialize playerset on plugin reload
         teams = Plugin.teams()
@@ -88,10 +89,19 @@ class duelarena(minqlx.Plugin):
         if not self.duelmode:
             return
 
+        if self.print_reset_scores:
+            self.print_results_and_reset_scores()
+            return
+
         teams = Plugin.teams()
         if teams["red"] and teams["blue"]:
             Plugin.center_print("{} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
             Plugin.msg("DuelArena: {} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
+
+    def print_results_and_reset_scores(self):
+        self.print_results()
+        self.reset_team_scores()
+        self.print_reset_scores = False
 
     # check if we need to deavtivate DuelArena on player disconnect
     @minqlx.delay(3)
@@ -197,12 +207,14 @@ class duelarena(minqlx.Plugin):
 
         if len(self.queue) == 0:
             self.deactivate_duelarena()
+            self.print_results_and_reset_scores()
             return
 
         next_player = Plugin.player(self.queue.pop())
 
         if not next_player or next_player.team != "spectator":
             self.deactivate_duelarena()
+            self.print_results_and_reset_scores()
             return
 
         setattr(self, "player_" + empty_team, next_player)  # sets either player_blue or player_red to the next_player
@@ -283,8 +295,7 @@ class duelarena(minqlx.Plugin):
         Plugin.msg("DuelArena has been deactivated!")
         Plugin.center_print("DuelArena deactivated!")
         if self.game.state == "in_progress":
-            self.print_results()
-            self.reset_team_scores()
+            self.print_reset_scores = True
 
     def activate_duelarena(self):
         self.duelmode = True
