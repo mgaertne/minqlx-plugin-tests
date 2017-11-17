@@ -25,7 +25,7 @@ class duelarena(minqlx.Plugin):
         self.add_command("duelarena", self.cmd_duelarena, permission=5, usage="[auto|force]")
         self.add_command(("duel", "d"), self.cmd_duel)
 
-        self.duelarenastrategy = AutoDuelArenaStrategy()
+        self.duelarenastrategy = AutoDuelArenaStrategy(MIN_ACTIVE_PLAYERS)
         self.duelmode = False  # global gametype switch
         self.initduel = False  # initial player setup switch
         self.print_reset_scores = False  # flag for round_countdown
@@ -61,11 +61,10 @@ class duelarena(minqlx.Plugin):
                 #  we initiated switch to spec? Only remove him from exception list
                 self.player_spec = None
 
-        if self.game.state == "warmup" and len(self.playerset) == 3:
-            Plugin.center_print("Ready up for ^6DuelArena^7!")
-            Plugin.msg("Ready up for ^6DuelArena^7! Round winner stays in, loser rotates with spectator.")
-            return
-        elif self.game.state == "warmup":
+        if self.game.state == "warmup":
+            if len(self.playerset) == MIN_ACTIVE_PLAYERS:
+                Plugin.center_print("Ready up for ^6DuelArena^7!")
+                Plugin.msg("Ready up for ^6DuelArena^7! Round winner stays in, loser rotates with spectator.")
             return
 
         if not self.duelmode:
@@ -192,18 +191,14 @@ class duelarena(minqlx.Plugin):
 
         teams = Plugin.teams()
 
-        if data['TEAM_WON'] == 'RED':
-            empty_team = 'blue'
-            loser_team_score = self.game.blue_score
-            winner = teams['red'][-1]
-            self.scores[winner.steam_id] = self.game.red_score
-        elif data['TEAM_WON'] == 'BLUE':
-            empty_team = 'red'
-            loser_team_score = self.game.red_score
-            winner = teams['blue'][-1]
-            self.scores[winner.steam_id] = self.game.blue_score
-        else:
+        winning_team = data["TEAM_WON"].lower()
+        if winning_team not in ["red", "blue"]:
             return  # Draw? Do nothing
+
+        winner = teams[winning_team][-1]
+        self.scores[winner.steam_id] = getattr(self.game, winning_team + "_score")
+        losing_team = "blue" if winning_team == "red" else "red"
+        loser_team_score = getattr(self.game, losing_team + "_score")
 
         if len(self.queue) == 0:
             self.deactivate_duelarena()
@@ -217,10 +212,10 @@ class duelarena(minqlx.Plugin):
             self.print_results_and_reset_scores()
             return
 
-        setattr(self, "player_" + empty_team, next_player)  # sets either player_blue or player_red to the next_player
-        loser = teams[empty_team][-1]
-        next_player.put(empty_team)
-        self.game.addteamscore(empty_team, self.scores[next_player.steam_id] - loser_team_score)
+        setattr(self, "player_" + losing_team, next_player)  # sets either player_blue or player_red to the next_player
+        loser = teams[losing_team][-1]
+        next_player.put(losing_team)
+        self.game.addteamscore(losing_team, self.scores[next_player.steam_id] - loser_team_score)
         self.queue.insert(0, loser.steam_id)
         self.player_spec = loser.steam_id
         self.scores[loser.steam_id] = loser_team_score  # store loser team score
@@ -228,7 +223,7 @@ class duelarena(minqlx.Plugin):
         loser.tell("{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
 
     def handle_map_change(self, mapname, factory):
-        self.duelarenastrategy = AutoDuelArenaStrategy()
+        self.duelarenastrategy = AutoDuelArenaStrategy(MIN_ACTIVE_PLAYERS)
         self.duelvotes = set()
         self.duelmode = False
         self.initduel = False
@@ -265,9 +260,8 @@ class duelarena(minqlx.Plugin):
                 self.player_blue.put("blue")
 
         # put all other players to spec
-        for _p in teams['red'] + teams['blue']:
-            if _p != self.player_red and _p != self.player_blue:
-                _p.put("spectator")
+        for player in set(teams['red'] + teams['blue']) - {self.player_blue, self.player_red}:
+            player.put("spectator")
 
         self.initduel = False
 
@@ -289,7 +283,7 @@ class duelarena(minqlx.Plugin):
         return self.duelarenastrategy.duelarena_should_be_activated(self.playerset)
 
     def deactivate_duelarena(self):
-        self.duelarenastrategy = AutoDuelArenaStrategy()
+        self.duelarenastrategy = AutoDuelArenaStrategy(MIN_ACTIVE_PLAYERS)
         self.duelmode = False
         self.initduel = False
         Plugin.msg("DuelArena has been deactivated!")
@@ -299,6 +293,7 @@ class duelarena(minqlx.Plugin):
 
     def activate_duelarena(self):
         self.duelmode = True
+        self.print_reset_scores = False
         Plugin.msg(
             "DuelArena activated! Round winner stays in, loser rotates with spectator. Hit 8 rounds first to win!")
         Plugin.center_print("DuelArena activated!")
@@ -346,7 +341,7 @@ class duelarena(minqlx.Plugin):
             self.duelarenastrategy = ForcedDuelArenaStrategy()
             Plugin.msg("^7Duelarena is now ^6forced^7!")
         elif msg[1] == "auto":
-            self.duelarenastrategy = AutoDuelArenaStrategy()
+            self.duelarenastrategy = AutoDuelArenaStrategy(MIN_ACTIVE_PLAYERS)
             Plugin.msg("^7Duelarena is now ^6automatic^7!")
         self.duelarena_switch()
 
@@ -409,7 +404,6 @@ class DuelArenaStrategy:
         """
         pass
 
-    @abstractmethod
     def duelarena_should_be_aborted(self, game, playerset, scores):
         if not game or game.state != "in_progress":
             return False
@@ -422,12 +416,17 @@ class DuelArenaStrategy:
 
 class AutoDuelArenaStrategy(DuelArenaStrategy):
 
+    def __init__(self, min_active_players):
+        super().__init__()
+
+        self.min_active_players = min_active_players
+
     @property
     def state(self):
         return "auto"
 
     def duelarena_should_be_activated(self, playerset):
-        return len(playerset) == 3
+        return len(playerset) == self.min_active_players
 
 
 class ForcedDuelArenaStrategy(DuelArenaStrategy):
