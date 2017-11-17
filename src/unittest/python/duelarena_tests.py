@@ -189,7 +189,7 @@ class DuelArenaTests(unittest.TestCase):
         self.assert_queue_contains(spec_player1, spec_player2)
 
     def setup_forced_duelmode(self):
-        self.plugin.duelarenastrategy = ForcedDuelArenaStrategy()
+        self.plugin.duelarenastrategy = ForcedDuelArenaStrategy(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS)
 
     def test_when_sixth_player_tries_to_join_in_forced_duelarena_duelarena_deactivates(self):
         switching_player = fake_player(6, "Switching Player")

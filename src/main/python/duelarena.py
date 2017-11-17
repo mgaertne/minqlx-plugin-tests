@@ -115,8 +115,7 @@ class duelarena(minqlx.Plugin):
     @minqlx.delay(3)
     def handle_player_loaded(self, player):
         if isinstance(self.duelarenastrategy, ForcedDuelArenaStrategy) and self.game.state == "in_progress":
-            playerset_with_loaded_player = self.playerset.copy()
-            playerset_with_loaded_player.add(player.steam_id)
+            playerset_with_loaded_player = self.playerset | {player.steam_id}
             if self.duelarena_should_be_aborted(self.game, playerset_with_loaded_player, self.scores):
                 player.tell(
                     "{}, by joining DuelArena will be aborted and server switches to standard CA!".format(player.name))
@@ -338,7 +337,7 @@ class duelarena(minqlx.Plugin):
             Plugin.msg("Current DuelArena state is: ^6{}".format(state))
             return minqlx.RET_USAGE
         if msg[1] == "force":
-            self.duelarenastrategy = ForcedDuelArenaStrategy()
+            self.duelarenastrategy = ForcedDuelArenaStrategy(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS)
             Plugin.msg("^7Duelarena is now ^6forced^7!")
         elif msg[1] == "auto":
             self.duelarenastrategy = AutoDuelArenaStrategy(MIN_ACTIVE_PLAYERS)
@@ -380,7 +379,7 @@ class duelarena(minqlx.Plugin):
 
         Plugin.msg("^7Total DuelArena votes = ^6{}^7, vote passed!".format(have))
         Plugin.play_sound("sound/vo/vote_passed.ogg")
-        self.duelarenastrategy = ForcedDuelArenaStrategy()
+        self.duelarenastrategy = ForcedDuelArenaStrategy(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS)
         self.duelarena_switch()
 
     def connected_players(self):
@@ -431,9 +430,15 @@ class AutoDuelArenaStrategy(DuelArenaStrategy):
 
 class ForcedDuelArenaStrategy(DuelArenaStrategy):
 
+    def __init__(self, min_active_players, max_active_players):
+        super().__init__()
+
+        self.min_active_players = min_active_players
+        self.max_active_players = max_active_players
+
     @property
     def state(self):
         return "force"
 
     def duelarena_should_be_activated(self, playerset):
-        return len(playerset) in range(MIN_ACTIVE_PLAYERS, MAX_ACTIVE_PLAYERS + 1)
+        return len(playerset) in range(self.min_active_players, self.max_active_players + 1)
