@@ -119,12 +119,12 @@ class DuelArenaTests(unittest.TestCase):
                           red_player,
                           switching_player)
         self.setup_duelarena_players(switching_player, red_player, spec_player)
-        self.plugin.player_spec = switching_player.steam_id
+        self.plugin.player_spec.add(switching_player.steam_id)
         self.activate_duelarena()
 
         self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
-        assert_that(self.plugin.player_spec, is_(None))
+        assert_that(self.plugin.player_spec, is_(set()))
 
     def test_when_game_in_warmup_announcement_is_shown(self):
         setup_game_in_warmup()

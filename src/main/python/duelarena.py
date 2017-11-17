@@ -31,17 +31,14 @@ class duelarena(minqlx.Plugin):
         self.print_reset_scores = False  # flag for round_countdown
         self.player_red = None  # force spec exception for this player
         self.player_blue = None  # force spec exception for this player
-        self.player_spec = None  # force spec exception for this player
-        self.playerset = set()  # collect players who joined a team
+        self.player_spec = set()  # force spec exception for this player
         self.duelvotes = set()  # !d !duel votes counter
         self.queue = []  # queue for rotating players
         self.scores = {}  # store/restore individual team scores
 
         # initialize playerset on plugin reload
         teams = Plugin.teams()
-        for _p in teams['red'] + teams['blue']:
-            if _p.steam_id not in self.playerset:
-                self.playerset.add(_p.steam_id)
+        self.playerset = set(teams['red'] + teams['blue'])  # collect players who joined a team
 
     # Don't allow players to join manually when DuelArena is active
     def handle_team_switch_event(self, player, old, new):
@@ -49,17 +46,16 @@ class duelarena(minqlx.Plugin):
         if not self.game:
             return
 
+        if new in ['spectator'] and player.steam_id in self.player_spec:
+            self.player_spec.remove(player.steam_id)  # we initiated switch to spec? Just remove him from exception list
+        elif new in ['spectator'] \
+                and player.steam_id in self.playerset:  # player left team? let's see what we do with him...
+                self.playerset.remove(player.steam_id)
+                self.duelarena_switch()
+
         if new in ['red', 'blue', 'any'] and player.steam_id not in self.playerset:
             self.playerset.add(player.steam_id)  # player joined a team? Add him to playerset
             self.duelarena_switch()  # we good enough for DuelArena?
-        elif new in ['spectator'] \
-                and player.steam_id in self.playerset:  # player left team? let's see what we do with him...
-            if player.steam_id != self.player_spec:  # player initiated switch to spec? Remove him from playerset
-                self.playerset.remove(player.steam_id)
-                self.duelarena_switch()
-            else:  # player.steam_id == self.player_spec:
-                #  we initiated switch to spec? Only remove him from exception list
-                self.player_spec = None
 
         if self.game.state == "warmup":
             if len(self.playerset) == MIN_ACTIVE_PLAYERS:
@@ -151,12 +147,7 @@ class duelarena(minqlx.Plugin):
         if not self.duelmode:
             return
 
-        if int(data['TSCORE1']) > int(data['TSCORE0']):
-            loser = "red"
-            winner = "blue"
-        else:
-            loser = "blue"
-            winner = "red"
+        (loser, winner) = ("red", "blue") if int(data['TSCORE1']) > int(data['TSCORE0']) else ("blue", "red")
 
         teams = Plugin.teams()
 
@@ -196,8 +187,11 @@ class duelarena(minqlx.Plugin):
 
         winner = teams[winning_team][-1]
         self.scores[winner.steam_id] = getattr(self.game, winning_team + "_score")
+
         losing_team = "blue" if winning_team == "red" else "red"
+        loser = teams[losing_team][-1]
         loser_team_score = getattr(self.game, losing_team + "_score")
+        self.scores[loser.steam_id] = loser_team_score  # store loser team score
 
         if len(self.queue) == 0:
             self.deactivate_duelarena()
@@ -211,15 +205,19 @@ class duelarena(minqlx.Plugin):
             self.print_results_and_reset_scores()
             return
 
-        setattr(self, "player_" + losing_team, next_player)  # sets either player_blue or player_red to the next_player
-        loser = teams[losing_team][-1]
-        next_player.put(losing_team)
+        self.move_player_to_team(next_player, losing_team)
         self.game.addteamscore(losing_team, self.scores[next_player.steam_id] - loser_team_score)
+
         self.queue.insert(0, loser.steam_id)
-        self.player_spec = loser.steam_id
-        self.scores[loser.steam_id] = loser_team_score  # store loser team score
-        loser.put("spectator")
+        self.move_player_to_team(loser, "spectator")
         loser.tell("{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
+
+    def move_player_to_team(self, player, team):
+        if team == "spectator":
+            self.player_spec.add(player.steam_id)
+        else:
+            setattr(self, "player_" + team, player)
+        player.put(team)
 
     def handle_map_change(self, mapname, factory):
         self.duelarenastrategy = AutoDuelArenaStrategy(MIN_ACTIVE_PLAYERS)
@@ -232,35 +230,34 @@ class duelarena(minqlx.Plugin):
         self.checklists()
         self.init_duel_team_scores()  # set all player scores 0
 
-        for sid in self.playerset:
-            if sid not in self.queue:
-                self.queue.insert(0, sid)
+        for sid in self.playerset - set(self.queue):
+            self.queue.insert(0, sid)
 
         teams = Plugin.teams()
 
-        self.player_red = Plugin.player(self.queue.pop())
-        self.player_blue = Plugin.player(self.queue.pop())
+        player1 = Plugin.player(self.queue.pop())
+        player2 = Plugin.player(self.queue.pop())
 
         # both players already on different teams? Do nothing
-        if (self.player_blue.team != 'blue' or self.player_red.team != 'red') and \
-                (self.player_blue.team != 'red' or self.player_red.team != 'blue'):
+        if (player2.team != 'blue' or player1.team != 'red') and \
+                (player2.team != 'red' or player1.team != 'blue'):
             # only one player already in any team?
-            if self.player_red.team == 'red':
-                self.player_blue.put("blue")
-            elif self.player_red.team == 'blue':
-                self.player_blue.put("red")
-            elif self.player_blue.team == 'blue':
-                self.player_red.put("red")
-            elif self.player_blue.team == 'red':
-                self.player_red.put("blue")
+            if player1.team == 'red':
+                self.move_player_to_team(player2, "blue")
+            elif player1.team == 'blue':
+                self.move_player_to_team(player2, "red")
+            elif player2.team == 'blue':
+                self.move_player_to_team(player1, "red")
+            elif player2.team == 'red':
+                self.move_player_to_team(player1, "blue")
             # both players not in teams?
             else:
-                self.player_red.put("red")
-                self.player_blue.put("blue")
+                self.move_player_to_team(player1, "red")
+                self.move_player_to_team(player2, "blue")
 
         # put all other players to spec
-        for player in set(teams['red'] + teams['blue']) - {self.player_blue, self.player_red}:
-            player.put("spectator")
+        for player in set(teams['red'] + teams['blue']) - {player1, player2}:
+            self.move_player_to_team(player, "spectator")
 
         self.initduel = False
 
@@ -312,9 +309,7 @@ class duelarena(minqlx.Plugin):
 
     def init_duel_team_scores(self):
         self.reset_team_scores()
-        self.scores = {}
-        for sid in self.playerset:
-            self.scores[sid] = 0
+        self.scores = {player_id: 0 for player_id in self.playerset}
 
     def print_results(self):
         Plugin.msg("DuelArena results:")
