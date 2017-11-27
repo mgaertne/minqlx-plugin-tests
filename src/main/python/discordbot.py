@@ -18,11 +18,15 @@ class discordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordRelayChannelIds", "")
         self.set_cvar_once("qlx_discordIdleChannelIds", "")
         self.set_cvar_once("qlx_discordUpdateTopicOnIdleChannels", "1")
+        self.set_cvar_once("qlx_discordTriggerIdleChannelChat", "!quakelive")
+        self.set_cvar_once("qlx_discordTriggerStatus", "!status")
 
         self.discord_bot_token = self.get_cvar("qlx_discordBotToken")
         self.discord_relay_channel_ids = self.get_cvar("qlx_discordRelayChannelIds", set)
         self.discord_idle_channel_ids = self.get_cvar("qlx_discordIdleChannelIds", set)
         self.discord_update_idle_channels_topic = self.get_cvar("qlx_discordUpdateTopicOnIdleChannels", bool)
+        self.discord_trigger_idle_channel_chat = self.get_cvar("qlx_discordTriggerIdleChannelChat")
+        self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
 
         self.add_hook("unload", self.handle_plugin_unload)
         self.add_hook("chat", self.handle_ql_chat, priority=minqlx.PRI_LOWEST)
@@ -59,16 +63,35 @@ class discordbot(minqlx.Plugin):
             if not message:
                 return
 
-            if message.author.name != self.discord.user.name and message.channel.id in self.discord_relay_channel_ids:
+            if message.author == self.discord.user:
+                return
+
+            if message.channel.id not in self.discord_relay_channel_ids | self.discord_idle_channel_ids:
+                return
+
+            if message.content == self.discord_trigger_status:
+                await self.discord.send_message(message.channel,
+                                                "{}\n{}".format(self.generate_topic(), self.player_data()))
+
+            if message.channel.id in self.discord_relay_channel_ids:
                 minqlx.CHAT_CHANNEL.reply(discordbot.format_discord_message(message))
+
+            if message.channel.id in self.discord_idle_channel_ids:
+                if message.content.startswith(self.discord_trigger_idle_channel_chat + " "):
+                    content = message.content[(len(self.discord_trigger_idle_channel_chat) + 1):]
+                    minqlx.CHAT_CHANNEL.reply(
+                        self.format_message_to_quake(message.channel.name, message.author.name, content))
 
         self.logger.info("Connecting to Discord...")
         loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
     @staticmethod
     def format_discord_message(message: discord.Message):
-        return "[DISCORD] ^5#{} ^6{}^7:^2 {}"\
-            .format(message.channel.name, message.author.name, message.content)
+        return discordbot.format_message_to_quake(message.channel.name, message.author.name, message.content)
+
+    @staticmethod
+    def format_message_to_quake(channel, author, content):
+        return "[DISCORD] ^5#{} ^6{}^7:^2 {}".format(channel, author, content)
 
     def handle_plugin_unload(self, plugin):
         if plugin == self.__class__.__name__ and self.discord:
@@ -195,8 +218,8 @@ class discordbot(minqlx.Plugin):
             if channel and channel.topic:
                 match = re_topic.match(channel.topic)
                 topic_suffix = match.group(1) if match else channel.topic
-            self.discord.loop.create_task(self.set_topic_on_discord_channels(self.discord_idle_channel_ids,
-                                                                             "{} {}".format(topic, topic_suffix)))
+            self.discord.loop.create_task(self._set_topic_on_channels(self.discord_idle_channel_ids,
+                                                                      "{} {}".format(topic, topic_suffix)))
 
     def send_to_discord_channels(self, channel_ids, content):
         if not self.discord or not self.discord.is_logged_in:
@@ -211,7 +234,8 @@ class discordbot(minqlx.Plugin):
         await self.discord.wait_until_ready()
         for channel_id in channel_ids:
             channel = self.discord.get_channel(channel_id)
-            await self.discord.send_message(channel, content)
+            if channel:
+                await self.discord.send_message(channel, content)
 
     def set_topic_on_discord_channels(self, channel_ids, topic):
         if not self.discord or not self.discord.is_logged_in:
@@ -226,7 +250,8 @@ class discordbot(minqlx.Plugin):
         await self.discord.wait_until_ready()
         for channel_id in channel_ids:
             channel = self.discord.get_channel(channel_id)
-            await self.discord.edit_channel(channel, topic=topic)
+            if channel:
+                await self.discord.edit_channel(channel, topic=topic)
 
     def get_players(self):
         teams = self.teams()
