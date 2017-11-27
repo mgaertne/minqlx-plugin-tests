@@ -74,11 +74,12 @@ class discordbot(minqlx.Plugin):
                                                 "{}\n{}".format(self.generate_topic(), self.player_data()))
 
             if message.channel.id in self.discord_relay_channel_ids:
+
                 minqlx.CHAT_CHANNEL.reply(discordbot.format_discord_message(message))
 
             if message.channel.id in self.discord_idle_channel_ids:
                 if message.content.startswith(self.discord_trigger_idle_channel_chat + " "):
-                    content = message.content[(len(self.discord_trigger_idle_channel_chat) + 1):]
+                    content = message.clean_content[(len(self.discord_trigger_idle_channel_chat) + 1):]
                     minqlx.CHAT_CHANNEL.reply(
                         self.format_message_to_quake(message.channel.name, message.author.name, content))
 
@@ -87,7 +88,7 @@ class discordbot(minqlx.Plugin):
 
     @staticmethod
     def format_discord_message(message: discord.Message):
-        return discordbot.format_message_to_quake(message.channel.name, message.author.name, message.content)
+        return discordbot.format_message_to_quake(message.channel.name, message.author.name, message.clean_content)
 
     @staticmethod
     def format_message_to_quake(channel, author, content):
@@ -168,7 +169,7 @@ class discordbot(minqlx.Plugin):
         self.update_topic_on_idle_channels(topic)
 
     def handle_map(self, map, factory):
-        content = "*Changing map to {}...*".format(map)
+        content = "*Changed map to {}...*".format(map)
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     def handle_vote_started(self, caller, vote, args):
@@ -233,7 +234,7 @@ class discordbot(minqlx.Plugin):
     async def _send_to_channels(self, channel_ids, content):
         await self.discord.wait_until_ready()
         for channel_id in channel_ids:
-            channel = self.discord.get_channel(channel_id)
+            channel = discord.Object(id=channel_id)
             if channel:
                 await self.discord.send_message(channel, content)
 
