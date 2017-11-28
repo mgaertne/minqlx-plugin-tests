@@ -11,6 +11,8 @@ fragstealers_inc discord tech channel of the Bus Station server(s).
 """
 import re
 import asyncio
+import requests
+import json
 
 import minqlx
 from minqlx import Plugin
@@ -123,7 +125,6 @@ class mydiscordbot(minqlx.Plugin):
             Quake Live or discord happen.
             :param message: the message that was sent.
             """
-
             # guard clause to avoid None messages from processing.
             if not message:
                 return
@@ -325,7 +326,7 @@ class mydiscordbot(minqlx.Plugin):
 
         :param map: the new map
         """
-        content = "*Changed map to {}...*".format(map)
+        content = "*Changing map to {}...*".format(map)
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
         self.update_topics()
@@ -420,10 +421,10 @@ class mydiscordbot(minqlx.Plugin):
                 match = re_topic.match(channel.topic)
                 topic_suffix = match.group(1) if match else channel.topic
 
-            # update the topic in a task in the event loop
-            self.discord.loop.create_task(self._set_topic_on_channels(self.discord_triggered_channel_ids,
-                                                                      "{} {}".format(topic, topic_suffix)))
+            # update the topic on the triggered channels
+            self.set_topic_on_discord_channels(self.discord_triggered_channel_ids, "{} {}".format(topic, topic_suffix))
 
+    @minqlx.thread
     def send_to_discord_channels(self, channel_ids, content):
         """
         Send a message to a set of channel_ids on discord provided.
@@ -431,32 +432,38 @@ class mydiscordbot(minqlx.Plugin):
         :param channel_ids: the ids of the channels the message should be sent to.
         :param content: the content of the message to send to the discord channels
         """
-        # if the bot is not running or not connected, do nothing.
-        if not self.discord or not self.discord.is_logged_in:
-            return
-
         # if we were not provided any channel_ids, do nothing.
         if not channel_ids or len(channel_ids) == 0:
             return
 
-        # send the message in a task in the event loop to get asyncio properly working.
-        self.discord.loop.create_task(self._send_to_channels(channel_ids, content))
-
-    async def _send_to_channels(self, channel_ids, content):
-        """
-        async coroutine to actually send the message. Internally used only by :func:`send_to_discord_channels()`
-
-        :param channel_ids: the set of channel ids the message should be send to. This must not be None or empty.
-        :param content: the content of the message to send to discord channels
-        """
-        # make sure the discord bot is ready for new messages
-        await self.discord.wait_until_ready()
+        # send the message in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
-            # we can pass on a discord.Object with the channel_id for sending messages here. This avoids asynchronous
-            # interactions with the discord server to get the channel with the right id.
-            channel = discord.Object(id=channel_id)
-            await self.discord.send_message(channel, content)
+            # we use the raw request method here since it leads to fewer lag between minqlx and discord
+            requests.post(mydiscordbot._discord_api_channel_url(channel_id) + "/messages",
+                          data=json.dumps({'content': content}),
+                          headers=mydiscordbot._discord_api_request_headers(self.discord_bot_token))
 
+    @staticmethod
+    def _discord_api_channel_url(channel_id):
+        """
+        Generates the basis for the discord api's channel url from the given channel_id.
+
+        :param channel_id: the id of the channel for direct http/json requests
+        :return: the channel url of the provided channel_id for direct interaction with the discord api
+        """
+        return "https://discordapp.com/api/channels/{}".format(channel_id)
+
+    @staticmethod
+    def _discord_api_request_headers(bot_token):
+        """
+        Generates the discord api headers for direct discord api interactions from the provided token's bot.
+
+        :param bot_token: the token of the bot the headers should be generated for
+        :return: the request headers for the provided token's bot
+        """
+        return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(bot_token)}
+
+    @minqlx.thread
     def set_topic_on_discord_channels(self, channel_ids, topic):
         """
         Set the topic on a set of channel_ids on discord provided.
@@ -464,30 +471,13 @@ class mydiscordbot(minqlx.Plugin):
         :param channel_ids: the ids of the channels the topic should be set upon.
         :param topic: the new topic that should be set.
         """
-        # if the bot is not running or not connected, do nothing.
-        if not self.discord or not self.discord.is_logged_in:
-            return
-
         # if we were not provided any channel_ids, do nothing.
         if not channel_ids or len(channel_ids) == 0:
             return
 
-        # set the topic in a task in the event loop to get asyncio properly working.
-        self.discord.loop.create_task(self._set_topic_on_channels(channel_ids, topic))
-
-    async def _set_topic_on_channels(self, channel_ids, topic):
-        """
-        async corouting to actually set the channel topics. Internally used only by
-        :func:`set_topic_on_discord_channels()`
-
-        :param channel_ids: the set of channel ids the topic should be set on. This must not be None or empty.
-        :param topic: the new topic that should be set.
-        """
-        # make sure the discord bot is ready for setting the topic
-        await self.discord.wait_until_ready()
+        # set the topic in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
-            # we need to get the actual channel object from the server, before trying to set the topic. get_channel
-            # may return None here. In that case, we do not do anything.
-            channel = self.discord.get_channel(channel_id)
-            if channel:
-                await self.discord.edit_channel(channel, topic=topic)
+            # we use the raw request method here since it leads to fewer lag between minqlx and discord
+            requests.patch(mydiscordbot._discord_api_channel_url(channel_id),
+                           data=json.dumps({'topic': topic}),
+                           headers=mydiscordbot._discord_api_request_headers(self.discord_bot_token))
