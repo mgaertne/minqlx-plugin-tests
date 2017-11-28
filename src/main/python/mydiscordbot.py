@@ -143,7 +143,7 @@ class mydiscordbot(minqlx.Plugin):
 
             # relay all messages from the relay channels back to Quake Live.
             if message.channel.id in self.discord_relay_channel_ids:
-                minqlx.CHAT_CHANNEL.reply(discordbot.format_discord_message(message))
+                minqlx.CHAT_CHANNEL.reply(mydiscordbot.format_discord_message(message))
 
             # relay all messages that have the trigger as prefix from the triggered channels.
             if message.channel.id in self.discord_triggered_channel_ids:
@@ -164,7 +164,7 @@ class mydiscordbot(minqlx.Plugin):
         :param message: the message to format for Quake Live
         :return: the formatted message that may be sent back to Quake Live.
         """
-        return discordbot.format_message_to_quake(message.channel.name, message.author.name, message.clean_content)
+        return mydiscordbot.format_message_to_quake(message.channel.name, message.author.name, message.clean_content)
 
     @staticmethod
     def format_message_to_quake(channel, author, content):
