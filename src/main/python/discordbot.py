@@ -68,7 +68,7 @@ class discordbot(minqlx.Plugin):
         self.discord_relay_channel_ids = self.get_cvar("qlx_discordRelayChannelIds", set)
         self.discord_triggered_channel_ids = self.get_cvar("qlx_discordTriggeredChannelIds", set)
         self.discord_update_triggered_channels_topic = self.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
-        self.discord_trigger_idle_channel_chat = self.get_cvar("qlx_discordTriggerTriggeredChannelChat")
+        self.discord_trigger_triggered_channel_chat = self.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
 
         # adding general plugin hooks
@@ -146,8 +146,8 @@ class discordbot(minqlx.Plugin):
 
             # relay all messages that have the trigger as prefix from the triggered channels.
             if message.channel.id in self.discord_triggered_channel_ids:
-                if message.content.startswith(self.discord_trigger_idle_channel_chat + " "):
-                    content = message.clean_content[(len(self.discord_trigger_idle_channel_chat) + 1):]
+                if message.content.startswith(self.discord_trigger_triggered_channel_chat + " "):
+                    content = message.clean_content[(len(self.discord_trigger_triggered_channel_chat) + 1):]
                     minqlx.CHAT_CHANNEL.reply(
                         self.format_message_to_quake(message.channel.name, message.author.name, content))
 
