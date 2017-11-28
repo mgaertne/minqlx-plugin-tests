@@ -1,12 +1,13 @@
 """
 This is a plugin created by ShiN0
 Copyright (c) 2017 ShiN0
-https://www.github.com/mgaertne/minqlx-plugin-tests
+<https://www.github.com/mgaertne/minqlx-plugin-tests>
 
 You are free to modify this plugin to your own one, except for the version command related code.
 
-The basic ideas for this plugin came from Gelenkbusfahrer and have been mainly discussed on the fragstealers_inc discord
-tech channel of the Bus Station server(s).
+The basic ideas for this plugin came from Gelenkbusfahrer and roast
+<https://github.com/roasticle/minqlx-plugins/blob/master/discordbot.py> and have been mainly discussed on the
+fragstealers_inc discord tech channel of the Bus Station server(s).
 """
 import re
 import asyncio
@@ -26,7 +27,7 @@ from discord.ext import commands
 re_topic = re.compile(r".*players. (.*)$")
 
 
-class discordbot(minqlx.Plugin):
+class mydiscordbot(minqlx.Plugin):
     """
     The plugin's main purpose is to create a relay chat between the Quake Live chat and configured discord channels.
     There are two basic types of relay in this basic version of a discord plugin:
