@@ -24,7 +24,7 @@ version = "0.0.1"
 authors = (Author("Markus 'ShiN0' Gaertner"),)
 url = "https://github.com/mgaertne/minqlx-plugin-tests"
 
-requires_python = ">=2.7,!=3.0,!=3.1,!=3.2,!=3.3,<3.8"
+requires_python = ">2.7,>3.4,<3.8"
 
 
 @init
