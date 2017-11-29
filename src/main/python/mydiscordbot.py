@@ -144,31 +144,31 @@ class mydiscordbot(minqlx.Plugin):
 
             # relay all messages from the relay channels back to Quake Live.
             if message.channel.id in self.discord_relay_channel_ids:
-                minqlx.CHAT_CHANNEL.reply(mydiscordbot.format_discord_message(message))
+                minqlx.CHAT_CHANNEL.reply(mydiscordbot._format_discord_message(message))
 
             # relay all messages that have the trigger as prefix from the triggered channels.
             if message.channel.id in self.discord_triggered_channel_ids:
                 if message.content.startswith(self.discord_trigger_triggered_channel_chat + " "):
                     content = message.clean_content[(len(self.discord_trigger_triggered_channel_chat) + 1):]
                     minqlx.CHAT_CHANNEL.reply(
-                        self.format_message_to_quake(message.channel.name, message.author.name, content))
+                        self._format_message_to_quake(message.channel.name, message.author.name, content))
 
         # connect the now configured bot to discord in the event_loop
         self.logger.info("Connecting to Discord...")
         loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
     @staticmethod
-    def format_discord_message(message: discord.Message):
+    def _format_discord_message(message: discord.Message):
         """
         Format a message from discord so that it will be displayed nicely in the Quake Live chat console.
 
         :param message: the message to format for Quake Live
         :return: the formatted message that may be sent back to Quake Live.
         """
-        return mydiscordbot.format_message_to_quake(message.channel.name, message.author.name, message.clean_content)
+        return mydiscordbot._format_message_to_quake(message.channel.name, message.author.name, message.clean_content)
 
     @staticmethod
-    def format_message_to_quake(channel, author, content):
+    def _format_message_to_quake(channel, author, content):
         """
         Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
         console.
