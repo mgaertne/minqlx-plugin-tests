@@ -119,7 +119,7 @@ class mydiscordbot(minqlx.Plugin):
             await self.discord.change_presence(game=discord.Game(name="Quake Live"))
 
         @self.discord.event
-        async def on_message(message: discord.Message):
+        async def on_message(message):
             """
             Function called once a message is send through discord. Here the main interaction points either back to
             Quake Live or discord happen.
@@ -158,7 +158,7 @@ class mydiscordbot(minqlx.Plugin):
         loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
     @staticmethod
-    def _format_discord_message(message: discord.Message):
+    def _format_discord_message(message):
         """
         Format a message from discord so that it will be displayed nicely in the Quake Live chat console.
 
@@ -289,7 +289,7 @@ class mydiscordbot(minqlx.Plugin):
             if player.score < previous_score:
                 counter += 1
                 previous_score = player.score
-            team_data += "{}. **{}**({}) ".format(counter, Plugin.clean_text(player.name), player.score)
+            team_data += "{}. **{}**({}) ".format(counter, player.clean_name, player.score)
 
         return team_data
 
@@ -309,7 +309,7 @@ class mydiscordbot(minqlx.Plugin):
         if not self.discord or not self.discord_relay_channel_ids or channel.name not in handled_channels:
             return
 
-        content = "**{}**{}: {}".format(Plugin.clean_text(player.name),
+        content = "**{}**{}: {}".format(player.clean_name,
                                         handled_channels[channel.name],
                                         Plugin.clean_text(msg))
 
@@ -323,7 +323,7 @@ class mydiscordbot(minqlx.Plugin):
 
         :param player: the player that connected
         """
-        content = "*{} connected.*".format(Plugin.clean_text(player.name))
+        content = "*{} connected.*".format(player.clean_name)
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
         self.update_topics()
@@ -339,7 +339,7 @@ class mydiscordbot(minqlx.Plugin):
         """
         if reason and reason[-1] not in ("?", "!", "."):
             reason = reason + "."
-        content = "*{} {}*".format(Plugin.clean_text(player.name),
+        content = "*{} {}*".format(player.clean_name,
                                    Plugin.clean_text(reason))
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
@@ -365,8 +365,8 @@ class mydiscordbot(minqlx.Plugin):
         :param vote: the vote itself, i.e. map change, kick player, etc.
         :param args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller = Plugin.clean_text(caller.name) if caller else "The server"
-        content = "*{} called a vote: {} {}*".format(Plugin.clean_text(caller),
+        caller = caller.clean_name if caller else "The server"
+        content = "*{} called a vote: {} {}*".format(caller,
                                                      vote,
                                                      Plugin.clean_text(args))
 

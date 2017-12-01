@@ -4,3 +4,4 @@ mockito
 coverage
 undecorated
 discord
+requests
