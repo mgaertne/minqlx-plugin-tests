@@ -221,7 +221,7 @@ class mydiscordbot(minqlx.Plugin):
         # CAUTION: if you change anything on the next line, you may need to redefine the regular expression re_topic to
         #          keep the right portion of the triggered relay channels' topics!
         topic = "{} on {} ({}) with {}/{} players. ".format(ginfo,
-                                                            self.clean_text(game.map_title),
+                                                            Plugin.clean_text(game.map_title),
                                                             game.type_short.upper(),
                                                             len(players),
                                                             self.get_cvar("sv_maxClients"))
@@ -258,17 +258,40 @@ class mydiscordbot(minqlx.Plugin):
         :return: string of the current top5 scorers with the scores and connection time to the server
         """
         player_data = ""
-        players_by_score = sorted(self.teams()['spectator'] + self.teams()['blue'] + self.teams()['red'],
-                                  key=lambda k: k.score, reverse=True)[:5]  # get top 5 players list!
-
-        for player in players_by_score:
-            player_time = 0  # the playing time of the players are defaulted to 0
-            if self.game.state == "in_progress":
-                # ... and only set to the proper time when the game is in progress.
-                player_time = int(player.stats.time / 60000)
-            player_data += "**{}**: {} ({}m)- ".format(self.clean_text(player.name), player.score, player_time)
+        teams = self.teams()
+        player_data += "**R:** {}\n".format(self.team_data(teams['red'], limit=5))
+        player_data += "**B:** {}".format(self.team_data(teams['blue'], limit=5))
 
         return player_data
+
+    @staticmethod
+    def team_data(player_list, limit=None):
+        """
+        generates a sorted output of the team's player by their score
+
+        :param player_list: the list of players to generate the team output for
+        :param limit: (default: None) just list the top players up to the given limit
+        :return: a discord ready text representation of the player's of that team by their score
+        """
+        if len(player_list) == 0:
+            return ""
+
+        team_data = ""
+        if limit:
+            players_by_score = sorted(player_list, key=lambda k: k.score, reverse=True)[:limit]
+        else:
+            players_by_score = sorted(player_list, key=lambda k: k.score, reverse=True)
+
+        counter = 0
+        previous_score = players_by_score[0].score + 1  # initialize the score to the maximum score + 1
+
+        for player in players_by_score:
+            if player.score < previous_score:
+                counter += 1
+                previous_score = player.score
+            team_data += "{}. **{}**({}) ".format(counter, Plugin.clean_text(player.name), player.score)
+
+        return team_data
 
     def handle_ql_chat(self, player, msg, channel):
         """
@@ -286,7 +309,9 @@ class mydiscordbot(minqlx.Plugin):
         if not self.discord or not self.discord_relay_channel_ids or channel.name not in handled_channels:
             return
 
-        content = "**{}**{}: {}".format(Plugin.clean_text(player.name), handled_channels[channel.name], msg)
+        content = "**{}**{}: {}".format(Plugin.clean_text(player.name),
+                                        handled_channels[channel.name],
+                                        Plugin.clean_text(msg))
 
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
@@ -314,7 +339,8 @@ class mydiscordbot(minqlx.Plugin):
         """
         if reason and reason[-1] not in ("?", "!", "."):
             reason = reason + "."
-        content = "*{} {}*".format(self.clean_text(player.name), reason)
+        content = "*{} {}*".format(Plugin.clean_text(player.name),
+                                   Plugin.clean_text(reason))
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
         self.update_topics()
@@ -339,8 +365,10 @@ class mydiscordbot(minqlx.Plugin):
         :param vote: the vote itself, i.e. map change, kick player, etc.
         :param args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller = self.clean_text(caller.name) if caller else "The server"
-        content = "*{} called a vote: {} {}*".format(self.clean_text(caller), vote, args)
+        caller = Plugin.clean_text(caller.name) if caller else "The server"
+        content = "*{} called a vote: {} {}*".format(Plugin.clean_text(caller),
+                                                     vote,
+                                                     Plugin.clean_text(args))
 
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
@@ -353,7 +381,6 @@ class mydiscordbot(minqlx.Plugin):
         :param vote: the initial vote that passed or failed, i.e. map change, kick player, etc.
         :param args: any arguments of the vote, i.e. map name, which player to kick, etc.
         :param passed: boolean indicating whether the vote passed
-        :return:
         """
         if passed:
             content = "*Vote passed ({} - {}).*".format(*votes)
@@ -382,14 +409,14 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the player that send to the trigger
         :param msg: the message the player sent (includes the trigger)
         :param channel: the channel the message came through, i.e. team chat, general chat, etc.
-        :return:
         """
         # when the message did not include anything to forward, show the usage help text.
         if len(msg) < 2:
             return minqlx.RET_USAGE
 
         if self.discord_triggered_channel_ids:
-            content = "**{}**: {}".format(self.clean_text(player.name), " ".join(msg[1:]))
+            content = "**{}**: {}".format(Plugin.clean_text(player.name),
+                                          " ".join(Plugin.clean_text(msg[1:])))
             self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
             self.msg("Message to Discord chat cast!")
 
