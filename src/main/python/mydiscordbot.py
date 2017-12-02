@@ -61,6 +61,11 @@ class mydiscordbot(minqlx.Plugin):
     configured relay channels
     * qlx_discordQuakeRelayMessageFilters (default: "^\!s$, ^\!p$") comma separated list of regular expressions for
     messages that should not be sent from quake live to discord
+    * qlx_discordAdminPassword (default "supersecret") passwort for remote admin of the server via discord private
+    messages to the discord bot.
+    * qlx_discordAuthCommand (default: ".auth") command for authenticating a discord user to the plugin via private
+    message
+    * qlx_discordExecPrefix (default: ".qlx") command for authenticated users to execute server commands from discord
     """
 
     def __init__(self):
@@ -76,6 +81,9 @@ class mydiscordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
         self.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
         self.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
+        self.set_cvar_once("qlx_discordAdminPassword", "supersecret")
+        self.set_cvar_once("qlx_discordAuthCommand", ".auth")
+        self.set_cvar_once("qlx_discordExecPrefix", ".qlx")
 
         # get the actual cvar values from the server
         self.discord_bot_token = self.get_cvar("qlx_discordBotToken")
@@ -87,6 +95,9 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
         self.discord_message_filters = self.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
+        self.discord_admin_password = self.get_cvar("qlx_discordAdminPassword")
+        self.discord_auth_command = self.get_cvar("qlx_discordAuthCommand")
+        self.discord_exec_prefix = self.get_cvar("qlx_discordExecPrefix")
 
         # adding general plugin hooks
         self.add_hook("unload", self.handle_plugin_unload)
@@ -102,6 +113,9 @@ class mydiscordbot(minqlx.Plugin):
             self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
+
+        self.authed_discord_ids = set()
+        self.auth_attempts = {}
 
         # initialize the discord bot and its interactions on the discord server
         self.discord = None
@@ -132,6 +146,84 @@ class mydiscordbot(minqlx.Plugin):
             Plugin.msg("Connected to discord")
             await self.discord.change_presence(game=discord.Game(name="Quake Live"))
 
+        async def handle_auth(message):
+            """
+            handles the authentification to the bot via private message
+
+            :param message: the original message sent for authentification
+            """
+            if message.author.id in self.authed_discord_ids:
+                await self.discord.send_message(message.channel, "You are already authenticated.")
+            elif message.content[len(self.discord_auth_command) + 1:] == self.discord_admin_password:
+                self.authed_discord_ids.add(message.author.id)
+                await self.discord.send_message(message.channel,
+                                                "You have been successfully authenticated. You can now use "
+                                                "{} to execute commands.".format(self.discord_exec_prefix))
+            else:
+                # Allow up to 3 attempts for the user's IP to authenticate.
+                if message.author.id not in self.auth_attempts:
+                    self.auth_attempts[message.author.id] = 3
+                self.auth_attempts[message.author.id] -= 1
+                if self.auth_attempts[message.author.id] > 0:
+                    await self.discord.send_message(message.channel,
+                                                    "Wrong password. You have {} attempts left."
+                                                    .format(self.auth_attempts[message.author.id]))
+
+        async def handle_exec(message):
+            """
+            handles exec messages from discord via private message to the bot
+
+            :param message: the original message
+            """
+            @minqlx.next_frame
+            def f():
+                try:
+                    minqlx.COMMANDS.handle_input(
+                        DiscordDummyPlayer(self.discord, message.author),
+                        message.content[len(self.discord_exec_prefix) + 1:],
+                        DiscordChannel(self.discord, message.author))
+                except Exception as e:
+                    self.discord.loop.create_task(
+                        self.discord.send_message(message.channel, "{}: {}".format(e.__class__.__name__, e)))
+                    minqlx.log_exception()
+
+            f()
+
+        def is_auth_attempt(message):
+            """
+            checks whether a discord message is a private auth attempt
+
+            :param message: the original message sent by the user
+            :return: boolean indicating whether the message sent was an attempt for authentification
+            """
+            return len(message.content) > len(self.discord_auth_command) \
+                and message.content[0:len(self.discord_auth_command)].lower() == self.discord_auth_command \
+                and self.discord_admin_password
+
+        def is_exec_attempt(message):
+            """
+            checks whether a discord message is a private message attempt to execute a minqlx command
+
+            :param message: the original message sent by the user
+            :return: boolean indicating whether the message sent was an attempt for authentification
+            """
+            return len(message.content) > len(self.discord_exec_prefix) \
+                and message.author.id in self.authed_discord_ids \
+                and message.content[0:len(self.discord_exec_prefix)].lower() == self.discord_exec_prefix
+
+        async def handle_private_message(message):
+            """
+            handles private messages sent to the bot
+
+            :param message: the original message
+            """
+            if is_auth_attempt(message):
+                await handle_auth(message)
+                return
+
+            if is_exec_attempt(message):
+                await handle_exec(message)
+
         @self.discord.event
         async def on_message(message):
             """
@@ -146,6 +238,9 @@ class mydiscordbot(minqlx.Plugin):
             # if the bot sent the message himself, do nothing.
             if message.author == self.discord.user:
                 return
+
+            if message.channel.is_private:
+                await handle_private_message(message)
 
             # if the message wasn't sent to a channel we're interested in, do nothing.
             if message.channel.id not in self.discord_relay_channel_ids | self.discord_triggered_channel_ids:
@@ -521,3 +616,34 @@ class mydiscordbot(minqlx.Plugin):
             requests.patch(mydiscordbot._discord_api_channel_url(channel_id),
                            data=json.dumps({'topic': topic}),
                            headers=mydiscordbot._discord_api_request_headers(self.discord_bot_token))
+
+
+class DiscordChannel(minqlx.AbstractChannel):
+    def __init__(self, client: discord.Client, user: discord.User):
+        super().__init__("discord")
+        self.client = client
+        self.user = user
+
+    def __repr__(self):
+        return "{} {}".format(str(self), self.user.display_name)
+
+    def reply(self, msg):
+        self.discord.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
+
+
+class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
+    def __init__(self, client: discord.Client, user: discord.User):
+        self.client = client
+        self.user = user
+        super().__init__(name="Discord-{}".format(user.display_name))
+
+    @property
+    def steam_id(self):
+        return minqlx.owner()
+
+    @property
+    def channel(self):
+        return DiscordChannel(self.client, self.user)
+
+    def tell(self, msg):
+        self.discord.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
