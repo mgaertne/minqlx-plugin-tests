@@ -82,7 +82,7 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_trigger_triggered_channel_chat = self.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
-        self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels")
+        self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
 
         # adding general plugin hooks
         self.add_hook("unload", self.handle_plugin_unload)
@@ -180,7 +180,7 @@ class mydiscordbot(minqlx.Plugin):
         :return: the formatted message that may be sent back to Quake Live.
         """
         if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
-            return "{0} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, author, content)
+            return "{0} ^6{1.name}^7:^2 {2}".format(self.discord_message_prefix, author, content)
         return "{0} ^5#{1.name} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, channel, author, content)
 
     def handle_plugin_unload(self, plugin):
