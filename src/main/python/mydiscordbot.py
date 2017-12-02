@@ -259,8 +259,10 @@ class mydiscordbot(minqlx.Plugin):
         """
         player_data = ""
         teams = self.teams()
-        player_data += "**R:** {}\n".format(self.team_data(teams['red'], limit=5))
-        player_data += "**B:** {}".format(self.team_data(teams['blue'], limit=5))
+        if len(teams['red']) > 0:
+            player_data += "**R:** {}\n".format(self.team_data(teams['red']))
+        if len(teams['blue']) > 0:
+            player_data += "**B:** {}".format(self.team_data(teams['blue']))
 
         return player_data
 
@@ -282,14 +284,8 @@ class mydiscordbot(minqlx.Plugin):
         else:
             players_by_score = sorted(player_list, key=lambda k: k.score, reverse=True)
 
-        counter = 0
-        previous_score = players_by_score[0].score + 1  # initialize the score to the maximum score + 1
-
         for player in players_by_score:
-            if player.score < previous_score:
-                counter += 1
-                previous_score = player.score
-            team_data += "{}. **{}**({}) ".format(counter, player.clean_name, player.score)
+            team_data += "**{0.clean_name}**({0.score}) ".format(player)
 
         return team_data
 
