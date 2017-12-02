@@ -8,6 +8,8 @@ You are free to modify this plugin to your own one, except for the version comma
 The basic ideas for this plugin came from Gelenkbusfahrer and roast
 <https://github.com/roasticle/minqlx-plugins/blob/master/discordbot.py> and have been mainly discussed on the
 fragstealers_inc discord tech channel of the Bus Station server(s).
+
+You need to install discord.py in your python installation, i.e. python3 -m pip install -U discord.py
 """
 import re
 import asyncio
@@ -46,13 +48,17 @@ class mydiscordbot(minqlx.Plugin):
     Uses:
     * qlx_discordBotToken (default: "") The token of the discord bot to use to connect to discord.
     * qlx_discordRelayChannelIds (default: "") Comma separated list of channels for full relay.
-    * qlx_discordIdleChannelIds (default: "") Comma separated list of channels for triggered relay.
-    * qlx_discordUpdateTopicOnIdleChannels (default: "1") Boolean flag to indicate whether to update the topic with the
-    current game state on triggered relay channels. Your bot needs edit_channel permission for these channels.
-    * qlx_discordTriggerIdleChannelChat (default: "!quakelive") Message prefix for the trigger on triggered relay
+    * qlx_discordTriggeredChannelIds (default: "") Comma separated list of channels for triggered relay.
+    * qlx_discordUpdateTopicOnTriggeredChannels (default: "1") Boolean flag to indicate whether to update the topic with
+    the current game state on triggered relay channels. Your bot needs edit_channel permission for these channels.
+    * qlx_discordTriggerTriggeredChannelChat (default: "!quakelive") Message prefix for the trigger on triggered relay
     channels.
     * qlx_discordTriggerStatus (default: "!status") Trigger for having the bot send the current status of the game
     server.
+    * qlx_discordMessagePrefix (default: "[DISCORD]") messages from discord to quake live will be prefixed with this
+    prefix
+    * qlx_displayChannelForDiscordRelayChannels (default: "1") display the channel name of the discord channel for
+    configured relay channels
     """
 
     def __init__(self):
@@ -65,6 +71,8 @@ class mydiscordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
         self.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "!quakelive")
         self.set_cvar_once("qlx_discordTriggerStatus", "!status")
+        self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
+        self.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
 
         # get the actual cvar values from the server
         self.discord_bot_token = self.get_cvar("qlx_discordBotToken")
@@ -73,6 +81,8 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_update_triggered_channels_topic = self.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
         self.discord_trigger_triggered_channel_chat = self.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
+        self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
+        self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels")
 
         # adding general plugin hooks
         self.add_hook("unload", self.handle_plugin_unload)
@@ -144,31 +154,21 @@ class mydiscordbot(minqlx.Plugin):
 
             # relay all messages from the relay channels back to Quake Live.
             if message.channel.id in self.discord_relay_channel_ids:
-                minqlx.CHAT_CHANNEL.reply(mydiscordbot._format_discord_message(message))
+                minqlx.CHAT_CHANNEL.reply(
+                    self._format_message_to_quake(message.channel, message.author, message.clean_content))
 
             # relay all messages that have the trigger as prefix from the triggered channels.
             if message.channel.id in self.discord_triggered_channel_ids:
                 if message.content.startswith(self.discord_trigger_triggered_channel_chat + " "):
                     content = message.clean_content[(len(self.discord_trigger_triggered_channel_chat) + 1):]
                     minqlx.CHAT_CHANNEL.reply(
-                        self._format_message_to_quake(message.channel.name, message.author.name, content))
+                        self._format_message_to_quake(message.channel, message.author, content))
 
         # connect the now configured bot to discord in the event_loop
         self.logger.info("Connecting to Discord...")
         loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
-    @staticmethod
-    def _format_discord_message(message):
-        """
-        Format a message from discord so that it will be displayed nicely in the Quake Live chat console.
-
-        :param message: the message to format for Quake Live
-        :return: the formatted message that may be sent back to Quake Live.
-        """
-        return mydiscordbot._format_message_to_quake(message.channel.name, message.author.name, message.clean_content)
-
-    @staticmethod
-    def _format_message_to_quake(channel, author, content):
+    def _format_message_to_quake(self, channel, author, content):
         """
         Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
         console.
@@ -179,7 +179,9 @@ class mydiscordbot(minqlx.Plugin):
         and channels on the discord server.
         :return: the formatted message that may be sent back to Quake Live.
         """
-        return "[DISCORD] ^5#{} ^6{}^7:^2 {}".format(channel, author, content)
+        if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
+            return "{0} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, author, content)
+        return "{0} ^5#{1.name} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, channel, author, content)
 
     def handle_plugin_unload(self, plugin):
         """
@@ -289,6 +291,10 @@ class mydiscordbot(minqlx.Plugin):
 
         return team_data
 
+    @staticmethod
+    def filtered_message(msg):
+        return False
+
     def handle_ql_chat(self, player, msg, channel):
         """
         Handler function for all chat messages on the server. This function will forward and messages on the Quake Live
@@ -303,6 +309,9 @@ class mydiscordbot(minqlx.Plugin):
                             "blue_team_chat": "*(to blue team)*",
                             "spectator_chat": "*(to spacs)*"}
         if not self.discord or not self.discord_relay_channel_ids or channel.name not in handled_channels:
+            return
+
+        if mydiscordbot.filtered_message(msg):
             return
 
         content = "**{}**{}: {}".format(player.clean_name,
