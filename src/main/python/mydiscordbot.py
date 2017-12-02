@@ -59,6 +59,8 @@ class mydiscordbot(minqlx.Plugin):
     prefix
     * qlx_displayChannelForDiscordRelayChannels (default: "1") display the channel name of the discord channel for
     configured relay channels
+    * qlx_discordQuakeRelayMessageFilters (default: "^\!s$, ^\!p$") comma separated list of regular expressions for
+    messages that should not be sent from quake live to discord
     """
 
     def __init__(self):
@@ -73,6 +75,7 @@ class mydiscordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordTriggerStatus", "!status")
         self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
         self.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
+        self.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
 
         # get the actual cvar values from the server
         self.discord_bot_token = self.get_cvar("qlx_discordBotToken")
@@ -83,6 +86,7 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
+        self.discord_message_filters = self.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
 
         # adding general plugin hooks
         self.add_hook("unload", self.handle_plugin_unload)
@@ -291,8 +295,12 @@ class mydiscordbot(minqlx.Plugin):
 
         return team_data
 
-    @staticmethod
-    def filtered_message(msg):
+    def filtered_message(self, msg):
+        for filter in self.discord_message_filters:
+            matcher = re.compile(filter)
+            if matcher.match(msg):
+                return True
+
         return False
 
     def handle_ql_chat(self, player, msg, channel):
@@ -311,7 +319,7 @@ class mydiscordbot(minqlx.Plugin):
         if not self.discord or not self.discord_relay_channel_ids or channel.name not in handled_channels:
             return
 
-        if mydiscordbot.filtered_message(msg):
+        if self.filtered_message(msg):
             return
 
         content = "**{}**{}: {}".format(player.clean_name,
@@ -421,7 +429,7 @@ class mydiscordbot(minqlx.Plugin):
 
         if self.discord_triggered_channel_ids:
             content = "**{}**: {}".format(Plugin.clean_text(player.name),
-                                          " ".join(Plugin.clean_text(msg[1:])))
+                                          Plugin.clean_text(" ".join(msg[1:])))
             self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
             self.msg("Message to Discord chat cast!")
 
