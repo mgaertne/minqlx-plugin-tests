@@ -174,7 +174,7 @@ class mydiscordbot(minqlx.Plugin):
                                                     "Wrong password. You have {} attempts left."
                                                     .format(self.auth_attempts[message.author.id]))
 
-        async def handle_exec(message):
+        def handle_exec(message):
             """
             handles exec messages from discord via private message to the bot
 
@@ -227,7 +227,40 @@ class mydiscordbot(minqlx.Plugin):
                 return
 
             if is_exec_attempt(message):
-                await handle_exec(message)
+                handle_exec(message)
+
+        def reply_for_help_request(message: discord.Message):
+            """
+            Generates a reply for !help requests that may be sent back to the user.
+
+            :param message: the original message
+            :return: the content help message to be sent back to the user
+            """
+            if message.channel.id in self.discord_triggered_channel_ids:
+                return "Commands I react to in <#{0}>\n" \
+                       "**!help**: display this help message\n" \
+                       "**{1}**: display current game status information\n" \
+                       "**{2}** *<message>*: send *<message>* to the Quake Live server"\
+                    .format(message.channel.id,
+                            self.discord_trigger_status,
+                            self.discord_trigger_triggered_channel_chat)
+
+            if message.channel.id in self.discord_relay_channel_ids:
+                return "Commands I react to in <#{0}>\n" \
+                       "**!help**: display this help message\n" \
+                       "**{1}**: display current game status information\n" \
+                       "Every other message from <#{0}> is relayed to the server."\
+                    .format(message.channel.id, self.discord_trigger_status)
+            return "**{0.clean_content}** not available for <#{0.channel.id}>".format(message)
+
+        def handle_help(message: discord.Message):
+            """
+            Handles help requests for the bot by sending back usage information.
+
+            :param message: the original help request message
+            """
+            reply = reply_for_help_request(message)
+            self.discord.loop.create_task(self.discord.send_message(message.channel, reply))
 
         @self.discord.event
         async def on_message(message):
@@ -244,8 +277,13 @@ class mydiscordbot(minqlx.Plugin):
             if message.author == self.discord.user:
                 return
 
+            if message.content.startswith("!help"):
+                handle_help(message)
+                return
+
             if message.channel.is_private:
                 await handle_private_message(message)
+                return
 
             # if the message wasn't sent to a channel we're interested in, do nothing.
             if message.channel.id not in self.discord_relay_channel_ids | self.discord_triggered_channel_ids:
