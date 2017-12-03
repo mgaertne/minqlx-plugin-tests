@@ -111,8 +111,8 @@ class mydiscordbot(minqlx.Plugin):
         self.add_hook("map", self.handle_map)
         self.add_hook("vote_started", self.handle_vote_started)
         self.add_hook("vote_ended", self.handle_vote_ended)
-        self.add_hook("game_countdown", self.handle_game_countdown, priority=minqlx.PRI_LOWEST)
-        self.add_hook("game_end", self.handle_game_end, priority=minqlx.PRI_LOWEST)
+        self.add_hook("game_countdown", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
+        self.add_hook("game_end", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
         # Update topic on these hooks
         for hook in ["round_end", "game_start"]:
             self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
@@ -376,13 +376,11 @@ class mydiscordbot(minqlx.Plugin):
         if game is None:
             return "{} with {}/{} players.".format(ginfo, len(players), self.get_cvar("sv_maxClients"))
 
-        return "{0} **{1}** - **{2}** on {3} ({4}) with {5}/{6} players. ".format(ginfo,
-                                                                                  game.red_score,
-                                                                                  game.blue_score,
-                                                                                  Plugin.clean_text(maptitle),
-                                                                                  game.type_short.upper(),
-                                                                                  len(players),
-                                                                                  self.get_cvar("sv_maxClients"))
+        return "{0} on {1} ({2}) with {3}/{4} players. ".format(ginfo,
+                                                                Plugin.clean_text(maptitle),
+                                                                game.type_short.upper(),
+                                                                len(players),
+                                                                self.get_cvar("sv_maxClients"))
 
     def get_players(self):
         """
@@ -403,9 +401,9 @@ class mydiscordbot(minqlx.Plugin):
         if game is None:
             return "Match ended"
         if game.roundlimit in [game.blue_score, game.red_score]:
-            return "Match ended"
+            return "Match ended: **{}** - **{}**".format(game.red_score, game.blue_score)
         if game.state == "in_progress":
-            return "Match in progress: {} - {}".format(game.red_score, game.blue_score)
+            return "Match in progress: **{}** - **{}**".format(game.red_score, game.blue_score)
         if game.state == "countdown":
             return "Match starting"
 
@@ -558,7 +556,7 @@ class mydiscordbot(minqlx.Plugin):
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     @minqlx.delay(1)
-    def handle_game_countdown(self, *args, **kwargs):
+    def handle_game_countdown_or_end(self, *args, **kwargs):
         """
         Handler called when the game is in countdown, i.e. about to start. This function mainly updates the topics of
         the relay channels and the triggered channels (when configured), and sends a message to all relay channels.
@@ -569,38 +567,6 @@ class mydiscordbot(minqlx.Plugin):
         self.send_to_discord_channels(self.discord_relay_channel_ids, "{}\n{}".format(topic, top5_players))
 
         self.update_topics()
-
-    @minqlx.delay(1)
-    def handle_game_end(self, data):
-        """
-        Handler called when the game ended. This function mainly updates the topics of the relay channels and the
-        triggered channels (when configured), and sends a message to all relay channels.
-        """
-        if not self.game:
-            return
-
-        players = self.get_players()
-        maptitle = self.game.map_title if self.game.map_title else self.game.map
-
-        # CAUTION: if you change anything on the next line, you may need to redefine the regular expression re_topic to
-        #          keep the right portion of the triggered relay channels' topics!
-        topic = "Match ended **{0}** - **{1}** on **{2}** with **{3}/{4}** players."\
-            .format(data['TSCORE0'],
-                    data['TSCORE1'],
-                    Plugin.clean_text(maptitle),
-                    len(players),
-                    self.getcvar("sv_maxClients"))
-
-        top5_players = self.player_data()
-
-        self.send_to_discord_channels(self.discord_relay_channel_ids, "{}\n{}".format(topic, top5_players))
-
-        if self.discord_show_player_score_for_relay_channel_topics:
-            self.set_topic_on_discord_channels(self.discord_relay_channel_ids, "{}\n{}".format(topic, top5_players))
-        else:
-            self.set_topic_on_discord_channels(self.discord_relay_channel_ids, topic)
-
-        self.update_topic_on_triggered_channels(topic)
 
     def cmd_discord(self, player, msg, channel):
         """
