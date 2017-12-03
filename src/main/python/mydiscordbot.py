@@ -248,10 +248,10 @@ class mydiscordbot(minqlx.Plugin):
             if message.channel.id in self.discord_relay_channel_ids:
                 return "Commands I react to in <#{0}>\n" \
                        "**!help**: display this help message\n" \
-                       "**{1}**: display current game status information\n" \
+                       "**{1}**: display current game status information\n\n" \
                        "Every other message from <#{0}> is relayed to the server."\
                     .format(message.channel.id, self.discord_trigger_status)
-            return "**{0.clean_content}** not available for <#{0.channel.id}>".format(message)
+            return None
 
         def handle_help(message: discord.Message):
             """
@@ -260,6 +260,9 @@ class mydiscordbot(minqlx.Plugin):
             :param message: the original help request message
             """
             reply = reply_for_help_request(message)
+            if not reply:
+                return
+
             self.discord.loop.create_task(self.discord.send_message(message.channel, reply))
 
         @self.discord.event
