@@ -114,7 +114,7 @@ class mydiscordbot(minqlx.Plugin):
         self.add_hook("game_countdown", self.handle_game_countdown, priority=minqlx.PRI_LOWEST)
         self.add_hook("game_end", self.handle_game_end, priority=minqlx.PRI_LOWEST)
         # Update topic on these hooks
-        for hook in ["round_end", "game_start", "map"]:
+        for hook in ["round_end", "game_start"]:
             self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
