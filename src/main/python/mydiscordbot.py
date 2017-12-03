@@ -59,6 +59,7 @@ class mydiscordbot(minqlx.Plugin):
     prefix
     * qlx_displayChannelForDiscordRelayChannels (default: "1") display the channel name of the discord channel for
     configured relay channels
+    * qlx_displayPlayerScoresOnDiscordRelayTopics (default: "1") display the player scores on relay channel topics
     * qlx_discordQuakeRelayMessageFilters (default: "^\!s$, ^\!p$") comma separated list of regular expressions for
     messages that should not be sent from quake live to discord
     * qlx_discordAdminPassword (default "supersecret") passwort for remote admin of the server via discord private
@@ -80,6 +81,7 @@ class mydiscordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordTriggerStatus", "!status")
         self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
         self.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
+        self.set_cvar_once("qlx_displayPlayerScoresOnDiscordRelayTopics", "1")
         self.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
         self.set_cvar_once("qlx_discordAdminPassword", "supersecret")
         self.set_cvar_once("qlx_discordAuthCommand", ".auth")
@@ -94,6 +96,8 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
+        self.discord_show_player_score_for_relay_channel_topics = \
+            self.get_cvar("qlx_displayPlayerScoresOnDiscordRelayTopics", bool)
         self.discord_message_filters = self.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
         self.discord_admin_password = self.get_cvar("qlx_discordAdminPassword")
         self.discord_auth_command = self.get_cvar("qlx_discordAuthCommand")
@@ -307,7 +311,11 @@ class mydiscordbot(minqlx.Plugin):
         players = self.get_players()
         top5_players = self.player_data() if len(players) > 0 else ""
 
-        self.set_topic_on_discord_channels(self.discord_relay_channel_ids, "{}{}".format(topic, top5_players))
+        if self.discord_show_player_score_for_relay_channel_topics:
+            self.set_topic_on_discord_channels(self.discord_relay_channel_ids, "{}{}".format(topic, top5_players))
+        else:
+            self.set_topic_on_discord_channels(self.discord_relay_channel_ids, topic)
+
         self.update_topic_on_triggered_channels(topic)
 
     def generate_topic(self):
