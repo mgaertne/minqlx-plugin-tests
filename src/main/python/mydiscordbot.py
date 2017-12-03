@@ -371,12 +371,14 @@ class mydiscordbot(minqlx.Plugin):
 
         # CAUTION: if you change anything on the next line, you may need to redefine the regular expression re_topic to
         #          keep the right portion of the triggered relay channels' topics!
-        topic = "{} on {} ({}) with {}/{} players. ".format(ginfo,
+        if game is None:
+            return "{} with {}/{} players.".format(ginfo, len(players), self.get_cvar("sv_maxClients"))
+
+        return "{} on {} ({}) with {}/{} players. ".format(ginfo,
                                                             Plugin.clean_text(game.map_title),
                                                             game.type_short.upper(),
                                                             len(players),
                                                             self.get_cvar("sv_maxClients"))
-        return topic
 
     def get_players(self):
         """
