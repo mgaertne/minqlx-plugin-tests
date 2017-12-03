@@ -639,7 +639,7 @@ class DiscordChannel(minqlx.AbstractChannel):
         return "{} {}".format(str(self), self.user.display_name)
 
     def reply(self, msg):
-        self.discord.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
+        self.client.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
 
 
 class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
@@ -657,4 +657,4 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
         return DiscordChannel(self.client, self.user)
 
     def tell(self, msg):
-        self.discord.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
+        self.client.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
