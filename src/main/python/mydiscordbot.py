@@ -107,9 +107,10 @@ class mydiscordbot(minqlx.Plugin):
         self.add_hook("map", self.handle_map)
         self.add_hook("vote_started", self.handle_vote_started)
         self.add_hook("vote_ended", self.handle_vote_ended)
-        self.add_hook("game_countdown", self.handle_game_countdown, priority=minqlx.PRI_LOWEST)
+        self.add_hook("game_countdown", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
+        self.add_hook("game_end", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
         # Update topic on these hooks
-        for hook in ["round_end", "game_start", "game_end", "map"]:
+        for hook in ["round_end", "game_start", "map"]:
             self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
@@ -344,12 +345,14 @@ class mydiscordbot(minqlx.Plugin):
         :return: the current text representation of the game state
         """
         game = self.game
+        if game is None:
+            return "Match ended"
         if game.state == "in_progress":
             return "Match in progress: {} - {}".format(game.red_score, game.blue_score)
-        elif game.state == "countdown":
+        if game.state == "countdown":
             return "Match starting"
-        else:
-            return "Warmup"
+
+        return "Warmup"
 
     def player_data(self, *args, **kwargs):
         """
@@ -498,10 +501,10 @@ class mydiscordbot(minqlx.Plugin):
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     @minqlx.delay(1)
-    def handle_game_countdown(self):
+    def handle_game_countdown_or_end(self, *args, **kwargs):
         """
-        Handler called when the game is in countdown. This function mainly updates the topics of the relay channels and
-        the triggered channels (when configured), and sends a message to all relay channels.
+        Handler called when the game is in countdown or ended. This function mainly updates the topics of the relay
+        channels and the triggered channels (when configured), and sends a message to all relay channels.
         """
         topic = self.generate_topic()
         top5_players = self.player_data()
