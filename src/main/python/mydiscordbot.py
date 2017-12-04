@@ -30,7 +30,7 @@ from discord.ext import commands
 # regular expression, too!
 re_topic = re.compile(r".*players\. (.*)$")
 
-plugin_version = "v0.9.2"
+plugin_version = "v0.9.2-$Format:%h$"
 
 
 class mydiscordbot(minqlx.Plugin):
