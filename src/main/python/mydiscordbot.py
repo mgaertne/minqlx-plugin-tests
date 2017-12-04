@@ -131,7 +131,7 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.msg(self.version_information())
 
     def version_information(self):
-        return "{} Version: {}".format(self.__class__.name, plugin_version)
+        return "{} Version: {}".format(self.name, plugin_version)
 
     @minqlx.thread
     def init_bot(self):
@@ -247,6 +247,7 @@ class mydiscordbot(minqlx.Plugin):
             if message.channel.id in self.discord_triggered_channel_ids:
                 return "Commands I react to in <#{0}>\n" \
                        "**!help**: display this help message\n" \
+                       "**!version**: display the plugin's version information\n" \
                        "**{1}**: display current game status information\n" \
                        "**{2}** *<message>*: send *<message>* to the Quake Live server"\
                     .format(message.channel.id,
@@ -256,6 +257,7 @@ class mydiscordbot(minqlx.Plugin):
             if message.channel.id in self.discord_relay_channel_ids:
                 return "Commands I react to in <#{0}>\n" \
                        "**!help**: display this help message\n" \
+                       "**!version**: display the plugin's version information\n" \
                        "**{1}**: display current game status information\n\n" \
                        "Every other message from <#{0}> is relayed to the server."\
                     .format(message.channel.id, self.discord_trigger_status)

@@ -1,2 +1,3 @@
-*.py ident
+src/main/python/*.py ident
+src/unittest/python/*.py ident
 
