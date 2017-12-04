@@ -1,2 +1,2 @@
-*.py ident export-subst
+src/main/python/*.py ident export-subst
 
