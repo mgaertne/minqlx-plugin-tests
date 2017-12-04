@@ -30,7 +30,7 @@ from discord.ext import commands
 # regular expression, too!
 re_topic = re.compile(r".*players\. (.*)$")
 
-plugin_version = "v0.9.1"
+plugin_version = "v0.9.2"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -389,13 +389,13 @@ class mydiscordbot(minqlx.Plugin):
         # CAUTION: if you change anything on the next line, you may need to redefine the regular expression re_topic to
         #          keep the right portion of the triggered relay channels' topics!
         if game is None:
-            return "{} with {}/{} players.".format(ginfo, len(players), self.get_cvar("sv_maxClients"))
+            return "{} with **{}/{}** players.".format(ginfo, len(players), self.get_cvar("sv_maxClients"))
 
-        return "{0} on {1} ({2}) with {3}/{4} players. ".format(ginfo,
-                                                                Plugin.clean_text(maptitle),
-                                                                game.type_short.upper(),
-                                                                len(players),
-                                                                self.get_cvar("sv_maxClients"))
+        return "{0} on **{1}** ({2}) with **{3}/{4}** players. ".format(ginfo,
+                                                                        Plugin.clean_text(maptitle),
+                                                                        game.type_short.upper(),
+                                                                        len(players),
+                                                                        self.get_cvar("sv_maxClients"))
 
     def get_players(self):
         """
@@ -483,9 +483,9 @@ class mydiscordbot(minqlx.Plugin):
         :param channel: the chnannel the message was sent to
         """
         handled_channels = {"chat": "",
-                            "red_team_chat": "*(to red team)*",
-                            "blue_team_chat": "*(to blue team)*",
-                            "spectator_chat": "*(to spacs)*"}
+                            "red_team_chat": " *(to red team)*",
+                            "blue_team_chat": " *(to blue team)*",
+                            "spectator_chat": " *(to spacs)*"}
         if not self.discord or not self.discord_relay_channel_ids or channel.name not in handled_channels:
             return
 
