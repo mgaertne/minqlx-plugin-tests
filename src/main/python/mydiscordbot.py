@@ -28,7 +28,9 @@ from discord.ext import commands
 #
 # If you change the behavior :func:`DiscordBot.generate_topic()` function, you may need to change this
 # regular expression, too!
-re_topic = re.compile(r".*players. (.*)$")
+re_topic = re.compile(r".*players\. (.*)$")
+
+plugin_version = "$Id$"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -125,6 +127,11 @@ class mydiscordbot(minqlx.Plugin):
         # initialize the discord bot and its interactions on the discord server
         self.discord = None
         self.init_bot()
+        self.logger.info(self.version_information())
+        Plugin.msg(self.version_information())
+
+    def version_information(self):
+        return "{} Version: {}".format(self.__class__.name, plugin_version)
 
     @minqlx.thread
     def init_bot(self):
@@ -283,6 +290,11 @@ class mydiscordbot(minqlx.Plugin):
 
             if message.content.startswith("!help"):
                 handle_help(message)
+                return
+
+            if message.content == "!version":
+                reply = self.version_information()
+                self.discord.loop.create_task(self.discord.send_message(message.channel, reply))
                 return
 
             if message.channel.is_private:
