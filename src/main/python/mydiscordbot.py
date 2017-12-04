@@ -150,6 +150,7 @@ class mydiscordbot(minqlx.Plugin):
             self.logger.info("Logged in to discord as: {} ({})".format(self.discord.user.name, self.discord.user.id))
             Plugin.msg("Connected to discord")
             await self.discord.change_presence(game=discord.Game(name="Quake Live"))
+            self.update_topics()
 
         async def handle_auth(message):
             """
@@ -400,12 +401,14 @@ class mydiscordbot(minqlx.Plugin):
         game = self.game
         if game is None:
             return "Match ended"
+        if game.state == "warmup":
+            return "Warmup"
+        if game.state == "countdown":
+            return "Match starting"
         if game.roundlimit in [game.blue_score, game.red_score]:
             return "Match ended: **{}** - **{}**".format(game.red_score, game.blue_score)
         if game.state == "in_progress":
             return "Match in progress: **{}** - **{}**".format(game.red_score, game.blue_score)
-        if game.state == "countdown":
-            return "Match starting"
 
         return "Warmup"
 
