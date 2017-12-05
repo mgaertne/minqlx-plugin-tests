@@ -3,5 +3,5 @@ PyHamcrest
 mockito
 coverage
 undecorated
-discord
+discord.py
 requests
