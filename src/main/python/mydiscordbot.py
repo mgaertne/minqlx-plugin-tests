@@ -47,6 +47,8 @@ class mydiscordbot(minqlx.Plugin):
     the current game state on triggered relay channels. Your bot needs edit_channel permission for these channels.
     * qlx_discordTriggerTriggeredChannelChat (default: "!quakelive") Message prefix for the trigger on triggered relay
     channels.
+    * qlx_discordKeepTopicSuffixChannelIds (default: "") Comma separated list of channel ids where the topic suffix
+    will be kept upon updating.
     * qlx_discordTriggerStatus (default: "!status") Trigger for having the bot send the current status of the game
     server.
     * qlx_discordMessagePrefix (default: "[DISCORD]") messages from discord to quake live will be prefixed with this
@@ -70,6 +72,7 @@ class mydiscordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordRelayChannelIds", "")
         self.set_cvar_once("qlx_discordTriggeredChannelIds", "")
         self.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
+        self.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
         self.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "!quakelive")
         self.set_cvar_once("qlx_discordTriggerStatus", "!status")
         self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
@@ -84,6 +87,7 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_relay_channel_ids = self.get_cvar("qlx_discordRelayChannelIds", set)
         self.discord_triggered_channel_ids = self.get_cvar("qlx_discordTriggeredChannelIds", set)
         self.discord_update_triggered_channels_topic = self.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
+        self.discord_keep_topic_suffix_channel_ids = self.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set)
         self.discord_trigger_triggered_channel_chat = self.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_trigger_status = self.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
@@ -359,7 +363,10 @@ class mydiscordbot(minqlx.Plugin):
 
         :param topic: the topic to set on all the channels
         """
-        self.set_topic_on_discord_channels(self.discord_relay_channel_ids, topic)
+        self.set_topic_on_discord_channels(
+            self.discord_relay_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
+        self.update_topic_on_channels_and_keep_channel_suffix(
+            self.discord_relay_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
 
         self.update_topic_on_triggered_channels(topic)
 
@@ -611,12 +618,24 @@ class mydiscordbot(minqlx.Plugin):
         if not self.discord_update_triggered_channels_topic:
             return
 
+        self.set_topic_on_discord_channels(
+            self.discord_triggered_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
+        self.update_topic_on_channels_and_keep_channel_suffix(
+            self.discord_triggered_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
+
+    def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
+        """
+        Updates the topic on the given channels and keeps the topic suffix intact on the configured channels
+
+        :param channel_ids: the set of channels to update the topic on
+        :param topic: the topic to set on the given channels
+        """
         # if the bot is not running or not connected, do nothing.
         if not self.discord or not self.discord.is_logged_in:
             return
 
         # if there are not triggered relay channels configured, do nothing.
-        if not self.discord_triggered_channel_ids or len(self.discord_triggered_channel_ids) == 0:
+        if not channel_ids or len(channel_ids) == 0:
             return
 
         # take the final 10 characters from the topic, and search for it in the current topic
