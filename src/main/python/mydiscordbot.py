@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.5"
+plugin_version = "v0.9.6"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -363,12 +363,16 @@ class mydiscordbot(minqlx.Plugin):
 
         :param topic: the topic to set on all the channels
         """
-        self.set_topic_on_discord_channels(
-            self.discord_relay_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
-        self.update_topic_on_channels_and_keep_channel_suffix(
-            self.discord_relay_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
+        if self.discord_update_triggered_channels_topic:
+            topic_channel_ids = self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        else:
+            topic_channel_ids = self.discord_relay_channel_ids
 
-        self.update_topic_on_triggered_channels(topic)
+        # directly set the topic on channels with no topic suffix
+        self.set_topic_on_discord_channels(topic_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
+        # keep the topic suffix on the channels that are configured accordingly
+        self.update_topic_on_channels_and_keep_channel_suffix(
+            topic_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
 
     def game_status_information(self):
         """
@@ -608,21 +612,6 @@ class mydiscordbot(minqlx.Plugin):
             self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
             self.msg("Message to Discord chat cast!")
 
-    def update_topic_on_triggered_channels(self, topic):
-        """
-        Set the channel topic on all triggered relay channels, if and only if configured to do so.
-
-        :param topic: the topic to set on the triggered relay channels
-        """
-        # if we should not update the triggered relay channels topics, then we shouldn't do so.
-        if not self.discord_update_triggered_channels_topic:
-            return
-
-        self.set_topic_on_discord_channels(
-            self.discord_triggered_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
-        self.update_topic_on_channels_and_keep_channel_suffix(
-            self.discord_triggered_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
-
     def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
         """
         Updates the topic on the given channels and keeps the topic suffix intact on the configured channels
@@ -640,7 +629,8 @@ class mydiscordbot(minqlx.Plugin):
 
         # take the final 10 characters from the topic, and search for it in the current topic
         topic_ending = topic[-10:]
-        for channel_id in self.discord_triggered_channel_ids:
+
+        for channel_id in channel_ids:
             # we need to get the channel from the discord server first.
             channel = self.discord.get_channel(channel_id)
 
