@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.6"
+plugin_version = "v0.9.7"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -301,8 +301,13 @@ class mydiscordbot(minqlx.Plugin):
 
             # someone requested the current game state to be sent back to the channel.
             if message.content == self.discord_trigger_status:
+                game = self.game
+                if game is None:
+                    await self.discord.send_message(message.channel, "Currently no game running.")
                 await self.discord.send_message(message.channel,
-                                                "{}\n{}".format(self.game_status_information(), self.player_data()))
+                                                "{}\n{}".format(
+                                                    mydiscordbot.game_status_information(game),
+                                                    mydiscordbot.player_data()))
 
             # relay all messages from the relay channels back to Quake Live.
             if message.channel.id in self.discord_relay_channel_ids:
@@ -354,7 +359,10 @@ class mydiscordbot(minqlx.Plugin):
         Update the current topic on the general relay channels, and the triggered relay channels. The latter will only
         happen when cvar qlx_discordUpdateTopicOnIdleChannels is set to "1".
         """
-        topic = self.game_status_information()
+        game = self.game
+        if game is None:
+            return
+        topic = mydiscordbot.game_status_information(game)
         self.update_topics_on_relay_and_triggered_channels(topic)
 
     def update_topics_on_relay_and_triggered_channels(self, topic):
@@ -374,51 +382,37 @@ class mydiscordbot(minqlx.Plugin):
         self.update_topic_on_channels_and_keep_channel_suffix(
             topic_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
 
-    def game_status_information(self):
+    @staticmethod
+    def game_status_information(game: minqlx.Game):
         """
         Generate the text for the topic set on discord channels.
 
         :return: the topic that represents the current game state.
         """
-        ginfo = self.get_game_info()
+        ginfo = mydiscordbot.get_game_info(game)
 
-        num_players = len(self.get_players())
-        max_players = self.get_cvar("sv_maxClients")
-
-        game = self.game
-        # CAUTION: if you change anything on the next line, you may need to change the topic_ending logic in
-        #          :func:`mydiscordbot.update_topic_on_triggered_channels(self, topic)` to keep the right portion
-        #          of the triggered relay channels' topics!
-        if game is None:
-            return "{} with **{}/{}** players.".format(ginfo, num_players, max_players)
+        num_players = len(Plugin.players())
+        max_players = game.maxclients
 
         maptitle = game.map_title if game.map_title else game.map
         gametype = game.type_short.upper()
 
+        # CAUTION: if you change anything on the next line, you may need to change the topic_ending logic in
+        #          :func:`mydiscordbot.update_topic_on_triggered_channels(self, topic)` to keep the right portion
+        #          of the triggered relay channels' topics!
         return "{0} on **{1}** ({2}) with **{3}/{4}** players. ".format(ginfo,
                                                                         Plugin.clean_text(maptitle),
                                                                         gametype,
                                                                         num_players,
                                                                         max_players)
 
-    def get_players(self):
-        """
-        Get all currently connected players.
-
-        :return: a list of all players currently connected to the server.
-        """
-        teams = self.teams()
-        return teams["free"] + teams["red"] + teams["blue"] + teams["spectator"]
-
-    def get_game_info(self):
+    @staticmethod
+    def get_game_info(game):
         """
         Helper to format the current game.state that may be used in status messages and setting of channel topics.
 
         :return: the current text representation of the game state
         """
-        game = self.game
-        if game is None:
-            return "Match ended"
         if game.state == "warmup":
             return "Warmup"
         if game.state == "countdown":
@@ -430,7 +424,8 @@ class mydiscordbot(minqlx.Plugin):
 
         return "Warmup"
 
-    def player_data(self, *args, **kwargs):
+    @staticmethod
+    def player_data():
         """
         Formats the top 5 scorers connected to the server in a string. The return value may be used for status messages
         and used in topics to indicate reveal more data about the server and its current game.
@@ -438,11 +433,11 @@ class mydiscordbot(minqlx.Plugin):
         :return: string of the current top5 scorers with the scores and connection time to the server
         """
         player_data = ""
-        teams = self.teams()
+        teams = Plugin.teams()
         if len(teams['red']) > 0:
-            player_data += "**R:** {}\n".format(self.team_data(teams['red']))
+            player_data += "**R:** {}\n".format(mydiscordbot.team_data(teams['red']))
         if len(teams['blue']) > 0:
-            player_data += "**B:** {}".format(self.team_data(teams['blue']))
+            player_data += "**B:** {}".format(mydiscordbot.team_data(teams['blue']))
 
         return player_data
 
@@ -587,8 +582,11 @@ class mydiscordbot(minqlx.Plugin):
         Handler called when the game is in countdown, i.e. about to start. This function mainly updates the topics of
         the relay channels and the triggered channels (when configured), and sends a message to all relay channels.
         """
-        topic = self.game_status_information()
-        top5_players = self.player_data()
+        game = self.game
+        if game is None:
+            return
+        topic = mydiscordbot.game_status_information(game)
+        top5_players = mydiscordbot.player_data()
 
         self.send_to_discord_channels(self.discord_relay_channel_ids, "{}\n{}".format(topic, top5_players))
 
