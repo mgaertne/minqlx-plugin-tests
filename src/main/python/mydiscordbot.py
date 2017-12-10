@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.7"
+plugin_version = "v0.9.8"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -304,6 +304,7 @@ class mydiscordbot(minqlx.Plugin):
                 game = self.game
                 if game is None:
                     await self.discord.send_message(message.channel, "Currently no game running.")
+                    return
                 await self.discord.send_message(message.channel,
                                                 "{}\n{}".format(
                                                     mydiscordbot.game_status_information(game),
