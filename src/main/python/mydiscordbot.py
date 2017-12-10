@@ -699,11 +699,16 @@ class mydiscordbot(minqlx.Plugin):
 
     @staticmethod
     def is_ready(client):
+        """
+        checks whether a discord.Client is ready to send/receive messages
+        """
         ready = False
         try:
-            ready = client.is_ready()
-        except AttributeError:
+            # discord.py version < v1.0
             ready = client.is_logged_in
+        except AttributeError:
+            # discord.py version >= v1.0
+            ready = client.is_ready()
 
         return ready
 
@@ -726,7 +731,6 @@ class mydiscordbot(minqlx.Plugin):
             requests.post(mydiscordbot._discord_api_channel_url(channel_id) + "/messages",
                           data=json.dumps({'content': content}),
                           headers=mydiscordbot._discord_api_request_headers(bot_token))
-
 
     @staticmethod
     def _discord_api_channel_url(channel_id):
