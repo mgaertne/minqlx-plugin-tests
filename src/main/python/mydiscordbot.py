@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v1.0.0ß2"
+plugin_version = "v1.0.0-beta3"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -415,6 +415,7 @@ class mydiscordbot(minqlx.Plugin):
         topic = mydiscordbot.game_status_information(game)
         self.update_topics_on_relay_and_triggered_channels(topic)
 
+    @minqlx.thread
     def update_topics_on_relay_and_triggered_channels(self, topic):
         """
         Helper function to update the topics on all the relay and all the triggered channels
@@ -584,14 +585,15 @@ class mydiscordbot(minqlx.Plugin):
 
         self.update_topics()
 
-    def handle_map(self, map, factory):
+    def handle_map(self, map_name, factory):
         """
         Handler called when a map is changed. The method sends a corresponding message to the discord relay channels.
         and updates the relay channel topic as well as the trigger channels, when configured.
 
-        :param map: the new map
+        :param map_name: the new map
+        :param factory: the map factory used
         """
-        content = "*Changing map to {}...*".format(map)
+        content = "*Changing map to {}...*".format(map_name)
         mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
 
         self.update_topics()
@@ -684,13 +686,13 @@ class mydiscordbot(minqlx.Plugin):
 
         for channel_id in channel_ids:
             # we need to get the channel from the discord server first.
-            channel = self.discord.get_channel(channel_id)
+            previous_topic = mydiscordbot.get_channel_topic(self.discord_bot_token, channel_id)
 
             # preserve the original channel's topic.
             topic_suffix = ""
-            if channel and channel.topic:
-                position = channel.topic.find(topic_ending)
-                topic_suffix = channel.topic[position + len(topic_ending):] if position != -1 else channel.topic
+            if previous_topic:
+                position = previous_topic.find(topic_ending)
+                topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
 
             # update the topic on the triggered channels
             mydiscordbot.set_topic_on_discord_channels(self.discord_bot_token,
@@ -713,11 +715,26 @@ class mydiscordbot(minqlx.Plugin):
         return ready
 
     @staticmethod
+    def get_channel_topic(bot_token, channel_id):
+        """
+        get the topic of the provided channel id
+
+        :param bot_token: the token for the bot to interact with discord
+        :param channel_id: the id of the channel to get the topic from
+        :return the topic of the channel
+        """
+        response = requests.get(mydiscordbot._discord_api_channel_url(channel_id),
+                                headers=mydiscordbot._discord_api_request_headers(bot_token))
+
+        return json.loads(response.content)["topic"]
+
+    @staticmethod
     @minqlx.thread
     def send_to_discord_channels(bot_token, channel_ids, content):
         """
         Send a message to a set of channel_ids on discord provided.
 
+        :param bot_token: the token for the bot to send messages
         :param channel_ids: the ids of the channels the message should be sent to.
         :param content: the content of the message to send to the discord channels
         """
@@ -753,11 +770,11 @@ class mydiscordbot(minqlx.Plugin):
         return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(bot_token)}
 
     @staticmethod
-    @minqlx.thread
     def set_topic_on_discord_channels(bot_token, channel_ids, topic):
         """
         Set the topic on a set of channel_ids on discord provided.
 
+        :param bot_token the token for the bot to interact with discord
         :param channel_ids: the ids of the channels the topic should be set upon.
         :param topic: the new topic that should be set.
         """
