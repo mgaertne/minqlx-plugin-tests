@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v1.0.0-beta4"
+plugin_version = "v1.0.0-beta5"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -182,12 +182,12 @@ class mydiscordbot(minqlx.Plugin):
             """
             if message.author.id in self.authed_discord_ids:
                 mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                      {message.channel.id},
+                                                      set([message.channel.id]),
                                                       "You are already authenticated.")
             elif message.content[len(self.discord_auth_command) + 1:] == self.discord_admin_password:
                 self.authed_discord_ids.add(message.author.id)
                 mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                      {message.channel.id},
+                                                      set([message.channel.id]),
                                                       "You have been successfully authenticated. You can now use "
                                                       "{} to execute commands.".format(self.discord_exec_prefix))
             else:
@@ -197,7 +197,7 @@ class mydiscordbot(minqlx.Plugin):
                 self.auth_attempts[message.author.id] -= 1
                 if self.auth_attempts[message.author.id] > 0:
                     mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                          {message.channel.id},
+                                                          set([message.channel.id]),
                                                           "Wrong password. You have {} attempts left."
                                                           .format(self.auth_attempts[message.author.id]))
 
@@ -216,7 +216,7 @@ class mydiscordbot(minqlx.Plugin):
                         DiscordChannel(self.discord_bot_token, message.author))
                 except Exception as e:
                     mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                          {message.channel.id},
+                                                          set([message.channel.id]),
                                                           "{}: {}".format(e.__class__.__name__, e))
                     minqlx.log_exception()
 
@@ -293,7 +293,7 @@ class mydiscordbot(minqlx.Plugin):
             if not reply:
                 return
 
-            mydiscordbot.send_to_discord_channels(self.discord_bot_token, {message.channel.id}, reply)
+            mydiscordbot.send_to_discord_channels(self.discord_bot_token, set([message.channel.id]), reply)
 
         @self.discord.event
         async def on_message(message: discord.Message):
@@ -316,7 +316,7 @@ class mydiscordbot(minqlx.Plugin):
 
             if message.content == "!version":
                 reply = self.version_information()
-                mydiscordbot.send_to_discord_channels(self.discord_bot_token, {message.channel.id}, reply)
+                mydiscordbot.send_to_discord_channels(self.discord_bot_token, set([message.channel.id]), reply)
                 return
 
             if mydiscordbot.is_private_channel(message.channel):
@@ -332,11 +332,11 @@ class mydiscordbot(minqlx.Plugin):
                 game = self.game
                 if game is None:
                     mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                          {message.channel.id},
+                                                          set([message.channel.id]),
                                                           "Currently no game running.")
                     return
                 mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                      {message.channel.id},
+                                                      set([message.channel.id]),
                                                       "{}\n{}".format(
                                                           mydiscordbot.game_status_information(game),
                                                           mydiscordbot.player_data()))
@@ -577,7 +577,7 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the player that connected
         :param reason: the reason why the player left
         """
-        if reason in {"disconnected", "timed out"}:
+        if reason in set(["disconnected", "timed out"]):
             reason_str = "{}.".format(reason)
         elif reason == "was kicked.":
             reason_str = reason
@@ -700,7 +700,7 @@ class mydiscordbot(minqlx.Plugin):
 
             # update the topic on the triggered channels
             mydiscordbot.set_topic_on_discord_channels(self.discord_bot_token,
-                                                       {channel_id},
+                                                       set([channel_id]),
                                                        "{}{}".format(topic, topic_suffix))
 
     @staticmethod
@@ -729,6 +729,8 @@ class mydiscordbot(minqlx.Plugin):
         """
         response = requests.get(mydiscordbot._discord_api_channel_url(channel_id),
                                 headers=mydiscordbot._discord_api_request_headers(bot_token))
+        minqlx.get_logger().debug(response.headers)
+        minqlx.get_logger().debug(response.content)
 
         return json.loads(response.content)["topic"]
 
@@ -749,9 +751,11 @@ class mydiscordbot(minqlx.Plugin):
         # send the message in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
             # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.post(mydiscordbot._discord_api_channel_url(channel_id) + "/messages",
+            response = requests.post(mydiscordbot._discord_api_channel_url(channel_id) + "/messages",
                           data=json.dumps({'content': content}),
                           headers=mydiscordbot._discord_api_request_headers(bot_token))
+            minqlx.get_logger().debug(response.headers)
+            minqlx.get_logger().debug(response.content)
 
     @staticmethod
     def _discord_api_channel_url(channel_id):
@@ -789,9 +793,11 @@ class mydiscordbot(minqlx.Plugin):
         # set the topic in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
             # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.patch(mydiscordbot._discord_api_channel_url(channel_id),
+            response = requests.patch(mydiscordbot._discord_api_channel_url(channel_id),
                            data=json.dumps({'topic': topic}),
                            headers=mydiscordbot._discord_api_request_headers(bot_token))
+            minqlx.get_logger().debug(response.headers)
+            minqlx.get_logger().debug(response.content)
 
 
 class DiscordChannel(minqlx.AbstractChannel):
@@ -810,7 +816,7 @@ class DiscordChannel(minqlx.AbstractChannel):
         """
         overwrites the channel.reply function to relay messages to discord
         """
-        mydiscordbot.send_to_discord_channels(self.bot_token, {self.user.id}, Plugin.clean_text(msg))
+        mydiscordbot.send_to_discord_channels(self.bot_token, set([self.user.id]), Plugin.clean_text(msg))
 
 
 class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
@@ -834,4 +840,4 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
         """
         overwrites the player.tell function to relay messages to discord
         """
-        mydiscordbot.send_to_discord_channels(self.bot_token, {self.user.id}, Plugin.clean_text(msg))
+        mydiscordbot.send_to_discord_channels(self.bot_token, set([self.user.id]), Plugin.clean_text(msg))
