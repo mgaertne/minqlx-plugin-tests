@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v1.0.0-beta3"
+plugin_version = "v1.0.0-beta4"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -577,10 +577,14 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the player that connected
         :param reason: the reason why the player left
         """
-        if reason and reason[-1] not in ("?", "!", "."):
-            reason = reason + "."
+        if reason in {"disconnected", "timed out"}:
+            reason_str = "{}.".format(reason)
+        elif reason == "was kicked.":
+            reason_str = reason
+        else:
+            reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
         content = "*{} {}*".format(player.clean_name,
-                                   Plugin.clean_text(reason))
+                                   reason_str)
         mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
 
         self.update_topics()
