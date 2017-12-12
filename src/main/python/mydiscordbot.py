@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.9"
+plugin_version = "v0.9.10"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -123,11 +123,6 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.msg(self.version_information())
 
     def version_information(self):
-        """
-        generates the plugin's version information
-
-        :return: the plugin's version information
-        """
         return "{} Version: {}".format(self.name, plugin_version)
 
     @minqlx.thread
@@ -156,32 +151,28 @@ class mydiscordbot(minqlx.Plugin):
             await self.discord.change_presence(game=discord.Game(name="Quake Live"))
             self.update_topics()
 
-        def handle_auth(message: discord.Message):
+        async def handle_auth(message: discord.Message):
             """
             handles the authentification to the bot via private message
 
             :param message: the original message sent for authentification
             """
             if message.author.id in self.authed_discord_ids:
-                mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                      {message.channel.id},
-                                                      "You are already authenticated.")
+                await self.discord.send_message(message.channel, "You are already authenticated.")
             elif message.content[len(self.discord_auth_command) + 1:] == self.discord_admin_password:
                 self.authed_discord_ids.add(message.author.id)
-                mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                      {message.channel.id},
-                                                      "You have been successfully authenticated. You can now use "
-                                                      "{} to execute commands.".format(self.discord_exec_prefix))
+                await self.discord.send_message(message.channel,
+                                                "You have been successfully authenticated. You can now use "
+                                                "{} to execute commands.".format(self.discord_exec_prefix))
             else:
                 # Allow up to 3 attempts for the user's IP to authenticate.
                 if message.author.id not in self.auth_attempts:
                     self.auth_attempts[message.author.id] = 3
                 self.auth_attempts[message.author.id] -= 1
                 if self.auth_attempts[message.author.id] > 0:
-                    mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                          {message.channel.id},
-                                                          "Wrong password. You have {} attempts left."
-                                                          .format(self.auth_attempts[message.author.id]))
+                    await self.discord.send_message(message.channel,
+                                                    "Wrong password. You have {} attempts left."
+                                                    .format(self.auth_attempts[message.author.id]))
 
         def handle_exec(message: discord.Message):
             """
@@ -193,13 +184,12 @@ class mydiscordbot(minqlx.Plugin):
             def f():
                 try:
                     minqlx.COMMANDS.handle_input(
-                        DiscordDummyPlayer(self.discord_bot_token, message.author),
+                        DiscordDummyPlayer(self.discord, message.author),
                         message.content[len(self.discord_exec_prefix) + 1:],
-                        DiscordChannel(self.discord_bot_token, message.author))
+                        DiscordChannel(self.discord, message.author))
                 except Exception as e:
-                    mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                          {message.channel.id},
-                                                          "{}: {}".format(e.__class__.__name__, e))
+                    self.discord.loop.create_task(
+                        self.discord.send_message(message.channel, "{}: {}".format(e.__class__.__name__, e)))
                     minqlx.log_exception()
 
             f()
@@ -226,14 +216,14 @@ class mydiscordbot(minqlx.Plugin):
                 and message.author.id in self.authed_discord_ids \
                 and message.content[0:len(self.discord_exec_prefix)].lower() == self.discord_exec_prefix
 
-        def handle_private_message(message: discord.Message):
+        async def handle_private_message(message: discord.Message):
             """
             handles private messages sent to the bot
 
             :param message: the original message
             """
             if is_auth_attempt(message):
-                handle_auth(message)
+                await handle_auth(message)
                 return
 
             if is_exec_attempt(message):
@@ -275,7 +265,7 @@ class mydiscordbot(minqlx.Plugin):
             if not reply:
                 return
 
-            mydiscordbot.send_to_discord_channels(self.discord_bot_token, {message.channel.id}, reply)
+            self.discord.loop.create_task(self.discord.send_message(message.channel, reply))
 
         @self.discord.event
         async def on_message(message: discord.Message):
@@ -298,13 +288,11 @@ class mydiscordbot(minqlx.Plugin):
 
             if message.content == "!version":
                 reply = self.version_information()
-                mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                                      {message.channel.id},
-                                                      reply)
+                self.discord.loop.create_task(self.discord.send_message(message.channel, reply))
                 return
 
             if message.channel.is_private:
-                handle_private_message(message)
+                await handle_private_message(message)
                 return
 
             # if the message wasn't sent to a channel we're interested in, do nothing.
@@ -317,9 +305,10 @@ class mydiscordbot(minqlx.Plugin):
                 if game is None:
                     reply = "Currently no game running."
                 else:
-                    reply = "{}\n{}".format(mydiscordbot.game_status_information(game), mydiscordbot.player_data())
-
-                mydiscordbot.send_to_discord_channels(self.discord_bot_token, {message.channel.id}, reply)
+                    reply = "{}\n{}".format(
+                        mydiscordbot.game_status_information(game),
+                        mydiscordbot.player_data())
+                await self.discord.send_message(message.channel, reply)
 
             # relay all messages from the relay channels back to Quake Live.
             if message.channel.id in self.discord_relay_channel_ids:
@@ -377,7 +366,6 @@ class mydiscordbot(minqlx.Plugin):
         topic = mydiscordbot.game_status_information(game)
         self.update_topics_on_relay_and_triggered_channels(topic)
 
-    @minqlx.thread
     def update_topics_on_relay_and_triggered_channels(self, topic):
         """
         Helper function to update the topics on all the relay and all the triggered channels
@@ -390,10 +378,7 @@ class mydiscordbot(minqlx.Plugin):
             topic_channel_ids = self.discord_relay_channel_ids
 
         # directly set the topic on channels with no topic suffix
-        mydiscordbot.set_topic_on_discord_channels(self.discord_bot_token,
-                                                   topic_channel_ids - self.discord_keep_topic_suffix_channel_ids,
-                                                   topic)
-
+        self.set_topic_on_discord_channels(topic_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
         # keep the topic suffix on the channels that are configured accordingly
         self.update_topic_on_channels_and_keep_channel_suffix(
             topic_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
@@ -429,7 +414,7 @@ class mydiscordbot(minqlx.Plugin):
         """
         Helper to format the current game.state that may be used in status messages and setting of channel topics.
 
-        :para, game: the game object to derive the information from
+        :param game: the game object to derive the information from
 
         :return: the current text representation of the game state
         """
@@ -490,8 +475,8 @@ class mydiscordbot(minqlx.Plugin):
         :param msg: the message to check whether it should be filtered
         :return whether the message should not be relayed to discord
         """
-        for filter in self.discord_message_filters:
-            matcher = re.compile(filter)
+        for message_filter in self.discord_message_filters:
+            matcher = re.compile(message_filter)
             if matcher.match(msg):
                 return True
 
@@ -520,7 +505,7 @@ class mydiscordbot(minqlx.Plugin):
                                         handled_channels[channel.name],
                                         Plugin.clean_text(msg))
 
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
+        self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     @minqlx.delay(3)
     def handle_player_connect(self, player: minqlx.Player):
@@ -531,7 +516,7 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the player that connected
         """
         content = "*{} connected.*".format(player.clean_name)
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
+        self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
         self.update_topics()
 
@@ -565,7 +550,7 @@ class mydiscordbot(minqlx.Plugin):
         :param factory: the map factory used
         """
         content = "*Changing map to {}...*".format(mapname)
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
+        self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
         self.update_topics()
 
@@ -582,7 +567,7 @@ class mydiscordbot(minqlx.Plugin):
                                                      vote,
                                                      Plugin.clean_text(args))
 
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
+        self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     def handle_vote_ended(self, votes, vote, args, passed):
         """
@@ -599,7 +584,7 @@ class mydiscordbot(minqlx.Plugin):
         else:
             content = "*Vote failed.*"
 
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
+        self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     @minqlx.delay(1)
     def handle_game_countdown_or_end(self, *args, **kwargs):
@@ -613,9 +598,7 @@ class mydiscordbot(minqlx.Plugin):
         topic = mydiscordbot.game_status_information(game)
         top5_players = mydiscordbot.player_data()
 
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token,
-                                              self.discord_relay_channel_ids,
-                                              "{}\n{}".format(topic, top5_players))
+        self.send_to_discord_channels(self.discord_relay_channel_ids, "{}\n{}".format(topic, top5_players))
 
         self.update_topics_on_relay_and_triggered_channels(topic)
 
@@ -634,7 +617,7 @@ class mydiscordbot(minqlx.Plugin):
         if self.discord_triggered_channel_ids:
             content = "**{}**: {}".format(Plugin.clean_text(player.name),
                                           Plugin.clean_text(" ".join(msg[1:])))
-            mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_triggered_channel_ids, content)
+            self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
             self.msg("Message to Discord chat cast!")
 
     def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
@@ -657,42 +640,23 @@ class mydiscordbot(minqlx.Plugin):
 
         for channel_id in channel_ids:
             # we need to get the channel from the discord server first.
-            previous_topic = mydiscordbot.get_channel_topic(self.discord_bot_token, channel_id)
-
-            if previous_topic is None:
-                continue
+            channel = self.discord.get_channel(channel_id)
+            previous_topic = channel.topic
 
             # preserve the original channel's topic.
-            position = previous_topic.find(topic_ending)
-            topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
+            topic_suffix = ""
+            if channel and channel.topic:
+                position = previous_topic.find(topic_ending)
+                topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
 
             # update the topic on the triggered channels
-            mydiscordbot.set_topic_on_discord_channels(self.discord_bot_token,
-                                                       {channel_id},
-                                                       "{}{}".format(topic, topic_suffix))
+            self.set_topic_on_discord_channels({channel_id}, "{}{}".format(topic, topic_suffix))
 
-    @staticmethod
-    def get_channel_topic(bot_token, channel_id):
-        """
-        get the topic of the provided channel id
-        :param bot_token: the token for the bot to interact with discord
-        :param channel_id: the id of the channel to get the topic from
-        :return the topic of the channel
-        """
-        response = requests.get(mydiscordbot._discord_api_channel_url(channel_id),
-                                headers=mydiscordbot._discord_api_request_headers(bot_token))
-        if response.status_code != 200:
-            return None
-
-        return json.loads(response.content)["topic"]
-
-    @staticmethod
     @minqlx.thread
-    def send_to_discord_channels(bot_token, channel_ids, content):
+    def send_to_discord_channels(self, channel_ids, content):
         """
         Send a message to a set of channel_ids on discord provided.
 
-        :param bot_token: the token for the bot to send messages
         :param channel_ids: the ids of the channels the message should be sent to.
         :param content: the content of the message to send to the discord channels
         """
@@ -705,7 +669,7 @@ class mydiscordbot(minqlx.Plugin):
             # we use the raw request method here since it leads to fewer lag between minqlx and discord
             requests.post(mydiscordbot._discord_api_channel_url(channel_id) + "/messages",
                           data=json.dumps({'content': content}),
-                          headers=mydiscordbot._discord_api_request_headers(bot_token))
+                          headers=mydiscordbot._discord_api_request_headers(self.discord_bot_token))
 
     @staticmethod
     def _discord_api_channel_url(channel_id):
@@ -727,12 +691,11 @@ class mydiscordbot(minqlx.Plugin):
         """
         return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(bot_token)}
 
-    @staticmethod
-    def set_topic_on_discord_channels(bot_token, channel_ids, topic):
+    @minqlx.thread
+    def set_topic_on_discord_channels(self, channel_ids, topic):
         """
         Set the topic on a set of channel_ids on discord provided.
 
-        :param bot_token the token for the bot to interact with discord
         :param channel_ids: the ids of the channels the topic should be set upon.
         :param topic: the new topic that should be set.
         """
@@ -745,16 +708,16 @@ class mydiscordbot(minqlx.Plugin):
             # we use the raw request method here since it leads to fewer lag between minqlx and discord
             requests.patch(mydiscordbot._discord_api_channel_url(channel_id),
                            data=json.dumps({'topic': topic}),
-                           headers=mydiscordbot._discord_api_request_headers(bot_token))
+                           headers=mydiscordbot._discord_api_request_headers(self.discord_bot_token))
 
 
 class DiscordChannel(minqlx.AbstractChannel):
     """
     a minqlx channel class to respond to from within minqlx for interactions with discord
     """
-    def __init__(self, bot_token, user: discord.User):
+    def __init__(self, client: discord.Client, user: discord.User):
         super().__init__("discord")
-        self.bot_token = bot_token
+        self.client = client
         self.user = user
 
     def __repr__(self):
@@ -766,15 +729,15 @@ class DiscordChannel(minqlx.AbstractChannel):
 
         :param msg: the message to send to this channel
         """
-        mydiscordbot.send_to_discord_channels(self.bot_token, {self.user.id}, Plugin.clean_text(msg))
+        self.client.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
 
 
 class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
     """
     a minqlx dummy player class to relay messages to discord
     """
-    def __init__(self, bot_token, user: discord.User):
-        self.bot_token = bot_token
+    def __init__(self, client: discord.Client, user: discord.User):
+        self.client = client
         self.user = user
         super().__init__(name="Discord-{}".format(user.display_name))
 
@@ -784,7 +747,7 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
 
     @property
     def channel(self):
-        return DiscordChannel(self.bot_token, self.user)
+        return DiscordChannel(self.client, self.user)
 
     def tell(self, msg):
         """
@@ -792,4 +755,4 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
 
         :param msg: the msg to send to this player
         """
-        mydiscordbot.send_to_discord_channels(self.bot_token, {self.user.id}, Plugin.clean_text(msg))
+        self.client.loop.create_task(self.client.send_message(self.user, Plugin.clean_text(msg)))
