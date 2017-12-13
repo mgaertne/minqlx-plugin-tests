@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.11"
+plugin_version = "v0.9.12"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -501,11 +501,43 @@ class mydiscordbot(minqlx.Plugin):
         if self.is_filtered_message(msg):
             return
 
+        message = mydiscordbot.replace_user_mentions(Plugin.clean_text(msg), self.discord.get_all_members())
+        message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
+
         content = "**{}**{}: {}".format(player.clean_name,
                                         handled_channels[channel.name],
-                                        Plugin.clean_text(msg))
+                                        message)
 
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
+
+    @staticmethod
+    def replace_user_mentions(message, member_list):
+        returned_message = message
+        matcher = re.compile("@([^ ]*)")
+
+        for match in matcher.findall(returned_message):
+            member = discord.utils.find(lambda user: user.name.lower().find(match.lower()) != -1, member_list)
+            if member:
+                returned_message = returned_message.replace("@{}".format(match), member.mention)
+
+            member = discord.utils.find(lambda user: user.nick is not None and
+                                        user.nick.lower().find(match.lower()) != -1, member_list)
+            if member:
+                returned_message = returned_message.replace("@{}".format(match), member.mention)
+
+        return returned_message
+
+    @staticmethod
+    def replace_channel_mentions(message, channel_list):
+        returned_message = message
+        matcher = re.compile("#([^ ]*)")
+
+        for match in matcher.findall(returned_message):
+            channel = discord.utils.find(lambda ch: ch.name.lower().find(match.lower()) != -1, channel_list)
+            if channel:
+                returned_message = returned_message.replace("#{}".format(match), channel.mention)
+
+        return returned_message
 
     @minqlx.delay(3)
     def handle_player_connect(self, player: minqlx.Player):
@@ -615,8 +647,11 @@ class mydiscordbot(minqlx.Plugin):
             return minqlx.RET_USAGE
 
         if self.discord_triggered_channel_ids:
-            content = "**{}**: {}".format(Plugin.clean_text(player.name),
-                                          Plugin.clean_text(" ".join(msg[1:])))
+            message = mydiscordbot.replace_user_mentions(Plugin.clean_text(" ".join(msg[1:])),
+                                                         self.discord.get_all_members())
+            message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
+
+            content = "**{}**: {}".format(Plugin.clean_text(player.name), message)
             self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
             self.msg("Message to Discord chat cast!")
 
