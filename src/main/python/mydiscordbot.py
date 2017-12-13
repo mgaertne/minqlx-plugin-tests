@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.10"
+plugin_version = "v0.9.11"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -537,7 +537,7 @@ class mydiscordbot(minqlx.Plugin):
             reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
         content = "*{} {}*".format(player.clean_name,
                                    reason_str)
-        mydiscordbot.send_to_discord_channels(self.discord_bot_token, self.discord_relay_channel_ids, content)
+        self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
         self.update_topics()
 
