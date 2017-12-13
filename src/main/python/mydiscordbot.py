@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.13"
+plugin_version = "v0.9.14"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -521,31 +521,39 @@ class mydiscordbot(minqlx.Plugin):
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     @staticmethod
-    def replace_user_mentions(message, member_list):
+    def replace_user_mentions(message, member_list, player=None):
         returned_message = message
         matcher = re.compile("@([^ ]*)")
 
         for match in matcher.findall(returned_message):
-            member = discord.utils.find(lambda user: user.name.lower().find(match.lower()) != -1, member_list)
-            if member:
-                returned_message = returned_message.replace("@{}".format(match), member.mention)
-
-            member = discord.utils.find(lambda user: user.nick is not None and
-                                        user.nick.lower().find(match.lower()) != -1, member_list)
-            if member:
-                returned_message = returned_message.replace("@{}".format(match), member.mention)
+            member = set(user for user in member_list
+                         if user.name.lower().find(match.lower()) != -1 or user.nick.lower().find(match.lower()) != -1)
+            if len(member) == 1:
+                returned_message = returned_message.replace("@{}".format(match), member[0].mention)
+            elif player is not None and len(member) > 1:
+                player.tell("Found ^6{}^7 matching discord users for @{}:".format(len(member), match))
+                alternatives = ""
+                for alternative_member in member:
+                    alternatives += "@{} ".format(alternative_member.name)
+                player.tell(alternatives)
 
         return returned_message
 
     @staticmethod
-    def replace_channel_mentions(message, channel_list):
+    def replace_channel_mentions(message, channel_list, player=None):
         returned_message = message
         matcher = re.compile("#([^ ]*)")
 
         for match in matcher.findall(returned_message):
-            channel = discord.utils.find(lambda ch: ch.name.lower().find(match.lower()) != -1, channel_list)
-            if channel:
-                returned_message = returned_message.replace("#{}".format(match), channel.mention)
+            channel = [ch for ch in channel_list if ch.name.lower().find(match.lower()) != -1]
+            if len(channel) == 1:
+                returned_message = returned_message.replace("#{}".format(match), channel[0].mention)
+            elif player is not None and len(channel) > 1:
+                player.tell("Found ^6{}^7 matching discord channels for #{}:".format(len(channel), match))
+                alternatives = ""
+                for alternative_channel in channel:
+                    alternatives += "#{} ".format(alternative_channel.name)
+                player.tell(alternatives)
 
         return returned_message
 
@@ -659,8 +667,8 @@ class mydiscordbot(minqlx.Plugin):
         if self.discord_triggered_channel_ids:
             message = Plugin.clean_text(" ".join(msg[1:]))
             if self.discord_replace_triggered_mentions:
-                message = mydiscordbot.replace_user_mentions(message, self.discord.get_all_members())
-                message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
+                message = mydiscordbot.replace_user_mentions(message, self.discord.get_all_members(), player)
+                message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels(), player)
 
             content = "**{}**: {}".format(Plugin.clean_text(player.name), message)
             self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
