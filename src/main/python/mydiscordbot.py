@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.12"
+plugin_version = "v0.9.13"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -57,6 +57,10 @@ class mydiscordbot(minqlx.Plugin):
     configured relay channels
     * qlx_discordQuakeRelayMessageFilters (default: "^\!s$, ^\!p$") comma separated list of regular expressions for
     messages that should not be sent from quake live to discord
+    * qlx_discordReplaceMentionsForRelayedMessages (default: "1") replace mentions (@user and #channel) for messages
+    sent towards relay channels
+    * qlx_discordReplaceMentionsForTriggeredMessages (default: "1") replace mentions (@user and #channel) for triggered
+    messages sent towards the triggered channels
     * qlx_discordAdminPassword (default "supersecret") passwort for remote admin of the server via discord private
     messages to the discord bot.
     * qlx_discordAuthCommand (default: ".auth") command for authenticating a discord user to the plugin via private
@@ -78,6 +82,8 @@ class mydiscordbot(minqlx.Plugin):
         self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
         self.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
         self.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
+        self.set_cvar_once("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.set_cvar_once("qlx_discordReplaceMentionsForTriggeredMessages", "1")
         self.set_cvar_once("qlx_discordAdminPassword", "supersecret")
         self.set_cvar_once("qlx_discordAuthCommand", ".auth")
         self.set_cvar_once("qlx_discordExecPrefix", ".qlx")
@@ -93,6 +99,8 @@ class mydiscordbot(minqlx.Plugin):
         self.discord_message_prefix = self.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = self.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
         self.discord_message_filters = self.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
+        self.discord_replace_relayed_mentions = self.get_cvar("qlx_discordReplaceMentionsForRelayedMessages", bool)
+        self.discord_replace_triggered_mentions = self.get_cvar("qlx_discordReplaceMentionsForTriggeredMessages", bool)
         self.discord_admin_password = self.get_cvar("qlx_discordAdminPassword")
         self.discord_auth_command = self.get_cvar("qlx_discordAuthCommand")
         self.discord_exec_prefix = self.get_cvar("qlx_discordExecPrefix")
@@ -501,8 +509,10 @@ class mydiscordbot(minqlx.Plugin):
         if self.is_filtered_message(msg):
             return
 
-        message = mydiscordbot.replace_user_mentions(Plugin.clean_text(msg), self.discord.get_all_members())
-        message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
+        message = Plugin.clean_text(msg)
+        if self.discord_replace_relayed_mentions:
+            message = mydiscordbot.replace_user_mentions(message, self.discord.get_all_members())
+            message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
 
         content = "**{}**{}: {}".format(player.clean_name,
                                         handled_channels[channel.name],
@@ -647,9 +657,10 @@ class mydiscordbot(minqlx.Plugin):
             return minqlx.RET_USAGE
 
         if self.discord_triggered_channel_ids:
-            message = mydiscordbot.replace_user_mentions(Plugin.clean_text(" ".join(msg[1:])),
-                                                         self.discord.get_all_members())
-            message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
+            message = Plugin.clean_text(" ".join(msg[1:]))
+            if self.discord_replace_triggered_mentions:
+                message = mydiscordbot.replace_user_mentions(message, self.discord.get_all_members())
+                message = mydiscordbot.replace_channel_mentions(message, self.discord.get_all_channels())
 
             content = "**{}**: {}".format(Plugin.clean_text(player.name), message)
             self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
