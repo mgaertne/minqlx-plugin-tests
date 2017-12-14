@@ -22,7 +22,7 @@ from minqlx import Plugin
 import discord
 from discord.ext import commands
 
-plugin_version = "v0.9.14"
+plugin_version = "v0.9.15"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -521,41 +521,129 @@ class mydiscordbot(minqlx.Plugin):
         self.send_to_discord_channels(self.discord_relay_channel_ids, content)
 
     @staticmethod
-    def replace_user_mentions(message, member_list, player=None):
-        returned_message = message
-        matcher = re.compile("@([^ ]*)")
+    def replace_user_mentions(message, member_iterator, player=None):
+        """
+        replaces a mentioned discord user (indicated by @user-hint with a real mention
 
+        :param message: the message to replace the user mentions in
+        :param member_iterator: an iterator through all members of the discord server
+        :param player: (default: None) when several alternatives are found for the mentions used, this player is told
+        what the alternatives are. No replacements for the ambiguous substitutions will happen.
+
+        :return: the original message replaced by properly formatted user mentions
+        """
+        returned_message = message
+        # this regular expression will make sure that the "@user" has at least three characters, and is either
+        # prefixed by a space or at the beginning of the string
+        matcher = re.compile("(?:^| )@([^ ]{3,})")
+
+        member_list = [user for user in member_iterator]
         for match in matcher.findall(returned_message):
-            member = set(user for user in member_list
-                         if user.name.lower().find(match.lower()) != -1 or user.nick.lower().find(match.lower()) != -1)
-            if len(member) == 1:
-                returned_message = returned_message.replace("@{}".format(match), member[0].mention)
-            elif player is not None and len(member) > 1:
-                player.tell("Found ^6{}^7 matching discord users for @{}:".format(len(member), match))
-                alternatives = ""
-                for alternative_member in member:
-                    alternatives += "@{} ".format(alternative_member.name)
-                player.tell(alternatives)
+            member = mydiscordbot.find_user_that_matches(match, member_list, player)
+            if member is not None:
+                returned_message = returned_message.replace("@{}".format(match), member.mention)
 
         return returned_message
 
     @staticmethod
-    def replace_channel_mentions(message, channel_list, player=None):
-        returned_message = message
-        matcher = re.compile("#([^ ]*)")
+    def find_user_that_matches(match, member_list, player=None):
+        """
+        find a user that matches the given match
 
+        :param match: the match to look for in the user name and nick
+        :param member_list: the list of members connected to the discord server
+        :param player: (default: None) when several alternatives are found for the mentions used, this player is told
+        what the alternatives are. None is returned in that case.
+
+        :return: the matching member, or None if none or more than one are found
+        """
+        # try a direct match for the whole name first
+        member = [user for user in member_list if user.name.lower() == match.lower()]
+        if len(member) == 1:
+            return member[0]
+
+        # then try a direct match at the user's nickname
+        member = [user for user in member_list if user.nick is not None and user.nick.lower() == match.lower()]
+        if len(member) == 1:
+            return member[0]
+
+        # if direct searches for the match fail, we try to match portions of the name or portions of the nick, if set
+        member = set(user for user in member_list if user.name.lower().find(match.lower()) != -1 or
+                     (user.nick is not None and user.nick.lower().find(match.lower()) != -1))
+        if len(member) == 1:
+            return list(member)[0]
+
+        # we found more than one matching member, let's tell the player about this.
+        if len(member) > 1 and player is not None:
+            player.tell("Found ^6{}^7 matching discord users for @{}:".format(len(member), match))
+            alternatives = ""
+            for alternative_member in member:
+                alternatives += "@{} ".format(alternative_member.name)
+            player.tell(alternatives)
+
+        return None
+
+    @staticmethod
+    def replace_channel_mentions(message, channel_iterator, player=None):
+        """
+        replaces a mentioned discord channel (indicated by #channel-hint with a real mention
+
+        :param message: the message to replace the channel mentions in
+        :param channel_iterator: an iterator through all channels of the discord server
+        :param player: (default: None) when several alternatives are found for the mentions used, this player is told
+        what the alternatives are. No replacements for the ambiguous substitutions will happen.
+
+        :return: the original message replaced by properly formatted channel mentions
+        """
+        returned_message = message
+        # this regular expression will make sure that the "#channel" has at least three characters, and is either
+        # prefixed by a space or at the beginning of the string
+        matcher = re.compile("(?:^| )#([^ ]{3,})")
+
+        channel_list = [ch for ch in channel_iterator]
         for match in matcher.findall(returned_message):
-            channel = [ch for ch in channel_list if ch.name.lower().find(match.lower()) != -1]
-            if len(channel) == 1:
-                returned_message = returned_message.replace("#{}".format(match), channel[0].mention)
-            elif player is not None and len(channel) > 1:
-                player.tell("Found ^6{}^7 matching discord channels for #{}:".format(len(channel), match))
-                alternatives = ""
-                for alternative_channel in channel:
-                    alternatives += "#{} ".format(alternative_channel.name)
-                player.tell(alternatives)
+            channel = mydiscordbot.find_channel_that_matches(match, channel_list, player)
+            if channel is not None:
+                returned_message = returned_message.replace("#{}".format(match), channel.mention)
 
         return returned_message
+
+    @staticmethod
+    def find_channel_that_matches(match, channel_list, player=None):
+        """
+        find a channel that matches the given match
+
+        :param match: the match to look for in the channel name
+        :param channel_list: the list of channels connected to the discord server
+        :param player: (default: None) when several alternatives are found for the mentions used, this player is told
+        what the alternatives are. None is returned in that case.
+
+        :return: the matching channel, or None if none or more than one are found
+        """
+        # try a direct channel name match case-sensitive first
+        channel = [ch for ch in channel_list if ch.name == match]
+        if len(channel) == 1:
+            return channel[0]
+
+        # then try a case-insensitive direct match with the channel name
+        channel = [ch for ch in channel_list if ch.name.lower() == match.lower()]
+        if len(channel) == 1:
+            return channel[0]
+
+        # then we try a match with portions of the channel name
+        channel = [ch for ch in channel_list if ch.name.lower().find(match.lower()) != -1]
+        if len(channel) == 1:
+            return channel[0]
+
+        # we found more than one matching channel, let's tell the player about this.
+        if len(channel) > 1 and player is not None:
+            player.tell("Found ^6{}^7 matching discord channels for #{}:".format(len(channel), match))
+            alternatives = ""
+            for alternative_channel in channel:
+                alternatives += "#{} ".format(alternative_channel.name)
+            player.tell(alternatives)
+
+        return None
 
     @minqlx.delay(3)
     def handle_player_connect(self, player: minqlx.Player):
