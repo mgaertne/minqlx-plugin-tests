@@ -20,9 +20,10 @@ import minqlx
 from minqlx import Plugin
 
 import discord
+from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v0.9.15"
+plugin_version = "v0.9.16"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -538,7 +539,9 @@ class mydiscordbot(minqlx.Plugin):
         matcher = re.compile("(?:^| )@([^ ]{3,})")
 
         member_list = [user for user in member_iterator]
-        for match in matcher.findall(returned_message):
+        matches = matcher.findall(returned_message)
+
+        for match in sorted(matches, key=lambda user_match: len(user_match), reverse=True):
             member = mydiscordbot.find_user_that_matches(match, member_list, player)
             if member is not None:
                 returned_message = returned_message.replace("@{}".format(match), member.mention)
@@ -600,8 +603,11 @@ class mydiscordbot(minqlx.Plugin):
         # prefixed by a space or at the beginning of the string
         matcher = re.compile("(?:^| )#([^ ]{3,})")
 
-        channel_list = [ch for ch in channel_iterator]
-        for match in matcher.findall(returned_message):
+        channel_list = [ch for ch in channel_iterator
+                        if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
+        matches = matcher.findall(returned_message)
+
+        for match in sorted(matches, key=lambda channel_match: len(channel_match), reverse=True):
             channel = mydiscordbot.find_channel_that_matches(match, channel_list, player)
             if channel is not None:
                 returned_message = returned_message.replace("#{}".format(match), channel.mention)
