@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-zeta"
+plugin_version = "v1.0.0-eta"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -281,10 +281,8 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the player that connected
         :param reason: the reason why the player left
         """
-        if reason in ["disconnected", "timed out"]:
+        if reason in ["disconnected", "timed out", "was kicked"]:
             reason_str = "{}.".format(reason)
-        elif reason == "was kicked.":
-            reason_str = reason
         else:
             reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
         content = "*{} {}*".format(player.clean_name,
