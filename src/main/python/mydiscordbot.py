@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-epsilon"
+plugin_version = "v1.0.0-zeta"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -703,15 +703,18 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :return: the topic of the channel
         """
-        response = requests.get(self._discord_api_channel_url(channel_id),
-                                headers=self._discord_api_request_headers())
-
-        if response.status_code != 200:
+        if self.discord is None or not self.discord.is_logged_in:
             return None
 
-        return json.loads(response.content)["topic"]
+        channel = self.discord.get_channel(channel_id)
 
-    def _discord_api_channel_url(self, channel_id):
+        if channel is None:
+            return None
+
+        return channel.topic
+
+    @staticmethod
+    def _discord_api_channel_url(channel_id):
         """
         Generates the basis for the discord api's channel url from the given channel_id.
 
@@ -743,7 +746,7 @@ class SimpleAsyncDiscord(threading.Thread):
         # set the topic in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
             # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.patch(self._discord_api_channel_url(channel_id),
+            requests.patch(SimpleAsyncDiscord._discord_api_channel_url(channel_id),
                            data=json.dumps({'topic': topic}),
                            headers=self._discord_api_request_headers())
 
@@ -762,7 +765,7 @@ class SimpleAsyncDiscord(threading.Thread):
         # send the message in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
             # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.post(self._discord_api_channel_url(channel_id) + "/messages",
+            requests.post(SimpleAsyncDiscord._discord_api_channel_url(channel_id) + "/messages",
                           data=json.dumps({'content': content}),
                           headers=self._discord_api_request_headers())
 
@@ -842,13 +845,14 @@ class SimpleAsyncDiscord(threading.Thread):
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda user_match: len(user_match), reverse=True):
-            member = self.find_user_that_matches(match, member_list, player)
+            member = SimpleAsyncDiscord.find_user_that_matches(match, member_list, player)
             if member is not None:
                 returned_message = returned_message.replace("@{}".format(match), member.mention)
 
         return returned_message
 
-    def find_user_that_matches(self, match, member_list, player=None):
+    @staticmethod
+    def find_user_that_matches(match, member_list, player=None):
         """
         find a user that matches the given match
 
@@ -908,13 +912,14 @@ class SimpleAsyncDiscord(threading.Thread):
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda channel_match: len(channel_match), reverse=True):
-            channel = self.find_channel_that_matches(match, channel_list, player)
+            channel = SimpleAsyncDiscord.find_channel_that_matches(match, channel_list, player)
             if channel is not None:
                 returned_message = returned_message.replace("#{}".format(match), channel.mention)
 
         return returned_message
 
-    def find_channel_that_matches(self, match, channel_list, player=None):
+    @staticmethod
+    def find_channel_that_matches(match, channel_list, player=None):
         """
         find a channel that matches the given match
 
