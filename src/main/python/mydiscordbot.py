@@ -250,7 +250,7 @@ class mydiscordbot(minqlx.Plugin):
         handled_channels = {"chat": "",
                             "red_team_chat": " *(to red team)*",
                             "blue_team_chat": " *(to blue team)*",
-                            "spectator_chat": " *(to spacs)*"}
+                            "spectator_chat": " *(to specs)*"}
         if channel.name not in handled_channels:
             return
 
