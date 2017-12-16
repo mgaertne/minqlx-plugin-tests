@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-eta"
+plugin_version = "v1.0.0-theta"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -454,7 +454,7 @@ class SimpleAsyncDiscord(threading.Thread):
         # init the bot, and init the main discord interactions
         self.discord = commands.Bot(command_prefix='!')
 
-        @self.discord.event
+        @self.discord.async_event
         async def on_ready():
             """
             Function called once the bot connected. Mainly displays status update from the bot in the game console
@@ -580,7 +580,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
             self.send_to_discord_channels({message.channel.id}, reply)
 
-        @self.discord.event
+        @self.discord.async_event
         async def on_message(message: discord.Message):
             """
             Function called once a message is send through discord. Here the main interaction points either back to
@@ -774,11 +774,8 @@ class SimpleAsyncDiscord(threading.Thread):
         if self.discord is None:
             return
 
-        async def shutdown_discord():
-            await self.discord.wait_until_ready()
-            await self.discord.logout()
-
-        self.discord.loop.create_task(shutdown_discord())
+        self.discord.loop.create_task(self.discord.change_presence(status="offline"))
+        self.discord.loop.create_task(self.discord.logout())
 
     def relay_message(self, msg):
         """
