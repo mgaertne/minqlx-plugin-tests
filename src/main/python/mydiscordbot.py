@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-gamma"
+plugin_version = "v1.0.0-delta"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -429,7 +429,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.authed_discord_ids = set()
         self.auth_attempts = {}
 
-        self.bot_token = Plugin.get_cvar("qlx_discordBotToken")
+        self.discord_bot_token = Plugin.get_cvar("qlx_discordBotToken")
         self.discord_relay_channel_ids = Plugin.get_cvar("qlx_discordRelayChannelIds", set)
         self.discord_triggered_channel_ids = Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
         self.discord_update_triggered_channels_topic = \
@@ -638,66 +638,9 @@ class SimpleAsyncDiscord(threading.Thread):
                         self._format_message_to_quake(message.channel, message.author, content))
 
         # connect the now configured bot to discord in the event_loop
-        loop.run_until_complete(self.discord.start(self.bot_token))
+        loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
-    def stop(self):
-        if not self.discord:
-            return
-
-        async def shutdown_discord():
-            await self.discord.wait_until_ready()
-            await self.discord.logout()
-
-        self.discord.loop.create_task(shutdown_discord())
-
-    def relay_message(self, msg):
-        if not self.discord:
-            return
-
-        self.send_to_discord_channels(self.discord_relay_channel_ids, msg)
-
-    def relay_chat_message(self, player, channel, message):
-        if not self.discord:
-            return
-
-        if self.discord_replace_relayed_mentions:
-            message = self.replace_user_mentions(message)
-            message = self.replace_channel_mentions(message)
-
-        content = "**{}**{}: {}".format(player, channel, message)
-
-        self.relay_message(content)
-
-    def triggered_message(self, player, message):
-        if not self.discord:
-            return
-
-        if not self.discord_triggered_channel_ids:
-            return
-
-        if self.discord_replace_triggered_mentions:
-            message = self.replace_user_mentions(message, player)
-            message = self.replace_channel_mentions(message, player)
-
-        content = "**{}**: {}".format(Plugin.clean_text(player.name), message)
-        self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
-
-    def _format_message_to_quake(self, channel: discord.Channel, author: discord.User, content):
-        """
-        Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
-        console.
-
-        :param channel: the channel, the message came from.
-        :param author: the author of the original message.
-        :param content: the message itself, ideally taken from message.clean_content to avoid ids of mentioned users
-        and channels on the discord server.
-        :return: the formatted message that may be sent back to Quake Live.
-        """
-        if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
-            return "{0} ^6{1.name}^7:^2 {2}".format(self.discord_message_prefix, author, content)
-        return "{0} ^5#{1.name} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, channel, author, content)
-
-    def update_topics(self, *args, **kwargs):
+    def update_topics(self):
         """
         Update the current topic on the general relay channels, and the triggered relay channels. The latter will only
         happen when cvar qlx_discordUpdateTopicOnIdleChannels is set to "1".
@@ -733,10 +676,6 @@ class SimpleAsyncDiscord(threading.Thread):
         :param channel_ids: the set of channels to update the topic on
         :param topic: the topic to set on the given channels
         """
-        # if the bot is not running or not connected, do nothing.
-        if not self.discord or not self.discord.is_logged_in:
-            return
-
         # if there are not triggered relay channels configured, do nothing.
         if not channel_ids or len(channel_ids) == 0:
             return
@@ -745,33 +684,153 @@ class SimpleAsyncDiscord(threading.Thread):
         topic_ending = topic[-10:]
 
         for channel_id in channel_ids:
-            # we need to get the channel from the discord server first.
-            channel = self.discord.get_channel(channel_id)
-            if channel is None:
+            previous_topic = self.get_channel_topic(channel_id)
+
+            if previous_topic is None:
                 continue
 
-            previous_topic = channel.topic
-
             # preserve the original channel's topic.
-            topic_suffix = ""
-            if channel and channel.topic:
-                position = previous_topic.find(topic_ending)
-                topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
+            position = previous_topic.find(topic_ending)
+            topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
 
             # update the topic on the triggered channels
             self.set_topic_on_discord_channels({channel_id}, "{}{}".format(topic, topic_suffix))
+
+    def get_channel_topic(self, channel_id):
+        """
+        get the topic of the provided channel id
+        :param channel_id: the id of the channel to get the topic from
+
+        :return: the topic of the channel
+        """
+        response = requests.get(self._discord_api_channel_url(channel_id),
+                                headers=self._discord_api_request_headers())
+
+        if response.status_code != 200:
+            return None
+
+        return json.loads(response.content)["topic"]
+
+    def _discord_api_channel_url(self, channel_id):
+        """
+        Generates the basis for the discord api's channel url from the given channel_id.
+
+        :param channel_id: the id of the channel for direct http/json requests
+        :return: the channel url of the provided channel_id for direct interaction with the discord api
+        """
+        return "https://discordapp.com/api/channels/{}".format(channel_id)
+
+    def _discord_api_request_headers(self):
+        """
+        Generates the discord api headers for direct discord api interactions from the provided token's bot.
+
+        :return: the request headers for the provided token's bot
+        """
+        return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(self.discord_bot_token)}
+
+    def set_topic_on_discord_channels(self, channel_ids, topic):
+        """
+        Set the topic on a set of channel_ids on discord provided.
+
+        :param channel_ids: the ids of the channels the topic should be set upon.
+        :param topic: the new topic that should be set.
+        """
+        # if we were not provided any channel_ids, do nothing.
+        if not channel_ids or len(channel_ids) == 0:
+            return
+
+        # set the topic in its own thread to avoid blocking of the server
+        for channel_id in channel_ids:
+            # we use the raw request method here since it leads to fewer lag between minqlx and discord
+            requests.patch(self._discord_api_channel_url(channel_id),
+                           data=json.dumps({'topic': topic}),
+                           headers=self._discord_api_request_headers())
+
+    def send_to_discord_channels(self, channel_ids, content):
+        """
+        Send a message to a set of channel_ids on discord provided.
+
+        :param channel_ids: the ids of the channels the message should be sent to.
+        :param content: the content of the message to send to the discord channels
+        """
+        # if we were not provided any channel_ids, do nothing.
+        if not channel_ids or len(channel_ids) == 0:
+            return
+
+        # send the message in its own thread to avoid blocking of the server
+        for channel_id in channel_ids:
+            # we use the raw request method here since it leads to fewer lag between minqlx and discord
+            requests.post(self._discord_api_channel_url(channel_id) + "/messages",
+                          data=json.dumps({'content': content}),
+                          headers=self._discord_api_request_headers())
+
+    def stop(self):
+        """
+        stops the discord client
+        """
+        if self.discord is None:
+            return
+
+        async def shutdown_discord():
+            await self.discord.wait_until_ready()
+            await self.discord.logout()
+
+        self.discord.loop.create_task(shutdown_discord())
+
+    def relay_message(self, msg):
+        """
+        relay a message to the configured relay_channels
+
+        :param msg: the message to send to the relay channel
+        """
+        self.send_to_discord_channels(self.discord_relay_channel_ids, msg)
+
+    def relay_chat_message(self, player, channel, message):
+        """
+        relay a message to the given channel
+
+        :param player: the player that originally sent the message
+        :param channel: the channel the original message came through
+        :param message: the content of the message
+        """
+        if self.discord_replace_relayed_mentions:
+            message = self.replace_user_mentions(message)
+            message = self.replace_channel_mentions(message)
+
+        content = "**{}**{}: {}".format(player, channel, message)
+
+        self.relay_message(content)
+
+    def triggered_message(self, player, message):
+        """
+        send a triggered message to the configured triggered_channel
+
+        :param player: the player that originally sent the message
+        :param message: the content of the message
+        """
+        if not self.discord_triggered_channel_ids:
+            return
+
+        if self.discord_replace_triggered_mentions:
+            message = self.replace_user_mentions(message, player)
+            message = self.replace_channel_mentions(message, player)
+
+        content = "**{}**: {}".format(Plugin.clean_text(player.name), message)
+        self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
 
     def replace_user_mentions(self, message, player=None):
         """
         replaces a mentioned discord user (indicated by @user-hint with a real mention
 
         :param message: the message to replace the user mentions in
-        :param member_iterator: an iterator through all members of the discord server
         :param player: (default: None) when several alternatives are found for the mentions used, this player is told
         what the alternatives are. No replacements for the ambiguous substitutions will happen.
 
         :return: the original message replaced by properly formatted user mentions
         """
+        if self.discord is None or not self.discord.is_logged_in:
+            return message
+
         returned_message = message
         # this regular expression will make sure that the "@user" has at least three characters, and is either
         # prefixed by a space or at the beginning of the string
@@ -781,14 +840,13 @@ class SimpleAsyncDiscord(threading.Thread):
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda user_match: len(user_match), reverse=True):
-            member = SimpleAsyncDiscord.find_user_that_matches(match, member_list, player)
+            member = self.find_user_that_matches(match, member_list, player)
             if member is not None:
                 returned_message = returned_message.replace("@{}".format(match), member.mention)
 
         return returned_message
 
-    @staticmethod
-    def find_user_that_matches(match, member_list, player=None):
+    def find_user_that_matches(self, match, member_list, player=None):
         """
         find a user that matches the given match
 
@@ -830,12 +888,14 @@ class SimpleAsyncDiscord(threading.Thread):
         replaces a mentioned discord channel (indicated by #channel-hint with a real mention
 
         :param message: the message to replace the channel mentions in
-        :param channel_iterator: an iterator through all channels of the discord server
         :param player: (default: None) when several alternatives are found for the mentions used, this player is told
         what the alternatives are. No replacements for the ambiguous substitutions will happen.
 
         :return: the original message replaced by properly formatted channel mentions
         """
+        if self.discord is None or not self.discord.is_logged_in:
+            return message
+
         returned_message = message
         # this regular expression will make sure that the "#channel" has at least three characters, and is either
         # prefixed by a space or at the beginning of the string
@@ -846,14 +906,13 @@ class SimpleAsyncDiscord(threading.Thread):
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda channel_match: len(channel_match), reverse=True):
-            channel = SimpleAsyncDiscord.find_channel_that_matches(match, channel_list, player)
+            channel = self.find_channel_that_matches(match, channel_list, player)
             if channel is not None:
                 returned_message = returned_message.replace("#{}".format(match), channel.mention)
 
         return returned_message
 
-    @staticmethod
-    def find_channel_that_matches(match, channel_list, player=None):
+    def find_channel_that_matches(self, match, channel_list, player=None):
         """
         find a channel that matches the given match
 
@@ -889,58 +948,17 @@ class SimpleAsyncDiscord(threading.Thread):
 
         return None
 
-    def send_to_discord_channels(self, channel_ids, content):
+    def _format_message_to_quake(self, channel: discord.Channel, author: discord.User, content):
         """
-        Send a message to a set of channel_ids on discord provided.
+        Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
+        console.
 
-        :param channel_ids: the ids of the channels the message should be sent to.
-        :param content: the content of the message to send to the discord channels
+        :param channel: the channel, the message came from.
+        :param author: the author of the original message.
+        :param content: the message itself, ideally taken from message.clean_content to avoid ids of mentioned users
+        and channels on the discord server.
+        :return: the formatted message that may be sent back to Quake Live.
         """
-        # if we were not provided any channel_ids, do nothing.
-        if not channel_ids or len(channel_ids) == 0:
-            return
-
-        # send the message in its own thread to avoid blocking of the server
-        for channel_id in channel_ids:
-            # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.post(SimpleAsyncDiscord._discord_api_channel_url(channel_id) + "/messages",
-                          data=json.dumps({'content': content}),
-                          headers=SimpleAsyncDiscord._discord_api_request_headers(self.bot_token))
-
-    @staticmethod
-    def _discord_api_channel_url(channel_id):
-        """
-        Generates the basis for the discord api's channel url from the given channel_id.
-
-        :param channel_id: the id of the channel for direct http/json requests
-        :return: the channel url of the provided channel_id for direct interaction with the discord api
-        """
-        return "https://discordapp.com/api/channels/{}".format(channel_id)
-
-    @staticmethod
-    def _discord_api_request_headers(bot_token):
-        """
-        Generates the discord api headers for direct discord api interactions from the provided token's bot.
-
-        :param bot_token: the token of the bot the headers should be generated for
-        :return: the request headers for the provided token's bot
-        """
-        return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(bot_token)}
-
-    def set_topic_on_discord_channels(self, channel_ids, topic):
-        """
-        Set the topic on a set of channel_ids on discord provided.
-
-        :param channel_ids: the ids of the channels the topic should be set upon.
-        :param topic: the new topic that should be set.
-        """
-        # if we were not provided any channel_ids, do nothing.
-        if not channel_ids or len(channel_ids) == 0:
-            return
-
-        # set the topic in its own thread to avoid blocking of the server
-        for channel_id in channel_ids:
-            # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.patch(SimpleAsyncDiscord._discord_api_channel_url(channel_id),
-                           data=json.dumps({'topic': topic}),
-                           headers=SimpleAsyncDiscord._discord_api_request_headers(self.bot_token))
+        if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
+            return "{0} ^6{1.name}^7:^2 {2}".format(self.discord_message_prefix, author, content)
+        return "{0} ^5#{1.name} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, channel, author, content)
