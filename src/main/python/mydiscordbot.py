@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-delta"
+plugin_version = "v1.0.0-epsilon"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -728,6 +728,7 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(self.discord_bot_token)}
 
+    @minqlx.thread
     def set_topic_on_discord_channels(self, channel_ids, topic):
         """
         Set the topic on a set of channel_ids on discord provided.
@@ -746,6 +747,7 @@ class SimpleAsyncDiscord(threading.Thread):
                            data=json.dumps({'topic': topic}),
                            headers=self._discord_api_request_headers())
 
+    @minqlx.thread
     def send_to_discord_channels(self, channel_ids, content):
         """
         Send a message to a set of channel_ids on discord provided.
