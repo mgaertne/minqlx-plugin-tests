@@ -443,7 +443,6 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord_trigger_status = Plugin.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
-        self.discord_message_filters = Plugin.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
         self.discord_replace_relayed_mentions = Plugin.get_cvar("qlx_discordReplaceMentionsForRelayedMessages", bool)
         self.discord_replace_triggered_mentions = \
             Plugin.get_cvar("qlx_discordReplaceMentionsForTriggeredMessages", bool)
