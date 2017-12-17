@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-mu"
+plugin_version = "v1.0.0-nu"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -630,8 +630,10 @@ class SimpleAsyncDiscord(threading.Thread):
 
             # relay all messages from the relay channels back to Quake Live.
             if message.channel.id in self.discord_relay_channel_ids:
-                minqlx.CHAT_CHANNEL.reply(
-                    self._format_message_to_quake(message.channel, message.author, message.clean_content))
+                content = message.clean_content
+                if len(content) > 0:
+                    minqlx.CHAT_CHANNEL.reply(
+                        self._format_message_to_quake(message.channel, message.author, content))
 
             # relay all messages that have the trigger as prefix from the triggered channels.
             if message.channel.id in self.discord_triggered_channel_ids:
