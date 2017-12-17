@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-kappa"
+plugin_version = "v1.0.0-lambda"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -110,7 +110,7 @@ class mydiscordbot(minqlx.Plugin):
         self.add_command("discord", self.cmd_discord, usage="<message>")
 
         # initialize the discord bot and its interactions on the discord server
-        self.discord = SimpleAsyncDiscord(self.version_information())
+        self.discord = SimpleAsyncDiscord(self.version_information(), self.logger)
         self.logger.info("Connecting to Discord...")
         self.discord.start()
         self.logger.info(self.version_information())
@@ -421,10 +421,10 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
 
 
 class SimpleAsyncDiscord(threading.Thread):
-    def __init__(self, version_information):
+    def __init__(self, version_information, logger):
         super().__init__()
         self.version_information = version_information
-        self.logger = minqlx.get_logger("discord")
+        self.logger = logger
         self.discord = None
 
         self.authed_discord_ids = set()
