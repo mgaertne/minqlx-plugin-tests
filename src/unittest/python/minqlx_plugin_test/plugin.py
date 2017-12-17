@@ -47,7 +47,7 @@ def setup_cvar(cvar_name, cvar_value, return_type=None):
     when2(Plugin.get_cvar, cvar_name, return_type).thenReturn(cvar_value)
 
 
-def assert_plugin_sent_to_console(matcher, times=1):
+def assert_plugin_sent_to_console(matcher, times=1, atleast=None):
     """Verify that a certain text was sent to the console.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
@@ -58,8 +58,9 @@ def assert_plugin_sent_to_console(matcher, times=1):
     :param matcher: A :class:`mockito.matchers` that should match the text sent to the Quake Live console.
     :param times: The amount of times the plugin should have sent a matching message, set to 0 for no matching message
     having been sent. (default: 1).
+    :param atleast: The minimum amount of times the plugin should have sent a matching message (default: None)
     """
-    verify(Plugin, times=times).msg(matcher)
+    verify(Plugin, times=times, atleast=atleast).msg(matcher)
 
 
 def assert_plugin_center_printed(matcher, times=1):

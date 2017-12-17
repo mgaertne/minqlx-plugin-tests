@@ -25,6 +25,7 @@ def fake_player(steam_id, name, team="spectator", score=0, ping=0):
     player = mock(spec=Player, strict=False)
     player.steam_id = steam_id
     player.name = name
+    player.clean_name = name
     player.team = team
     player.ping = ping
     player.score = score

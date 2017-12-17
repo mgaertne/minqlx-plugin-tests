@@ -16,19 +16,28 @@ def setup_no_game():
     when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
 
 
-def setup_game_in_warmup(game_type="ca"):
+def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, maxclients=16):
     """Setup the server with a game currently in warmup mode.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
+
+    :param game_type: the game_type currently being played (default: "ca")
+    :param mapname: the map the game is currently running on (default: "campgrounds")
+    :param map_title: the long title of the the map (default: None)
+    :param maxclients: (default: 16)
     """
     mock_game = mock(spec=Game, strict=False)
     when2(minqlx.Game).thenReturn(mock_game)
     mock_game.state = "warmup"
     mock_game.type_short = game_type
+    mock_game.map = mapname
+    mock_game.map_title = map_title
+    mock_game.maxclients = maxclients
 
 
-def setup_game_in_progress(game_type="ca", roundlimit=8, red_score=0, blue_score=0):
+def setup_game_in_progress(game_type="ca", mapname="campgrounds", map_title=None,
+                           roundlimit=8, red_score=0, blue_score=0, maxclients=16):
     """Setup the server with a game currently in progress. You may specify the game_type, roundlimit, and score for
     the red and blue teams with the optional parameters.
 
@@ -36,17 +45,23 @@ def setup_game_in_progress(game_type="ca", roundlimit=8, red_score=0, blue_score
     next test.**
 
     :param game_type: the game_type currently being played (default: "ca")
+    :param mapname: the map the game is currently running on (default: "campgrounds")
+    :param map_title: the long title of the the map (default: None)
     :param roundlimit: the currently setup roundlimit for the game (default: 8)
     :param red_score: the current score of the red team (default: 0)
     :param blue_score: the current score of the blue team (default: 0)
+    :param maxclients: (default: 16)
     """
     mock_game = mock(spec=Game, strict=False)
     when2(minqlx.Game).thenReturn(mock_game)
     mock_game.state = "in_progress"
     mock_game.type_short = game_type
+    mock_game.map = mapname
+    mock_game.map_title = map_title
     mock_game.roundlimit = roundlimit
     mock_game.red_score = red_score
     mock_game.blue_score = blue_score
+    mock_game.maxclients = maxclients
 
 
 def assert_game_addteamscore(team, score, times=1):

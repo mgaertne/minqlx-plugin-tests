@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-lambda"
+plugin_version = "v1.0.0-mu"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -70,28 +70,28 @@ class mydiscordbot(minqlx.Plugin):
     * qlx_discordExecPrefix (default: ".qlx") command for authenticated users to execute server commands from discord
     """
 
-    def __init__(self):
+    def __init__(self, discord_client=None):
         super().__init__()
 
         # maybe initialize plugin cvars
-        self.set_cvar_once("qlx_discordBotToken", "")
-        self.set_cvar_once("qlx_discordRelayChannelIds", "")
-        self.set_cvar_once("qlx_discordTriggeredChannelIds", "")
-        self.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
-        self.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
-        self.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "!quakelive")
-        self.set_cvar_once("qlx_discordTriggerStatus", "!status")
-        self.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
-        self.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
-        self.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
-        self.set_cvar_once("qlx_discordReplaceMentionsForRelayedMessages", "1")
-        self.set_cvar_once("qlx_discordReplaceMentionsForTriggeredMessages", "1")
-        self.set_cvar_once("qlx_discordAdminPassword", "supersecret")
-        self.set_cvar_once("qlx_discordAuthCommand", ".auth")
-        self.set_cvar_once("qlx_discordExecPrefix", ".qlx")
+        Plugin.set_cvar_once("qlx_discordBotToken", "")
+        Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
+        Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
+        Plugin.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
+        Plugin.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
+        Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "!quakelive")
+        Plugin.set_cvar_once("qlx_discordTriggerStatus", "!status")
+        Plugin.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
+        Plugin.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
+        Plugin.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
+        Plugin.set_cvar_once("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        Plugin.set_cvar_once("qlx_discordReplaceMentionsForTriggeredMessages", "1")
+        Plugin.set_cvar_once("qlx_discordAdminPassword", "supersecret")
+        Plugin.set_cvar_once("qlx_discordAuthCommand", ".auth")
+        Plugin.set_cvar_once("qlx_discordExecPrefix", ".qlx")
 
         # get the actual cvar values from the server
-        self.discord_message_filters = self.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
+        self.discord_message_filters = Plugin.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
 
         # adding general plugin hooks
         self.add_hook("unload", self.handle_plugin_unload)
@@ -110,7 +110,10 @@ class mydiscordbot(minqlx.Plugin):
         self.add_command("discord", self.cmd_discord, usage="<message>")
 
         # initialize the discord bot and its interactions on the discord server
-        self.discord = SimpleAsyncDiscord(self.version_information(), self.logger)
+        if discord_client is None:
+            self.discord = SimpleAsyncDiscord(self.version_information(), self.logger)
+        else:
+            self.discord = discord_client
         self.logger.info("Connecting to Discord...")
         self.discord.start()
         self.logger.info(self.version_information())
@@ -119,7 +122,7 @@ class mydiscordbot(minqlx.Plugin):
     def version_information(self):
         return "{} Version: {}".format(self.name, plugin_version)
 
-    def handle_plugin_unload(self, plugin: minqlx.Plugin):
+    def handle_plugin_unload(self, plugin):
         """
         Handler when a plugin is unloaded to make sure, that the connection to discord is properly closed when this
         plugin is unloaded.
@@ -193,9 +196,9 @@ class mydiscordbot(minqlx.Plugin):
         player_data = ""
         teams = Plugin.teams()
         if len(teams['red']) > 0:
-            player_data += "**R:** {}\n".format(mydiscordbot.team_data(teams['red']))
+            player_data += "\n**R:** {}".format(mydiscordbot.team_data(teams['red']))
         if len(teams['blue']) > 0:
-            player_data += "**B:** {}".format(mydiscordbot.team_data(teams['blue']))
+            player_data += "\n**B:** {}".format(mydiscordbot.team_data(teams['blue']))
 
         return player_data
 
@@ -351,7 +354,7 @@ class mydiscordbot(minqlx.Plugin):
         topic = mydiscordbot.game_status_information(game)
         top5_players = mydiscordbot.player_data()
 
-        self.discord.relay_message("{}\n{}".format(topic, top5_players))
+        self.discord.relay_message("{}{}".format(topic, top5_players))
 
         self.discord.update_topics_on_relay_and_triggered_channels(topic)
 
@@ -619,7 +622,7 @@ class SimpleAsyncDiscord(threading.Thread):
             if message.content == self.discord_trigger_status:
                 try:
                     game = minqlx.Game()
-                    reply = "{}\n{}".format(
+                    reply = "{}{}".format(
                         mydiscordbot.game_status_information(game),
                         mydiscordbot.player_data())
                 except minqlx.NonexistentGameError:
