@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-theta"
+plugin_version = "v1.0.0-iota"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -267,10 +267,16 @@ class mydiscordbot(minqlx.Plugin):
 
         :param player: the player that connected
         """
-        content = "*{} connected.*".format(player.clean_name)
+        content = "*{} connected.*".format(mydiscordbot.escape_player_name(player))
         self.discord.relay_message(content)
 
         self.discord.update_topics()
+
+    @staticmethod
+    def escape_player_name(player):
+        player_name = player.clean_name
+        player_name = player_name.replace('*', "*\**")
+        return player_name
 
     @minqlx.delay(3)
     def handle_player_disconnect(self, player: minqlx.Player, reason):
@@ -285,7 +291,7 @@ class mydiscordbot(minqlx.Plugin):
             reason_str = "{}.".format(reason)
         else:
             reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
-        content = "*{} {}*".format(player.clean_name,
+        content = "*{} {}*".format(mydiscordbot.escape_player_name(player),
                                    reason_str)
         self.discord.relay_message(content)
 
@@ -312,8 +318,8 @@ class mydiscordbot(minqlx.Plugin):
         :param vote: the vote itself, i.e. map change, kick player, etc.
         :param args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller = caller.clean_name if caller else "The server"
-        content = "*{} called a vote: {} {}*".format(caller,
+        caller_name = mydiscordbot.escape_player_name(caller) if caller else "The server"
+        content = "*{} called a vote: {} {}*".format(caller_name,
                                                      vote,
                                                      Plugin.clean_text(args))
 
