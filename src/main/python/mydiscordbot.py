@@ -24,7 +24,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-iota"
+plugin_version = "v1.0.0-kappa"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -108,9 +108,6 @@ class mydiscordbot(minqlx.Plugin):
             self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
-
-        self.authed_discord_ids = set()
-        self.auth_attempts = {}
 
         # initialize the discord bot and its interactions on the discord server
         self.discord = SimpleAsyncDiscord(self.version_information())
