@@ -22,6 +22,9 @@ class MyDiscordBotTests(unittest.TestCase):
         spy2(self.plugin.logger.info)
         when2(self.plugin.logger.info, any()).thenReturn(None)
 
+    def tearDown(self):
+        unstub()
+
     def test_constructor(self):
         verify(self.discord).start()
         assert_plugin_sent_to_console(matches("mydiscordbot Version: "), atleast=1)
