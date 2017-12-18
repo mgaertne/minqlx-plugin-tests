@@ -13,8 +13,6 @@ You need to install discord.py in your python installation, i.e. python3 -m pip 
 """
 import re
 import asyncio
-import requests
-import json
 import threading
 
 import minqlx
@@ -24,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext import commands
 
-plugin_version = "v1.0.0-nu"
+plugin_version = "v1.0.0-xi"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -47,11 +45,12 @@ class mydiscordbot(minqlx.Plugin):
     * qlx_discordTriggeredChannelIds (default: "") Comma separated list of channels for triggered relay.
     * qlx_discordUpdateTopicOnTriggeredChannels (default: "1") Boolean flag to indicate whether to update the topic with
     the current game state on triggered relay channels. Your bot needs edit_channel permission for these channels.
-    * qlx_discordTriggerTriggeredChannelChat (default: "!quakelive") Message prefix for the trigger on triggered relay
-    channels.
     * qlx_discordKeepTopicSuffixChannelIds (default: "") Comma separated list of channel ids where the topic suffix
     will be kept upon updating.
-    * qlx_discordTriggerStatus (default: "!status") Trigger for having the bot send the current status of the game
+    * qlx_discordCommandPrefix (default: "!") Command prefix for all commands from discord
+    * qlx_discordTriggerTriggeredChannelChat (default: "quakelive") Message prefix for the trigger on triggered relay
+    channels.
+    * qlx_discordTriggerStatus (default: "status") Trigger for having the bot send the current status of the game
     server.
     * qlx_discordMessagePrefix (default: "[DISCORD]") messages from discord to quake live will be prefixed with this
     prefix
@@ -65,9 +64,9 @@ class mydiscordbot(minqlx.Plugin):
     messages sent towards the triggered channels
     * qlx_discordAdminPassword (default "supersecret") passwort for remote admin of the server via discord private
     messages to the discord bot.
-    * qlx_discordAuthCommand (default: ".auth") command for authenticating a discord user to the plugin via private
+    * qlx_discordAuthCommand (default: "auth") command for authenticating a discord user to the plugin via private
     message
-    * qlx_discordExecPrefix (default: ".qlx") command for authenticated users to execute server commands from discord
+    * qlx_discordExecPrefix (default: "qlx") command for authenticated users to execute server commands from discord
     """
 
     def __init__(self, discord_client=None):
@@ -79,16 +78,17 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
         Plugin.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
         Plugin.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
-        Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "!quakelive")
-        Plugin.set_cvar_once("qlx_discordTriggerStatus", "!status")
+        Plugin.set_cvar_once("qlx_discordCommandPrefix", "!")
+        Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
+        Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
         Plugin.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
         Plugin.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
         Plugin.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
         Plugin.set_cvar_once("qlx_discordReplaceMentionsForRelayedMessages", "1")
         Plugin.set_cvar_once("qlx_discordReplaceMentionsForTriggeredMessages", "1")
         Plugin.set_cvar_once("qlx_discordAdminPassword", "supersecret")
-        Plugin.set_cvar_once("qlx_discordAuthCommand", ".auth")
-        Plugin.set_cvar_once("qlx_discordExecPrefix", ".qlx")
+        Plugin.set_cvar_once("qlx_discordAuthCommand", "auth")
+        Plugin.set_cvar_once("qlx_discordExecPrefix", "qlx")
 
         # get the actual cvar values from the server
         self.discord_message_filters = Plugin.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
@@ -440,6 +440,7 @@ class SimpleAsyncDiscord(threading.Thread):
             Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
         self.discord_keep_topic_suffix_channel_ids = Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set)
         self.discord_trigger_triggered_channel_chat = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
+        self.discord_command_prefix = Plugin.get_cvar("qlx_discordCommandPrefix")
         self.discord_trigger_status = Plugin.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
@@ -450,6 +451,109 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord_auth_command = Plugin.get_cvar("qlx_discordAuthCommand")
         self.discord_exec_prefix = Plugin.get_cvar("qlx_discordExecPrefix")
 
+    async def version(self, ctx):
+        if ctx.message.channel.is_private:
+            return
+        await self.discord.say(self.version_information)
+
+    async def auth(self, ctx, password: str):
+        """
+        handles the authentification to the bot via private message
+
+        :param ctx: the context of the original message sent for authentification
+        """
+        message = ctx.message
+        if message.author.id in self.authed_discord_ids:
+            await self.discord.say("You are already authenticated.")
+        elif password == self.discord_admin_password:
+            self.authed_discord_ids.add(message.author.id)
+            await self.discord.say("You have been successfully authenticated. You can now use "
+                                   "{}{} to execute commands."
+                                   .format(self.discord_command_prefix, self.discord_exec_prefix))
+        else:
+            # Allow up to 3 attempts for the user's IP to authenticate.
+            if message.author.id not in self.auth_attempts:
+                self.auth_attempts[message.author.id] = 3
+            self.auth_attempts[message.author.id] -= 1
+            if self.auth_attempts[message.author.id] > 0:
+                await self.discord.say("Wrong password. You have {} attempts left."
+                                       .format(self.auth_attempts[message.author.id]))
+
+    async def qlx(self, ctx, *qlxCommands: str):
+        """
+        handles exec messages from discord via private message to the bot
+
+        :param ctx: the context of the original message
+        """
+        message = ctx.message
+
+        @minqlx.next_frame
+        def f():
+            try:
+                minqlx.COMMANDS.handle_input(
+                    DiscordDummyPlayer(self, message.author, message.channel),
+                    qlxCommands,
+                    DiscordChannel(self, message.author, message.channel))
+            except Exception as e:
+                discord.compat.run_coroutine_threadsafe(
+                    self.discord.send_message(message.channel,
+                                              "{}: {}".format(e.__class__.__name__, e)),
+                    self.discord.loop)
+                minqlx.log_exception()
+
+        f()
+
+    def is_message_in_relay_or_triggered_channel(self, ctx):
+        return ctx.message.channel.id in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+
+    async def trigger_status(self, ctx):
+        try:
+            game = minqlx.Game()
+            reply = "{}{}".format(
+                mydiscordbot.game_status_information(game),
+                mydiscordbot.player_data())
+        except minqlx.NonexistentGameError:
+            reply = "Currently no game running."
+        await self.discord.say(reply)
+
+    def is_message_in_triggered_channel(self, ctx):
+        return ctx.message.channel.id in self.discord_triggered_channel_ids
+
+    async def triggered_chat(self, ctx, *message: str):
+        minqlx.CHAT_CHANNEL.reply(
+            self._format_message_to_quake(ctx.message.channel, ctx.message.author, message))
+
+    async def on_ready(self):
+        """
+        Function called once the bot connected. Mainly displays status update from the bot in the game console
+        and server logfile, and sets the bot to playing Quake Live on discord.
+        """
+        self.logger.info("Logged in to discord as: {} ({})".format(self.discord.user.name, self.discord.user.id))
+        Plugin.msg("Connected to discord")
+        await self.discord.change_presence(game=discord.Game(name="Quake Live"))
+        self.update_topics()
+
+    async def on_message(self, message: discord.Message):
+        """
+        Function called once a message is send through discord. Here the main interaction points either back to
+        Quake Live or discord happen.
+        :param message: the message that was sent.
+        """
+        # guard clause to avoid None messages from processing.
+        if not message:
+            return
+
+        # if the bot sent the message himself, do nothing.
+        if message.author == self.discord.user:
+            return
+
+        # relay all messages from the relay channels back to Quake Live.
+        if message.channel.id in self.discord_relay_channel_ids:
+            content = message.clean_content
+            if len(content) > 0:
+                minqlx.CHAT_CHANNEL.reply(
+                    self._format_message_to_quake(message.channel, message.author, content))
+
     def run(self):
         # the discord bot runs in an asyncio event_loop. For proper unloading and closing of the connection, we need
         # to initialize the event_loop the bot runs in.
@@ -457,190 +561,31 @@ class SimpleAsyncDiscord(threading.Thread):
         asyncio.set_event_loop(loop)
 
         # init the bot, and init the main discord interactions
-        self.discord = commands.Bot(command_prefix='!')
-
-        @self.discord.async_event
-        async def on_ready():
-            """
-            Function called once the bot connected. Mainly displays status update from the bot in the game console
-            and server logfile, and sets the bot to playing Quake Live on discord.
-            """
-            self.logger.info("Logged in to discord as: {} ({})".format(self.discord.user.name, self.discord.user.id))
-            Plugin.msg("Connected to discord")
-            await self.discord.change_presence(game=discord.Game(name="Quake Live"))
-            self.update_topics()
-
-        def handle_auth(message: discord.Message):
-            """
-            handles the authentification to the bot via private message
-
-            :param message: the original message sent for authentification
-            """
-            if message.author.id in self.authed_discord_ids:
-                self.send_to_discord_channels({message.channel.id}, "You are already authenticated.")
-            elif message.content[len(self.discord_auth_command) + 1:] == self.discord_admin_password:
-                self.authed_discord_ids.add(message.author.id)
-                self.send_to_discord_channels({message.channel.id},
-                                              "You have been successfully authenticated. You can now use "
-                                              "{} to execute commands.".format(self.discord_exec_prefix))
-            else:
-                # Allow up to 3 attempts for the user's IP to authenticate.
-                if message.author.id not in self.auth_attempts:
-                    self.auth_attempts[message.author.id] = 3
-                self.auth_attempts[message.author.id] -= 1
-                if self.auth_attempts[message.author.id] > 0:
-                    self.send_to_discord_channels({message.channel.id},
-                                                  "Wrong password. You have {} attempts left."
-                                                  .format(self.auth_attempts[message.author.id]))
-
-        def handle_exec(message: discord.Message):
-            """
-            handles exec messages from discord via private message to the bot
-
-            :param message: the original message
-            """
-            @minqlx.next_frame
-            def f():
-                try:
-                    minqlx.COMMANDS.handle_input(
-                        DiscordDummyPlayer(self, message.author, message.channel),
-                        message.content[len(self.discord_exec_prefix) + 1:],
-                        DiscordChannel(self, message.author, message.channel))
-                except Exception as e:
-                    self.send_to_discord_channels({message.channel.id}, "{}: {}".format(e.__class__.__name__, e))
-                    minqlx.log_exception()
-
-            f()
-
-        def is_auth_attempt(message: discord.Message):
-            """
-            checks whether a discord message is a private auth attempt
-
-            :param message: the original message sent by the user
-            :return: boolean indicating whether the message sent was an attempt for authentification
-            """
-            return len(message.content) > len(self.discord_auth_command) \
-                and message.content[0:len(self.discord_auth_command)].lower() == self.discord_auth_command \
-                and self.discord_admin_password
-
-        def is_exec_attempt(message: discord.Message):
-            """
-            checks whether a discord message is a private message attempt to execute a minqlx command
-
-            :param message: the original message sent by the user
-            :return: boolean indicating whether the message sent was an attempt for authentification
-            """
-            return len(message.content) > len(self.discord_exec_prefix) \
-                and message.author.id in self.authed_discord_ids \
-                and message.content[0:len(self.discord_exec_prefix)].lower() == self.discord_exec_prefix
-
-        def handle_private_message(message: discord.Message):
-            """
-            handles private messages sent to the bot
-
-            :param message: the original message
-            """
-            if is_auth_attempt(message):
-                handle_auth(message)
-                return
-
-            if is_exec_attempt(message):
-                handle_exec(message)
-
-        def reply_for_help_request(message: discord.Message):
-            """
-            Generates a reply for !help requests that may be sent back to the user.
-
-            :param message: the original message
-            :return: the content help message to be sent back to the user
-            """
-            if message.channel.id in self.discord_triggered_channel_ids:
-                return "Commands I react to in <#{0}>\n" \
-                       "**!help**: display this help message\n" \
-                       "**!version**: display the plugin's version information\n" \
-                       "**{1}**: display current game status information\n" \
-                       "**{2}** *<message>*: send *<message>* to the Quake Live server"\
-                    .format(message.channel.id,
-                            self.discord_trigger_status,
-                            self.discord_trigger_triggered_channel_chat)
-
-            if message.channel.id in self.discord_relay_channel_ids:
-                return "Commands I react to in <#{0}>\n" \
-                       "**!help**: display this help message\n" \
-                       "**!version**: display the plugin's version information\n" \
-                       "**{1}**: display current game status information\n\n" \
-                       "Every other message from <#{0}> is relayed to the server."\
-                    .format(message.channel.id, self.discord_trigger_status)
-            return None
-
-        def handle_help(message: discord.Message):
-            """
-            Handles help requests for the bot by sending back usage information.
-
-            :param message: the original help request message
-            """
-            reply = reply_for_help_request(message)
-            if not reply:
-                return
-
-            self.send_to_discord_channels({message.channel.id}, reply)
-
-        @self.discord.async_event
-        async def on_message(message: discord.Message):
-            """
-            Function called once a message is send through discord. Here the main interaction points either back to
-            Quake Live or discord happen.
-            :param message: the message that was sent.
-            """
-            # guard clause to avoid None messages from processing.
-            if not message:
-                return
-
-            # if the bot sent the message himself, do nothing.
-            if message.author == self.discord.user:
-                return
-
-            if message.content.startswith("!help"):
-                handle_help(message)
-                return
-
-            if message.content == "!version":
-                reply = self.version_information
-                self.send_to_discord_channels({message.channel.id}, reply)
-                return
-
-            if message.channel.is_private:
-                handle_private_message(message)
-                return
-
-            # if the message wasn't sent to a channel we're interested in, do nothing.
-            if message.channel.id not in self.discord_relay_channel_ids | self.discord_triggered_channel_ids:
-                return
-
-            # someone requested the current game state to be sent back to the channel.
-            if message.content == self.discord_trigger_status:
-                try:
-                    game = minqlx.Game()
-                    reply = "{}{}".format(
-                        mydiscordbot.game_status_information(game),
-                        mydiscordbot.player_data())
-                except minqlx.NonexistentGameError:
-                    reply = "Currently no game running."
-                self.send_to_discord_channels({message.channel.id}, reply)
-
-            # relay all messages from the relay channels back to Quake Live.
-            if message.channel.id in self.discord_relay_channel_ids:
-                content = message.clean_content
-                if len(content) > 0:
-                    minqlx.CHAT_CHANNEL.reply(
-                        self._format_message_to_quake(message.channel, message.author, content))
-
-            # relay all messages that have the trigger as prefix from the triggered channels.
-            if message.channel.id in self.discord_triggered_channel_ids:
-                if message.content.startswith(self.discord_trigger_triggered_channel_chat + " "):
-                    content = message.clean_content[(len(self.discord_trigger_triggered_channel_chat) + 1):]
-                    minqlx.CHAT_CHANNEL.reply(
-                        self._format_message_to_quake(message.channel, message.author, content))
+        self.discord = commands.Bot(command_prefix=self.discord_command_prefix)
+        self.discord.add_command(commands.Command(name="version",
+                                                  callback=self.version,
+                                                  pass_context=True,
+                                                  help="display the plugin's version information"))
+        self.discord.add_command(commands.Command(name=self.discord_auth_command,
+                                                  callback=self.auth,
+                                                  hidden=True,
+                                                  pass_context=True))
+        self.discord.add_command(commands.Command(name=self.discord_exec_prefix,
+                                                  callback=self.qlx,
+                                                  hidden=True,
+                                                  pass_context=True))
+        self.discord.add_command(commands.Command(name=self.discord_trigger_status,
+                                                  callback=self.trigger_status,
+                                                  checks=[self.is_message_in_relay_or_triggered_channel],
+                                                  pass_context=True,
+                                                  help="display current game status information"))
+        self.discord.add_command(commands.Command(name=self.discord_trigger_triggered_channel_chat,
+                                                  callback=self.triggered_chat,
+                                                  checks=[self.is_message_in_triggered_channel],
+                                                  pass_context=True,
+                                                  help="send [message...] to the Quake Live server"))
+        self.discord.add_listener(self.on_ready)
+        self.discord.add_listener(self.on_message)
 
         # connect the now configured bot to discord in the event_loop
         loop.run_until_complete(self.discord.start(self.discord_bot_token))
@@ -718,25 +663,6 @@ class SimpleAsyncDiscord(threading.Thread):
 
         return channel.topic
 
-    @staticmethod
-    def _discord_api_channel_url(channel_id):
-        """
-        Generates the basis for the discord api's channel url from the given channel_id.
-
-        :param channel_id: the id of the channel for direct http/json requests
-        :return: the channel url of the provided channel_id for direct interaction with the discord api
-        """
-        return "https://discordapp.com/api/channels/{}".format(channel_id)
-
-    def _discord_api_request_headers(self):
-        """
-        Generates the discord api headers for direct discord api interactions from the provided token's bot.
-
-        :return: the request headers for the provided token's bot
-        """
-        return {'Content-type': 'application/json', 'Authorization': "Bot {}".format(self.discord_bot_token)}
-
-    @minqlx.thread
     def set_topic_on_discord_channels(self, channel_ids, topic):
         """
         Set the topic on a set of channel_ids on discord provided.
@@ -744,18 +670,21 @@ class SimpleAsyncDiscord(threading.Thread):
         :param channel_ids: the ids of the channels the topic should be set upon.
         :param topic: the new topic that should be set.
         """
+        if self.discord is None or not self.discord.is_logged_in:
+            return
+
         # if we were not provided any channel_ids, do nothing.
         if not channel_ids or len(channel_ids) == 0:
             return
 
         # set the topic in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
-            # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.patch(SimpleAsyncDiscord._discord_api_channel_url(channel_id),
-                           data=json.dumps({'topic': topic}),
-                           headers=self._discord_api_request_headers())
+            channel = self.discord.get_channel(channel_id)
+            if channel is None:
+                continue
 
-    @minqlx.thread
+            discord.compat.run_coroutine_threadsafe(self.discord.edit_channel(channel, topic=topic), self.discord.loop)
+
     def send_to_discord_channels(self, channel_ids, content):
         """
         Send a message to a set of channel_ids on discord provided.
@@ -763,16 +692,19 @@ class SimpleAsyncDiscord(threading.Thread):
         :param channel_ids: the ids of the channels the message should be sent to.
         :param content: the content of the message to send to the discord channels
         """
+        if self.discord is None or not self.discord.is_logged_in:
+            return
         # if we were not provided any channel_ids, do nothing.
         if not channel_ids or len(channel_ids) == 0:
             return
 
         # send the message in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
-            # we use the raw request method here since it leads to fewer lag between minqlx and discord
-            requests.post(SimpleAsyncDiscord._discord_api_channel_url(channel_id) + "/messages",
-                          data=json.dumps({'content': content}),
-                          headers=self._discord_api_request_headers())
+            channel = self.discord.get_channel(channel_id)
+            if channel is None:
+                continue
+
+            discord.compat.run_coroutine_threadsafe(self.discord.send_message(channel, content), self.discord.loop)
 
     def stop(self):
         """
@@ -781,8 +713,8 @@ class SimpleAsyncDiscord(threading.Thread):
         if self.discord is None:
             return
 
-        self.discord.loop.create_task(self.discord.change_presence(status="offline"))
-        self.discord.loop.create_task(self.discord.logout())
+        discord.compat.run_coroutine_threadsafe(self.discord.change_presence(status="offline"), self.discord.loop)
+        discord.compat.run_coroutine_threadsafe(self.discord.logout(), self.discord.loop)
 
     def relay_message(self, msg):
         """
