@@ -16,11 +16,9 @@ class MyDiscordBotTests(unittest.TestCase):
         setup_plugin()
         setup_game_in_warmup("ca")
         connected_players()
-        self.discord = mock(spec=commands.Bot, strict=False)
+        self.discord = mock(spec=Bot, strict=False)
         setup_cvar("qlx_discordQuakeRelayMessageFilters", {"^\!s$", "^\!p$"}, set)
         self.plugin = mydiscordbot(discord_client=self.discord)
-        spy2(self.plugin.logger.info)
-        when2(self.plugin.logger.info, any()).thenReturn(None)
 
     def tearDown(self):
         unstub()
@@ -28,8 +26,6 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_constructor(self):
         verify(self.discord).start()
         assert_plugin_sent_to_console(matches("mydiscordbot Version: "), atleast=1)
-        verify(self.plugin.logger, atleast=1).info("Connecting to Discord...")
-        verify(self.plugin.logger, atleast=1).info(matches("mydiscordbot Version: "))
 
     def test_handle_unload_for_plugin(self):
         self.plugin.handle_plugin_unload("mydiscordbot")
@@ -260,5 +256,4 @@ class MyDiscordBotTests(unittest.TestCase):
                        fake_player(7, "Player7", "red", score=7),
                        ]
         team_data = mydiscordbot.team_data(player_list, limit=5)
-
         assert_that(team_data, is_("**Player3**(55) **Player2**(52) **Player5**(35) **Player7**(7) **Player6**(5) "))
