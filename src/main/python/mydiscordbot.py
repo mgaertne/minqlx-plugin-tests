@@ -23,7 +23,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Paginator, Command, HelpFormatter, CommandError
 
-plugin_version = "v1.0.0-pi"
+plugin_version = "v1.0.0-rho"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -116,7 +116,7 @@ class mydiscordbot(minqlx.Plugin):
         else:
             self.discord = discord_client
         self.logger.info("Connecting to Discord...")
-        self.discord.start()
+        threading.Thread(target=self.discord.run).start()
         self.logger.info(self.version_information())
         Plugin.msg(self.version_information())
 
@@ -496,7 +496,7 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
         self.client.send_to_discord_channels({self.discord_channel.id}, Plugin.clean_text(msg))
 
 
-class SimpleAsyncDiscord(threading.Thread):
+class SimpleAsyncDiscord:
     """
     SimpleAsyncDiscord client which is used to communicate to discord, and provides certain commands in the relay and
     triggered channels as well as private authentication to the bot to admin the server.
@@ -537,16 +537,12 @@ class SimpleAsyncDiscord(threading.Thread):
 
     def run(self):
         """
-        Called whenthe SimpleAsyncDiscord thread is started. We will set up the bot here with the right commands, and
+        Called when the SimpleAsyncDiscord thread is started. We will set up the bot here with the right commands, and
         run the discord.py bot in a new event_loop until completed.
         """
-        # the discord bot runs in an asyncio event_loop. For proper unloading and closing of the connection, we need
-        # to initialize the event_loop the bot runs in.
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         # init the bot, and init the main discord interactions
-        self.discord = Bot(command_prefix=self.discord_command_prefix,
+        self.discord = Bot(loop=asyncio.new_event_loop(),
+                           command_prefix=self.discord_command_prefix,
                            description="{}".format(self.version_information),
                            formatter=DiscordHelpFormatter(),
                            command_not_found="")
@@ -584,7 +580,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord.add_listener(self.on_command_error)
 
         # connect the now configured bot to discord in the event_loop
-        loop.run_until_complete(self.discord.start(self.discord_bot_token))
+        self.discord.loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
     async def version(self, ctx):
         """

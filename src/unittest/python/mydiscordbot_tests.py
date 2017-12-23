@@ -24,7 +24,7 @@ class MyDiscordBotTests(unittest.TestCase):
         unstub()
 
     def test_constructor(self):
-        verify(self.discord).start()
+        verify(self.discord).run()
         assert_plugin_sent_to_console(matches("mydiscordbot Version: "), atleast=1)
 
     def test_handle_unload_for_plugin(self):
