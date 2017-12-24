@@ -2,6 +2,7 @@ from minqlx import Player, Plugin
 
 from mockito import *
 from mockito.matchers import *
+from mockito.matchers import Matcher
 
 """Functions for setting up players in the game and verifying interactions with them.
 """
@@ -79,3 +80,25 @@ def assert_player_was_told(player, matcher, times=1):
     :return:
     """
     verify(player, times=times).tell(matcher)
+
+
+class PlayerMatcher(Matcher):
+    """
+    A custom mockito matcher that matches minqlx.Players by their name and steam_id.
+    """
+    def __init__(self, wanted_player):
+        self.wanted_player = wanted_player
+
+    def matches(self, matching_player):
+        return self.wanted_player.steam_id == matching_player.steam_id \
+            and self.wanted_player.name == matching_player.name
+
+    def __repr__(self):
+        return "<Player: id=%s, name=%s>" % (self.wanted_player.steam_id, self.wanted_player.name)
+
+
+def player_that_matches(player):
+    """
+    Matches against a given player by their name and steam_id.
+    """
+    return PlayerMatcher(player)

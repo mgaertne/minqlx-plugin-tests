@@ -23,7 +23,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Paginator, Command, HelpFormatter, CommandError
 
-plugin_version = "v1.0.0-rho"
+plugin_version = "v1.0.0-ansuz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -258,7 +258,7 @@ class mydiscordbot(minqlx.Plugin):
         if self.is_filtered_message(msg):
             return
 
-        self.discord.relay_chat_message(player.clean_name, handled_channels[channel.name], Plugin.clean_text(msg))
+        self.discord.relay_chat_message(player, handled_channels[channel.name], Plugin.clean_text(msg))
 
     @minqlx.delay(3)
     def handle_player_connect(self, player: minqlx.Player):
@@ -402,11 +402,19 @@ class DiscordHelpFormatter(HelpFormatter):
         return "Type {0}{1} command for more info on a command.".format(self.clean_prefix, command_name)
 
     def format(self):
+        try:
+            self.context.bot.send_message("asdf")
+            return self.format_v0_16()
+        except AttributeError:
+            return self.format_v1()
+
+    def format_v0_16(self):
         """Handles the actual behaviour involved with formatting.
 
         :return A paginated output list of the help command.
         """
         self._paginator = Paginator()
+
         # we need a padding of ~80 or so
 
         description = self.command.description if not self.is_cog() else inspect.getdoc(self.command)
@@ -439,6 +447,55 @@ class DiscordHelpFormatter(HelpFormatter):
 
         self._paginator.add_line('Commands:')
         self._add_subcommands_to_page(max_width, self.filter_command_list())
+
+        # add the ending note
+        self._paginator.add_line()
+        ending_note = self.get_ending_note()
+        self._paginator.add_line(ending_note)
+        return self._paginator.pages
+
+    @asyncio.coroutine
+    def format_v1(self):
+        """Handles the actual behaviour involved with formatting.
+
+        To change the behaviour, this method should be overridden.
+
+        Returns
+        --------
+        list
+            A paginated output of the help command.
+        """
+        self._paginator = Paginator()
+
+        # we need a padding of ~80 or so
+
+        description = self.command.description if not self.is_cog() else inspect.getdoc(self.command)
+
+        if description:
+            # <description> portion
+            self._paginator.add_line(description, empty=True)
+
+        if isinstance(self.command, Command):
+            # <signature portion>
+            signature = self.get_command_signature()
+            self._paginator.add_line(signature, empty=True)
+
+            # <long doc> section
+            if self.command.help:
+                self._paginator.add_line(self.command.help, empty=True)
+
+            # end it here if it's just a regular command
+            if not self.has_subcommands():
+                self._paginator.close_page()
+                return self._paginator.pages
+
+        max_width = self.max_name_size
+
+        filtered = yield from self.filter_command_list()
+        filtered = sorted(filtered)
+        if filtered:
+            self._paginator.add_line('Commands:')
+            self._add_subcommands_to_page(max_width, filtered)
 
         # add the ending note
         self._paginator.add_line()
@@ -518,11 +575,12 @@ class SimpleAsyncDiscord:
         self.auth_attempts = {}
 
         self.discord_bot_token = Plugin.get_cvar("qlx_discordBotToken")
-        self.discord_relay_channel_ids = Plugin.get_cvar("qlx_discordRelayChannelIds", set)
-        self.discord_triggered_channel_ids = Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
+        self.discord_relay_channel_ids = self.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+        self.discord_triggered_channel_ids = self.int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
         self.discord_update_triggered_channels_topic = \
             Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
-        self.discord_keep_topic_suffix_channel_ids = Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set)
+        self.discord_keep_topic_suffix_channel_ids = self.int_set(
+            Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set))
         self.discord_trigger_triggered_channel_chat = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_command_prefix = Plugin.get_cvar("qlx_discordCommandPrefix")
         self.discord_trigger_status = Plugin.get_cvar("qlx_discordTriggerStatus")
@@ -534,6 +592,17 @@ class SimpleAsyncDiscord:
         self.discord_admin_password = Plugin.get_cvar("qlx_discordAdminPassword")
         self.discord_auth_command = Plugin.get_cvar("qlx_discordAuthCommand")
         self.discord_exec_prefix = Plugin.get_cvar("qlx_discordExecPrefix")
+
+    def int_set(self, string_set):
+        int_set = set()
+
+        for item in string_set:
+            if item == '':
+                continue
+            value = int(item)
+            int_set.add(value)
+
+        return int_set
 
     def run(self):
         """
@@ -582,13 +651,19 @@ class SimpleAsyncDiscord:
         # connect the now configured bot to discord in the event_loop
         self.discord.loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
+    def reply_to_context(self, ctx, message):
+        try:
+            return ctx.bot.say(message)
+        except AttributeError:
+            return ctx.send(message)
+
     async def version(self, ctx):
         """
         Triggers the plugin's version information sent to discord
 
         :param ctx: the context the trigger happened in
         """
-        await ctx.bot.say("```{}```".format(self.version_information))
+        await self.reply_to_context(ctx, "```{}```".format(self.version_information))
 
     def is_private_message(self, ctx):
         """
@@ -596,7 +671,10 @@ class SimpleAsyncDiscord:
 
         :param ctx: the context the trigger happened in
         """
-        return ctx.message.channel.is_private
+        try:
+            return ctx.message.channel.is_private
+        except AttributeError:
+            return isinstance(ctx.message.channel, discord.DMChannel)
 
     def is_authed(self, ctx):
         """
@@ -624,23 +702,25 @@ class SimpleAsyncDiscord:
         message = ctx.message
         if password == self.discord_admin_password:
             self.authed_discord_ids.add(message.author.id)
-            await ctx.bot.say("You have been successfully authenticated. You can now use {}{} to execute commands."
-                              .format(self.discord_command_prefix, self.discord_exec_prefix))
+            await self.reply_to_context(ctx, "You have been successfully authenticated. "
+                                             "You can now use {}{} to execute commands."
+                                        .format(self.discord_command_prefix, self.discord_exec_prefix))
             return
         # Allow up to 3 attempts for the user's discord id to authenticate.
         if message.author.id not in self.auth_attempts:
             self.auth_attempts[message.author.id] = 3
         self.auth_attempts[message.author.id] -= 1
         if self.auth_attempts[message.author.id] > 0:
-            await ctx.bot.say("Wrong password. You have {} attempts left."
-                              .format(self.auth_attempts[message.author.id]))
+            await self.reply_to_context(ctx, "Wrong password. You have {} attempts left."
+                                        .format(self.auth_attempts[message.author.id]))
             return
 
         # User has reached maximum auth attempts, we will bar her/him from authentication for 5 minutes (300 seconds)
         bar_delay = 300
-        await ctx.bot.say(
-            "Maximum authentication attempts reached. You will be barred from authentication for {} seconds."
-            .format(bar_delay))
+        await self.reply_to_context(ctx,
+                                    "Maximum authentication attempts reached. "
+                                    "You will be barred from authentication for {} seconds."
+                                    .format(bar_delay))
 
         def f():
             del self.auth_attempts[message.author.id]
@@ -664,10 +744,11 @@ class SimpleAsyncDiscord:
                     " ".join(qlxCommand),
                     DiscordChannel(self, message.author, message.channel))
             except Exception as e:
-                discord.compat.run_coroutine_threadsafe(
-                    ctx.bot.send_message(message.channel,
-                                         "{}: {}".format(e.__class__.__name__, e)),
-                    ctx.bot.loop)
+                try:
+                    send_message = ctx.bot.send_message(message.channel, "{}: {}".format(e.__class__.__name__, e))
+                except AttributeError:
+                    send_message = message.channel.send("{}: {}".format(e.__class__.__name__, e))
+                discord.compat.run_coroutine_threadsafe(send_message, ctx.bot.loop)
                 minqlx.log_exception()
 
         f()
@@ -678,7 +759,7 @@ class SimpleAsyncDiscord:
 
         :param ctx: the context the trigger happened in
         """
-        return ctx.message.channel.id in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        return int(ctx.message.channel.id) in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
 
     async def trigger_status(self, ctx):
         """
@@ -693,7 +774,8 @@ class SimpleAsyncDiscord:
                 mydiscordbot.player_data())
         except minqlx.NonexistentGameError:
             reply = "Currently no game running."
-        await ctx.bot.say(reply)
+
+        await self.reply_to_context(ctx, reply)
 
     def is_message_in_triggered_channel(self, ctx):
         """
@@ -701,7 +783,7 @@ class SimpleAsyncDiscord:
 
         :param ctx: the context the trigger happened in
         """
-        return ctx.message.channel.id in self.discord_triggered_channel_ids
+        return int(ctx.message.channel.id) in self.discord_triggered_channel_ids
 
     async def triggered_chat(self, ctx, *message: str):
         """
@@ -716,7 +798,7 @@ class SimpleAsyncDiscord:
                                           ctx.message.author,
                                           ctx.message.clean_content[prefix_length:]))
 
-    def _format_message_to_quake(self, channel: discord.Channel, author: discord.User, content):
+    def _format_message_to_quake(self, channel, author, content):
         """
         Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
         console.
@@ -727,7 +809,7 @@ class SimpleAsyncDiscord:
         and channels on the discord server.
         :return: the formatted message that may be sent back to Quake Live.
         """
-        if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
+        if not self.discord_show_relay_channel_names and int(channel.id) in self.discord_relay_channel_ids:
             return "{0} ^6{1.name}^7:^2 {2}".format(self.discord_message_prefix, author, content)
         return "{0} ^5#{1.name} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, channel, author, content)
 
@@ -741,7 +823,7 @@ class SimpleAsyncDiscord:
         await self.discord.change_presence(game=discord.Game(name="Quake Live"))
         self.update_topics()
 
-    async def on_message(self, message: discord.Message):
+    async def on_message(self, message):
         """
         Function called once a message is send through discord. Here the main interaction points either back to
         Quake Live or discord happen.
@@ -756,7 +838,7 @@ class SimpleAsyncDiscord:
             return
 
         # relay all messages from the relay channels back to Quake Live.
-        if message.channel.id in self.discord_relay_channel_ids:
+        if int(message.channel.id) in self.discord_relay_channel_ids:
             content = message.clean_content
             if len(content) > 0:
                 minqlx.CHAT_CHANNEL.reply(
@@ -806,7 +888,7 @@ class SimpleAsyncDiscord:
         :param channel_ids: the ids of the channels the topic should be set upon.
         :param topic: the new topic that should be set.
         """
-        if self.discord is None or not self.discord.is_logged_in:
+        if not self.is_discord_logged_in():
             return
 
         # if we were not provided any channel_ids, do nothing.
@@ -817,9 +899,26 @@ class SimpleAsyncDiscord:
         for channel_id in channel_ids:
             channel = self.discord.get_channel(channel_id)
             if channel is None:
+                channel = self.discord.get_channel(str(channel_id))
+
+            if channel is None:
                 continue
 
-            discord.compat.run_coroutine_threadsafe(self.discord.edit_channel(channel, topic=topic), self.discord.loop)
+            try:
+                edit_channel = self.discord.edit_channel(channel, topic=topic)
+            except AttributeError:
+                edit_channel = channel.edit(topic=topic)
+
+            discord.compat.run_coroutine_threadsafe(edit_channel, self.discord.loop)
+
+    def is_discord_logged_in(self):
+        if self.discord is None:
+            return False
+
+        try:
+            return self.discord.is_logged_in
+        except AttributeError:
+            return self.discord.is_ready()
 
     def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
         """
@@ -856,10 +955,13 @@ class SimpleAsyncDiscord:
 
         :return: the topic of the channel
         """
-        if self.discord is None or not self.discord.is_logged_in:
+        if not self.is_discord_logged_in():
             return None
 
         channel = self.discord.get_channel(channel_id)
+
+        if channel is None:
+            channel = self.discord.get_channel(str(channel_id))
 
         if channel is None:
             return None
@@ -891,7 +993,7 @@ class SimpleAsyncDiscord:
         :param channel_ids: the ids of the channels the message should be sent to.
         :param content: the content of the message to send to the discord channels
         """
-        if self.discord is None or not self.discord.is_logged_in:
+        if not self.is_discord_logged_in():
             return
         # if we were not provided any channel_ids, do nothing.
         if not channel_ids or len(channel_ids) == 0:
@@ -901,9 +1003,17 @@ class SimpleAsyncDiscord:
         for channel_id in channel_ids:
             channel = self.discord.get_channel(channel_id)
             if channel is None:
+                channel = self.discord.get_channel(str(channel_id))
+
+            if channel is None:
                 continue
 
-            discord.compat.run_coroutine_threadsafe(self.discord.send_message(channel, content), self.discord.loop)
+            try:
+                sender = channel.send(content)
+            except AttributeError:
+                sender = self.discord.send_message(channel, content)
+
+            discord.compat.run_coroutine_threadsafe(sender, self.discord.loop)
 
     def relay_chat_message(self, player, channel, message):
         """
@@ -914,10 +1024,10 @@ class SimpleAsyncDiscord:
         :param message: the content of the message
         """
         if self.discord_replace_relayed_mentions:
-            message = self.replace_user_mentions(message)
-            message = self.replace_channel_mentions(message)
+            message = self.replace_user_mentions(message, player)
+            message = self.replace_channel_mentions(message, player)
 
-        content = "**{}**{}: {}".format(player, channel, message)
+        content = "**{}**{}: {}".format(player.clean_name, channel, message)
 
         self.relay_message(content)
 
@@ -931,7 +1041,7 @@ class SimpleAsyncDiscord:
 
         :return: the original message replaced by properly formatted user mentions
         """
-        if self.discord is None or not self.discord.is_logged_in:
+        if not self.is_discord_logged_in():
             return message
 
         returned_message = message
@@ -997,7 +1107,7 @@ class SimpleAsyncDiscord:
 
         :return: the original message replaced by properly formatted channel mentions
         """
-        if self.discord is None or not self.discord.is_logged_in:
+        if not self.is_discord_logged_in():
             return message
 
         returned_message = message
@@ -1005,8 +1115,13 @@ class SimpleAsyncDiscord:
         # prefixed by a space or at the beginning of the string
         matcher = re.compile("(?:^| )#([^ ]{3,})")
 
-        channel_list = [ch for ch in self.discord.get_all_channels()
-                        if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
+        try:
+            channel_list = [ch for ch in self.discord.get_all_channels()
+                            if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
+        except AttributeError:
+            channel_list = [ch for ch in self.discord.get_all_channels()
+                            if isinstance(ch, discord.TextChannel) or isinstance(ch, discord.VoiceChannel) or
+                            isinstance(ch, discord.GroupChannel)]
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda channel_match: len(channel_match), reverse=True):

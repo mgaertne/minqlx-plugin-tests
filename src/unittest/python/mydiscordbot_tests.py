@@ -43,9 +43,10 @@ class MyDiscordBotTests(unittest.TestCase):
         verify(self.discord).update_topics()
 
     def test_handle_ql_chat_message_relayed(self):
+        chatter = fake_player(1, "Chatter")
         self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.ChatChannel())
 
-        verify(self.discord).relay_chat_message("Chatter", "", "relayed message")
+        verify(self.discord).relay_chat_message(player_that_matches(chatter), "", "relayed message")
 
     def test_handle_ql_chat_message_on_filtered_out_channel(self):
         self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.ConsoleChannel())
