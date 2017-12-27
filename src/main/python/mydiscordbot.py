@@ -14,16 +14,15 @@ You need to install discord.py in your python installation, i.e. python3 -m pip 
 import re
 import asyncio
 import threading
-import inspect
 
 import minqlx
 from minqlx import Plugin
 
 import discord
 from discord import ChannelType
-from discord.ext.commands import Bot, Paginator, Command, HelpFormatter, CommandError
+from discord.ext.commands import Bot, Command, HelpFormatter, CommandError
 
-plugin_version = "v1.0.0-ansuz"
+plugin_version = "v1.0.0-berkanan"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -387,13 +386,6 @@ class DiscordHelpFormatter(HelpFormatter):
     discord.py's :class:`HelpFormatter`.
     """
 
-    def __init__(self, show_hidden=False, show_check_failure=False, width=80):
-        """
-        Default constructor providing the same interface as the parent.
-        """
-        super().__init__(show_hidden=show_hidden, show_check_failure=show_check_failure, width=width)
-        self._paginator = None
-
     def get_ending_note(self):
         """
         Provides the ending_note for the help output.
@@ -402,57 +394,20 @@ class DiscordHelpFormatter(HelpFormatter):
         return "Type {0}{1} command for more info on a command.".format(self.clean_prefix, command_name)
 
     def format(self):
-        try:
-            self.context.bot.send_message("asdf")
-            return self.format_v0_16()
-        except AttributeError:
-            return self.format_v1()
-
-    def format_v0_16(self):
         """Handles the actual behaviour involved with formatting.
 
         :return A paginated output list of the help command.
         """
-        self._paginator = Paginator()
+        if not hasattr(self.context.bot, "send_message"):
+            return self.format_v1()
 
-        # we need a padding of ~80 or so
-
-        description = self.command.description if not self.is_cog() else inspect.getdoc(self.command)
-
-        try:
-            if not self.command.can_run(self.context) or not self.context.bot.can_run(self.context):
-                return []
-        except CommandError:
+        if not self.command.can_run(self.context) or not self.context.bot.can_run(self.context):
             return []
 
-        if description:
-            # <description> portion
-            self._paginator.add_line(description, empty=True)
+        pages = super().format()
 
-        if isinstance(self.command, Command):
-            # <signature portion>
-            signature = self.get_command_signature()
-            self._paginator.add_line(signature, empty=True)
-
-            # <long doc> section
-            if self.command.help:
-                self._paginator.add_line(self.command.help, empty=True)
-
-            # end it here if it's just a regular command
-            if not self.has_subcommands():
-                self._paginator.close_page()
-                return self._paginator.pages
-
-        max_width = self.max_name_size
-
-        self._paginator.add_line('Commands:')
-        self._add_subcommands_to_page(max_width, self.filter_command_list())
-
-        # add the ending note
-        self._paginator.add_line()
-        ending_note = self.get_ending_note()
-        self._paginator.add_line(ending_note)
-        return self._paginator.pages
+        return [page.replace('\u200bNo Category:\n', '\u200bminqlx Commands:\n')
+                for page in pages if page != '\u200bNo Category:']
 
     @asyncio.coroutine
     def format_v1(self):
@@ -465,43 +420,15 @@ class DiscordHelpFormatter(HelpFormatter):
         list
             A paginated output of the help command.
         """
-        self._paginator = Paginator()
+        try:
+            command_can_run = yield from self.command.can_run(self.context)
+            bot_can_run = yield from self.context.bot.can_run(self.context)
+            if not command_can_run or not bot_can_run:
+                return []
+        except CommandError:
+            return []
 
-        # we need a padding of ~80 or so
-
-        description = self.command.description if not self.is_cog() else inspect.getdoc(self.command)
-
-        if description:
-            # <description> portion
-            self._paginator.add_line(description, empty=True)
-
-        if isinstance(self.command, Command):
-            # <signature portion>
-            signature = self.get_command_signature()
-            self._paginator.add_line(signature, empty=True)
-
-            # <long doc> section
-            if self.command.help:
-                self._paginator.add_line(self.command.help, empty=True)
-
-            # end it here if it's just a regular command
-            if not self.has_subcommands():
-                self._paginator.close_page()
-                return self._paginator.pages
-
-        max_width = self.max_name_size
-
-        filtered = yield from self.filter_command_list()
-        filtered = sorted(filtered)
-        if filtered:
-            self._paginator.add_line('Commands:')
-            self._add_subcommands_to_page(max_width, filtered)
-
-        # add the ending note
-        self._paginator.add_line()
-        ending_note = self.get_ending_note()
-        self._paginator.add_line(ending_note)
-        return self._paginator.pages
+        return (yield from super().format())
 
 
 class DiscordChannel(minqlx.AbstractChannel):
@@ -646,7 +573,6 @@ class SimpleAsyncDiscord:
                                          help="send [message...] to the Quake Live server"))
         self.discord.add_listener(self.on_ready)
         self.discord.add_listener(self.on_message)
-        self.discord.add_listener(self.on_command_error)
 
         # connect the now configured bot to discord in the event_loop
         self.discord.loop.run_until_complete(self.discord.start(self.discord_bot_token))
@@ -844,7 +770,7 @@ class SimpleAsyncDiscord:
                 minqlx.CHAT_CHANNEL.reply(
                     self._format_message_to_quake(message.channel, message.author, content))
 
-    async def on_command_error(self, exception, cxt):
+    async def on_command_error(self, exception, ctx):
         """
         overrides the default command error handler so that no exception is produced for command errors
 
