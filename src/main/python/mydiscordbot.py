@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter, CommandError
 
-plugin_version = "v1.0.0-berkanan"
+plugin_version = "v1.0.0-gebo"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -398,16 +398,16 @@ class DiscordHelpFormatter(HelpFormatter):
 
         :return A paginated output list of the help command.
         """
-        if not hasattr(self.context.bot, "send_message"):
-            return self.format_v1()
+        if not SimpleAsyncDiscord.is_discord_client_v1(self.context.bot):
+            if not self.command.can_run(self.context) or not self.context.bot.can_run(self.context):
+                return []
 
-        if not self.command.can_run(self.context) or not self.context.bot.can_run(self.context):
-            return []
+            pages = super().format()
 
-        pages = super().format()
+            return [page.replace('\u200bNo Category:\n', '\u200bminqlx Commands:\n')
+                    for page in pages if page != '\u200bNo Category:']
 
-        return [page.replace('\u200bNo Category:\n', '\u200bminqlx Commands:\n')
-                for page in pages if page != '\u200bNo Category:']
+        return self.format_v1()
 
     @asyncio.coroutine
     def format_v1(self):
@@ -502,11 +502,12 @@ class SimpleAsyncDiscord:
         self.auth_attempts = {}
 
         self.discord_bot_token = Plugin.get_cvar("qlx_discordBotToken")
-        self.discord_relay_channel_ids = self.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
-        self.discord_triggered_channel_ids = self.int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
+        self.discord_relay_channel_ids = SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+        self.discord_triggered_channel_ids = SimpleAsyncDiscord.int_set(
+            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
         self.discord_update_triggered_channels_topic = \
             Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
-        self.discord_keep_topic_suffix_channel_ids = self.int_set(
+        self.discord_keep_topic_suffix_channel_ids = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set))
         self.discord_trigger_triggered_channel_chat = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_command_prefix = Plugin.get_cvar("qlx_discordCommandPrefix")
@@ -520,7 +521,8 @@ class SimpleAsyncDiscord:
         self.discord_auth_command = Plugin.get_cvar("qlx_discordAuthCommand")
         self.discord_exec_prefix = Plugin.get_cvar("qlx_discordExecPrefix")
 
-    def int_set(self, string_set):
+    @staticmethod
+    def int_set(string_set):
         int_set = set()
 
         for item in string_set:
@@ -530,6 +532,10 @@ class SimpleAsyncDiscord:
             int_set.add(value)
 
         return int_set
+
+    @staticmethod
+    def is_discord_client_v1(client):
+        return not hasattr(client, "send_message")
 
     def run(self):
         """
@@ -578,10 +584,10 @@ class SimpleAsyncDiscord:
         self.discord.loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
     def reply_to_context(self, ctx, message):
-        try:
+        if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
             return ctx.bot.say(message)
-        except AttributeError:
-            return ctx.send(message)
+
+        return ctx.send(message)
 
     async def version(self, ctx):
         """
@@ -597,10 +603,10 @@ class SimpleAsyncDiscord:
 
         :param ctx: the context the trigger happened in
         """
-        try:
+        if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
             return ctx.message.channel.is_private
-        except AttributeError:
-            return isinstance(ctx.message.channel, discord.DMChannel)
+
+        return isinstance(ctx.message.channel, discord.DMChannel)
 
     def is_authed(self, ctx):
         """
@@ -670,9 +676,9 @@ class SimpleAsyncDiscord:
                     " ".join(qlxCommand),
                     DiscordChannel(self, message.author, message.channel))
             except Exception as e:
-                try:
+                if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
                     send_message = ctx.bot.send_message(message.channel, "{}: {}".format(e.__class__.__name__, e))
-                except AttributeError:
+                else:
                     send_message = message.channel.send("{}: {}".format(e.__class__.__name__, e))
                 discord.compat.run_coroutine_threadsafe(send_message, ctx.bot.loop)
                 minqlx.log_exception()
@@ -830,9 +836,9 @@ class SimpleAsyncDiscord:
             if channel is None:
                 continue
 
-            try:
+            if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
                 edit_channel = self.discord.edit_channel(channel, topic=topic)
-            except AttributeError:
+            else:
                 edit_channel = channel.edit(topic=topic)
 
             discord.compat.run_coroutine_threadsafe(edit_channel, self.discord.loop)
@@ -841,10 +847,10 @@ class SimpleAsyncDiscord:
         if self.discord is None:
             return False
 
-        try:
+        if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
             return self.discord.is_logged_in
-        except AttributeError:
-            return self.discord.is_ready()
+
+        return self.discord.is_ready()
 
     def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
         """
@@ -934,10 +940,10 @@ class SimpleAsyncDiscord:
             if channel is None:
                 continue
 
-            try:
-                sender = channel.send(content)
-            except AttributeError:
+            if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
                 sender = self.discord.send_message(channel, content)
+            else:
+                sender = channel.send(content)
 
             discord.compat.run_coroutine_threadsafe(sender, self.discord.loop)
 
@@ -1041,10 +1047,10 @@ class SimpleAsyncDiscord:
         # prefixed by a space or at the beginning of the string
         matcher = re.compile("(?:^| )#([^ ]{3,})")
 
-        try:
+        if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
             channel_list = [ch for ch in self.discord.get_all_channels()
                             if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
-        except AttributeError:
+        else:
             channel_list = [ch for ch in self.discord.get_all_channels()
                             if isinstance(ch, discord.TextChannel) or isinstance(ch, discord.VoiceChannel) or
                             isinstance(ch, discord.GroupChannel)]
