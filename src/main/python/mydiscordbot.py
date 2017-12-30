@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter, CommandError
 
-plugin_version = "v1.0.0-dagaz"
+plugin_version = "v1.0.0-eihwaz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -799,6 +799,9 @@ class SimpleAsyncDiscord:
 
         :param topic: the topic to set on all the channels
         """
+        if not self.is_discord_logged_in():
+            return
+
         if self.discord_update_triggered_channels_topic:
             topic_channel_ids = self.discord_relay_channel_ids | self.discord_triggered_channel_ids
         else:
@@ -817,9 +820,6 @@ class SimpleAsyncDiscord:
         :param channel_ids: the ids of the channels the topic should be set upon.
         :param topic: the new topic that should be set.
         """
-        if not self.is_discord_logged_in():
-            return
-
         # if we were not provided any channel_ids, do nothing.
         if not channel_ids or len(channel_ids) == 0:
             return
@@ -867,7 +867,7 @@ class SimpleAsyncDiscord:
             previous_topic = self.get_channel_topic(channel_id)
 
             if previous_topic is None:
-                continue
+                previous_topic = topic
 
             # preserve the original channel's topic.
             position = previous_topic.find(topic_ending)
@@ -884,9 +884,6 @@ class SimpleAsyncDiscord:
 
         :return: the topic of the channel
         """
-        if not self.is_discord_logged_in():
-            return None
-
         channel = self.discord.get_channel(channel_id)
 
         if channel is None:

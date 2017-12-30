@@ -290,10 +290,11 @@ def mocked_user(id=777, name="Some-Discord-User"):
     return user
 
 
-def mocked_channel(id=666, name="channel-name"):
-    channel = mock(spec=discord.GroupChannel)
+def mocked_channel(id=666, name="channel-name", topic=None):
+    channel = mock(spec=discord.TextChannel)
     channel.id = id
     channel.name = name
+    channel.topic = topic
     return channel
 
 
@@ -679,7 +680,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
     @async_test
     async def test_on_message_is_relayed(self):
         message = mocked_message(content="some chat message",
-                                 user=mocked_user(id=456, name="Sender"),
+                                 user=mocked_user(name="Sender"),
                                  channel=self.relay_channel())
 
         patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
@@ -688,3 +689,227 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         await self.discord.on_message(message)
 
         verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^6Sender^7:^2 some chat message")
+
+    @async_test
+    async def test_on_message_in_wrong_channel(self):
+        message = mocked_message(content="some chat message",
+                                 channel=self.triggered_channel())
+
+        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
+        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+
+        await self.discord.on_message(message)
+
+        verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
+
+    @async_test
+    async def test_on_message_too_short_message(self):
+        message = mocked_message(content="",
+                                 channel=self.relay_channel())
+
+        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
+        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+
+        await self.discord.on_message(message)
+
+        verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
+
+    @async_test
+    async def test_on_message_from_bot(self):
+        message = mocked_message(content="",
+                                 user=self.discord_client.user,
+                                 channel=self.relay_channel())
+
+        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
+        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+
+        await self.discord.on_message(message)
+
+        verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
+
+    @async_test
+    async def test_on_message_without_message(self):
+        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
+        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+
+        await self.discord.on_message(None)
+
+        verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
+
+    def test_update_topics_v0_16(self):
+        self.setup_v0_16_discord_library()
+        setup_game_in_progress()
+        connected_players()
+
+        relay_channel = mocked_channel(id="1234", topic=" players. kept suffix")
+        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+
+        trigger_channel1 = mocked_channel(id="456", topic=None)
+        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+
+        trigger_channel2 = mocked_channel(id="789", topic="overwritten suffix")
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
+
+        self.discord.update_topics()
+
+        verify(self.discord_client).edit_channel(relay_channel,
+                                                 topic=matches("Match in progress.*? players. kept suffix"))
+        verify(self.discord_client).edit_channel(trigger_channel1, topic=matches("Match in progress.*? players."))
+        verify(self.discord_client).edit_channel(trigger_channel2, topic=matches("Match in progress.*? players."))
+
+    def test_update_topics_v1(self):
+        setup_game_in_progress()
+        connected_players()
+
+        when(self.discord_client).is_ready().thenReturn(True)
+
+        relay_channel = mocked_channel(id=1234, topic=" players. kept suffix")
+        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+
+        trigger_channel1 = mocked_channel(id=456, topic=None)
+        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+
+        trigger_channel2 = mocked_channel(id=789, topic="overwritten suffix")
+        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
+
+        self.discord.update_topics()
+
+        verify(relay_channel).edit(topic=matches("Match in progress.*? players. kept suffix"))
+        verify(trigger_channel1).edit(topic=matches("Match in progress.*? players."))
+        verify(trigger_channel2).edit(topic=matches("Match in progress.*? players."))
+
+    def test_update_topics_discord_client_not_ready(self):
+        setup_game_in_progress()
+        connected_players()
+
+        when(self.discord_client).is_ready().thenReturn(False)
+
+        relay_channel = mocked_channel(id=1234, topic=" players. kept suffix")
+        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+
+        trigger_channel1 = mocked_channel(id=456, topic=None)
+        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+
+        trigger_channel2 = mocked_channel(id=789, topic="some topic")
+        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
+
+        self.discord.update_topics()
+
+        verify(relay_channel, times=0).edit(topic=any)
+        verify(trigger_channel1, times=0).edit(topic=any)
+        verify(trigger_channel2, times=0).edit(topic=any)
+
+    def test_update_topics_not_initialized_discord_client(self):
+        setup_game_in_progress()
+        connected_players()
+
+        self.discord.discord = None
+
+        self.discord.update_topics()
+
+        verifyZeroInteractions(self.discord_client)
+
+    def test_update_topics_no_update_on_triggered_channels_configured(self):
+        setup_game_in_progress()
+        connected_players()
+
+        when2(Plugin.get_cvar, "qlx_discordUpdateTopicOnTriggeredChannels", bool).thenReturn(False)
+        when2(Plugin.get_cvar, "qlx_discordKeepTopicSuffixChannelIds", set).thenReturn(set())
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_v1_discord_library()
+
+        when(self.discord_client).is_ready().thenReturn(True)
+
+        relay_channel = mocked_channel(id=1234, topic=" players. not kept suffix")
+        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+
+        trigger_channel1 = mocked_channel(id=456, topic=None)
+        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+
+        trigger_channel2 = mocked_channel(id=789, topic="some topic")
+        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
+
+        self.discord.update_topics()
+
+        verify(relay_channel).edit(topic=matches("Match in progress.*? players. "))
+        verify(trigger_channel1, times=0).edit(topic=any)
+        verify(trigger_channel2, times=0).edit(topic=any)
+
+    def test_update_topics_non_existing_channel(self):
+        setup_game_in_progress()
+        connected_players()
+
+        when(self.discord_client).is_ready().thenReturn(True)
+
+        trigger_channel2 = mocked_channel(id=789, topic="overwritten suffix")
+        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
+
+        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
+
+        self.discord.update_topics()
+
+        verify(trigger_channel2, times=0).edit(topic=matches("Match in progress.*? players."))
+
+    def test_update_topics_all_channel_keep_suffix(self):
+        setup_game_in_progress()
+        connected_players()
+
+        when2(Plugin.get_cvar, "qlx_discordKeepTopicSuffixChannelIds", set).thenReturn({"1234", "456", "789"})
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_v1_discord_library()
+
+        when(self.discord_client).is_ready().thenReturn(True)
+
+        relay_channel = mocked_channel(id=1234, topic=" players. kept suffix")
+        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+
+        trigger_channel1 = mocked_channel(id=456, topic=None)
+        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+
+        trigger_channel2 = mocked_channel(id=789, topic="some topic")
+        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
+
+        self.discord.update_topics()
+
+        verify(relay_channel).edit(topic=matches("Match in progress.*? players. kept suffix"))
+        verify(trigger_channel1).edit(topic=matches("Match in progress.*? players."))
+        verify(trigger_channel2).edit(topic=matches("Match in progress.*? players. some topic"))
+
+    def test_stop_discord_client(self):
+        when(self.discord_client).change_presence(status="offline").thenReturn(mocked_coro())
+        when(self.discord_client).logout().thenReturn(mocked_coro())
+
+        self.discord.stop()
+
+        verify(self.discord_client).change_presence(status="offline")
+        verify(self.discord_client).logout()
+
+    def test_stop_discord_client_discord_not_initialized(self):
+        self.discord.discord = None
+
+        self.discord.stop()
+
+        verify(self.discord_client, times=0).change_presence(status="offline")
+        verify(self.discord_client, times=0).logout()
