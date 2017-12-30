@@ -1008,8 +1008,8 @@ class SimpleAsyncDiscord:
             return member[0]
 
         # if direct searches for the match fail, we try to match portions of the name or portions of the nick, if set
-        member = set(user for user in member_list if user.name.lower().find(match.lower()) != -1 or
-                     (user.nick is not None and user.nick.lower().find(match.lower()) != -1))
+        member = [user for user in member_list if user.name.lower().find(match.lower()) != -1 or
+                  (user.nick is not None and user.nick.lower().find(match.lower()) != -1)]
         if len(member) == 1:
             return list(member)[0]
 

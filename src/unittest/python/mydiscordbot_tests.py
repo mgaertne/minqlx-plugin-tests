@@ -283,10 +283,11 @@ def mocked_coro(return_value=None):
     return mock_coro()
 
 
-def mocked_user(id=777, name="Some-Discord-User"):
+def mocked_user(id=777, name="Some-Discord-User", nick=None):
     user = mock(spec=discord.User)
     user.id = id
     user.name = name
+    user.nick = nick
     return user
 
 
@@ -1071,6 +1072,132 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great, @member #mention !")
 
         verify(relay_channel, times=0).send(any)
+
+    def test_find_user_match_exact_match(self):
+        exact_matching_user = mocked_user(name="user")
+        other_user = mocked_user(name="non-exact-match-User")
+
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
+
+        assert_that(matched_user, is_(exact_matching_user))
+
+    def test_find_user_match_case_insensitive_match(self):
+        case_insensitive_matching_user = mocked_user(name="uSeR")
+        other_user = mocked_user(name="non-matched user")
+
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [case_insensitive_matching_user, other_user])
+
+        assert_that(matched_user, is_(case_insensitive_matching_user))
+
+    def test_find_user_match_exact_nick_match(self):
+        exact_matching_user = mocked_user(name="non-matching name", nick="user")
+        other_user = mocked_user(name="non-exact-match-User")
+
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
+
+        assert_that(matched_user, is_(exact_matching_user))
+
+    def test_find_user_match_case_insensitive_nick_match(self):
+        exact_matching_user = mocked_user(name="non-matching name", nick="UseR")
+        other_user = mocked_user(name="non-matched user", nick="non-matched nick")
+
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
+
+        assert_that(matched_user, is_(exact_matching_user))
+
+    def test_find_user_match_fuzzy_match_on_name(self):
+        fuzzy_matching_user = mocked_user(name="matching-GeneRal-user")
+        other_user = mocked_user(name="non-matched channel")
+
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("UsEr", [fuzzy_matching_user, other_user])
+
+        assert_that(matched_user, is_(fuzzy_matching_user))
+
+    def test_find_user_match_fuzzy_match_on_nick(self):
+        fuzzy_matching_user = mocked_user(name="non-matchin-usr", nick="matching-General-uSeR")
+        other_user = mocked_user(name="non-matched channel")
+
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("UsEr", [fuzzy_matching_user, other_user])
+
+        assert_that(matched_user, is_(fuzzy_matching_user))
+
+    def test_find_user_match_no_match_found(self):
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("awesome",
+                                                                 [mocked_user(name="no_match-user"),
+                                                                  mocked_user(name="non-matched user")])
+
+        assert_that(matched_user, is_(None))
+
+    def test_find_user_match_more_than_one_user_found(self):
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("user",
+                                                                 [mocked_user(name="matched_user"),
+                                                                  mocked_user(name="another-matched-uSEr")])
+
+        assert_that(matched_user, is_(None))
+
+    def test_find_user_match_more_than_one_user_found_and_player_informed(self):
+        sending_player = fake_player(steam_id=1, name="Player")
+        matched_user = SimpleAsyncDiscord.find_user_that_matches("user",
+                                                                 [mocked_user(name="matched_user"),
+                                                                  mocked_user(name="another-matched-uSEr")],
+                                                                 sending_player)
+
+        verify(sending_player).tell("Found ^62^7 matching discord users for @user:")
+        verify(sending_player).tell("@matched_user @another-matched-uSEr ")
+        assert_that(matched_user, is_(None))
+
+    def test_find_channel_match_exact_match(self):
+        exact_matching_channel = mocked_channel(name="general")
+        other_channel = mocked_channel(name="General")
+
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
+                                                                       [exact_matching_channel, other_channel])
+
+        assert_that(matched_channel, is_(exact_matching_channel))
+
+    def test_find_channel_match_case_insensitive_match(self):
+        case_insensitive_matching_channel = mocked_channel(name="GeNeRaL")
+        other_channel = mocked_channel(name="non-matched General")
+
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
+                                                                       [case_insensitive_matching_channel,
+                                                                        other_channel])
+
+        assert_that(matched_channel, is_(case_insensitive_matching_channel))
+
+    def test_find_channel_match_fuzzy_match(self):
+        fuzzy_matching_channel = mocked_channel(name="matching-GeneRal-channel")
+        other_channel = mocked_channel(name="non-matched channel")
+
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
+                                                                       [fuzzy_matching_channel, other_channel])
+
+        assert_that(matched_channel, is_(fuzzy_matching_channel))
+
+    def test_find_channel_match_no_match_found(self):
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
+                                                                       [mocked_channel(name="no_match-channel"),
+                                                                        mocked_channel(name="non-matched channel")])
+
+        assert_that(matched_channel, is_(None))
+
+    def test_find_channel_match_more_than_one_channel_found(self):
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
+                                                                       [mocked_channel(name="matched_general"),
+                                                                        mocked_channel(name="another-matched-general")])
+
+        assert_that(matched_channel, is_(None))
+
+    def test_find_channel_match_more_than_one_channel_found_and_player_informed(self):
+        sending_player = fake_player(steam_id=1, name="Player")
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
+                                                                       [mocked_channel(name="matched_general"),
+                                                                        mocked_channel(name="another-matched-general")],
+                                                                       sending_player)
+
+        verify(sending_player).tell("Found ^62^7 matching discord channels for #general:")
+        verify(sending_player).tell("#matched_general #another-matched-general ")
+        assert_that(matched_channel, is_(None))
 
     def test_triggered_message(self):
         trigger_channel1 = mocked_channel(id=456)
