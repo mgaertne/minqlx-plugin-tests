@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter, CommandError
 
-plugin_version = "v1.0.0-gebo"
+plugin_version = "v1.0.0-dagaz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -535,7 +535,7 @@ class SimpleAsyncDiscord:
 
     @staticmethod
     def is_discord_client_v1(client):
-        return not hasattr(client, "send_message")
+        return discord.version_info.major > 0
 
     def run(self):
         """
@@ -631,20 +631,19 @@ class SimpleAsyncDiscord:
         :param ctx: the context of the original message sent for authentication
         :param password: the password to authenticate
         """
-        message = ctx.message
         if password == self.discord_admin_password:
-            self.authed_discord_ids.add(message.author.id)
+            self.authed_discord_ids.add(ctx.message.author.id)
             await self.reply_to_context(ctx, "You have been successfully authenticated. "
                                              "You can now use {}{} to execute commands."
                                         .format(self.discord_command_prefix, self.discord_exec_prefix))
             return
         # Allow up to 3 attempts for the user's discord id to authenticate.
-        if message.author.id not in self.auth_attempts:
-            self.auth_attempts[message.author.id] = 3
-        self.auth_attempts[message.author.id] -= 1
-        if self.auth_attempts[message.author.id] > 0:
+        if ctx.message.author.id not in self.auth_attempts:
+            self.auth_attempts[ctx.message.author.id] = 3
+        self.auth_attempts[ctx.message.author.id] -= 1
+        if self.auth_attempts[ctx.message.author.id] > 0:
             await self.reply_to_context(ctx, "Wrong password. You have {} attempts left."
-                                        .format(self.auth_attempts[message.author.id]))
+                                        .format(self.auth_attempts[ctx.message.author.id]))
             return
 
         # User has reached maximum auth attempts, we will bar her/him from authentication for 5 minutes (300 seconds)
@@ -655,7 +654,7 @@ class SimpleAsyncDiscord:
                                     .format(bar_delay))
 
         def f():
-            del self.auth_attempts[message.author.id]
+            del self.auth_attempts[ctx.message.author.id]
 
         threading.Timer(bar_delay, f).start()
 
@@ -666,20 +665,18 @@ class SimpleAsyncDiscord:
         :param ctx: the context the trigger happened in
         :param qlxCommand: the command that was sent by the user
         """
-        message = ctx.message
-
         @minqlx.next_frame
         def f():
             try:
                 minqlx.COMMANDS.handle_input(
-                    DiscordDummyPlayer(self, message.author, message.channel),
+                    DiscordDummyPlayer(self, ctx.message.author, ctx.message.channel),
                     " ".join(qlxCommand),
-                    DiscordChannel(self, message.author, message.channel))
+                    DiscordChannel(self, ctx.message.author, ctx.message.channel))
             except Exception as e:
                 if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
-                    send_message = ctx.bot.send_message(message.channel, "{}: {}".format(e.__class__.__name__, e))
+                    send_message = ctx.bot.send_message(ctx.message.channel, "{}: {}".format(e.__class__.__name__, e))
                 else:
-                    send_message = message.channel.send("{}: {}".format(e.__class__.__name__, e))
+                    send_message = ctx.send("{}: {}".format(e.__class__.__name__, e))
                 discord.compat.run_coroutine_threadsafe(send_message, ctx.bot.loop)
                 minqlx.log_exception()
 

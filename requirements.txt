@@ -3,5 +3,5 @@ PyHamcrest
 mockito
 coverage
 undecorated
-discord.py
+git+https://github.com/Rapptz/discord.py@rewrite
 requests
