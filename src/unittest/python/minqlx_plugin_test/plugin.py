@@ -56,11 +56,11 @@ def setup_cvars(cvars):
     :param cvars: a dictionary containing the cvar names as keys, and a tuple of values and types
     """
     spy2(Plugin.get_cvar)
-    for name, (value, type) in cvars.items():
-        if type is None:
+    for name, (value, value_type) in cvars.items():
+        if value_type is None:
             when2(Plugin.get_cvar, name).thenReturn(value)
         else:
-            when2(Plugin.get_cvar, name, type).thenReturn(value)
+            when2(Plugin.get_cvar, name, value_type).thenReturn(value)
 
 
 def assert_plugin_sent_to_console(matcher, times=1, atleast=None):

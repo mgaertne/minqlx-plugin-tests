@@ -285,25 +285,37 @@ def mocked_coro(return_value=None):
 
 def mocked_user(id=777, name="Some-Discord-User", nick=None):
     user = mock(spec=discord.User)
+
     user.id = id
     user.name = name
     user.nick = nick
+    user.mention = "<@%s>" % user.id
+
     return user
 
 
-def mocked_channel(id=666, name="channel-name", topic=None):
+def mocked_channel(id=666, name="channel-name", channel_type=ChannelType.text, topic=None):
     channel = mock(spec=discord.TextChannel)
+
     channel.id = id
     channel.name = name
+    channel.type = channel_type
     channel.topic = topic
+    channel.mention = "<#%s>" % channel.id
+
+    when(channel).send(any).thenReturn(mocked_coro())
+    when(channel).edit(topic=any).thenReturn(mocked_coro())
+
     return channel
 
 
 def mocked_message(content="message content", user=mocked_user(), channel=mocked_channel()):
     message = mock(spec=discord.Message)
+
     message.clean_content = content
     message.author = user
     message.channel = channel
+
     return message
 
 
@@ -382,13 +394,31 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         return context
 
     def relay_channel(self):
-        return mocked_channel(id=1234, name="relay-channel")
+        channel = mocked_channel(id=1234, name="relay-channel")
+
+        when(self.discord_client).get_channel(channel.id).thenReturn(channel)
+
+        return channel
 
     def triggered_channel(self):
-        return mocked_channel(id=456, name="triggered-channel")
+        channel = mocked_channel(id=456, name="triggered-channel")
+
+        when(self.discord_client).get_channel(channel.id).thenReturn(channel)
+
+        return channel
 
     def uninteresting_channel(self):
-        return mocked_channel(id=987, name="uninteresting-channel")
+        channel = mocked_channel(id=987, name="uninteresting-channel")
+
+        when(self.discord_client).get_channel(channel.id).thenReturn(channel)
+
+        return channel
+
+    def setup_discord_members(self, *users):
+        when(self.discord_client).get_all_members().thenReturn([user for user in users])
+
+    def setup_discord_channels(self, *channels):
+        when(self.discord_client).get_all_channels().thenReturn([channel for channel in channels])
 
     @async_test
     async def test_version_v0_16(self):
@@ -768,19 +798,13 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         when(self.discord_client).is_ready().thenReturn(True)
 
-        relay_channel = mocked_channel(id=1234, topic=" players. kept suffix")
-        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
+        relay_channel.topic = " players. kept suffix"
 
-        trigger_channel1 = mocked_channel(id=456, topic=None)
-        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         trigger_channel2 = mocked_channel(id=789, topic="overwritten suffix")
-        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
-
-        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
 
         self.discord.update_topics()
 
@@ -794,19 +818,13 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         when(self.discord_client).is_ready().thenReturn(False)
 
-        relay_channel = mocked_channel(id=1234, topic=" players. kept suffix")
-        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
+        relay_channel.topic = " players. kept suffix"
 
-        trigger_channel1 = mocked_channel(id=456, topic=None)
-        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         trigger_channel2 = mocked_channel(id=789, topic="some topic")
-        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
-
-        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
 
         self.discord.update_topics()
 
@@ -835,19 +853,13 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         when(self.discord_client).is_ready().thenReturn(True)
 
-        relay_channel = mocked_channel(id=1234, topic=" players. not kept suffix")
-        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
+        relay_channel.topic = " players. not kept suffix"
 
-        trigger_channel1 = mocked_channel(id=456, topic=None)
-        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         trigger_channel2 = mocked_channel(id=789, topic="some topic")
-        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
-
-        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
 
         self.discord.update_topics()
 
@@ -880,19 +892,13 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         when(self.discord_client).is_ready().thenReturn(True)
 
-        relay_channel = mocked_channel(id=1234, topic=" players. kept suffix")
-        when(relay_channel).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
+        relay_channel.topic = " players. kept suffix"
 
-        trigger_channel1 = mocked_channel(id=456, topic=None)
-        when(trigger_channel1).edit(topic=any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         trigger_channel2 = mocked_channel(id=789, topic="some topic")
-        when(trigger_channel2).edit(topic=any).thenReturn(mocked_coro())
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
-
-        when(self.discord_client).edit_channel(any, topic=any).thenReturn(mocked_coro())
 
         self.discord.update_topics()
 
@@ -928,9 +934,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(self.discord_client).send_message(relay_channel, "awesome relayed message")
 
     def test_relay_message_v1(self):
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
         self.discord.relay_message("awesome relayed message")
 
@@ -939,9 +943,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
     def test_relay_message_with_not_connected_client(self):
         when(self.discord_client).is_ready().thenReturn(False)
 
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
         self.discord.relay_message("awesome relayed message")
 
@@ -962,9 +964,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(self.discord_client, times=0).send_message(any, any)
 
     def test_relay_chat_message_simple_message(self):
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -978,14 +978,11 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
         mentioned_user = mocked_user(id=123, name="chatter")
-        mentioned_user.mention = "<@%s>" % mentioned_user.id
-        when(self.discord_client).get_all_members().thenReturn([mentioned_user])
-        when(self.discord_client).get_all_channels().thenReturn([])
+        self.setup_discord_members(mentioned_user)
+        self.setup_discord_channels()
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -999,12 +996,10 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
-        when(self.discord_client).get_all_members().thenReturn([])
-        when(self.discord_client).get_all_channels().thenReturn([])
+        self.setup_discord_members()
+        self.setup_discord_channels()
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -1018,15 +1013,11 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v0_16_discord_library()
 
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
         mentioned_channel = mocked_channel(id=456, name="mentioned-channel")
-        mentioned_channel.mention = "<#%s>" % mentioned_channel.id
-        mentioned_channel.type = ChannelType.group
-        when(self.discord_client).get_all_members().thenReturn([])
-        when(self.discord_client).get_all_channels().thenReturn([mentioned_channel])
+        self.setup_discord_members()
+        self.setup_discord_channels(mentioned_channel)
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -1041,12 +1032,10 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
-        when(self.discord_client).get_all_members().thenReturn([])
-        when(self.discord_client).get_all_channels().thenReturn([])
+        self.setup_discord_members()
+        self.setup_discord_channels()
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -1062,9 +1051,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         when(self.discord_client).is_ready().thenReturn(False)
 
-        relay_channel = mocked_channel(id=1234)
-        when(relay_channel).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(relay_channel.id).thenReturn(relay_channel)
+        relay_channel = self.relay_channel()
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -1200,16 +1187,13 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         assert_that(matched_channel, is_(None))
 
     def test_triggered_message(self):
-        trigger_channel1 = mocked_channel(id=456)
-        when(trigger_channel1).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         trigger_channel2 = mocked_channel(id=789)
-        when(trigger_channel2).send(any).thenReturn(mocked_coro())
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
 
-        when(self.discord_client).get_all_members().thenReturn([])
-        when(self.discord_client).get_all_channels().thenReturn([])
+        self.setup_discord_members()
+        self.setup_discord_channels()
 
         player = fake_player(steam_id=1, name="Chatting player")
 
@@ -1221,18 +1205,12 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
     def test_triggered_message_replaces_mentions(self):
         self.setup_v0_16_discord_library()
 
-        trigger_channel1 = mocked_channel(id=456)
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         mentioned_user = mocked_user(id=123, name="chatter")
-        mentioned_user.mention = "<@%s>" % mentioned_user.id
-
         mentioned_channel = mocked_channel(id=456, name="mentioned-channel")
-        mentioned_channel.mention = "<#%s>" % mentioned_channel.id
-        mentioned_channel.type = ChannelType.group
-
-        when(self.discord_client).get_all_members().thenReturn([mentioned_user])
-        when(self.discord_client).get_all_channels().thenReturn([mentioned_channel])
+        self.setup_discord_members(mentioned_user)
+        self.setup_discord_channels(mentioned_channel)
 
         player = fake_player(steam_id=1, name="Chatting player")
 
@@ -1258,15 +1236,11 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v0_16_discord_library()
 
-        trigger_channel1 = mocked_channel(id=456)
-        when(trigger_channel1).send(any).thenReturn(mocked_coro())
-        when(self.discord_client).get_channel(trigger_channel1.id).thenReturn(trigger_channel1)
+        trigger_channel1 = self.triggered_channel()
 
         mentioned_channel = mocked_channel(id=456, name="mentioned-channel")
-        mentioned_channel.mention = "<#%s>" % mentioned_channel.id
-        mentioned_channel.type = ChannelType.group
-        when(self.discord_client).get_all_members().thenReturn([])
-        when(self.discord_client).get_all_channels().thenReturn([mentioned_channel])
+        self.setup_discord_members()
+        self.setup_discord_channels(mentioned_channel)
 
         player = fake_player(steam_id=1, name="Chatting player")
 
