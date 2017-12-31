@@ -319,6 +319,59 @@ def mocked_message(content="message content", user=mocked_user(), channel=mocked
     return message
 
 
+class DiscordChannelTests(unittest.TestCase):
+
+    def setUp(self):
+        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
+
+        self.client = mock(spec=SimpleAsyncDiscord)
+        when(self.client).send_to_discord_channels(any, any).thenReturn(None)
+
+        self.author = mocked_user()
+        self.author.display_name = "Discord-User"
+
+        self.discord_channel = mocked_channel()
+
+        self.minqlx_discord_channel = DiscordChannel(self.client, self.author, self.discord_channel)
+
+    def teardown(self):
+        unstub()
+
+    def test_reply(self):
+        self.minqlx_discord_channel.reply("asdf")
+
+        verify(self.client).send_to_discord_channels({self.discord_channel.id}, "asdf")
+
+
+class DiscordDummyPlayerTests(unittest.TestCase):
+
+    def setUp(self):
+        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
+
+        self.client = mock(spec=SimpleAsyncDiscord)
+        when(self.client).send_to_discord_channels(any, any).thenReturn(None)
+
+        self.author = mocked_user()
+        self.author.display_name = "Discord-User"
+
+        self.discord_channel = mocked_channel()
+
+        self.dummy_player = DiscordDummyPlayer(self.client, self.author, self.discord_channel)
+
+    def teardown(self):
+        unstub()
+
+    def test_channel(self):
+        channel = self.dummy_player.channel
+
+        assert_that(channel, is_(DiscordChannel(self.client, self.author, self.discord_channel)))
+
+    def test_tell(self):
+        self.dummy_player.tell("asdf")
+
+        verify(self.client).send_to_discord_channels({self.discord_channel.id}, "asdf")
+
+
 class SimpleAsyncDiscordTests(unittest.TestCase):
 
     def setUp(self):
