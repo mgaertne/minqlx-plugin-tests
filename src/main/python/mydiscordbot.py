@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-eihwaz"
+plugin_version = "v1.0.0-haglaz"
 
 
 class mydiscordbot(minqlx.Plugin):
