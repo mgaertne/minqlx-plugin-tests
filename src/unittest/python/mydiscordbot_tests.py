@@ -276,6 +276,7 @@ def async_test(f):
 
 
 def mocked_coro(return_value=None):
+
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return return_value
@@ -317,6 +318,67 @@ def mocked_message(content="message content", user=mocked_user(), channel=mocked
     message.channel = channel
 
     return message
+
+
+class DiscordHelpFormatterTests(unittest.TestCase):
+
+    def setUp(self):
+        self.formatter = DiscordHelpFormatter()
+        self.formatter.context = mock({'send': mocked_coro})
+        self.formatter.context.prefix = "!"
+        self.formatter.context.invoked_with = "help"
+        self.formatter.context.bot = mock({'description': 'Mocked Bot'}, spec=Bot)
+        self.formatter.context.bot.user = mocked_user()
+        help_command = mock({'name': 'help', 'description': 'Fake Help', 'short_doc': 'Fake Help',
+                             'hidden': False, 'cog_name': None, 'aliases': []})
+        when(help_command).can_run(self.formatter.context).thenReturn(mocked_coro(True))
+        fake_command = mock({'name': 'fake', 'description': 'Fake Command', 'short_doc': 'Fake Command',
+                             'hidden': False, 'cog_name': None, 'aliases': []})
+        when(fake_command).can_run(self.formatter.context).thenReturn(mocked_coro(True))
+        self.formatter.context.bot.all_commands = {help_command.name: help_command, fake_command.name: fake_command}
+        self.formatter.command = self.formatter.context.bot
+        when(self.formatter.context.bot).can_run(any).thenReturn(mocked_coro(True))
+
+    def tearDown(self):
+        unstub()
+
+    def setup_v0_16_discord_library(self):
+        discord.version_info = discord.VersionInfo(major=0, minor=1, micro=16, releaselevel="", serial=0)
+
+    def setup_v1_discord_library(self):
+        discord.version_info = discord.VersionInfo(major=1, minor=0, micro=0, releaselevel="", serial=0)
+
+    def test_get_ending_note(self):
+        ending_note = self.formatter.get_ending_note()
+
+        assert_that(ending_note, is_("Type !help command for more info on a command."))
+
+    @async_test
+    async def test_format_v1(self):
+        self.setup_v1_discord_library()
+
+        when(self.formatter.context.bot).can_run(self.formatter.context)\
+            .thenReturn(mocked_coro(True))\
+            .thenReturn(mocked_coro(True))
+
+        pages = (await self.formatter.format())
+
+        assert_that(pages, is_(["```\nMocked Bot\n\n"
+                                "\u200bminqlx Commands:\n"
+                                "  fake Fake Command\n"
+                                "  help Fake Help\n\n"
+                                "Type !help command for more info on a command.\n```"]))
+
+    @async_test
+    async def test_format_v1_help_not_applicable(self):
+        self.setup_v1_discord_library()
+
+        when(self.formatter.context.bot).can_run(self.formatter.context)\
+            .thenReturn(mocked_coro(False))
+
+        pages = (await self.formatter.format())
+
+        assert_that(pages, is_([]))
 
 
 class DiscordChannelTests(unittest.TestCase):

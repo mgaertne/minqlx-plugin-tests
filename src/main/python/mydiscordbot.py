@@ -20,7 +20,7 @@ from minqlx import Plugin
 
 import discord
 from discord import ChannelType
-from discord.ext.commands import Bot, Command, HelpFormatter, CommandError
+from discord.ext.commands import Bot, Command, HelpFormatter
 
 plugin_version = "v1.0.0-eihwaz"
 
@@ -420,15 +420,15 @@ class DiscordHelpFormatter(HelpFormatter):
         list
             A paginated output of the help command.
         """
-        try:
-            command_can_run = yield from self.command.can_run(self.context)
-            bot_can_run = yield from self.context.bot.can_run(self.context)
-            if not command_can_run or not bot_can_run:
-                return []
-        except CommandError:
+        command_can_run = yield from self.command.can_run(self.context)
+        bot_can_run = yield from self.context.bot.can_run(self.context)
+        if not command_can_run or not bot_can_run:
             return []
 
-        return (yield from super().format())
+        pages = yield from super().format()
+
+        return [page.replace('\u200bNo Category:\n', '\u200bminqlx Commands:\n')
+                for page in pages if page != '\u200bNo Category:']
 
 
 class DiscordChannel(minqlx.AbstractChannel):
