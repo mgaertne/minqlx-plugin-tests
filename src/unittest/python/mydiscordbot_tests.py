@@ -353,6 +353,34 @@ class DiscordHelpFormatterTests(unittest.TestCase):
 
         assert_that(ending_note, is_("Type !help command for more info on a command."))
 
+    def test_format_v0_16(self):
+        self.setup_v0_16_discord_library()
+
+        patch(HelpFormatter.format, lambda: ["```\nMocked Bot\n\n"
+                                             "\u200bNo Category:\n"
+                                             "  fake Fake Command\n"
+                                             "  help Fake Help\n\n"
+                                             "Type !help command for more info on a command.\n```"])
+
+        when(self.formatter.context.bot).can_run(self.formatter.context).thenReturn(True)
+
+        pages = self.formatter.format()
+
+        assert_that(pages, is_(["```\nMocked Bot\n\n"
+                                "\u200bminqlx Commands:\n"
+                                "  fake Fake Command\n"
+                                "  help Fake Help\n\n"
+                                "Type !help command for more info on a command.\n```"]))
+
+    def test_format_v0_16_help_not_applicable(self):
+        self.setup_v0_16_discord_library()
+
+        when(self.formatter.context.bot).can_run(self.formatter.context).thenReturn(False)
+
+        pages = self.formatter.format()
+
+        assert_that(pages, is_([]))
+
     @async_test
     async def test_format_v1(self):
         self.setup_v1_discord_library()
