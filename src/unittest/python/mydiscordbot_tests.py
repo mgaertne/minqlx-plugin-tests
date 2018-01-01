@@ -565,12 +565,12 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
     def verify_added_command(self, name, callback, checks=None):
         if checks is None:
-            verify(self.discord_client).add_command(arg_that(lambda command: command.name == name
-                                                                             and command.callback == callback))
+            verify(self.discord_client).add_command(arg_that(lambda command: command.name == name and
+                                                             command.callback == callback))
         else:
-            verify(self.discord_client).add_command(arg_that(lambda command: command.name == name
-                                                                             and command.callback == callback
-                                                                             and command.checks == checks))
+            verify(self.discord_client).add_command(arg_that(lambda command: command.name == name and
+                                                             command.callback == callback and
+                                                             command.checks == checks))
 
     @async_test
     async def test_initialize_bot(self):
