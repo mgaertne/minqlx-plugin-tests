@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-haglaz"
+plugin_version = "v1.0.0-thurisaz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -548,40 +548,48 @@ class SimpleAsyncDiscord:
                            description="{}".format(self.version_information),
                            formatter=DiscordHelpFormatter(),
                            command_not_found="")
-        self.discord.add_command(Command(name="version",
-                                         callback=self.version,
-                                         pass_context=True,
-                                         ignore_extra=False,
-                                         help="display the plugin's version information"))
-        self.discord.add_command(Command(name=self.discord_auth_command,
-                                         callback=self.auth,
-                                         checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
-                                                 lambda ctx: not self.is_barred_from_auth(ctx)],
-                                         hidden=True,
-                                         pass_context=True,
-                                         help="auth with the bot"))
-        self.discord.add_command(Command(name=self.discord_exec_prefix,
-                                         callback=self.qlx,
-                                         checks=[self.is_private_message, self.is_authed],
-                                         hidden=True,
-                                         pass_context=True,
-                                         help="execute minqlx commands on the server"))
-        self.discord.add_command(Command(name=self.discord_trigger_status,
-                                         callback=self.trigger_status,
-                                         checks=[self.is_message_in_relay_or_triggered_channel],
-                                         pass_context=True,
-                                         ignore_extra=False,
-                                         help="display current game status information"))
-        self.discord.add_command(Command(name=self.discord_trigger_triggered_channel_chat,
-                                         callback=self.triggered_chat,
-                                         checks=[self.is_message_in_triggered_channel],
-                                         pass_context=True,
-                                         help="send [message...] to the Quake Live server"))
-        self.discord.add_listener(self.on_ready)
-        self.discord.add_listener(self.on_message)
+        self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
         self.discord.loop.run_until_complete(self.discord.start(self.discord_bot_token))
+
+    def initialize_bot(self, discord_bot):
+        """
+        initializes a discord bot with commands and listeners on this pseudo cog class
+
+        :param discord_bot: the discord_bot to initialize
+        """
+        discord_bot.add_command(Command(name="version",
+                                        callback=self.version,
+                                        pass_context=True,
+                                        ignore_extra=False,
+                                        help="display the plugin's version information"))
+        discord_bot.add_command(Command(name=self.discord_auth_command,
+                                        callback=self.auth,
+                                        checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
+                                                lambda ctx: not self.is_barred_from_auth(ctx)],
+                                        hidden=True,
+                                        pass_context=True,
+                                        help="auth with the bot"))
+        discord_bot.add_command(Command(name=self.discord_exec_prefix,
+                                        callback=self.qlx,
+                                        checks=[self.is_private_message, self.is_authed],
+                                        hidden=True,
+                                        pass_context=True,
+                                        help="execute minqlx commands on the server"))
+        discord_bot.add_command(Command(name=self.discord_trigger_status,
+                                        callback=self.trigger_status,
+                                        checks=[self.is_message_in_relay_or_triggered_channel],
+                                        pass_context=True,
+                                        ignore_extra=False,
+                                        help="display current game status information"))
+        discord_bot.add_command(Command(name=self.discord_trigger_triggered_channel_chat,
+                                        callback=self.triggered_chat,
+                                        checks=[self.is_message_in_triggered_channel],
+                                        pass_context=True,
+                                        help="send [message...] to the Quake Live server"))
+        discord_bot.add_listener(self.on_ready)
+        discord_bot.add_listener(self.on_message)
 
     def reply_to_context(self, ctx, message):
         if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):

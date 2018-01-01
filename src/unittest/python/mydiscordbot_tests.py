@@ -563,6 +563,30 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
     def setup_discord_channels(self, *channels):
         when(self.discord_client).get_all_channels().thenReturn([channel for channel in channels])
 
+    def verify_added_command(self, name, callback, checks=None):
+        if checks is None:
+            verify(self.discord_client).add_command(arg_that(lambda command: command.name == name
+                                                                             and command.callback == callback))
+        else:
+            verify(self.discord_client).add_command(arg_that(lambda command: command.name == name
+                                                                             and command.callback == callback
+                                                                             and command.checks == checks))
+
+    @async_test
+    async def test_initialize_bot(self):
+        self.discord.initialize_bot(self.discord_client)
+
+        self.verify_added_command(name="version", callback=self.discord.version)
+        self.verify_added_command(name="minqlx", callback=self.discord.trigger_status,
+                                  checks=[self.discord.is_message_in_relay_or_triggered_channel])
+        self.verify_added_command(name="trigger", callback=self.discord.triggered_chat,
+                                  checks=[self.discord.is_message_in_triggered_channel])
+        self.verify_added_command(name="auth", callback=self.discord.auth)
+        self.verify_added_command(name="exec", callback=self.discord.qlx,
+                                  checks=[self.discord.is_private_message, self.discord.is_authed])
+        verify(self.discord_client).add_listener(self.discord.on_ready)
+        verify(self.discord_client).add_listener(self.discord.on_message)
+
     @async_test
     async def test_version_v0_16(self):
         self.setup_v0_16_discord_library()
