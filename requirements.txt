@@ -4,4 +4,3 @@ mockito
 coverage
 undecorated
 git+https://github.com/Rapptz/discord.py@rewrite
-requests
