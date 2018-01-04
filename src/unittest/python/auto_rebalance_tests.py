@@ -112,6 +112,32 @@ class AutoRebalanceTests(unittest.TestCase):
                                                          new_player2.name, new_player4.name, new_player6.name])))
         assert_players_switched(new_player1, new_player4)
 
+    def test_handle_round_countdown_does_nothing_with_no_new_joiners(self):
+        red_player1 = fake_player(123, "Red Player1", "red")
+        red_player2 = fake_player(456, "Red Player2", "red")
+        blue_player1 = fake_player(246, "Blue Player1", "blue")
+        blue_player2 = fake_player(975, "Blue Player2", "blue")
+        connected_players(red_player1, red_player2, fake_player(42, "Spec Player", "spectator"),
+                          blue_player1, blue_player2)
+        self.setup_previous_players(red_player1, red_player2, blue_player1, blue_player2)
+
+        self.plugin.handle_round_countdown(3)
+
+        assert_plugin_sent_to_console(matches("New players detected: .*"), times=0)
+
+    def test_handle_round_countdown_does_nothing_with_just_one_new_joiner(self):
+        red_player1 = fake_player(123, "Red Player1", "red")
+        red_player2 = fake_player(456, "Red Player2", "red")
+        blue_player1 = fake_player(246, "Blue Player1", "blue")
+        blue_player2 = fake_player(975, "Blue Player2", "blue")
+        connected_players(red_player1, red_player2, fake_player(42, "Spec Player", "red"),
+                          blue_player1, blue_player2)
+        self.setup_previous_players(red_player1, red_player2, blue_player1, blue_player2)
+
+        self.plugin.handle_round_countdown(3)
+
+        assert_plugin_sent_to_console(matches("New players detected: .*"), times=0)
+
     def test_handle_round_start_remembers_steamd_ids(self):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")

@@ -1,5 +1,4 @@
 """
-
 This is a plugin created by ShiN0
 Copyright (c) 2018 ShiN0
 <https://www.github.com/mgaertne/minqlx-plugin-tests>
