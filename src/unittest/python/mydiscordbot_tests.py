@@ -210,6 +210,28 @@ class MyDiscordBotTests(unittest.TestCase):
 
         assert_that(game_info, is_("Match ended: **5** - **8**"))
 
+    def test_get_game_info_red_player_dropped_out(self):
+        mock_game = mock(spec=minqlx.Game, strict=False)
+        mock_game.state = "in_progress"
+        mock_game.roundlimit = 8
+        mock_game.red_score = -999
+        mock_game.blue_score = 3
+
+        game_info = mydiscordbot.get_game_info(mock_game)
+
+        assert_that(game_info, is_("Match ended: **-999** - **3**"))
+
+    def test_get_game_info_blue_player_dropped_out(self):
+        mock_game = mock(spec=minqlx.Game, strict=False)
+        mock_game.state = "in_progress"
+        mock_game.roundlimit = 8
+        mock_game.red_score = 5
+        mock_game.blue_score = -999
+
+        game_info = mydiscordbot.get_game_info(mock_game)
+
+        assert_that(game_info, is_("Match ended: **5** - **-999**"))
+
     def test_get_game_info_unknown_game_state(self):
         mock_game = mock(spec=minqlx.Game, strict=False)
         mock_game.state = "asdf"

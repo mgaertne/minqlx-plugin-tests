@@ -178,7 +178,7 @@ class mydiscordbot(minqlx.Plugin):
             return "Warmup"
         if game.state == "countdown":
             return "Match starting"
-        if game.roundlimit in [game.blue_score, game.red_score]:
+        if game.roundlimit in [game.blue_score, game.red_score] or game.red_score < 0 or game.blue_score < 0:
             return "Match ended: **{}** - **{}**".format(game.red_score, game.blue_score)
         if game.state == "in_progress":
             return "Match in progress: **{}** - **{}**".format(game.red_score, game.blue_score)
