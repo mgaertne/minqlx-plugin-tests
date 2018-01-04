@@ -27,6 +27,8 @@ def setup_plugin():
     when2(Plugin.players).thenReturn(None)
     spy2(Plugin.player)
     when2(Plugin.player, any()).thenReturn(None)
+    spy2(Plugin.switch)
+    when2(Plugin.switch, any, any).thenReturn(None)
 
 
 def setup_cvar(cvar_name, cvar_value, return_type=None):
@@ -96,7 +98,7 @@ def assert_plugin_center_printed(matcher, times=1):
 
 
 def assert_plugin_played_sound(matcher, times=1):
-    """Verifiy that a certain sound was played for all players.
+    """Verify that a certain sound was played for all players.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
 
@@ -109,3 +111,22 @@ def assert_plugin_played_sound(matcher, times=1):
     sound to have been played. (default: 1).
     """
     verify(Plugin, times=times).play_sound(matcher)
+
+
+def assert_players_switched(player1, player2, times=1):
+    """Verify that two players were switched with each other.
+
+    This function differs from :func:`.assert_player_was_put_on` in that the two players were switched with each other
+    directly via the according minqlx.Plugin function rather than minqlx.Player.put().
+
+    **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+
+    :param player1: A :class:`mockito.matchers` that should match one player that was switched
+    :param player2: A :class:`mockito.matchers` that should match the other player that was switched
+    :param times: The amount of times the plugin should have played the matching sound, set to 0 for no matching
+    sound to have been played. (default: 1).
+    """
+    verify(Plugin, times=times).switch(player1, player2)

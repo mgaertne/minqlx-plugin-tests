@@ -45,6 +45,7 @@ def connected_players(*players):
     when2(Plugin.players).thenReturn(players)
     for player in players:
         when2(Plugin.player, player.steam_id).thenReturn(player)
+        when2(Plugin.player, player).thenReturn(player)
 
 
 def assert_player_was_put_on(player, matcher, times=1):
