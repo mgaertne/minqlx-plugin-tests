@@ -55,6 +55,7 @@ class auto_rebalance(minqlx.Plugin):
             return
 
         teams = self.teams()
+
         new_red_players = [player for player in teams["red"]
                            if player.steam_id not in self.previous_round_player_steam_ids]
         new_blue_players = [player for player in teams["blue"]
@@ -63,11 +64,17 @@ class auto_rebalance(minqlx.Plugin):
         if len(new_red_players) + len(new_blue_players) < 2:
             return
 
+        # make sure the auto-balance feature of mybalance does not interfere
+        last_player = None
+        if len(teams["red"]) != len(teams["blue"]) and (len(new_red_players) + len(new_blue_players)) % 2 == 1 \
+                and "mybalance" in self.plugins:
+            last_player = self.plugins["mybalance"].algo_get_last()
+
         Plugin.msg("New players detected: {}"
                    .format(", ".join([player.name for player in new_red_players + new_blue_players])))
 
-        new_players = {'red': new_red_players,
-                       'blue': new_blue_players}
+        new_players = {'red': [player for player in new_red_players if player != last_player],
+                       'blue': [player for player in new_blue_players if player != last_player]}
         switch = self.suggest_switch(teams, new_players, gametype)
         if not switch:
             Plugin.msg("New team members already on optimal teams. Nothing to rebalance")
@@ -82,9 +89,11 @@ class auto_rebalance(minqlx.Plugin):
             teams["blue"].remove(p2)
             teams["red"].remove(p1)
             new_players = {'red': [player for player in teams["red"]
-                                   if player.steam_id not in self.previous_round_player_steam_ids],
+                                   if player.steam_id not in self.previous_round_player_steam_ids
+                                   and player != last_player],
                            'blue': [player for player in teams["blue"]
-                                    if player.steam_id not in self.previous_round_player_steam_ids]}
+                                    if player.steam_id not in self.previous_round_player_steam_ids
+                                    and player != last_player]}
             switch = self.suggest_switch(teams, new_players, gametype)
 
     def suggest_switch(self, teams, new_players, gametype):
