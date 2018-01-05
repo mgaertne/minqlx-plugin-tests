@@ -53,7 +53,7 @@ class auto_rebalance(minqlx.Plugin):
 
         self.add_command("rebalanceMethod", self.cmd_rebalance_method, permission=3, usage="[countdown|teamsswitch]")
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.2")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.3")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -121,11 +121,11 @@ class auto_rebalance(minqlx.Plugin):
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
             player.put(last_new_player.team)
-            return minqlx.RET_STOP_EVENT
+            return minqlx.RET_STOP_ALL
 
         if new not in ["any", other_than_last_players_team]:
             player.put(other_than_last_players_team)
-            return minqlx.RET_STOP_EVENT
+            return minqlx.RET_STOP_ALL
 
         return minqlx.RET_NONE
 
@@ -148,11 +148,14 @@ class auto_rebalance(minqlx.Plugin):
             Plugin.msg("^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible.")
             return minqlx.RET_NONE
 
-        gametype = self.game.type_short
-        if gametype not in SUPPORTED_GAMETYPES:
+        if roundnumber == 1:
             return minqlx.RET_NONE
 
-        if roundnumber == 1:
+        self.rebalance_teams()
+
+    def rebalance_teams(self):
+        gametype = self.game.type_short
+        if gametype not in SUPPORTED_GAMETYPES:
             return minqlx.RET_NONE
 
         teams = self.teams()
@@ -163,7 +166,7 @@ class auto_rebalance(minqlx.Plugin):
                             if player.steam_id not in self.balanced_player_steam_ids]
 
         if len(new_red_players) + len(new_blue_players) < 2:
-            return
+            return minqlx.RET_NONE
 
         # make sure the auto-balance feature of mybalance does not interfere
         last_player = None
@@ -179,7 +182,7 @@ class auto_rebalance(minqlx.Plugin):
         switch = self.suggest_switch(teams, new_players, gametype)
         if not switch:
             Plugin.msg("New team members already on optimal teams. Nothing to rebalance")
-            return
+            return minqlx.RET_NONE
 
         switches = []
 
@@ -200,6 +203,8 @@ class auto_rebalance(minqlx.Plugin):
             switch = self.suggest_switch(teams, new_players, gametype)
 
         self.perform_switches(switches)
+        if len(switches) > 0:
+            return minqlx.RET_STOP_ALL
 
     @minqlx.thread
     def perform_switches(self, switches):

@@ -83,7 +83,7 @@ class AutoRebalanceTests(unittest.TestCase):
         assert_that(return_code, is_(minqlx.RET_NONE))
         assert_plugin_sent_to_console(matches(".*not possible.*"))
 
-    def test_handle_team_switch_attempt_wrong_gasmetype(self):
+    def test_handle_team_switch_attempt_unsupported_gametype(self):
         setup_game_in_progress(game_type="rr")
         self.setup_balance_ratings([])
         self.plugin.rebalance_method = "teamswitch"
@@ -93,6 +93,34 @@ class AutoRebalanceTests(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_attempt(player, "spectator", "red")
 
         assert_that(return_code, is_(minqlx.RET_NONE))
+
+    def test_handle_team_switch_attempt_first_player_joins(self):
+        self.setup_balance_ratings([])
+        self.plugin.rebalance_method = "teamswitch"
+        player = fake_player(42, "Fake Player")
+        connected_players(player)
+
+        return_code = self.plugin.handle_team_switch_attempt(player, "spectator", "red")
+
+        assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(self.plugin.last_new_player_id, is_(player.steam_id))
+
+    def test_handle_team_switch_attempt_second_player_joins_same_team(self):
+        self.setup_balance_ratings([])
+        self.plugin.rebalance_method = "teamswitch"
+        red_player = fake_player(123, "Red Player", "red")
+        new_player = fake_player(42, "New Player", "spectator")
+        connected_players(red_player, new_player)
+
+        self.setup_previous_players(red_player)
+        self.setup_balance_ratings([(red_player, 1200), (new_player, 1200)])
+        self.plugin.last_new_player_id = red_player.steam_id
+
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
+
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(self.plugin.last_new_player_id, is_(None))
+        assert_player_was_put_on(new_player, "blue")
 
     def test_handle_team_switch_attempt_third_player_joins(self):
         self.plugin.rebalance_method = "teamswitch"
@@ -175,7 +203,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_player_was_put_on(new_player, "blue")
         assert_that(self.plugin.last_new_player_id, is_(None))
 
@@ -194,7 +222,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_player_was_put_on(new_player, "blue")
         assert_player_was_put_on(new_blue_player, "red")
         assert_that(self.plugin.last_new_player_id, is_(None))
