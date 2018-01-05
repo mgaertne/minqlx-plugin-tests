@@ -169,6 +169,7 @@ class AutoRebalanceTests(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(self.plugin.last_new_player_id, is_(None))
 
     def test_handle_team_switch_attempt_fourth_player_joins_teams_already_balanced(self):
         self.plugin.rebalance_method = "teamswitch"

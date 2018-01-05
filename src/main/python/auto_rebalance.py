@@ -98,22 +98,21 @@ class auto_rebalance(minqlx.Plugin):
 
         last_new_player = Plugin.player(self.last_new_player_id)
         if not last_new_player:
+            self.last_new_player_id = None
             return minqlx.RET_NONE
 
         other_than_last_players_team = self.other_team(last_new_player.team)
-        new_player_team = teams[other_than_last_players_team].copy()
-        new_player_team.append(player)
-        last_player_avg = self.team_average(teams[last_new_player.team], gametype)
-        new_player_avg = self.team_average(new_player_team, gametype)
-        proposed_diff = abs(last_player_avg - new_player_avg)
+        new_player_team = teams[other_than_last_players_team].copy() + [player]
+        proposed_diff = self.calculate_player_average_difference(gametype,
+                                                                 teams[last_new_player.team],
+                                                                 new_player_team)
 
-        alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player]
-        alternative_team_a.append(player)
-        alternative_new_avg = self.team_average(alternative_team_a, gametype)
-        alternative_team_b = teams[other_than_last_players_team].copy()
-        alternative_team_b.append(last_new_player)
-        alternative_last_avg = self.team_average(alternative_team_b, gametype)
-        alternative_diff = abs(alternative_last_avg - alternative_new_avg)
+        alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + \
+                             [player]
+        alternative_team_b = teams[other_than_last_players_team].copy() + [last_new_player]
+        alternative_diff = self.calculate_player_average_difference(gametype,
+                                                                    alternative_team_a,
+                                                                    alternative_team_b)
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
@@ -130,9 +129,32 @@ class auto_rebalance(minqlx.Plugin):
         return minqlx.RET_NONE
 
     def other_team(self, team):
+        """
+        Calculates the other playing team based upon the provided team string.
+
+        :param team: the team the other playing team should be determined for
+
+        :return the other playing team based upon the provided team string
+        """
         if team == "red":
             return "blue"
         return "red"
+
+    def calculate_player_average_difference(self, gametype, team1, team2):
+        """
+        calculates the difference between the team averages of the two provided teams for the given gametype
+
+        the result will be absolute, i.e. always be greater then or equal to 0
+
+        :param gametype: the gametype to calculate the teams' averages for
+        :param team1: the first team to calculate the team averages for
+        :param team2: the second team to calculate the team averages for
+
+        :return the absolute difference between the two team's averages
+        """
+        team1_avg = self.team_average(gametype, team1)
+        team2_avg = self.team_average(gametype, team2)
+        return abs(team1_avg - team2_avg)
 
     def handle_round_countdown(self, roundnumber):
         """
@@ -146,17 +168,14 @@ class auto_rebalance(minqlx.Plugin):
 
         if "balance" not in self.plugins:
             Plugin.msg("^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible.")
-            return minqlx.RET_NONE
+            return
 
         if roundnumber == 1:
-            return minqlx.RET_NONE
+            return
 
-        self.rebalance_teams()
-
-    def rebalance_teams(self):
         gametype = self.game.type_short
         if gametype not in SUPPORTED_GAMETYPES:
-            return minqlx.RET_NONE
+            return
 
         teams = self.teams()
 
@@ -165,8 +184,9 @@ class auto_rebalance(minqlx.Plugin):
         new_blue_players = [player for player in teams["blue"]
                             if player.steam_id not in self.balanced_player_steam_ids]
 
+        # at most one more new player found, we have nothing to do for rebalancing
         if len(new_red_players) + len(new_blue_players) < 2:
-            return minqlx.RET_NONE
+            return
 
         # make sure the auto-balance feature of mybalance does not interfere
         last_player = None
@@ -179,10 +199,15 @@ class auto_rebalance(minqlx.Plugin):
 
         new_players = {'red': [player for player in new_red_players if player != last_player],
                        'blue': [player for player in new_blue_players if player != last_player]}
+
+        switches = self.collect_more_optimal_player_switches(teams, new_players, gametype, last_player)
+        self.perform_switches(switches)
+
+    def collect_more_optimal_player_switches(self, teams, new_players, gametype, last_player=None):
         switch = self.suggest_switch(teams, new_players, gametype)
         if not switch:
             Plugin.msg("New team members already on optimal teams. Nothing to rebalance")
-            return minqlx.RET_NONE
+            return []
 
         switches = []
 
@@ -201,10 +226,7 @@ class auto_rebalance(minqlx.Plugin):
                                     if player.steam_id not in self.balanced_player_steam_ids and
                                     player != last_player]}
             switch = self.suggest_switch(teams, new_players, gametype)
-
-        self.perform_switches(switches)
-        if len(switches) > 0:
-            return minqlx.RET_STOP_ALL
+        return switches
 
     @minqlx.thread
     def perform_switches(self, switches):
@@ -218,9 +240,7 @@ class auto_rebalance(minqlx.Plugin):
 
     def suggest_switch(self, teams, new_players, gametype):
         """Suggest a switch based on average team ratings."""
-        avg_red = self.team_average(teams["red"], gametype)
-        avg_blue = self.team_average(teams["blue"], gametype)
-        cur_diff = abs(avg_red - avg_blue)
+        cur_diff = self.calculate_player_average_difference(gametype, teams["red"], teams["blue"])
         min_diff = 999999
         best_pair = None
 
@@ -232,20 +252,25 @@ class auto_rebalance(minqlx.Plugin):
                 r.remove(red_p)
                 r.append(blue_p)
                 b.remove(blue_p)
-                avg_red = self.team_average(r, gametype)
-                avg_blue = self.team_average(b, gametype)
-                diff = abs(avg_red - avg_blue)
+                diff = self.calculate_player_average_difference(gametype, r, b)
                 if diff < min_diff:
                     min_diff = diff
-                    best_pair = (red_p, blue_p)
+                    best_pair = red_p, blue_p
 
         if min_diff < cur_diff:
-            return (best_pair, cur_diff - min_diff)
+            return best_pair, cur_diff - min_diff
         else:
             return None
 
-    def team_average(self, team, gametype):
-        """Calculates the average rating of a team."""
+    def team_average(self, gametype, team):
+        """
+        Calculates the average rating of a team.
+
+        :param gametype: the gametype to determine the ratings for
+        :param team: the list of players the average should be calculated for
+
+        :return the average rating for the given team and gametype
+        """
         if not team:
             return 0
 
@@ -269,6 +294,13 @@ class auto_rebalance(minqlx.Plugin):
         self.balanced_player_steam_ids = []
 
     def cmd_rebalance_method(self, player, msg, channel):
+        """
+        (Re-)sets the rebalance method, either during each team switch events or just at round start
+
+        :param player: the player that initiated the command
+        :param msg: the original message the player sent
+        :param channel: the channel this hook was triggered from
+        """
         if len(msg) < 2 or msg[1] not in ["countdown", "teamswitch"]:
             player.tell("Current rebalance method is: ^4{}^7".format(self.rebalance_method))
             return minqlx.RET_USAGE
