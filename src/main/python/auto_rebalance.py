@@ -15,7 +15,7 @@ import statistics
 import minqlx
 from minqlx import Plugin
 
-from balance import SUPPORTED_GAMETYPES
+SUPPORTED_GAMETYPES = ("ca", "ctf", "dom", "ft", "tdm")
 
 
 class auto_rebalance(minqlx.Plugin):
@@ -51,7 +51,7 @@ class auto_rebalance(minqlx.Plugin):
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
         self.add_hook("game_countdown", self.handle_game_countdown, priority=minqlx.PRI_LOWEST)
 
-        self.add_command("rebalanceMethod", self.cmd_rebalance_method, permission=3, usage="[countdown|teamsswitch]")
+        self.add_command("rebalancemethod", self.cmd_rebalance_method, permission=3, usage="[countdown|teamsswitch]")
 
         self.plugin_version = "{} Version: {}".format(self.name, "v0.0.3")
         self.logger.info(self.plugin_version)
