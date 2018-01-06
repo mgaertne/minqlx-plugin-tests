@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-kaunan"
+plugin_version = "v1.0.0-laguz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -293,7 +293,7 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the player that connected
         :param reason: the reason why the player left
         """
-        if reason in ["disconnected", "timed out", "was kicked"]:
+        if reason in ["disconnected", "timed out", "was kicked", "was kicked."]:
             reason_str = "{}.".format(reason)
         else:
             reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
