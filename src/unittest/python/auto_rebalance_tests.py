@@ -425,8 +425,6 @@ class AutoRebalanceTests(unittest.TestCase):
         assert_player_was_told(player, "Current rebalance method is: ^4teamswitch^7")
 
     def test_cmd_rebalance_method_set_to_another_value(self):
-        spy2(Plugin.set_cvar)
-        when2(Plugin.set_cvar, any, any).thenReturn(None)
 
         self.plugin.rebalance_method = "teamswitch"
         player = fake_player(123, "Fake Player")
@@ -435,4 +433,4 @@ class AutoRebalanceTests(unittest.TestCase):
 
         assert_player_was_told(player, "Rebalance method set to: ^4countdown^7")
         assert_that(self.plugin.rebalance_method, is_("countdown"))
-        verify(Plugin).set_cvar("qlx_rebalanceMethod", "countdown")
+        assert_cvar_was_set_to("qlx_rebalanceMethod", "countdown")

@@ -29,6 +29,8 @@ def setup_plugin():
     when2(Plugin.player, any()).thenReturn(None)
     spy2(Plugin.switch)
     when2(Plugin.switch, any, any).thenReturn(None)
+    spy2(Plugin.set_cvar)
+    when2(Plugin.set_cvar, any, any).thenReturn(None)
 
 
 def setup_cvar(cvar_name, cvar_value, return_type=None):
@@ -130,3 +132,18 @@ def assert_players_switched(player1, player2, times=1):
     sound to have been played. (default: 1).
     """
     verify(Plugin, times=times).switch(player1, player2)
+
+
+def assert_cvar_was_set_to(cvar_name, cvar_value, times=1):
+    """Verify that the plugin set a cvar to certain value
+
+    **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+
+    :param cvar_name: the name of the cvar
+    :param cvar_value: the value the plugin should have set the cvar to
+    :param times: The amount of times the plugin should have set the cvar. (default: 1).
+    """
+    verify(Plugin, times=times).set_cvar(cvar_name, cvar_value)
