@@ -10,12 +10,11 @@ This plugin automatically rebalances new-joiners at round start based upon the r
 It's intended to run with the default balance plugin, and will print an error on every round countdown if the
 balance plugin is not loaded together with this one.
 """
-import statistics
-
 import minqlx
 from minqlx import Plugin
 
-SUPPORTED_GAMETYPES = ("ca", "ctf", "dom", "ft", "tdm")
+DEFAULT_RATING = 1500
+SUPPORTED_GAMETYPES = ("ca", "ctf", "dom", "ft", "tdm", "duel", "ffa")
 
 
 class auto_rebalance(minqlx.Plugin):
@@ -36,24 +35,11 @@ class auto_rebalance(minqlx.Plugin):
         """
         super().__init__()
         self.last_new_player_id = None
-        if not self.game or self.game.state != "in_progress":
-            self.balanced_player_steam_ids = []
-        else:
-            teams = self.teams()
-            self.balanced_player_steam_ids = [player.steam_id for player in teams["red"] + teams["blue"]]
-
-        self.set_cvar_once("qlx_rebalanceMethod", "countdown")
-
-        self.rebalance_method = self.get_cvar("qlx_rebalanceMethod")
 
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
-        self.add_hook("round_countdown", self.handle_round_countdown)
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
-        self.add_hook("game_countdown", self.handle_game_countdown, priority=minqlx.PRI_LOWEST)
 
-        self.add_command("rebalancemethod", self.cmd_rebalance_method, permission=3, usage="[countdown|teamsswitch]")
-
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.4")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.5")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -71,13 +57,13 @@ class auto_rebalance(minqlx.Plugin):
         if not self.game:
             return minqlx.RET_NONE
 
+        if self.last_new_player_id == player.steam_id and new in ["spectator", "free"]:
+            self.last_new_player_id = None
+
         if self.game.state != "in_progress":
             return minqlx.RET_NONE
 
-        if old not in ["spectator"] or new not in ['red', 'blue', 'any']:
-            return minqlx.RET_NONE
-
-        if self.rebalance_method != "teamswitch":
+        if old not in ["spectator", "free"] or new not in ['red', 'blue', 'any']:
             return minqlx.RET_NONE
 
         if "balance" not in self.plugins:
@@ -177,124 +163,6 @@ class auto_rebalance(minqlx.Plugin):
         team2_avg = self.team_average(gametype, team2)
         return abs(team1_avg - team2_avg)
 
-    def handle_round_countdown(self, roundnumber):
-        """
-        The plugin's main logic lies in here. At round countdown, the players currently on teams will be compared to the
-        ones from the previous round and put on the other team if that leads to better balanced averages for both teams.
-
-        :param roundnumber: the round number that is about to start
-        """
-        if self.rebalance_method != "countdown":
-            return
-
-        if "balance" not in self.plugins:
-            Plugin.msg("^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible.")
-            return
-
-        if roundnumber == 1:
-            return
-
-        gametype = self.game.type_short
-        if gametype not in SUPPORTED_GAMETYPES:
-            return
-
-        teams = self.teams()
-        new_red_players = [player for player in teams["red"]
-                           if player.steam_id not in self.balanced_player_steam_ids]
-        new_blue_players = [player for player in teams["blue"]
-                            if player.steam_id not in self.balanced_player_steam_ids]
-
-        # at most one more new player found, we have nothing to do for rebalancing
-        if len(new_red_players) + len(new_blue_players) < 2:
-            return
-
-        # make sure the auto-balance feature of mybalance does not interfere
-        last_player = None
-        if len(teams["red"]) != len(teams["blue"]) and (len(new_red_players) + len(new_blue_players)) % 2 == 1 \
-                and "mybalance" in self.plugins:
-            last_player = self.plugins["mybalance"].algo_get_last()
-
-        Plugin.msg("^2auto_rebalance^7 New players detected: {}"
-                   .format(", ".join([player.name for player in new_red_players + new_blue_players])))
-
-        playing_teams = {'red': teams['red'].copy(), 'blue': teams['blue'].copy()}
-        new_players = {'red': [player for player in new_red_players if player != last_player],
-                       'blue': [player for player in new_blue_players if player != last_player]}
-
-        switches = self.collect_more_optimal_player_switches(playing_teams, new_players, gametype, last_player)
-        self.perform_switches(switches)
-
-    def collect_more_optimal_player_switches(self, teams, new_players, gametype, last_player=None):
-        switch = self.suggest_switch(gametype, teams, new_players)
-        if not switch:
-            Plugin.msg("New team members already on optimal teams. Nothing to rebalance")
-            return []
-
-        switches = []
-
-        while switch:
-            p1 = switch[0][0]
-            p2 = switch[0][1]
-            switches.append(switch[0])
-            teams["blue"].append(p1)
-            teams["red"].append(p2)
-            teams["blue"].remove(p2)
-            teams["red"].remove(p1)
-            new_players = {'red': [player for player in teams["red"]
-                                   if player.steam_id not in self.balanced_player_steam_ids and
-                                   player != last_player],
-                           'blue': [player for player in teams["blue"]
-                                    if player.steam_id not in self.balanced_player_steam_ids and
-                                    player != last_player]}
-            switch = self.suggest_switch(gametype, teams, new_players)
-        return switches
-
-    @minqlx.thread
-    def perform_switches(self, switches):
-        """
-        performs collected player switches in its own thread to not interfere with other game logic
-
-        :param switches: a list of player pairs that should be switched with each other
-        """
-        for switch in switches:
-            Plugin.msg("^2auto_rebalance^7 switching {} with {} for better balanced teams."
-                       .format(switch[0].name, switch[1].name))
-
-            self.switch(switch[0], switch[1])
-
-    def suggest_switch(self, gametype, teams, new_players):
-        """
-        Suggest a switch based on average team ratings.
-
-        :param teams: a dictionary with the red and blue teams and their players.
-        :param new_players: a list of players that should be considered for switching with each other.
-        :param gametype: the gametype to derive the ratings for.
-
-        :return a switch of player that would improve the team balance based upon average elo ratings,
-        or None if teams are already well balanced among the new_players.
-        """
-        cur_diff = self.calculate_player_average_difference(gametype, teams["red"], teams["blue"])
-        min_diff = 999999
-        best_pair = None
-
-        for red_p in new_players["red"]:
-            for blue_p in new_players["blue"]:
-                r = teams["red"].copy()
-                b = teams["blue"].copy()
-                b.append(red_p)
-                r.remove(red_p)
-                r.append(blue_p)
-                b.remove(blue_p)
-                diff = self.calculate_player_average_difference(gametype, r, b)
-                if diff < min_diff:
-                    min_diff = diff
-                    best_pair = red_p, blue_p
-
-        if min_diff < cur_diff:
-            return best_pair, cur_diff - min_diff
-        else:
-            return None
-
     def team_average(self, gametype, team):
         """
         Calculates the average rating of a team.
@@ -304,40 +172,23 @@ class auto_rebalance(minqlx.Plugin):
 
         :return the average rating for the given team and gametype
         """
-        if not team:
+        if not team or len(team) == 0:
             return 0
 
         ratings = self.plugins["balance"].ratings
 
-        team_elos = [ratings[p.steam_id][gametype]["elo"] for p in team]
-        return statistics.mean(team_elos)
+        average = 0
+        for p in team:
+            if p.steam_id not in ratings:
+                average += DEFAULT_RATING
+            else:
+                average += ratings[p.steam_id][gametype]["elo"]
+        average /= len(team)
+
+        return average
 
     def handle_round_start(self, roundnumber):
         """
         Remembers the steam ids of all players at round startup
         """
-        teams = Plugin.teams()
-        self.balanced_player_steam_ids = [player.steam_id for player in teams["red"] + teams["blue"]]
         self.last_new_player_id = None
-
-    def handle_game_countdown(self):
-        """
-        When a new game starts, the steam ids of the previous rounds are re-initialized.
-        """
-        self.balanced_player_steam_ids = []
-
-    def cmd_rebalance_method(self, player, msg, channel):
-        """
-        (Re-)sets the rebalance method, either during each team switch events or just at round start
-
-        :param player: the player that initiated the command
-        :param msg: the original message the player sent
-        :param channel: the channel this hook was triggered from
-        """
-        if len(msg) < 2 or msg[1] not in ["countdown", "teamswitch"]:
-            player.tell("Current rebalance method is: ^4{}^7".format(self.rebalance_method))
-            return minqlx.RET_USAGE
-        else:
-            self.rebalance_method = msg[1]
-            Plugin.set_cvar("qlx_rebalanceMethod", self.rebalance_method)
-            player.tell("Rebalance method set to: ^4{}^7".format(self.rebalance_method))
