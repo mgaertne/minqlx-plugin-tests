@@ -53,7 +53,7 @@ class auto_rebalance(minqlx.Plugin):
 
         self.add_command("rebalancemethod", self.cmd_rebalance_method, permission=3, usage="[countdown|teamsswitch]")
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.3")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.4")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -66,7 +66,7 @@ class auto_rebalance(minqlx.Plugin):
         :param new: the new team that swicthting player would be put onto
 
         :return minqlx.RET_NONE if the team switch should be allowed or minqlx.RET_STOP_EVENT if the switch should not
-        be allowed, and we put the player on a better-suited teamö.
+        be allowed, and we put the player on a better-suited team.
         """
         if not self.game:
             return minqlx.RET_NONE
@@ -90,6 +90,9 @@ class auto_rebalance(minqlx.Plugin):
 
         teams = self.teams()
         if len(teams["red"]) == len(teams["blue"]):
+            Plugin.msg("^2auto_rebalance^7 found new joiner {}. Plugin might switch you "
+                       "if someone else joins before next round start for better team balancing"
+                       .format(player.name))
             self.last_new_player_id = player.steam_id
             return minqlx.RET_NONE
 
@@ -101,10 +104,12 @@ class auto_rebalance(minqlx.Plugin):
             self.last_new_player_id = None
             return minqlx.RET_NONE
 
+        Plugin.msg("^2auto_rebalance^7 will check for best team constellations for: {}"
+                   .format(", ".join([last_new_player.name, player.name])))
         other_than_last_players_team = self.other_team(last_new_player.team)
         new_player_team = teams[other_than_last_players_team].copy() + [player]
         proposed_diff = self.calculate_player_average_difference(gametype,
-                                                                 teams[last_new_player.team],
+                                                                 teams[last_new_player.team].copy(),
                                                                  new_player_team)
 
         alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + \
@@ -116,15 +121,23 @@ class auto_rebalance(minqlx.Plugin):
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
+            Plugin.msg("^2auto_rebalance^7 will switch {} to {} and make sure {} goes on {} (diff. ^6{}^7 vs. ^6{}^7)"
+                       .format(last_new_player.name, self.format_team(other_than_last_players_team),
+                               player.name, self.format_team(last_new_player.team),
+                               alternative_diff, proposed_diff))
             last_new_player.put(other_than_last_players_team)
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
             player.put(last_new_player.team)
-            return minqlx.RET_STOP_ALL
+            return minqlx.RET_STOP_EVENT
 
+        Plugin.msg("^2auto_rebalance^7 will leave {} on {} and make sure {} goes on {} (diff. ^6{}^7 vs. ^6{}^7)"
+                   .format(last_new_player.name, self.format_team(last_new_player.team),
+                           player.name, self.format_team(other_than_last_players_team),
+                           proposed_diff, alternative_diff))
         if new not in ["any", other_than_last_players_team]:
             player.put(other_than_last_players_team)
-            return minqlx.RET_STOP_ALL
+            return minqlx.RET_STOP_EVENT
 
         return minqlx.RET_NONE
 
@@ -139,6 +152,14 @@ class auto_rebalance(minqlx.Plugin):
         if team == "red":
             return "blue"
         return "red"
+
+    def format_team(self, team):
+        if team == "red":
+            return "^1red^7"
+        if team == "blue":
+            return "^4blue^7"
+
+        return "^3{}^7".format(team)
 
     def calculate_player_average_difference(self, gametype, team1, team2):
         """
@@ -178,7 +199,6 @@ class auto_rebalance(minqlx.Plugin):
             return
 
         teams = self.teams()
-
         new_red_players = [player for player in teams["red"]
                            if player.steam_id not in self.balanced_player_steam_ids]
         new_blue_players = [player for player in teams["blue"]
@@ -194,7 +214,7 @@ class auto_rebalance(minqlx.Plugin):
                 and "mybalance" in self.plugins:
             last_player = self.plugins["mybalance"].algo_get_last()
 
-        Plugin.msg("New players detected: {}"
+        Plugin.msg("^2auto_rebalance^7 New players detected: {}"
                    .format(", ".join([player.name for player in new_red_players + new_blue_players])))
 
         new_players = {'red': [player for player in new_red_players if player != last_player],
@@ -204,7 +224,7 @@ class auto_rebalance(minqlx.Plugin):
         self.perform_switches(switches)
 
     def collect_more_optimal_player_switches(self, teams, new_players, gametype, last_player=None):
-        switch = self.suggest_switch(teams, new_players, gametype)
+        switch = self.suggest_switch(gametype, teams, new_players)
         if not switch:
             Plugin.msg("New team members already on optimal teams. Nothing to rebalance")
             return []
@@ -225,21 +245,33 @@ class auto_rebalance(minqlx.Plugin):
                            'blue': [player for player in teams["blue"]
                                     if player.steam_id not in self.balanced_player_steam_ids and
                                     player != last_player]}
-            switch = self.suggest_switch(teams, new_players, gametype)
+            switch = self.suggest_switch(gametype, teams, new_players)
         return switches
 
     @minqlx.thread
     def perform_switches(self, switches):
         """
-        pereforms collected player switches in its own thread to not interfere with other game logic
+        performs collected player switches in its own thread to not interfere with other game logic
 
         :param switches: a list of player pairs that should be switched with each other
         """
         for switch in switches:
+            Plugin.msg("^2auto_rebalance^7 switching {} with {} for better balanced teams."
+                       .format(switch[0].name, switch[1].name))
+
             self.switch(switch[0], switch[1])
 
-    def suggest_switch(self, teams, new_players, gametype):
-        """Suggest a switch based on average team ratings."""
+    def suggest_switch(self, gametype, teams, new_players):
+        """
+        Suggest a switch based on average team ratings.
+
+        :param teams: a dictionary with the red and blue teams and their players.
+        :param new_players: a list of players that should be considered for switching with each other.
+        :param gametype: the gametype to derive the ratings for.
+
+        :return a switch of player that would improve the team balance based upon average elo ratings,
+        or None if teams are already well balanced among the new_players.
+        """
         cur_diff = self.calculate_player_average_difference(gametype, teams["red"], teams["blue"])
         min_diff = 999999
         best_pair = None

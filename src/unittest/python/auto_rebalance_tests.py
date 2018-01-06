@@ -118,7 +118,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
         assert_that(self.plugin.last_new_player_id, is_(None))
         assert_player_was_put_on(new_player, "blue")
 
@@ -204,7 +204,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
         assert_player_was_put_on(new_player, "blue")
         assert_that(self.plugin.last_new_player_id, is_(None))
 
@@ -223,7 +223,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
         assert_player_was_put_on(new_player, "blue")
         assert_player_was_put_on(new_blue_player, "red")
         assert_that(self.plugin.last_new_player_id, is_(None))
@@ -302,7 +302,8 @@ class AutoRebalanceTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(3)
 
-        assert_plugin_sent_to_console("New players detected: {}, {}".format(new_player1.name, new_player2.name))
+        assert_plugin_sent_to_console("^2auto_rebalance^7 New players detected: {}, {}"
+                                      .format(new_player1.name, new_player2.name))
         assert_plugin_sent_to_console(matches(".*Nothing to rebalance"))
 
     def test_handle_round_countdown_two_new_players_are_switched(self):
@@ -320,7 +321,8 @@ class AutoRebalanceTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(3)
 
-        assert_plugin_sent_to_console("New players detected: {}, {}".format(new_player1.name, new_player2.name))
+        assert_plugin_sent_to_console("^2auto_rebalance^7 New players detected: {}, {}"
+                                      .format(new_player1.name, new_player2.name))
         assert_players_switched(new_player1, new_player2)
 
     def test_handle_round_countdown_six_new_players_are_rebalanced(self):
@@ -345,7 +347,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(3)
 
-        assert_plugin_sent_to_console("New players detected: {}"
+        assert_plugin_sent_to_console("^2auto_rebalance^7 New players detected: {}"
                                       .format(", ".join([new_player1.name, new_player3.name, new_player5.name,
                                                          new_player2.name, new_player4.name, new_player6.name])))
         assert_players_switched(new_player1, new_player4)
