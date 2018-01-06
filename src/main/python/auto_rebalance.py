@@ -25,8 +25,8 @@ class auto_rebalance(minqlx.Plugin):
     better balanced teams overall.
 
     Uses:
-    * qlx_rebalanceMethod (default: "countdown") Describes the method for rebalancing. countdown will rebalance during
-    round countdown all new players. teamswitch will rebalance on every switch to the red or blue team, if applicable.
+    * qlx_rebalanceSuggestionThreshold (default: "3") The difference between red team score and blue team score
+    threshold that will trigger a team switch suggestion at round end
 
     """
     def __init__(self):
@@ -36,10 +36,15 @@ class auto_rebalance(minqlx.Plugin):
         super().__init__()
         self.last_new_player_id = None
 
+        Plugin.set_cvar_once("qlx_rebalanceSuggestionThreshold", 3)
+
+        self.rebalance_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceSuggestionThreshold", int)
+
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
+        self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.5")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.6")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -115,7 +120,7 @@ class auto_rebalance(minqlx.Plugin):
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
             player.put(last_new_player.team)
-            return minqlx.RET_STOP_EVENT
+            return minqlx.RET_STOP_ALL
 
         Plugin.msg("^2auto_rebalance^7 will leave {} on {} and make sure {} goes on {} (diff. ^6{}^7 vs. ^6{}^7)"
                    .format(last_new_player.name, self.format_team(last_new_player.team),
@@ -123,7 +128,7 @@ class auto_rebalance(minqlx.Plugin):
                            proposed_diff, alternative_diff))
         if new not in ["any", other_than_last_players_team]:
             player.put(other_than_last_players_team)
-            return minqlx.RET_STOP_EVENT
+            return minqlx.RET_STOP_ALL
 
         return minqlx.RET_NONE
 
@@ -192,3 +197,27 @@ class auto_rebalance(minqlx.Plugin):
         Remembers the steam ids of all players at round startup
         """
         self.last_new_player_id = None
+
+    @minqlx.delay(1.5)
+    def handle_round_end(self, data):
+        if not self.game:
+            return minqlx.RET_NONE
+
+        gametype = self.game.type_short
+        if gametype not in SUPPORTED_GAMETYPES:
+            return minqlx.RET_NONE
+
+        if self.game.roundlimit in [self.game.blue_score, self.game.red_score]:
+            return minqlx.RET_NONE
+
+        if abs(self.game.red_score - self.game.blue_score) < self.rebalance_suggestion_threshold:
+            return minqlx.RET_NONE
+
+        teams = self.teams()
+        if len(teams["red"]) != len(teams["blue"]):
+            return minqlx.RET_NONE
+
+        if 'balance' in minqlx.Plugin._loaded_plugins:
+            b = Plugin._loaded_plugins['balance']
+            players = dict([(p.steam_id, gametype) for p in teams["red"] + teams["blue"]])
+            b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)

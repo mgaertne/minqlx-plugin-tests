@@ -6,6 +6,8 @@ from mockito import *
 from mockito.matchers import *
 from hamcrest import *
 
+from undecorated import undecorated
+
 from auto_rebalance import *
 
 
@@ -13,13 +15,22 @@ class AutoRebalanceTests(unittest.TestCase):
 
     def setUp(self):
         setup_plugin()
+        setup_cvars({
+            "qlx_rebalanceSuggestionThreshold": (3, int)
+        })
         setup_game_in_progress()
         connected_players()
         self.plugin = auto_rebalance()
-        self.plugin.rebalance_method = "countdown"
 
     def tearDown(self):
         unstub()
+
+    def setup_balance_ratings(self, player_elos):
+        gametype = self.plugin.game.type_short
+        ratings = {}
+        for player, elo in player_elos:
+            ratings[player.steam_id] = {gametype: {'elo': elo}}
+        self.plugin._loaded_plugins["balance"] = mock({'ratings': ratings})
 
     def setup_no_balance_plugin(self):
         if "balance" in self.plugin._loaded_plugins:
@@ -121,7 +132,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_that(self.plugin.last_new_player_id, is_(None))
         assert_player_was_put_on(new_player, "blue")
 
@@ -197,7 +208,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_player_was_put_on(new_player, "blue")
         assert_that(self.plugin.last_new_player_id, is_(None))
 
@@ -214,7 +225,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_EVENT))
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_player_was_put_on(new_player, "blue")
         assert_player_was_put_on(new_blue_player, "red")
         assert_that(self.plugin.last_new_player_id, is_(None))
@@ -237,13 +248,6 @@ class AutoRebalanceTests(unittest.TestCase):
         assert_player_was_put_on(new_blue_player, "red")
         assert_that(self.plugin.last_new_player_id, is_(None))
 
-    def setup_balance_ratings(self, player_elos):
-        gametype = self.plugin.game.type_short
-        ratings = {}
-        for player, elo in player_elos:
-            ratings[player.steam_id] = {gametype: {'elo': elo}}
-        self.plugin._loaded_plugins["balance"] = mock({'ratings': ratings})
-
     def test_handle_round_start_resets_last_new_player_id(self):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
@@ -255,3 +259,76 @@ class AutoRebalanceTests(unittest.TestCase):
         self.plugin.handle_round_start(3)
 
         assert_that(self.plugin.last_new_player_id, is_(None))
+
+    def test_handle_round_end_no_game_running(self):
+        setup_no_game()
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(minqlx.RET_NONE))
+
+    def test_handle_round_end_wrong_gametype(self):
+        setup_game_in_progress(game_type="rr")
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(minqlx.RET_NONE))
+
+    def test_handle_round_end_roundlimit_reached(self):
+        setup_game_in_progress(roundlimit=8, red_score=8, blue_score=3)
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(minqlx.RET_NONE))
+
+    def test_handle_round_end_suggestion_threshold_not_met(self):
+        setup_game_in_progress(roundlimit=8, red_score=4, blue_score=3)
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(minqlx.RET_NONE))
+
+    def test_handle_round_end_teams_unbalanced(self):
+        setup_game_in_progress(roundlimit=8, red_score=5, blue_score=1)
+
+        red_player1 = fake_player(123, "Red Player1", "red")
+        red_player2 = fake_player(456, "Red Player2", "red")
+        blue_player1 = fake_player(246, "Blue Player1", "blue")
+        connected_players(red_player1, red_player2, fake_player(42, "Spec Player", "spectator"), blue_player1)
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(minqlx.RET_NONE))
+
+    def test_handle_round_end_teams_callback_called(self):
+        mocked_balance_plugin = mock()
+        mocked_balance_plugin.callback_teams = lambda: None
+        Plugin._loaded_plugins["balance"] = mocked_balance_plugin
+        setup_game_in_progress(game_type="ca", roundlimit=8, red_score=5, blue_score=1)
+
+        red_player1 = fake_player(123, "Red Player1", "red")
+        red_player2 = fake_player(456, "Red Player2", "red")
+        blue_player1 = fake_player(246, "Blue Player1", "blue")
+        blue_player2 = fake_player(975, "Blue Player2", "blue")
+        connected_players(red_player1, red_player2, fake_player(42, "Spec Player", "spectator"),
+                          blue_player1, blue_player2)
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        players = dict([(p.steam_id, "ca") for p in [red_player1, red_player2, blue_player1, blue_player2]])
+        verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
+
+    def test_handle_round_end_no_balance_plugin(self):
+        self.setup_no_balance_plugin()
+        setup_game_in_progress(game_type="ca", roundlimit=8, red_score=5, blue_score=1)
+
+        red_player1 = fake_player(123, "Red Player1", "red")
+        red_player2 = fake_player(456, "Red Player2", "red")
+        blue_player1 = fake_player(246, "Blue Player1", "blue")
+        blue_player2 = fake_player(975, "Blue Player2", "blue")
+        connected_players(red_player1, red_player2, fake_player(42, "Spec Player", "spectator"),
+                          blue_player1, blue_player2)
+
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        assert_that(return_code, is_(None))
