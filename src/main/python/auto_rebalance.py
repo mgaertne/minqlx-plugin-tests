@@ -217,7 +217,7 @@ class auto_rebalance(minqlx.Plugin):
         Plugin.msg("^2auto_rebalance^7 New players detected: {}"
                    .format(", ".join([player.name for player in new_red_players + new_blue_players])))
 
-        playing_teams = {'red': teams['red'], 'blue': teams['blue']}
+        playing_teams = {'red': teams['red'].copy(), 'blue': teams['blue'].copy()}
         new_players = {'red': [player for player in new_red_players if player != last_player],
                        'blue': [player for player in new_blue_players if player != last_player]}
 
