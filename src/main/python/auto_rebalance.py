@@ -36,7 +36,7 @@ class auto_rebalance(minqlx.Plugin):
         super().__init__()
         self.last_new_player_id = None
 
-        Plugin.set_cvar_once("qlx_rebalanceSuggestionThreshold", 3)
+        Plugin.set_cvar_once("qlx_rebalanceSuggestionThreshold", "3")
 
         self.rebalance_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceSuggestionThreshold", int)
 
