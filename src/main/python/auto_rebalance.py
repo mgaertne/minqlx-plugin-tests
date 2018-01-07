@@ -44,7 +44,7 @@ class auto_rebalance(minqlx.Plugin):
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.6")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.7")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -115,7 +115,7 @@ class auto_rebalance(minqlx.Plugin):
             Plugin.msg("^2auto_rebalance^7 will switch {} to {} and make sure {} goes on {} (diff. ^6{}^7 vs. ^6{}^7)"
                        .format(last_new_player.name, self.format_team(other_than_last_players_team),
                                player.name, self.format_team(last_new_player.team),
-                               alternative_diff, proposed_diff))
+                               round(alternative_diff), round(proposed_diff)))
             last_new_player.put(other_than_last_players_team)
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
@@ -125,7 +125,7 @@ class auto_rebalance(minqlx.Plugin):
         Plugin.msg("^2auto_rebalance^7 will leave {} on {} and make sure {} goes on {} (diff. ^6{}^7 vs. ^6{}^7)"
                    .format(last_new_player.name, self.format_team(last_new_player.team),
                            player.name, self.format_team(other_than_last_players_team),
-                           proposed_diff, alternative_diff))
+                           round(proposed_diff), round(alternative_diff)))
         if new not in ["any", other_than_last_players_team]:
             player.put(other_than_last_players_team)
             return minqlx.RET_STOP_ALL
@@ -221,3 +221,4 @@ class auto_rebalance(minqlx.Plugin):
             b = Plugin._loaded_plugins['balance']
             players = dict([(p.steam_id, gametype) for p in teams["red"] + teams["blue"]])
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)
+
