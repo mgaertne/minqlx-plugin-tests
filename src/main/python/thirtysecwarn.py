@@ -4,7 +4,7 @@ import random
 import threading
 
 
-class ThirtySecondWarner(Plugin):
+class thirtysecwarn(Plugin):
     """Created by Thomas Jones on 01/09/2016 - thomas@tomtecsolutions.com
 
 thirtysecwarn.py - a minqlx plugin to play unused VO when a CA game is nearing the round time limit.
