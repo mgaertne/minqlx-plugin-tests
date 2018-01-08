@@ -50,7 +50,7 @@ class auto_rebalance(minqlx.Plugin):
         self.add_hook("game_start", self.handle_game_start)
         self.winning_teams = []
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.9")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.1.0")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -113,16 +113,14 @@ class auto_rebalance(minqlx.Plugin):
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
-            last_new_player.tell(
-                "{}, you have been moved to {} to maintain team balance.".format(last_new_player.clean_name,
-                                                                                 self.format_team(
-                                                                                     other_than_last_players_team)))
+            last_new_player.tell("{}, you have been moved to {} to maintain team balance."
+                                 .format(last_new_player.clean_name, self.format_team(other_than_last_players_team)))
             last_new_player.put(other_than_last_players_team)
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
-            player.tell("{}, you have been moved to {} to maintain team balance.".format(player.clean_name,
-                                                                                         self.format_team(
-                                                                                             last_new_player.team)))
+            if new not in ["any"]:
+                player.tell("{}, you have been moved to {} to maintain team balance."
+                            .format(player.clean_name, self.format_team(last_new_player.team)))
             player.put(last_new_player.team)
             return minqlx.RET_STOP_ALL
 
