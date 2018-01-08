@@ -44,7 +44,7 @@ class auto_rebalance(minqlx.Plugin):
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.7")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.0.8")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -81,9 +81,6 @@ class auto_rebalance(minqlx.Plugin):
 
         teams = self.teams()
         if len(teams["red"]) == len(teams["blue"]):
-            Plugin.msg("^2auto_rebalance^7 found new joiner {}. Plugin might switch you "
-                       "if someone else joins before next round start for better team balancing"
-                       .format(player.name))
             self.last_new_player_id = player.steam_id
             return minqlx.RET_NONE
 
@@ -95,8 +92,6 @@ class auto_rebalance(minqlx.Plugin):
             self.last_new_player_id = None
             return minqlx.RET_NONE
 
-        Plugin.msg("^2auto_rebalance^7 will check for best team constellations for: {}"
-                   .format(", ".join([last_new_player.name, player.name])))
         other_than_last_players_team = self.other_team(last_new_player.team)
         new_player_team = teams[other_than_last_players_team].copy() + [player]
         proposed_diff = self.calculate_player_average_difference(gametype,
@@ -122,10 +117,6 @@ class auto_rebalance(minqlx.Plugin):
             player.put(last_new_player.team)
             return minqlx.RET_STOP_ALL
 
-        Plugin.msg("^2auto_rebalance^7 will leave {} on {} and make sure {} goes on {} (diff. ^6{}^7 vs. ^6{}^7)"
-                   .format(last_new_player.name, self.format_team(last_new_player.team),
-                           player.name, self.format_team(other_than_last_players_team),
-                           round(proposed_diff), round(alternative_diff)))
         if new not in ["any", other_than_last_players_team]:
             player.put(other_than_last_players_team)
             return minqlx.RET_STOP_ALL
@@ -221,4 +212,3 @@ class auto_rebalance(minqlx.Plugin):
             b = Plugin._loaded_plugins['balance']
             players = dict([(p.steam_id, gametype) for p in teams["red"] + teams["blue"]])
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)
-
