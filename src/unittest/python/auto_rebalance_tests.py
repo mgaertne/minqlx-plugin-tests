@@ -17,7 +17,8 @@ class AutoRebalanceTests(unittest.TestCase):
         setup_plugin()
         setup_cvars({
             "qlx_rebalanceScoreDiffThreshold": (3, int),
-            "qlx_rebalanceWinningStreakThreshold": (3, int)
+            "qlx_rebalanceWinningStreakThreshold": (3, int),
+            "qlx_rebalanceNumAnnouncements": (2, int)
         })
         setup_game_in_progress()
         connected_players()
@@ -368,9 +369,31 @@ class AutoRebalanceTests(unittest.TestCase):
         players = dict([(p.steam_id, "ca") for p in [red_player1, red_player2, blue_player1, blue_player2]])
         verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
+    def test_handle_round_end_winning_streak_triggers_teams_callback_already_called_multiple_times(self):
+        mocked_balance_plugin = mock()
+        mocked_balance_plugin.callback_teams = lambda: None
+        Plugin._loaded_plugins["balance"] = mocked_balance_plugin
+        setup_game_in_progress(game_type="ca", roundlimit=8, red_score=4, blue_score=3)
+
+        red_player1 = fake_player(123, "Red Player1", "red")
+        red_player2 = fake_player(456, "Red Player2", "red")
+        blue_player1 = fake_player(246, "Blue Player1", "blue")
+        blue_player2 = fake_player(975, "Blue Player2", "blue")
+        connected_players(red_player1, red_player2, fake_player(42, "Spec Player", "spectator"),
+                          blue_player1, blue_player2)
+        self.plugin.winning_teams = ["blue", "blue", "blue", "red", "red", "red", "red"]
+
+        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+
+        players = dict([(p.steam_id, "ca") for p in [red_player1, red_player2, blue_player1, blue_player2]])
+        verify(mocked_balance_plugin, times=0).add_request(players,
+                                                           mocked_balance_plugin.callback_teams,
+                                                           minqlx.CHAT_CHANNEL)
+
     def test_handle_game_start_initializes_winning_teams(self):
         self.plugin.winning_teams = ["red", "draw", "blue"]
+        self.plugin.num_announcements_made = 3
 
-        self.plugin.handle_game_start()
+        self.plugin.handle_reset_winning_teams()
 
         assert_that(self.plugin.winning_teams, is_([]))

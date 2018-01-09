@@ -29,7 +29,8 @@ class auto_rebalance(minqlx.Plugin):
     threshold that will trigger a team switch suggestion at round end.
     * qlx_rebalanceWinningStreakThreshold (default: "3") The Threshold when a team is on a winning streak for
     winning this amount of round in a row that will trigger a team switch suggestion at round end.
-
+    * qlx_rebalanceNumAnnouncements (default: "2") The number of announcements the plugin will make for a current
+    switch suggestion at round end
     """
     def __init__(self):
         """
@@ -40,17 +41,20 @@ class auto_rebalance(minqlx.Plugin):
 
         Plugin.set_cvar_once("qlx_rebalanceScoreDiffThreshold", "3")
         Plugin.set_cvar_once("qlx_rebalanceWinningStreakThreshold", "3")
+        Plugin.set_cvar_once("qlx_rebalanceNumAnnouncements", "2")
 
-        self.rebalance_score_diff_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int)
-        self.rebalance_winning_streak_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int)
+        self.score_diff_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int)
+        self.winning_streak_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int)
+        self.num_announcements = Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int)
 
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
-        self.add_hook("game_start", self.handle_game_start)
+        for event in ["map", "game_countdown"]:
+            self.add_hook(event, self.handle_reset_winning_teams)
         self.winning_teams = []
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.1.0")
+        self.plugin_version = "{} Version: {}".format(self.name, "v0.1.1")
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
@@ -198,6 +202,11 @@ class auto_rebalance(minqlx.Plugin):
 
     @minqlx.delay(1.5)
     def handle_round_end(self, data):
+        """
+        Triggered when a round has ended
+
+        :param data: the round end data with the round number and which team won
+        """
         if not self.game:
             return minqlx.RET_NONE
 
@@ -208,11 +217,15 @@ class auto_rebalance(minqlx.Plugin):
         if gametype not in SUPPORTED_GAMETYPES:
             return minqlx.RET_NONE
 
-        if self.game.roundlimit in [self.game.blue_score, self.game.red_score]:
+        if self.game.roundlimit in [self.game.blue_score, self.game.red_score] or \
+                self.game.blue_score < 0 or self.game.red_score < 0:
             return minqlx.RET_NONE
 
-        if abs(self.game.red_score - self.game.blue_score) < self.rebalance_score_diff_suggestion_threshold and \
+        if abs(self.game.red_score - self.game.blue_score) < self.score_diff_suggestion_threshold and \
                 not self.team_is_on_a_winning_streak(winning_team):
+            return minqlx.RET_NONE
+
+        if self.announced_often_enough(winning_team):
             return minqlx.RET_NONE
 
         teams = self.teams()
@@ -225,8 +238,24 @@ class auto_rebalance(minqlx.Plugin):
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)
 
     def team_is_on_a_winning_streak(self, team):
-        return self.winning_teams[-self.rebalance_winning_streak_suggestion_threshold:] == \
-            self.rebalance_winning_streak_suggestion_threshold * [team]
+        """
+        checks whether the given team is on a winning streak by comparing the last teams that won
 
-    def handle_game_start(self):
+        :param team: the team to check for a winning streak
+        :return True if the team is on a winning streak or False if not
+        """
+        return self.winning_teams[-self.winning_streak_suggestion_threshold:] == \
+            self.winning_streak_suggestion_threshold * [team]
+
+    def announced_often_enough(self, winning_team):
+        maximum_announcements = self.winning_streak_suggestion_threshold + self.num_announcements
+
+        return abs(self.game.red_score - self.game.blue_score) > \
+            self.score_diff_suggestion_threshold + self.num_announcements or \
+            self.winning_teams[-maximum_announcements:] == maximum_announcements * [winning_team]
+
+    def handle_reset_winning_teams(self, *args, **kwargs):
+        """
+        resets the winning teams list
+        """
         self.winning_teams = []
