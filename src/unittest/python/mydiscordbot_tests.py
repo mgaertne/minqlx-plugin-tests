@@ -286,6 +286,89 @@ class MyDiscordBotTests(unittest.TestCase):
         team_data = mydiscordbot.team_data(player_list, limit=5)
         assert_that(team_data, is_("**Player3**(55) **Player2**(52) **Player5**(35) **Player7**(7) **Player6**(5) "))
 
+    def test_cmd_discordbot_invalid(self):
+        triggering_player = fake_player(1, "Triggering Player")
+        return_code = self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "asdf"], None)
+
+        assert_that(return_code, is_(minqlx.RET_USAGE))
+
+    def test_cmd_discordbot_too_many_arguments(self):
+        triggering_player = fake_player(1, "Triggering Player")
+        return_code = self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "status", "asdf"], None)
+
+        assert_that(return_code, is_(minqlx.RET_USAGE))
+
+    def test_cmd_discordbot_status(self):
+        when(self.discord).status().thenReturn("Discord status message")
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "status"], chat_channel)
+
+        verify(chat_channel).reply("Discord status message")
+
+    def test_cmd_discordbot_status2(self):
+        when(self.discord).status().thenReturn("Discord status message")
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot"], chat_channel)
+
+        verify(chat_channel).reply("Discord status message")
+
+    def test_cmd_discordbot_connect(self):
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "connect"], chat_channel)
+
+        verify(chat_channel).reply("Connecting to Discord...")
+        verify(self.discord).run()
+
+    def test_cmd_discordbot_connect_when_already_connected(self):
+        when(self.discord).is_discord_logged_in().thenReturn(True)
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "connect"], chat_channel)
+
+        verify(chat_channel).reply("Connecting to Discord...")
+        verify(self.discord, times=0).run()
+
+    def test_cmd_discordbot_disconnect(self):
+        when(self.discord).is_discord_logged_in().thenReturn(True)
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "disconnect"], chat_channel)
+
+        verify(chat_channel).reply("Disconnecting from Discord...")
+        verify(self.discord).stop()
+
+    def test_cmd_discordbot_disconnect_when_already_disconnected(self):
+        when(self.discord).is_discord_logged_in().thenReturn(False)
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "disconnect"], chat_channel)
+
+        verify(chat_channel).reply("Disconnecting from Discord...")
+        verify(self.discord, times=0).stop()
+
+    def test_cmd_discordbot_reconnect(self):
+        when(self.discord).is_discord_logged_in().thenReturn(True).thenReturn(False)
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "reconnect"], chat_channel)
+
+        verify(chat_channel).reply("Reconnecting to Discord...")
+        verify(self.discord).stop()
+        verify(self.discord).run()
+
+    def test_cmd_discordbot_reconnect_when_disconnected(self):
+        when(self.discord).is_discord_logged_in().thenReturn(False)
+        triggering_player = fake_player(1, "Triggering Player")
+        chat_channel = mock(spec=minqlx.AbstractChannel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "reconnect"], chat_channel)
+
+        verify(chat_channel).reply("Reconnecting to Discord...")
+        verify(self.discord, times=0).stop()
+        verify(self.discord).run()
+
 
 def async_test(f):
     def wrapper(*args, **kwargs):
@@ -592,6 +675,25 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
             verify(self.discord_client).add_command(arg_that(lambda command: command.name == name and
                                                              command.callback == callback and
                                                              command.checks == checks))
+
+    def test_status_connected(self):
+        status = self.discord.status()
+
+        assert_that(status, is_("Discord connection up and running."))
+
+    def test_status_no_client(self):
+        self.discord.discord = None
+
+        status = self.discord.status()
+
+        assert_that(status, is_("No discord connection set up."))
+
+    def test_status_client_not_connected(self):
+        when(self.discord_client).is_ready().thenReturn(False)
+
+        status = self.discord.status()
+
+        assert_that(status, is_("Discord client not connected."))
 
     @async_test
     async def test_initialize_bot(self):

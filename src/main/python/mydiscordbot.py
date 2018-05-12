@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-laguz"
+plugin_version = "v1.0.0-mannaz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -108,6 +108,8 @@ class mydiscordbot(minqlx.Plugin):
             self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
+        self.add_command("discordbot", self.cmd_discordbot, permission=1,
+                         usage="[status]|connect|disconnect|reconnect")
 
         # initialize the discord bot and its interactions on the discord server
         if discord_client is None:
@@ -379,6 +381,51 @@ class mydiscordbot(minqlx.Plugin):
         self.discord.triggered_message(player, Plugin.clean_text(" ".join(msg[1:])))
         self.msg("Message to Discord chat cast!")
 
+    def cmd_discordbot(self, player: minqlx.Player, msg, channel):
+        """
+        Handler for reconnecting the discord bot to discord in case it gets disconnected.
+
+        :param player: the player that send to the trigger
+        :param msg: the original message the player sent (includes the trigger)
+        :param channel: the channel the message came through, i.e. team chat, general chat, etc.
+        """
+        if len(msg) > 2 or (len(msg) == 2 and msg[1] not in ["status", "connect", "disconnect", "reconnect"]):
+            return minqlx.RET_USAGE
+
+        if len(msg) == 2 and msg[1] == "connect":
+            self.logger.info("Connecting to Discord...")
+            channel.reply("Connecting to Discord...")
+            self.connect_discord()
+            return
+
+        if len(msg) == 2 and msg[1] == "disconnect":
+            self.logger.info("Disconnecting from Discord...")
+            channel.reply("Disconnecting from Discord...")
+            self.disconnect_discord()
+            return
+
+        if len(msg) == 2 and msg[1] == "reconnect":
+            self.logger.info("Reconnecting to Discord...")
+            channel.reply("Reconnecting to Discord...")
+            self.disconnect_discord()
+            self.connect_discord()
+            return
+
+        channel.reply(self.discord.status())
+        return
+
+    @minqlx.thread
+    def connect_discord(self):
+        if self.discord.is_discord_logged_in():
+            return
+        self.discord.run()
+
+    @minqlx.thread
+    def disconnect_discord(self):
+        if not self.discord.is_discord_logged_in():
+            return
+        self.discord.stop()
+
 
 class DiscordHelpFormatter(HelpFormatter):
     """
@@ -536,6 +583,15 @@ class SimpleAsyncDiscord(threading.Thread):
     @staticmethod
     def is_discord_client_v1(client):
         return discord.version_info.major > 0
+
+    def status(self):
+        if self.discord is None:
+            return "No discord connection set up."
+
+        if self.is_discord_logged_in():
+            return "Discord connection up and running."
+
+        return "Discord client not connected."
 
     def run(self):
         """
