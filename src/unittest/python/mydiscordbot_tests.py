@@ -72,7 +72,7 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_handle_player_with_asterisk_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
 
-        verify(self.discord).relay_message("*Connecting*\**Player connected.*")
+        verify(self.discord).relay_message("*Connecting\*Player connected.*")
 
     def test_handle_player_disconnects(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
@@ -1262,6 +1262,16 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great!")
 
         verify(relay_channel).send("**Chatting player**: QL is great!")
+
+    def test_relay_chat_message_with_asterisks_in_playername(self):
+        relay_channel = self.relay_channel()
+
+        player = fake_player(steam_id=1, name="*Chatting* player")
+        minqlx_channel = ""
+
+        self.discord.relay_chat_message(player, minqlx_channel, "QL is great!")
+
+        verify(relay_channel).send("**\*Chatting\* player**: QL is great!")
 
     def test_relay_chat_message_replace_user_mention(self):
         when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForRelayedMessages", bool).thenReturn(True)

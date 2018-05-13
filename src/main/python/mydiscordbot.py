@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-mannaz"
+plugin_version = "v1.0.0-naudiz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -222,7 +222,7 @@ class mydiscordbot(minqlx.Plugin):
 
         team_data = ""
         for player in players_by_score:
-            team_data += "**{0.clean_name}**({0.score}) ".format(player)
+            team_data += "**{}**({}) ".format(mydiscordbot.escape_player_name(player), player.score)
 
         return team_data
 
@@ -283,7 +283,7 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the minqlx.Player that shall be escaped for discord chat channels
         """
         player_name = player.clean_name
-        player_name = player_name.replace('*', "*\**")
+        player_name = player_name.replace('*', "\*")
         return player_name
 
     @minqlx.delay(3)
@@ -1019,7 +1019,7 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = "**{}**{}: {}".format(player.clean_name, channel, message)
+        content = "**{}**{}: {}".format(mydiscordbot.escape_player_name(player), channel, message)
 
         self.relay_message(content)
 
