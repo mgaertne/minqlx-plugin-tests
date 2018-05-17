@@ -72,7 +72,7 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_handle_player_with_asterisk_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
 
-        verify(self.discord).relay_message("*Connecting\*Player connected.*")
+        verify(self.discord).relay_message("*Connecting*\**Player connected.*")
 
     def test_handle_player_disconnects(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
