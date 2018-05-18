@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-jeran"
+plugin_version = "v1.0.0-uruz"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -222,7 +222,7 @@ class mydiscordbot(minqlx.Plugin):
 
         team_data = ""
         for player in players_by_score:
-            team_data += "**{}**({}) ".format(mydiscordbot.escape_bold_player_name(player), player.score)
+            team_data += "**{}**({}) ".format(mydiscordbot.escape_player_name(player), player.score)
 
         return team_data
 
@@ -269,13 +269,13 @@ class mydiscordbot(minqlx.Plugin):
 
         :param player: the player that connected
         """
-        content = "*{} connected.*".format(mydiscordbot.escape_italic_player_name(player))
+        content = "_{} connected._".format(mydiscordbot.escape_player_name(player))
         self.discord.relay_message(content)
 
         self.discord.update_topics()
 
     @staticmethod
-    def escape_italic_player_name(player):
+    def escape_player_name(player):
         """
         Escapes the provided player's name for proper formatting to discord (i.e. replace '*' (asterisks) with a
         variant to not interfere with discord's formattings.)
@@ -283,18 +283,7 @@ class mydiscordbot(minqlx.Plugin):
         :param player: the minqlx.Player that shall be escaped for discord chat channels
         """
         player_name = player.clean_name
-        player_name = player_name.replace('*', "*\**")
-        return player_name
-
-    @staticmethod
-    def escape_bold_player_name(player):
-        """
-        Escapes the provided player's name for proper formatting to discord (i.e. replace '*' (asterisks) with a
-        variant to not interfere with discord's formattings.)
-
-        :param player: the minqlx.Player that shall be escaped for discord chat channels
-        """
-        player_name = player.clean_name
+        player_name = player_name.replace('_', '\_')
         player_name = player_name.replace('*', "\*")
         return player_name
 
@@ -311,7 +300,7 @@ class mydiscordbot(minqlx.Plugin):
             reason_str = "{}.".format(reason)
         else:
             reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
-        content = "*{} {}*".format(mydiscordbot.escape_italic_player_name(player),
+        content = "_{} {}_".format(mydiscordbot.escape_player_name(player),
                                    reason_str)
         self.discord.relay_message(content)
 
@@ -338,8 +327,8 @@ class mydiscordbot(minqlx.Plugin):
         :param vote: the vote itself, i.e. map change, kick player, etc.
         :param args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller_name = mydiscordbot.escape_italic_player_name(caller) if caller else "The server"
-        content = "*{} called a vote: {} {}*".format(caller_name,
+        caller_name = mydiscordbot.escape_player_name(caller) if caller else "The server"
+        content = "_{} called a vote: {} {}_".format(caller_name,
                                                      vote,
                                                      Plugin.clean_text(args))
 
@@ -1031,7 +1020,7 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = "**{}**{}: {}".format(mydiscordbot.escape_bold_player_name(player), channel, message)
+        content = "**{}**{}: {}".format(mydiscordbot.escape_player_name(player), channel, message)
 
         self.relay_message(content)
 

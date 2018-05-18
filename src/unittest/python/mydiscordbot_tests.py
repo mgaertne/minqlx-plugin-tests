@@ -66,20 +66,25 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_handle_player_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting Player"))
 
-        verify(self.discord).relay_message("*Connecting Player connected.*")
+        verify(self.discord).relay_message("_Connecting Player connected._")
         verify(self.discord).update_topics()
 
     def test_handle_player_with_asterisk_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
 
-        verify(self.discord).relay_message("*Connecting*\**Player connected.*")
+        verify(self.discord).relay_message("_Connecting\*Player connected._")
+
+    def test_handle_player_with_underscore_connects(self):
+        undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting_Player"))
+
+        verify(self.discord).relay_message("_Connecting\_Player connected._")
 
     def test_handle_player_disconnects(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
                                                           fake_player(1, "Disconnecting Player"),
                                                           "disconnected")
 
-        verify(self.discord).relay_message("*Disconnecting Player disconnected.*")
+        verify(self.discord).relay_message("_Disconnecting Player disconnected._")
         verify(self.discord).update_topics()
 
     def test_handle_player_times_out(self):
@@ -87,7 +92,7 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           fake_player(1, "Disconnecting Player"),
                                                           "timed out")
 
-        verify(self.discord).relay_message("*Disconnecting Player timed out.*")
+        verify(self.discord).relay_message("_Disconnecting Player timed out._")
         verify(self.discord).update_topics()
 
     def test_handle_player_is_kicked(self):
@@ -95,7 +100,7 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           fake_player(1, "Disconnecting Player"),
                                                           "was kicked")
 
-        verify(self.discord).relay_message("*Disconnecting Player was kicked.*")
+        verify(self.discord).relay_message("_Disconnecting Player was kicked._")
         verify(self.discord).update_topics()
 
     def test_handle_player_is_kicked_with_reason(self):
@@ -103,7 +108,7 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           fake_player(1, "Disconnecting Player"),
                                                           "llamah")
 
-        verify(self.discord).relay_message("*Disconnecting Player was kicked (llamah).*")
+        verify(self.discord).relay_message("_Disconnecting Player was kicked (llamah)._")
         verify(self.discord).update_topics()
 
     def test_handle_map(self):
@@ -115,12 +120,12 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_handle_vote_started_by_player(self):
         self.plugin.handle_vote_started(fake_player(1, "Votecaller"), "kick", "asdf")
 
-        verify(self.discord).relay_message("*Votecaller called a vote: kick asdf*")
+        verify(self.discord).relay_message("_Votecaller called a vote: kick asdf_")
 
     def test_handle_vote_started_by_the_server(self):
         self.plugin.handle_vote_started(None, "map", "campgrounds")
 
-        verify(self.discord).relay_message("*The server called a vote: map campgrounds*")
+        verify(self.discord).relay_message("_The server called a vote: map campgrounds_")
 
     def test_handle_vote_passed(self):
         votes = (4, 3)
