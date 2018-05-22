@@ -1507,6 +1507,22 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(trigger_channel1).send("**Chatting player**: QL is great!")
         verify(trigger_channel2).send("**Chatting player**: QL is great!")
 
+    def test_triggered_message_with_escaped_playername(self):
+        trigger_channel1 = self.triggered_channel()
+
+        trigger_channel2 = mocked_channel(id=789)
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        self.setup_discord_members()
+        self.setup_discord_channels()
+
+        player = fake_player(steam_id=1, name="*Chatting_player*")
+
+        self.discord.triggered_message(player, "QL is great!")
+
+        verify(trigger_channel1).send("**\*Chatting\_player\***: QL is great!")
+        verify(trigger_channel2).send("**\*Chatting\_player\***: QL is great!")
+
     def test_triggered_message_replaces_mentions(self):
         self.setup_v0_16_discord_library()
 

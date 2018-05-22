@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-uruz"
+plugin_version = "v1.0.0-perpo"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -1175,5 +1175,5 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = "**{}**: {}".format(Plugin.clean_text(player.name), message)
+        content = "**{}**: {}".format(mydiscordbot.escape_player_name(player), message)
         self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
