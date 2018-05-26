@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-perpo"
+plugin_version = "v1.0.0-raido"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -222,7 +222,7 @@ class mydiscordbot(minqlx.Plugin):
 
         team_data = ""
         for player in players_by_score:
-            team_data += "**{}**({}) ".format(mydiscordbot.escape_player_name(player), player.score)
+            team_data += "**{}**({}) ".format(mydiscordbot.escape_text_for_discord(player.clean_name), player.score)
 
         return team_data
 
@@ -269,23 +269,22 @@ class mydiscordbot(minqlx.Plugin):
 
         :param player: the player that connected
         """
-        content = "_{} connected._".format(mydiscordbot.escape_player_name(player))
+        content = "_{} connected._".format(mydiscordbot.escape_text_for_discord(player.clean_name))
         self.discord.relay_message(content)
 
         self.discord.update_topics()
 
     @staticmethod
-    def escape_player_name(player):
+    def escape_text_for_discord(text):
         """
         Escapes the provided player's name for proper formatting to discord (i.e. replace '*' (asterisks) with a
         variant to not interfere with discord's formattings.)
 
         :param player: the minqlx.Player that shall be escaped for discord chat channels
         """
-        player_name = player.clean_name
-        player_name = player_name.replace('_', '\_')
-        player_name = player_name.replace('*', "\*")
-        return player_name
+        escaped_text = text.replace('_', '\_')
+        escaped_text = escaped_text.replace('*', "\*")
+        return escaped_text
 
     @minqlx.delay(3)
     def handle_player_disconnect(self, player: minqlx.Player, reason):
@@ -299,8 +298,8 @@ class mydiscordbot(minqlx.Plugin):
         if reason in ["disconnected", "timed out", "was kicked", "was kicked."]:
             reason_str = "{}.".format(reason)
         else:
-            reason_str = "was kicked ({}).".format(Plugin.clean_text(reason))
-        content = "_{} {}_".format(mydiscordbot.escape_player_name(player),
+            reason_str = "was kicked ({}).".format(mydiscordbot.escape_text_for_discord(Plugin.clean_text(reason)))
+        content = "_{} {}_".format(mydiscordbot.escape_text_for_discord(player.clean_name),
                                    reason_str)
         self.discord.relay_message(content)
 
@@ -314,7 +313,7 @@ class mydiscordbot(minqlx.Plugin):
         :param mapname: the new map
         :param factory: the map factory used
         """
-        content = "*Changing map to {}...*".format(mapname)
+        content = "*Changing map to {}...*".format(mydiscordbot.escape_text_for_discord(mapname))
         self.discord.relay_message(content)
 
         self.discord.update_topics()
@@ -327,10 +326,10 @@ class mydiscordbot(minqlx.Plugin):
         :param vote: the vote itself, i.e. map change, kick player, etc.
         :param args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller_name = mydiscordbot.escape_player_name(caller) if caller else "The server"
+        caller_name = mydiscordbot.escape_text_for_discord(caller.clean_name) if caller else "The server"
         content = "_{} called a vote: {} {}_".format(caller_name,
                                                      vote,
-                                                     Plugin.clean_text(args))
+                                                     mydiscordbot.escape_text_for_discord(Plugin.clean_text(args)))
 
         self.discord.relay_message(content)
 
@@ -1020,7 +1019,7 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = "**{}**{}: {}".format(mydiscordbot.escape_player_name(player), channel, message)
+        content = "**{}**{}: {}".format(mydiscordbot.escape_text_for_discord(player.clean_name), channel, message)
 
         self.relay_message(content)
 
@@ -1175,5 +1174,5 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = "**{}**: {}".format(mydiscordbot.escape_player_name(player), message)
+        content = "**{}**: {}".format(mydiscordbot.escape_text_for_discord(player.clean_name), message)
         self.send_to_discord_channels(self.discord_triggered_channel_ids, content)

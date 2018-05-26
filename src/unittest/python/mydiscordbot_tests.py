@@ -127,6 +127,11 @@ class MyDiscordBotTests(unittest.TestCase):
 
         verify(self.discord).relay_message("_The server called a vote: map campgrounds_")
 
+    def test_handle_vote_with_escaped_characters(self):
+        self.plugin.handle_vote_started(fake_player(1, "Vote*Caller"), "map", "13house_a1")
+
+        verify(self.discord).relay_message("_Vote\*Caller called a vote: map 13house\_a1_")
+
     def test_handle_vote_passed(self):
         votes = (4, 3)
         self.plugin.handle_vote_ended(votes, None, None, True)
