@@ -20,7 +20,6 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list)
 
         self.add_hook("player_connect", self.handle_player_connect)
-        self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
 
     @minqlx.delay(5)
@@ -47,13 +46,6 @@ class qlstats_privacy_policy(minqlx.Plugin):
     @minqlx.delay(5)
     def delayed_kick(self, sid, reason):
         self.kick(sid, reason)
-
-    def handle_player_disconnect(self, player, reason):
-        if 'balance' in minqlx.Plugin._loaded_plugins:
-            if player.steam_id in self.plugins["balance"].player_info:
-                del self.plugins["balance"].player_info[player.steam_id]
-            if player.steam_id in self.plugins["balance"].ratings:
-                del self.plugins["balance"].ratings[player.steam_id]
 
     def handle_team_switch_attempt(self, player, old, new):
         if not self.game:
