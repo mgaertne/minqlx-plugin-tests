@@ -1,6 +1,5 @@
 import minqlx
 
-
 """
 Plugin that restricts playing on the server to certain QLStats.net privacy settings.
 
@@ -9,6 +8,8 @@ Uses:
 - set qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked") 
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
 """
+
+
 class qlstats_privacy_policy(minqlx.Plugin):
 
     def __init__(self):
