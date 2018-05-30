@@ -37,6 +37,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
         player_info = self.plugins["balance"].player_info
 
         for sid in players:
+            if sid not in player_info: continue
             if player_info[sid]["privacy"] not in self.allowed_privacy:
                 self.delayed_kick(sid, "Go to ^2https://qlstats.net/account/login^7 "
                                        "and set ^2Privacy Settings^7 to either of these: ^2{}^^7, "
@@ -53,6 +54,9 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         if new in ["red", "blue", "any"]:
             player_info = self.plugins["balance"].player_info
+            if player.steam_id not in player_info:
+                player.msg("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
+                return minqlx.RET_STOP_ALL
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
                 self.msg("{}^7, you're not allowed to join any team "
                          "for disallowed QLStats privacy settings on this server.".format(player.name))
@@ -60,7 +64,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
                             "and set ^2Privacy Settings^7 to either of these: ^2{}^7, "
                             "click ^2Save Settings^7, then reconnect."
                             .format("^7, ^2".join(self.allowed_privacy)))
-                if old in ["spectators", "free"]:
+                if old in ["spectator", "free"]:
                     return minqlx.RET_STOP_ALL
 
-                player.put("spectators")
+                player.put("spectator")
