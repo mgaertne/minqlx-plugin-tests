@@ -40,9 +40,9 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if sid not in player_info: continue
             if player_info[sid]["privacy"] not in self.allowed_privacy:
                 self.delayed_kick(sid, "Go to ^2https://qlstats.net/account/login^7 "
-                                       "and set ^2Privacy Settings^7 to either of these: ^2{}^^7, "
+                                       "and set ^2Privacy Settings^7 to either of these: ^6{}^^7, "
                                        "click ^2Save Settings^7, then reconnect"
-                                  .format("^7, ^2".join(self.allowed_privacy)))
+                                  .format("^7, ^6".join(self.allowed_privacy)))
 
     @minqlx.delay(5)
     def delayed_kick(self, sid, reason):
@@ -59,11 +59,12 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 return minqlx.RET_STOP_ALL
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
                 self.msg("{}^7, you're not allowed to join any team "
-                         "for disallowed QLStats privacy settings on this server.".format(player.name))
+                         "for incorrect or missing QLStats.net privacy settings on this server.".format(player.name))
+                player.center_print("^3Join not allow. See instructions in console!")
                 player.tell("Go to ^2https://qlstats.net/account/login^7 "
-                            "and set ^2Privacy Settings^7 to either of these: ^2{}^7, "
+                            "and set ^2Privacy Settings^7 to either of these: ^6{}^7, "
                             "click ^2Save Settings^7, then reconnect."
-                            .format("^7, ^2".join(self.allowed_privacy)))
+                            .format("^7, ^6".join(self.allowed_privacy)))
                 if old in ["spectator", "free"]:
                     return minqlx.RET_STOP_ALL
 
