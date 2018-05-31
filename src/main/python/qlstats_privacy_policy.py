@@ -68,7 +68,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
                 self.msg("{}^7, you're not allowed to join any team "
                          "for incorrect or missing QLStats.net privacy settings on this server.".format(player.name))
-                player.center_print("^3Join not allow. See instructions in console!")
+                player.center_print("^3Join not allowed. See instructions in console!")
                 player.tell("Go to ^2https://qlstats.net/account/login^7 "
                             "and set ^2Privacy Settings^7 to either of these: ^6{}^7, "
                             "click ^2Save Settings^7, then reconnect."
