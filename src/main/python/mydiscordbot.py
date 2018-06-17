@@ -280,7 +280,7 @@ class mydiscordbot(minqlx.Plugin):
         Escapes the provided player's name for proper formatting to discord (i.e. replace '*' (asterisks) with a
         variant to not interfere with discord's formattings.)
 
-        :param player: the minqlx.Player that shall be escaped for discord chat channels
+        :param text: the text that shall be escaped for discord chat channels
         """
         escaped_text = text.replace('_', '\_')
         escaped_text = escaped_text.replace('*', "\*")
@@ -724,19 +724,19 @@ class SimpleAsyncDiscord(threading.Thread):
 
         threading.Timer(bar_delay, f).start()
 
-    async def qlx(self, ctx, *qlxCommand: str):
+    async def qlx(self, ctx, *qlx_command: str):
         """
         Handles exec messages from discord via private message to the bot
 
         :param ctx: the context the trigger happened in
-        :param qlxCommand: the command that was sent by the user
+        :param qlx_command: the command that was sent by the user
         """
         @minqlx.next_frame
         def f():
             try:
                 minqlx.COMMANDS.handle_input(
                     DiscordDummyPlayer(self, ctx.message.author, ctx.message.channel),
-                    " ".join(qlxCommand),
+                    " ".join(qlx_command),
                     DiscordChannel(self, ctx.message.author, ctx.message.channel))
             except Exception as e:
                 if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
