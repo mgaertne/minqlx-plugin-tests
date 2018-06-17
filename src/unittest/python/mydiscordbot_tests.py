@@ -617,6 +617,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         when(self.discord_client).send_message(any, any).thenReturn(mocked_coro())
         when(self.discord_client).say(any).thenReturn(mocked_coro())
         self.discord_client.is_logged_in = True
+        self.discord_client.is_closed = False
 
         self.discord.discord = self.discord_client
 
@@ -636,6 +637,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.setup_discord_client_mock_common()
 
         when(self.discord_client).is_ready().thenReturn(True)
+        self.discord_client.is_closed = False
 
         self.discord.discord = self.discord_client
 

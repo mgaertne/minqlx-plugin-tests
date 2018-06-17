@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-raido"
+plugin_version = "v1.0.0-sowilo"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -743,7 +743,7 @@ class SimpleAsyncDiscord(threading.Thread):
                     send_message = ctx.bot.send_message(ctx.message.channel, "{}: {}".format(e.__class__.__name__, e))
                 else:
                     send_message = ctx.send("{}: {}".format(e.__class__.__name__, e))
-                discord.compat.run_coroutine_threadsafe(send_message, ctx.bot.loop)
+                asyncio.ensure_future(send_message, loop=ctx.bot.loop)
                 minqlx.log_exception()
 
         f()
@@ -904,16 +904,16 @@ class SimpleAsyncDiscord(threading.Thread):
             else:
                 edit_channel = channel.edit(topic=topic)
 
-            discord.compat.run_coroutine_threadsafe(edit_channel, self.discord.loop)
+            asyncio.ensure_future(edit_channel, loop=self.discord.loop)
 
     def is_discord_logged_in(self):
         if self.discord is None:
             return False
 
         if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
-            return self.discord.is_logged_in
+            return not self.discord.is_closed and self.discord.is_logged_in
 
-        return self.discord.is_ready()
+        return not self.discord.is_closed and self.discord.is_ready()
 
     def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
         """
@@ -967,8 +967,8 @@ class SimpleAsyncDiscord(threading.Thread):
         if self.discord is None:
             return
 
-        discord.compat.run_coroutine_threadsafe(self.discord.change_presence(status="offline"), self.discord.loop)
-        discord.compat.run_coroutine_threadsafe(self.discord.logout(), self.discord.loop)
+        asyncio.ensure_future(self.discord.change_presence(status="offline"), loop=self.discord.loop)
+        asyncio.ensure_future(self.discord.logout(), loop=self.discord.loop)
 
     def relay_message(self, msg):
         """
@@ -1005,7 +1005,7 @@ class SimpleAsyncDiscord(threading.Thread):
             else:
                 sender = channel.send(content)
 
-            discord.compat.run_coroutine_threadsafe(sender, self.discord.loop)
+            asyncio.ensure_future(sender, loop=self.discord.loop)
 
     def relay_chat_message(self, player, channel, message):
         """
