@@ -5,7 +5,7 @@ Plugin that restricts playing on the server to certain QLStats.net privacy setti
 
 Uses:
 - set qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
-- set qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked") 
+- set qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked")
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
 """
 
@@ -41,7 +41,8 @@ class qlstats_privacy_policy(minqlx.Plugin):
         player_info = self.plugins["balance"].player_info
 
         for sid in players:
-            if sid not in player_info: continue
+            if sid not in player_info:
+                continue
             if player_info[sid]["privacy"] not in self.allowed_privacy:
                 self.delayed_kick(sid, "Go to ^2https://qlstats.net/account/login^7 "
                                        "and set ^2Privacy Settings^7 to either of these: ^6{}^^7, "

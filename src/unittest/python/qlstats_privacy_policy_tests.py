@@ -9,6 +9,7 @@ from undecorated import undecorated
 
 from qlstats_privacy_policy import *
 
+
 class qlstats_privacy_policy_tests(unittest.TestCase):
 
     def setUp(self):
@@ -27,7 +28,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         player_info = {}
         for player, privacy in player_privacy:
             player_info[player.steam_id] = {"privacy": privacy}
-        self.plugin._loaded_plugins["balance"]  = mock({'player_info': player_info})
+        self.plugin._loaded_plugins["balance"] = mock({'player_info': player_info})
 
     def setup_no_balance_plugin(self):
         if "balance" in self.plugin._loaded_plugins:
