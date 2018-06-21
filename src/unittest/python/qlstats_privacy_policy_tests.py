@@ -19,6 +19,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
             "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list)
         })
         setup_game_in_progress()
+        self.setup_balance_playerprivacy([])
         self.plugin = qlstats_privacy_policy()
 
     def tearDown(self):
@@ -28,7 +29,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         player_info = {}
         for player, privacy in player_privacy:
             player_info[player.steam_id] = {"privacy": privacy}
-        self.plugin._loaded_plugins["balance"] = mock({'player_info': player_info})
+        minqlx.Plugin._loaded_plugins["balance"] = mock({'player_info': player_info})
 
     def setup_no_balance_plugin(self):
         if "balance" in self.plugin._loaded_plugins:
@@ -42,13 +43,6 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         verify(self.plugin._loaded_plugins["balance"]).add_request(
             {connecting_player.steam_id: 'ca'}, self.plugin.callback_connect, minqlx.CHAT_CHANNEL)
-
-    def test_handle_player_connect_no_balance_plugin(self):
-        self.setup_no_balance_plugin()
-
-        undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(123, "Connecting Player"))
-
-        assert_plugin_sent_to_console(matches(".*Couldn't fetch ratings.*"))
 
     def test_callback_connect_players_not_kicked(self):
         self.plugin.callback_connect([], None)

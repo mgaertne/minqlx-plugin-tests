@@ -13,6 +13,16 @@ Uses:
 class qlstats_privacy_policy(minqlx.Plugin):
 
     def __init__(self):
+        if 'balance' not in minqlx.Plugin._loaded_plugins:
+            raise minqlx.PluginLoadError("Balance plugin not loaded. "
+                                         "This plugin just work with the balance plugin in place.")
+
+        if not hasattr(self.plugins["balance"], "player_info"):
+            self.logger.log("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
+                            "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
+            raise minqlx.PluginLoadError("Wrong version of the balance plugin loaded. Make sure to load "
+                                         "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
+
         self.set_cvar_once("qlx_qlstatsPrivacyKick", "0")
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, anonymous, private, untracked")
 
@@ -24,18 +34,11 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
     @minqlx.delay(5)
     def handle_player_connect(self, player):
-        if 'balance' in minqlx.Plugin._loaded_plugins:
-            b = minqlx.Plugin._loaded_plugins['balance']
-            b.add_request({player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
-        else:
-            self.msg("^7Couldn't fetch ratings for {}^7, make sure ^6balance^7 is loaded.".format(player.name))
+        b = minqlx.Plugin._loaded_plugins['balance']
+        b.add_request({player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
 
     def callback_connect(self, players, channel):
         if not self.kick_players:
-            return
-        if not hasattr(self.plugins["balance"], "player_info"):
-            self.msg("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
-                     "^6https://github.com/MinoMino/minqlx-plugins/blob/develop/balance.py^7.")
             return
 
         player_info = self.plugins["balance"].player_info
@@ -58,10 +61,6 @@ class qlstats_privacy_policy(minqlx.Plugin):
             return
 
         if new in ["red", "blue", "any"]:
-            if not hasattr(self.plugins["balance"], "player_info"):
-                self.msg("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
-                         "^6https://github.com/MinoMino/minqlx-plugins/blob/develop/balance.py^7.")
-
             player_info = self.plugins["balance"].player_info
             if player.steam_id not in player_info:
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
