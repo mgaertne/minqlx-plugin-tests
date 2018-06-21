@@ -9,11 +9,16 @@ Uses:
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
 """
 
+COLORED_QLSTATS_INSTRUCTIONS = "Go to ^2https://qlstats.net/account/login^7 " \
+                       "and set ^2Privacy Settings^7 to either of these: ^6{}^7, " \
+                       "click ^2Save Settings^7, then reconnect."
 
 class qlstats_privacy_policy(minqlx.Plugin):
 
     def __init__(self):
         if 'balance' not in minqlx.Plugin._loaded_plugins:
+            self.logger.log("Balance plugin not loaded. "
+                            "This plugin just work with the balance plugin in place.")
             raise minqlx.PluginLoadError("Balance plugin not loaded. "
                                          "This plugin just work with the balance plugin in place.")
 
@@ -47,10 +52,10 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if sid not in player_info:
                 continue
             if player_info[sid]["privacy"] not in self.allowed_privacy:
-                self.delayed_kick(sid, "Go to ^2https://qlstats.net/account/login^7 "
-                                       "and set ^2Privacy Settings^7 to either of these: ^6{}^^7, "
-                                       "click ^2Save Settings^7, then reconnect"
-                                  .format("^7, ^6".join(self.allowed_privacy)))
+                self.delayed_kick(sid, minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
+
+    def colored_qlstats_instructions(self):
+        return COLORED_QLSTATS_INSTRUCTIONS.format("^7, ^6".join(self.allowed_privacy))
 
     @minqlx.delay(5)
     def delayed_kick(self, sid, reason):
@@ -69,11 +74,9 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 self.msg("{}^7, you're not allowed to join any team "
                          "for incorrect or missing QLStats.net privacy settings on this server.".format(player.name))
                 player.center_print("^3Join not allowed. See instructions in console!")
-                player.tell("Go to ^2https://qlstats.net/account/login^7 "
-                            "and set ^2Privacy Settings^7 to either of these: ^6{}^7, "
-                            "click ^2Save Settings^7, then reconnect."
-                            .format("^7, ^6".join(self.allowed_privacy)))
+                player.tell(self.colored_qlstats_instructions())
                 if old in ["spectator", "free"]:
                     return minqlx.RET_STOP_ALL
 
                 player.put("spectator")
+
