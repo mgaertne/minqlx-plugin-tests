@@ -52,7 +52,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if sid not in player_info:
                 continue
             if player_info[sid]["privacy"] not in self.allowed_privacy:
-                self.delayed_kick(sid, minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
+                self.delayed_kick(sid, minqlx.Plugin.clean_text(self.colored_qlstats_instructions()))
 
     def colored_qlstats_instructions(self):
         return COLORED_QLSTATS_INSTRUCTIONS.format("^7, ^6".join(self.allowed_privacy))
