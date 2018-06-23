@@ -17,14 +17,14 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
     def __init__(self):
         if 'balance' not in minqlx.Plugin._loaded_plugins:
-            self.logger.log("Balance plugin not loaded. "
-                            "This plugin just work with the balance plugin in place.")
+            self.logger.info("Balance plugin not loaded. "
+                             "This plugin just work with the balance plugin in place.")
             raise minqlx.PluginLoadError("Balance plugin not loaded. "
                                          "This plugin just work with the balance plugin in place.")
 
         if not hasattr(self.plugins["balance"], "player_info"):
-            self.logger.log("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
-                            "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
+            self.logger.info("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
+                             "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
             raise minqlx.PluginLoadError("Wrong version of the balance plugin loaded. Make sure to load "
                                          "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
 
