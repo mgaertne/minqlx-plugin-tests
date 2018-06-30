@@ -35,10 +35,13 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "invalid")
         assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
 
+    def hardcoded_choice(self, seq):
+        return "asdf", "randomvoice"
+
     def test_random(self):
-        random.seed(42)
+        random.choice = self.hardcoded_choice
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "random")
-        assert_that(self.warner.get_announcer_sound(), is_("sound/vo_evil/30_second_warning.ogg"))
+        assert_that(self.warner.get_announcer_sound(), is_("randomvoice"))
 
     def test_plays_no_sound_when_game_is_not_running_anymore(self):
         setup_no_game()
