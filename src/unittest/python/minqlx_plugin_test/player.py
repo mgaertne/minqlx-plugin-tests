@@ -83,6 +83,24 @@ def assert_player_was_told(player, matcher, times=1):
     verify(player, times=times).tell(matcher)
 
 
+def assert_player_received_center_print(player, matcher, times=1):
+    """Verify that a certain text was center printed for the player.
+
+    **The player needs to be set up via :func:`.fake_player(steam_id, name, team, ping)` before using this assertion.**
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+
+    :param player: the player that should have received the matching center print
+    :param matcher: matches the text the player should have received. This might be :class:`mockito.matchers` to check
+    for certain types of messages.
+    :param times: The amount of times the player should have been received the matching message, set to 0 for no message
+    center printed to the player. (default: 1).
+    :return:
+    """
+    verify(player, times=times).center_print(matcher)
+
+
 class PlayerMatcher(Matcher):
     """
     A custom mockito matcher that matches minqlx.Players by their name and steam_id.

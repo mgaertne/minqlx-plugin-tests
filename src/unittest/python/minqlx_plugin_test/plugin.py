@@ -1,3 +1,5 @@
+from mockito import mock, when, any, verify
+
 from minqlx import Plugin
 
 from mockito import *
@@ -31,6 +33,8 @@ def setup_plugin():
     when2(Plugin.switch, any, any).thenReturn(None)
     spy2(Plugin.set_cvar)
     when2(Plugin.set_cvar, any, any).thenReturn(None)
+    spy2(Plugin.kick)
+    when2(Plugin.kick, any, any(str)).thenReturn(None)
 
 
 def setup_cvar(cvar_name, cvar_value, return_type=None):
@@ -147,3 +151,13 @@ def assert_cvar_was_set_to(cvar_name, cvar_value, times=1):
     :param times: The amount of times the plugin should have set the cvar. (default: 1).
     """
     verify(Plugin, times=times).set_cvar(cvar_name, cvar_value)
+
+
+def mocked_channel():
+    channel = mock()
+    when(channel).reply(any).thenReturn(None)
+    return channel
+
+
+def assert_channel_was_replied(channel, matcher, times=1):
+    verify(channel, times=times).reply(matcher)

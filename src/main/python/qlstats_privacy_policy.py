@@ -10,47 +10,74 @@ Uses:
 """
 
 COLORED_QLSTATS_INSTRUCTIONS = "Go to ^2https://qlstats.net/account/login^7 " \
-                       "and set ^2Privacy Settings^7 to either of these: ^6{}^7, " \
-                       "click ^2Save Settings^7, then reconnect."
+                    "and set ^2Privacy Settings^7 to either of these: ^6{}^7, " \
+                    "click ^2Save Settings^7, then reconnect."
+
 
 class qlstats_privacy_policy(minqlx.Plugin):
 
     def __init__(self):
-        if 'balance' not in minqlx.Plugin._loaded_plugins:
-            self.logger.info("Balance plugin not loaded. "
-                             "This plugin just work with the balance plugin in place.")
-            raise minqlx.PluginLoadError("Balance plugin not loaded. "
-                                         "This plugin just work with the balance plugin in place.")
-
-        if not hasattr(self.plugins["balance"], "player_info"):
-            self.logger.info("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
-                             "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
-            raise minqlx.PluginLoadError("Wrong version of the balance plugin loaded. Make sure to load "
-                                         "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
-
+        super().__init__()
         self.set_cvar_once("qlx_qlstatsPrivacyKick", "0")
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, anonymous, private, untracked")
 
+        self.plugin_enabled = True
         self.kick_players = self.get_cvar("qlx_qlstatsPrivacyKick", bool)
         self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list)
 
+        self.exceptions = set()
+
         self.add_hook("player_connect", self.handle_player_connect)
+        self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
+
+        self.add_command(("except", "e"), self.cmd_policy_exception, permission=5, usage="<player>")
+        self.add_command("privacy", self.cmd_switch_plugin, permission=1, usage="[status]")
+
+    def check_balance_plugin_loaded(self):
+        return 'balance' in self.plugins
+
+    def check_for_right_version_of_balance_plugin(self):
+        return hasattr(self.plugins["balance"], "player_info")
+
+    def check_for_correct_balance_plugin(self):
+        if not self.check_balance_plugin_loaded():
+            self.logger.info("Balance plugin not loaded. "
+                             "This plugin just works with the balance plugin in place.")
+            return False
+
+        if not self.check_for_right_version_of_balance_plugin():
+            self.logger.info("Wrong version of the ^6balance^7 plugin loaded. Make sure to load "
+                             "https://github.com/MinoMino/minqlx-plugins/blob/master/balance.py.")
+            return False
+
+        return True
 
     @minqlx.delay(5)
     def handle_player_connect(self, player):
+        if not self.check_for_correct_balance_plugin():
+            self.disable_policy_check(minqlx.CHAT_CHANNEL)
+            return
+
         b = minqlx.Plugin._loaded_plugins['balance']
         b.add_request({player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
 
     def callback_connect(self, players, channel):
+        if not self.plugin_enabled:
+            return
+
         if not self.kick_players:
             return
 
         player_info = self.plugins["balance"].player_info
 
         for sid in players:
+            if sid in self.exceptions:
+                continue
+
             if sid not in player_info:
                 continue
+
             if player_info[sid]["privacy"] not in self.allowed_privacy:
                 self.delayed_kick(sid, minqlx.Plugin.clean_text(self.colored_qlstats_instructions()))
 
@@ -61,8 +88,22 @@ class qlstats_privacy_policy(minqlx.Plugin):
     def delayed_kick(self, sid, reason):
         self.kick(sid, reason)
 
+    def handle_player_disconnect(self, player, reason):
+        if player.steam_id in self.exceptions:
+            self.exceptions.remove(player.steam_id)
+
     def handle_team_switch_attempt(self, player, old, new):
+        if not self.plugin_enabled:
+            return
+
         if not self.game:
+            return
+
+        if player.steam_id in self.exceptions:
+            return
+
+        if not self.check_for_correct_balance_plugin():
+            self.disable_policy_check(minqlx.CHAT_CHANNEL)
             return
 
         if new in ["red", "blue", "any"]:
@@ -80,3 +121,74 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
                 player.put("spectator")
 
+    def cmd_policy_exception(self, player, msg, channel):
+        if len(msg) != 2:
+            return minqlx.RET_USAGE
+
+        teams = self.teams()
+        speccing_players = teams["spectator"] + teams["free"]
+        except_player = self.find_player(msg[1], speccing_players)
+
+        if except_player is None or len(except_player) == 0:
+            player.tell("^7Could not find player identified by ^1{}^7.".format(msg[1]))
+            return
+
+        if len(except_player) > 1:
+            player.tell("^7More than one matching spectator found: {}"
+                        .format("^7, ".join([player.name for player in except_player])))
+            player.tell("^7Please be more specific which one to put on the exception list!")
+            return
+
+        channel.reply("^7An admin has allowed ^2{}^7 to temporarily join despite missing or "
+                      "inadequate qlstats privacy information."
+                      .format(except_player[0].clean_name))
+        self.exceptions.add(except_player[0].steam_id)
+
+    def cmd_switch_plugin(self, player, msg, channel):
+        if len(msg) > 2:
+            return minqlx.RET_USAGE
+
+        if len(msg) == 2:
+            if msg[1] != "status":
+                return minqlx.RET_USAGE
+
+            channel.reply("^7QLStats policy check is {}".format("enabled" if self.plugin_enabled else "disabled"))
+            return
+
+        if not self.plugin_enabled:
+            self.enable_policy_check(channel)
+            return
+
+        self.disable_policy_check(channel)
+
+    def disable_policy_check(self, channel):
+        self.plugin_enabled = False
+        channel.reply("^7QLStats policy check disabled. Everyone will be able to join.")
+
+    def enable_policy_check(self, channel):
+        if not self.check_for_correct_balance_plugin():
+            return
+
+        self.plugin_enabled = True
+        channel.reply("^7QLStats policy check enabled.")
+
+        if self.kick_players:
+            self.callback_connect(
+                {player.steam_id: self.game.type_short for player in self.players()}, channel)
+            return
+
+        teams = self.teams()
+        player_info = self.plugins["balance"].player_info
+
+        for player in teams["red"] + teams["blue"]:
+            if player.steam_id not in player_info:
+                player.tell("We couldn't fetch your ratings, yet. You will not be able to play, until we did.")
+                player.put("spectator")
+                continue
+
+            if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
+                self.msg("{}^7, you're not allowed to join any team "
+                         "for incorrect or missing QLStats.net privacy settings on this server.".format(player.name))
+                player.center_print("^3Join not allowed. See instructions in console!")
+                player.tell(self.colored_qlstats_instructions())
+                player.put("spectator")
