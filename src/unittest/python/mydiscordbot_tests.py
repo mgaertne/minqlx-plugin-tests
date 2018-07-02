@@ -594,6 +594,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
             "qlx_discordCommandPrefix": ("%", None),
             "qlx_discordTriggerStatus": ("minqlx", None),
             "qlx_discordMessagePrefix": ("[DISCORD]", None),
+            "qlx_discordEnableHelp": (True, bool),
+            "qlx_discordEnableVersion": (True, bool),
             "qlx_displayChannelForDiscordRelayChannels": (False, bool),
             "qlx_discordReplaceMentionsForRelayedMessages": (False, bool),
             "qlx_discordReplaceMentionsForTriggeredMessages": (True, bool),
@@ -721,6 +723,20 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
                                   checks=[self.discord.is_private_message, self.discord.is_authed])
         verify(self.discord_client).add_listener(self.discord.on_ready)
         verify(self.discord_client).add_listener(self.discord.on_message)
+
+    @async_test
+    async def test_disable_help(self):
+        self.discord.discord_help_enabled = False
+        self.discord.initialize_bot(self.discord_client)
+
+        verify(self.discord_client).remove_command("help")
+
+    @async_test
+    async def test_disable_version(self):
+        self.discord.discord_version_enabled = False
+        self.discord.initialize_bot(self.discord_client)
+
+        verify(self.discord_client, times=0).add_command(name="version", callback=self.discord.version)
 
     @async_test
     async def test_version_v0_16(self):

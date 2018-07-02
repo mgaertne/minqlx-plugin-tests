@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-tiwaz"
+plugin_version = "v1.0.0-wunjo"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -54,6 +54,10 @@ class mydiscordbot(minqlx.Plugin):
     server.
     * qlx_discordMessagePrefix (default: "[DISCORD]") messages from discord to quake live will be prefixed with this
     prefix
+    * qlx_discordEnableHelp (default: "1") indicates whether the bot will respond to !help or responses are completely
+    switched off
+    * qlx_discordEnableVersion (default: "1") indicates whether the bot will respond to !version or responses are
+    completely switched off
     * qlx_displayChannelForDiscordRelayChannels (default: "1") display the channel name of the discord channel for
     configured relay channels
     * qlx_discordQuakeRelayMessageFilters (default: "^\!s$, ^\!p$") comma separated list of regular expressions for
@@ -82,6 +86,8 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
         Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
         Plugin.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
+        Plugin.set_cvar_once("qlx_discordEnableHelp", "1")
+        Plugin.set_cvar_once("qlx_discordEnableVersion", "1")
         Plugin.set_cvar_once("qlx_displayChannelForDiscordRelayChannels", "1")
         Plugin.set_cvar_once("qlx_discordQuakeRelayMessageFilters", "^\!s$, ^\!p$")
         Plugin.set_cvar_once("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -558,6 +564,8 @@ class SimpleAsyncDiscord(threading.Thread):
             Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set))
         self.discord_trigger_triggered_channel_chat = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_command_prefix = Plugin.get_cvar("qlx_discordCommandPrefix")
+        self.discord_help_enabled = Plugin.get_cvar("qlx_discordEnableHelp", bool)
+        self.discord_version_enabled = Plugin.get_cvar("qlx_discordEnableVersion", bool)
         self.discord_trigger_status = Plugin.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
@@ -617,11 +625,6 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param discord_bot: the discord_bot to initialize
         """
-        discord_bot.add_command(Command(name="version",
-                                        callback=self.version,
-                                        pass_context=True,
-                                        ignore_extra=False,
-                                        help="display the plugin's version information"))
         discord_bot.add_command(Command(name=self.discord_auth_command,
                                         callback=self.auth,
                                         checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
@@ -648,6 +651,16 @@ class SimpleAsyncDiscord(threading.Thread):
                                         help="send [message...] to the Quake Live server"))
         discord_bot.add_listener(self.on_ready)
         discord_bot.add_listener(self.on_message)
+
+        if self.discord_version_enabled:
+            discord_bot.add_command(Command(name="version",
+                                            callback=self.version,
+                                            pass_context=True,
+                                            ignore_extra=False,
+                                            help="display the plugin's version information"))
+
+        if not self.discord_help_enabled:
+            discord_bot.remove_command("help")
 
     def reply_to_context(self, ctx, message):
         if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
