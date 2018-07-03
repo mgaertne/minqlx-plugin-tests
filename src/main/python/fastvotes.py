@@ -10,11 +10,15 @@ class fastvotepass(minqlx.Plugin):
     Uses:
     * qlx_fastvoteTypes (default: "map, kick") Vote types this plugin will care about.
     * qlx_fastvoteStrategy (default: "threshold") The strategy used to process faster pass/fail votes.
-    Currently available options: threshold
+    Currently available options: threshold, participation
 
     For the threshold strategy, you may set/modify these additional cvars:
     * qlx_fastvoteThresholdFastPassDiff (default: 6) passes the callvote at this yes-no difference
     * qlx_fastvoteThresholdFastFailDiff (default: 5) fails the callvote at this no-yes difference
+
+    For the participation strategy, you may set/modify this additional cvar:
+    * qlx_fastvoteParticipationPercentage (default: 67) Passes/Fails the vote when the given percentage of currently
+    connected players has participated and the result is not a draw.
     """
 
     def __init__(self):
@@ -24,8 +28,6 @@ class fastvotepass(minqlx.Plugin):
         self.set_cvar_once("qlx_fastvoteStrategy", "threshold")
 
         self.fastvote_types = self.get_cvar("qlx_fastvoteTypes", list)
-        strategy = self.get_cvar("qlx_fastvoteStrategy", str)
-        self.fastvote_strategy = self.resolve_strategy_for_fastvote(strategy)
 
         self.add_hook("vote", self.process_vote, priority=minqlx.PRI_LOWEST)
         self.add_hook("vote_called", self.handle_vote, priority=minqlx.PRI_LOWEST)
@@ -59,7 +61,10 @@ class fastvotepass(minqlx.Plugin):
         yes_votes = votes[0] + 1 if yes else votes[0]
         no_votes = votes[1] if yes else votes[1] + 1
 
-        eval_result = self.fastvote_strategy.evaluate_votes(yes_votes, no_votes)
+        strategy = self.get_cvar("qlx_fastvoteStrategy", str)
+        fastvote_strategy = self.resolve_strategy_for_fastvote(strategy)
+
+        eval_result = fastvote_strategy.evaluate_votes(yes_votes, no_votes)
         if eval_result is None:
             return
 
@@ -84,5 +89,24 @@ class ThresholdFastVoteStrategy:
 
         if diff <= -self.threshold_fast_fail_diff:
             return False
+
+        return None
+
+
+class ParticipationFastVoteStrategy:
+
+    def __init__(self):
+        Plugin.set_cvar_once("qlx_fastvoteParticipationPercentage", 67)
+
+        self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", int)
+
+    def evaluate_votes(self, yes_votes, no_votes):
+        num_connected_players = len(Plugin.players())
+
+        current_participation = (yes_votes + no_votes)/num_connected_players * 100
+
+        if current_participation >= self.participation_percentage:
+            if yes_votes != no_votes:
+                return yes_votes > no_votes
 
         return None

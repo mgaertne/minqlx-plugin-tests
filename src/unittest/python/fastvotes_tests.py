@@ -68,10 +68,20 @@ class FastVotePassTests(unittest.TestCase):
         assert_that(self.plugin.track_vote, is_(False))
         verify(Plugin, times=0).force_vote(any)
 
+    def test_process_vote_player_votes_on_an_untracked_vote(self):
+        self.setup_vote_in_progress()
+        self.plugin.track_vote = False
+        self.current_vote_count_is(1, 5)
+
+        self.plugin.process_vote(fake_player(123, "Any Player"), False)
+
+        assert_that(self.plugin.track_vote, is_(False))
+        verify(Plugin, times=0).force_vote(any)
+
     def current_vote_count_is(self, number_yes, number_no):
         when2(Plugin.current_vote_count).thenReturn((number_yes, number_no))
 
-    def test_player_votes_yes_total_vote_count_does_not_meet_threshold(self):
+    def test_process_vote_threshold_player_votes_yes_total_vote_count_does_not_meet_threshold(self):
         self.setup_vote_in_progress()
         self.plugin.track_vote = True
         self.current_vote_count_is(1, 2)
@@ -81,7 +91,7 @@ class FastVotePassTests(unittest.TestCase):
         assert_that(self.plugin.track_vote, is_(True))
         verify(Plugin, times=0).force_vote(any)
 
-    def test_player_votes_yes_and_hits_vote_threshold(self):
+    def test_process_vote_threshold_player_votes_yes_and_hits_vote_threshold(self):
         self.setup_vote_in_progress()
         self.plugin.track_vote = True
         self.current_vote_count_is(6, 1)
@@ -91,7 +101,7 @@ class FastVotePassTests(unittest.TestCase):
         assert_that(self.plugin.track_vote, is_(False))
         verify(Plugin).force_vote(True)
 
-    def test_player_votes_no_and_does_not_meet_threashold(self):
+    def test_process_vote_threshold_player_votes_no_and_does_not_meet_threashold(self):
         self.setup_vote_in_progress()
         self.plugin.track_vote = True
         self.current_vote_count_is(1, 2)
@@ -101,7 +111,7 @@ class FastVotePassTests(unittest.TestCase):
         assert_that(self.plugin.track_vote, is_(True))
         verify(Plugin, times=0).force_vote(any)
 
-    def test_player_votes_no_and_hits_vote_threshold(self):
+    def test_process_vote_threshold_player_votes_no_and_hits_vote_threshold(self):
         self.setup_vote_in_progress()
         self.plugin.track_vote = True
         self.current_vote_count_is(1, 5)
@@ -110,13 +120,3 @@ class FastVotePassTests(unittest.TestCase):
 
         assert_that(self.plugin.track_vote, is_(False))
         verify(Plugin).force_vote(False)
-
-    def test_player_votes_on_an_untracked_vote(self):
-        self.setup_vote_in_progress()
-        self.plugin.track_vote = False
-        self.current_vote_count_is(1, 5)
-
-        self.plugin.process_vote(fake_player(123, "Any Player"), False)
-
-        assert_that(self.plugin.track_vote, is_(False))
-        verify(Plugin, times=0).force_vote(any)
