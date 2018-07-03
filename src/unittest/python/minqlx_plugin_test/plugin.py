@@ -154,10 +154,24 @@ def assert_cvar_was_set_to(cvar_name, cvar_value, times=1):
 
 
 def mocked_channel():
+    """Set up a mocked channel where minqlx communication runs through.
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+    """
     channel = mock()
     when(channel).reply(any).thenReturn(None)
     return channel
 
 
 def assert_channel_was_replied(channel, matcher, times=1):
+    """Verify that the a mocked channel was replied to with the given matcher.
+
+    **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
+    next test.**
+
+    :param channel: The mocked channel that was replied to.
+    :param matcher: a matcher for the amount reply sent to the channel.
+    :param times: The amount of times the plugin should have replied to the channel. (default: 1).
+    """
     verify(channel, times=times).reply(matcher)
