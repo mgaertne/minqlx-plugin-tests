@@ -3,7 +3,7 @@ import minqlx
 from minqlx import Plugin
 
 
-class fastvotepass(minqlx.Plugin):
+class fastvotes(minqlx.Plugin):
     """
     This plugin modifies the default vote pass or fail behavior with customizeable logic.
 
@@ -17,7 +17,7 @@ class fastvotepass(minqlx.Plugin):
     * qlx_fastvoteThresholdFastFailDiff (default: 5) fails the callvote at this no-yes difference
 
     For the participation strategy, you may set/modify this additional cvar:
-    * qlx_fastvoteParticipationPercentage (default: 67) Passes/Fails the vote when the given percentage of currently
+    * qlx_fastvoteParticipationPercentage (default: 0.67) Passes/Fails the vote when the given percentage of currently
     connected players has participated and the result is not a draw.
     """
 
@@ -36,7 +36,12 @@ class fastvotepass(minqlx.Plugin):
         self.track_vote = False
 
     def resolve_strategy_for_fastvote(self, strategy):
-        return ThresholdFastVoteStrategy()
+        if strategy.lower() == "threshold":
+            return ThresholdFastVoteStrategy()
+        if strategy.lower() == "participation":
+            return ParticipationFastVoteStrategy()
+
+        raise ValueError("qlx_fastvoteStrategy set to an unknown value: {}".format(strategy))
 
     def handle_vote(self, player, vote, args):
         if vote.lower() in self.fastvote_types:
@@ -96,14 +101,14 @@ class ThresholdFastVoteStrategy:
 class ParticipationFastVoteStrategy:
 
     def __init__(self):
-        Plugin.set_cvar_once("qlx_fastvoteParticipationPercentage", 67)
+        Plugin.set_cvar_once("qlx_fastvoteParticipationPercentage", 0.67)
 
-        self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", int)
+        self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", float)
 
     def evaluate_votes(self, yes_votes, no_votes):
         num_connected_players = len(Plugin.players())
 
-        current_participation = (yes_votes + no_votes)/num_connected_players * 100
+        current_participation = (yes_votes + no_votes) / num_connected_players
 
         if current_participation >= self.participation_percentage:
             if yes_votes != no_votes:
