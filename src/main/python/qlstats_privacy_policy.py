@@ -10,8 +10,8 @@ Uses:
 """
 
 COLORED_QLSTATS_INSTRUCTIONS = "Go to ^2https://qlstats.net/account/login^7 " \
-                    "and set ^2Privacy Settings^7 to either of these: ^6{}^7, " \
-                    "click ^2Save Settings^7, then reconnect."
+    "and set ^2Privacy Settings^7 to either of these: ^6{}^7, " \
+    "click ^2Save Settings^7, then reconnect."
 
 
 class qlstats_privacy_policy(minqlx.Plugin):
