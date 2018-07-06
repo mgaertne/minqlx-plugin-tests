@@ -26,6 +26,13 @@ game_settings = {
 
 
 class custom_modes_vote(minqlx.Plugin):
+    """
+    This plugin allows switching to customizable game modes, ships with vanilla QL settings and PQL promode settings
+
+    Uses:
+    * qlx_modeVoteNewMapDefault (default: "pql") Default game mode upon new map loading, set to None to keep the
+    previous map's mode even with the new map.
+    """
 
     def __init__(self):
         super().__init__()
