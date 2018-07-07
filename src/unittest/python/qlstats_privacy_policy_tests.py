@@ -191,9 +191,9 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "any")
 
-        assert_plugin_sent_to_console(matches(".*not allowed to join any team .*"))
+        assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
         assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
-        assert_player_was_told(specced_player, matches("Go to \^2https://qlstats.net/account/login.*"))
+        assert_player_was_told(specced_player, matches("Open qlstats.net.*"))
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
 
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_moved_to_spec(self):
@@ -203,9 +203,9 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.plugin.handle_team_switch_attempt(specced_player, "red", "blue")
 
-        assert_plugin_sent_to_console(matches(".*not allowed to join any team .*"))
+        assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
         assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
-        assert_player_was_told(specced_player, matches("Go to \^2https://qlstats.net/account/login.*"))
+        assert_player_was_told(specced_player, matches("Open qlstats.net.*"))
         assert_player_was_put_on(specced_player, "spectator")
 
     def test_handle_team_switch_attempt_player_with_correct_privacy_settings(self):
@@ -303,9 +303,9 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_player_was_put_on(red_player, "spectator", times=0)
         assert_player_was_told(red_player, any, times=0)
         assert_player_was_put_on(blue_player, "spectator")
-        assert_player_was_told(blue_player, matches("Go to \^2https://qlstats.net/account/login..*"))
+        assert_player_was_told(blue_player, matches("Open qlstats.net.*"))
         assert_player_received_center_print(blue_player, matches(".*Join not allowed.*"))
-        assert_plugin_sent_to_console(matches(".*not allowed to join any team.*"))
+        assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
 
     def test_cmd_switch_plugin_moves_unfetched_rated_players_to_spec(self):
         self.plugin.plugin_enabled = False

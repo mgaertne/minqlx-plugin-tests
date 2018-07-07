@@ -9,9 +9,8 @@ Uses:
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
 """
 
-COLORED_QLSTATS_INSTRUCTIONS = "Go to ^2https://qlstats.net/account/login^7 " \
-    "and set ^2Privacy Settings^7 to either of these: ^6{}^7, " \
-    "click ^2Save Settings^7, then reconnect."
+COLORED_QLSTATS_INSTRUCTIONS = "Open qlstats.net, click log in, choose either of these: ^6{}^7, " \
+                               "click save and reconnect!"
 
 
 class qlstats_privacy_policy(minqlx.Plugin):
@@ -112,9 +111,11 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
                 return minqlx.RET_STOP_ALL
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
-                self.msg("{}^7, you're not allowed to join any team "
-                         "for incorrect or missing QLStats.net privacy settings on this server.".format(player.name))
+                self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings."
+                         .format(player.name, player_info[player.steam_id]["privacy"].lower()))
                 player.center_print("^3Join not allowed. See instructions in console!")
+                player.tell("Not allowed to join due to ^6{}1^7 QLStats.net data."
+                            .format(player_info[player.steam_id]["privacy"].lower()))
                 player.tell(self.colored_qlstats_instructions())
                 if old in ["spectator", "free"]:
                     return minqlx.RET_STOP_ALL
@@ -187,8 +188,10 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 continue
 
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
-                self.msg("{}^7, you're not allowed to join any team "
-                         "for incorrect or missing QLStats.net privacy settings on this server.".format(player.name))
+                self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings."
+                         .format(player.name, player_info[player.steam_id]["privacy"].lower()))
                 player.center_print("^3Join not allowed. See instructions in console!")
+                player.tell("Not allowed to join due to ^6{}1 7 QLStats.net data."
+                            .format(player_info[player.steam_id]["privacy"].lower()))
                 player.tell(self.colored_qlstats_instructions())
                 player.put("spectator")
