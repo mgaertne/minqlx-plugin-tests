@@ -54,6 +54,9 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
     @minqlx.delay(5)
     def handle_player_connect(self, player):
+        if not self.game:
+            return
+
         if not self.check_for_correct_balance_plugin():
             self.disable_policy_check(minqlx.CHAT_CHANNEL)
             return

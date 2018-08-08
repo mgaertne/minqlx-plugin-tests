@@ -31,6 +31,14 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
             player_info[player.steam_id] = {"privacy": privacy}
         minqlx.Plugin._loaded_plugins["balance"] = mock({'player_info': player_info})
 
+    def test_handle_player_connect_no_game_running(self):
+        setup_no_game()
+        connecting_player = fake_player(123, "Connecting Player")
+
+        undecorated(self.plugin.handle_player_connect)(self.plugin, connecting_player)
+
+        assert_plugin_sent_to_console(any, times=0)
+
     def test_handle_player_connect_no_balance_plugin(self):
         minqlx.Plugin._loaded_plugins.pop("balance")
         connecting_player = fake_player(123, "Connecting Player")
