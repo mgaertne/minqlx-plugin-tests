@@ -1042,6 +1042,19 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^6Sender^7:^2 some chat message")
 
     @async_test
+    async def test_on_message_by_user_with_nickname(self):
+        message = mocked_message(content="some chat message",
+                                 user=mocked_user(name="Sender", nick="SenderNick"),
+                                 channel=self.relay_channel())
+
+        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
+        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+
+        await self.discord.on_message(message)
+
+        verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^6SenderNick^7:^2 some chat message")
+
+    @async_test
     async def test_on_message_in_wrong_channel(self):
         message = mocked_message(content="some chat message",
                                  channel=self.triggered_channel())

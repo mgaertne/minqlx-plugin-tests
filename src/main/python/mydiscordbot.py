@@ -22,7 +22,7 @@ import discord
 from discord import ChannelType
 from discord.ext.commands import Bot, Command, HelpFormatter
 
-plugin_version = "v1.0.0-wunjo"
+plugin_version = "v1.0.0-fehu"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -817,9 +817,13 @@ class SimpleAsyncDiscord(threading.Thread):
         and channels on the discord server.
         :return: the formatted message that may be sent back to Quake Live.
         """
+        sender = author.name
+        if author.nick is not None:
+            sender = author.nick
+
         if not self.discord_show_relay_channel_names and int(channel.id) in self.discord_relay_channel_ids:
-            return "{0} ^6{1.name}^7:^2 {2}".format(self.discord_message_prefix, author, content)
-        return "{0} ^5#{1.name} ^6{2.name}^7:^2 {3}".format(self.discord_message_prefix, channel, author, content)
+            return "{0} ^6{1}^7:^2 {2}".format(self.discord_message_prefix, sender, content)
+        return "{0} ^5#{1.name} ^6{2}^7:^2 {3}".format(self.discord_message_prefix, channel, sender, content)
 
     async def on_ready(self):
         """
