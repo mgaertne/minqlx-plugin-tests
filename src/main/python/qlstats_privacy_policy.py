@@ -4,9 +4,11 @@ import minqlx
 Plugin that restricts playing on the server to certain QLStats.net privacy settings.
 
 Uses:
-- set qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
-- set qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked")
+- qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
+- qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked")
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
+- qlx_qlstatsPrivacyJoinAttempts (default: 5), amount of join attempts before the player gets kicked, 
+    if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
 """
 
 COLORED_QLSTATS_INSTRUCTIONS = "Open qlstats.net, click log in, choose either of these: ^6{}^7, " \
@@ -19,12 +21,15 @@ class qlstats_privacy_policy(minqlx.Plugin):
         super().__init__()
         self.set_cvar_once("qlx_qlstatsPrivacyKick", "0")
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, anonymous, private, untracked")
+        self.set_cvar_once("qlx_qlstatsPrivacyJoinAttempts", "5")
 
         self.plugin_enabled = True
         self.kick_players = self.get_cvar("qlx_qlstatsPrivacyKick", bool)
         self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list)
+        self.max_num_join_attempts = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int)
 
         self.exceptions = set()
+        self.join_attempts = dict()
 
         self.add_hook("player_connect", self.handle_player_connect)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
@@ -94,6 +99,9 @@ class qlstats_privacy_policy(minqlx.Plugin):
         if player.steam_id in self.exceptions:
             self.exceptions.remove(player.steam_id)
 
+        if player.steam_id in self.join_attempts:
+            del self.join_attempts[player.steam_id]
+
     def handle_team_switch_attempt(self, player, old, new):
         if not self.plugin_enabled:
             return
@@ -114,12 +122,32 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
                 return minqlx.RET_STOP_ALL
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
-                self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings."
-                         .format(player.name, player_info[player.steam_id]["privacy"].lower()))
+                if self.max_num_join_attempts > 0:
+                    if player.steam_id not in self.join_attempts:
+                        self.join_attempts[player.steam_id] = self.max_num_join_attempts
+
+                    self.join_attempts[player.steam_id] -= 1
+
+                    if self.join_attempts[player.steam_id] < 0:
+                        player.kick(minqlx.Plugin.clean_text(self.colored_qlstats_instructions()))
+                        return minqlx.RET_STOP_ALL
+                    self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings. "
+                             "{} join attempts before automatically kicking you."
+                             .format(player.name, player_info[player.steam_id]["privacy"].lower(),
+                                     self.join_attempts[player.steam_id]))
+                    player.tell("Not allowed to join due to ^6{}1^7 QLStats.net data. "
+                                "{} join attempts before automatically kicking you."
+                                .format(player_info[player.steam_id]["privacy"].lower(),
+                                        self.join_attempts[player.steam_id]))
+                else:
+                    self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings. "
+                             .format(player.name, player_info[player.steam_id]["privacy"].lower()))
+                    player.tell("Not allowed to join due to ^6{}1^7 QLStats.net data. "
+                                .format(player_info[player.steam_id]["privacy"].lower()))
+
                 player.center_print("^3Join not allowed. See instructions in console!")
-                player.tell("Not allowed to join due to ^6{}1^7 QLStats.net data."
-                            .format(player_info[player.steam_id]["privacy"].lower()))
                 player.tell(self.colored_qlstats_instructions())
+
                 if old in ["spectator", "free"]:
                     return minqlx.RET_STOP_ALL
 

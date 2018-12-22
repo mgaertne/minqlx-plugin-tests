@@ -16,7 +16,8 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         setup_plugin()
         setup_cvars({
             "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list)
+            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
+            "qlx_qlstatsPrivacyJoinAttempts": (5, int)
         })
         setup_game_in_progress()
         self.setup_balance_playerprivacy([])
@@ -146,6 +147,14 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         assert_that(self.plugin.exceptions, is_({456}))
 
+    def test_handle_player_disconnect_clears_join_attempts(self):
+        player = fake_player(123, "Test Player")
+        self.plugin.join_attempts[player.steam_id] = 3
+
+        self.plugin.handle_player_disconnect(player, "quit")
+
+        assert_that(player.steam_id not in self.plugin.join_attempts, is_(True))
+
     def test_handle_team_switch_attempt_no_balance_plugin(self):
         minqlx.Plugin._loaded_plugins.pop("balance")
         switching_player = fake_player(123, "Joining Player")
@@ -203,6 +212,21 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
         assert_player_was_told(specced_player, matches("Open qlstats.net.*"))
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(specced_player.steam_id in self.plugin.join_attempts, is_(True))
+
+    def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_with_unlimited_join_attempts(self):
+        specced_player = fake_player(123, "Test Player")
+        connected_players(specced_player)
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
+        self.plugin.max_num_join_attempts = -1
+
+        return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "any")
+
+        assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
+        assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
+        assert_player_was_told(specced_player, matches("Open qlstats.net.*"))
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(specced_player.steam_id not in self.plugin.join_attempts, is_(True))
 
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_moved_to_spec(self):
         specced_player = fake_player(123, "Test Player")
@@ -215,6 +239,28 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
         assert_player_was_told(specced_player, matches("Open qlstats.net.*"))
         assert_player_was_put_on(specced_player, "spectator")
+
+    def test_handle_team_switch_attempt_player_with_max_join_attempts_is_kicked(self):
+        kicked_player = fake_player(123, "Test Player")
+        connected_players(kicked_player)
+        self.plugin.join_attempts[kicked_player.steam_id] = 0
+        self.plugin.plugins["balance"].player_info = {kicked_player.steam_id: {"privacy": "private"}}
+
+        return_code = self.plugin.handle_team_switch_attempt(kicked_player, "spec", "blue")
+
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        verify(kicked_player).kick(any())
+
+    def test_handle_team_switch_attempt_player_join_attempts_are_decremented(self):
+        specced_player = fake_player(123, "Test Player")
+        connected_players(specced_player)
+        self.plugin.join_attempts[specced_player.steam_id] = 3
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
+
+        return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
+
+        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(self.plugin.join_attempts[specced_player.steam_id], is_(2))
 
     def test_handle_team_switch_attempt_player_with_correct_privacy_settings(self):
         specced_player = fake_player(123, "Test Player")
