@@ -443,6 +443,9 @@ class DiscordHelpFormatterTests(unittest.TestCase):
         self.formatter.context.invoked_with = "help"
         self.formatter.context.bot = mock({'description': 'Mocked Bot'}, spec=Bot)
         self.formatter.context.bot.user = mocked_user()
+        self.formatter.context.bot.user.display_name = "Discord-Bot"
+        self.formatter.context.bot.user.mention = "Discord-Bot#123"
+        self.formatter.context.guild = None
         help_command = mock({'name': 'help', 'description': 'Fake Help', 'short_doc': 'Fake Help',
                              'hidden': False, 'cog_name': None, 'aliases': []})
         when(help_command).can_run(self.formatter.context).thenReturn(mocked_coro(True))
