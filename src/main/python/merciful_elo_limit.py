@@ -22,10 +22,10 @@ class merciful_elo_limit(Plugin):
     """
     def __init__(self):
         super().__init__()
-        self.set_cvar_once("qlx_mercifulelo_minelo", 800)
-        self.set_cvar_once("qlx_mercifulelo_freegames", 10)
-        self.set_cvar_once("qlx_mercifulelo_abovegames", 10)
-        self.set_cvar_once("qlx_mercifulelo_daysbanned", 30)
+        self.set_cvar_once("qlx_mercifulelo_minelo", "800")
+        self.set_cvar_once("qlx_mercifulelo_freegames", "10")
+        self.set_cvar_once("qlx_mercifulelo_abovegames", "10")
+        self.set_cvar_once("qlx_mercifulelo_daysbanned", "30")
 
         self.min_elo = self.get_cvar("qlx_mercifulelo_minelo", int)
         self.free_games = self.get_cvar("qlx_mercifulelo_freegames", int)
