@@ -7,7 +7,7 @@ Uses:
 - qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
 - qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked")
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
-- qlx_qlstatsPrivacyJoinAttempts (default: 5), amount of join attempts before the player gets kicked, 
+- qlx_qlstatsPrivacyJoinAttempts (default: 5), amount of join attempts before the player gets kicked,
     if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
 """
 
