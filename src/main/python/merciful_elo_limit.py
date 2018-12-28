@@ -88,7 +88,8 @@ class merciful_elo_limit(Plugin):
                 continue
 
             if elo < self.min_elo:
-                free_games_played = int(self.db.get(FREE_GAMES_KEY.format(player.steam_id)))
+                free_games_played = self.get_value_from_db_or_zero(FREE_GAMES_KEY.format(player.steam_id))
+
                 if free_games_played > self.free_games:
                     ban_player(player, "30 days",
                                "Automatically banned after using up {} free games".format(self.free_games))
@@ -96,6 +97,12 @@ class merciful_elo_limit(Plugin):
                     self.db.delete(FREE_GAMES_KEY.format(player.steam_id))
                 else:
                     self.warn_lowelo_player(player)
+
+    def get_value_from_db_or_zero(self, key):
+        value = self.db.get(key)
+        if value is None:
+            return 0
+        return int(value)
 
     def elo_for_player(self, player):
         if not self.game:
@@ -115,7 +122,8 @@ class merciful_elo_limit(Plugin):
         return ratings[player.steam_id][gametype]["elo"]
 
     def warn_lowelo_player(self, player):
-        remaining_matches = self.free_games - self.db.get(FREE_GAMES_KEY.format(player.steam_id))
+        matches_played = self.get_value_from_db_or_zero(FREE_GAMES_KEY.format(player.steam_id))
+        remaining_matches = self.free_games - matches_played
         self.blink2(player, "^1Skill warning, read console! ^3{} ^1matches left.".format(remaining_matches))
         player.tell(
             "{}, this is a ^1Skill Warning! ^7Your qlstats.net glicko is below {}. You have ^3{} ^7of {} free matches "
@@ -159,7 +167,7 @@ class merciful_elo_limit(Plugin):
             if self.db.exists(FREE_GAMES_KEY.format(player.steam_id)):
                 self.tracked_player_sids.append(player.steam_id)
                 self.db.incr(ABOVE_GAMES_KEY.format(player.steam_id))
-                above_games = int(self.db.get(ABOVE_GAMES_KEY.format(player.steam_id)))
+                above_games = self.get_value_from_db_or_zero(ABOVE_GAMES_KEY.format(player.steam_id))
                 if above_games > self.above_games:
                     self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
                     self.db.delete(FREE_GAMES_KEY.format(player.steam_id))

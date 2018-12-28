@@ -178,6 +178,22 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 free matches.*"))
 
+    def test_callback_ratings_warns_low_elo_player_when_free_games_not_set(self):
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        connected_players(player1, player2)
+        self.setup_balance_ratings({(player1, 900), (player2, 799)})
+
+        patch(minqlx.next_frame, lambda func: func)
+        patch(minqlx.thread, lambda func: func)
+        patch(time.sleep, lambda int: None)
+        when(self.db).get(any).thenReturn(None)
+
+        self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
+
+        verify(player2, times=12).center_print(matches(".*Skill warning.*10.*matches left.*"))
+        verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*10.*of 10 free matches.*"))
+
     def test_callback_ratings_bans_low_elo_players_that_used_up_their_free_games(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -251,6 +267,21 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
         when(self.db).get(any).thenReturn(3)
+        when(self.db).delete(any).thenReturn(None)
+        when(self.db).exists(any).thenReturn(True)
+        when(self.db).incr(any).thenReturn(None)
+
+        self.plugin.handle_round_start(1)
+
+        verify(self.db).incr("minqlx:players:{}:minelo:abovegames".format(player2.steam_id))
+
+    def test_handle_round_start_increases_above_games_for_free_games_player_with_no_aobve_games_set(self):
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        connected_players(player1, player2)
+        self.setup_balance_ratings({(player1, 900), (player2, 801)})
+
+        when(self.db).get(any).thenReturn(1)
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(True)
         when(self.db).incr(any).thenReturn(None)
