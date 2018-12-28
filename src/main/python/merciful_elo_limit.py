@@ -134,6 +134,7 @@ class merciful_elo_limit(Plugin):
             "Tip: Practice the Elevate and Accelerate training from the Quake Live menu and some Free For All on other "
             "servers."
             .format(self.free_games, self.banned_days))
+        self.msg("Player {} is below {}, but has {} free games left.".format(player.clean_name, self.min_elo, remaining_matches))
 
     @minqlx.thread
     def blink2(self, player, message, count=12, interval=.12):

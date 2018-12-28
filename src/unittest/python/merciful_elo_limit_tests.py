@@ -178,6 +178,21 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 free matches.*"))
 
+    def test_callback_ratings_announces_warning_to_other_players(self):
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        connected_players(player1, player2)
+        self.setup_balance_ratings({(player1, 900), (player2, 799)})
+
+        patch(minqlx.next_frame, lambda func: func)
+        patch(minqlx.thread, lambda func: func)
+        patch(time.sleep, lambda int: None)
+        when(self.db).get(any).thenReturn(2)
+
+        self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
+
+        assert_plugin_sent_to_console(matches("Player.*is below.*, but has 8 free games left.*"))
+
     def test_callback_ratings_warns_low_elo_player_when_free_games_not_set(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
