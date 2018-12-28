@@ -50,6 +50,11 @@ class MercifulEloLimitTests(unittest.TestCase):
         if "balance" in self.plugin._loaded_plugins:
             del self.plugin._loaded_plugins["balance"]
 
+    def setup_exception_list(self, players):
+        mybalance_plugin = mock(Plugin)
+        mybalance_plugin.exceptions = [player.steam_id for player in players]
+        self.plugin._loaded_plugins["mybalance"] = mybalance_plugin
+
     def test_handle_map_change_resets_tracked_player_ids(self):
         connected_players()
         self.setup_balance_ratings([])
@@ -193,6 +198,26 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         assert_plugin_sent_to_console(matches("Player.*is below.*, but has 8 free games left.*"))
 
+    def test_callback_ratings_makes_exception_for_player_in_exception_list(self):
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        player3 = fake_player(789, "Fake Player3", team="red")
+        connected_players(player1, player2, player3)
+        self.setup_balance_ratings({(player1, 900), (player2, 799), (player3, 600)})
+        self.setup_exception_list([player3])
+
+        patch(minqlx.next_frame, lambda func: func)
+        patch(minqlx.thread, lambda func: func)
+        patch(time.sleep, lambda int: None)
+        when(self.db).get(any).thenReturn(2)
+
+        self.plugin.callback_ratings([player1, player2, player3], minqlx.CHAT_CHANNEL)
+
+        verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
+        verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 free matches.*"))
+        verify(player3, times=0).center_print(any)
+        verify(player3, times=0).tell(any)
+
     def test_callback_ratings_warns_low_elo_player_when_free_games_not_set(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -244,6 +269,24 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.plugin.handle_round_start(1)
 
         verify(self.db).incr("minqlx:players:{}:minelo:freegames".format(player2.steam_id))
+
+    def test_handle_round_start_makes_exception_for_player_in_exception_list(self):
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        player3 = fake_player(789, "Fake Player3", team="red")
+        connected_players(player1, player2, player3)
+        self.setup_balance_ratings({(player1, 900), (player2, 799), (player3, 600)})
+        self.setup_exception_list([player3])
+
+        when(self.db).get(any).thenReturn(3)
+        when(self.db).delete(any).thenReturn(None)
+        when(self.db).exists(any).thenReturn(False)
+        when(self.db).incr(any).thenReturn(None)
+
+        self.plugin.handle_round_start(1)
+
+        verify(self.db).incr("minqlx:players:{}:minelo:freegames".format(player2.steam_id))
+        verify(self.db, times=0).incr("minqlx:players:{}:minelo:freegames".format(player3.steam_id))
 
     def test_handle_round_start_starts_tracking_for_low_elo_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")

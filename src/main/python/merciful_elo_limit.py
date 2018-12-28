@@ -83,6 +83,8 @@ class merciful_elo_limit(Plugin):
 
         teams = self.teams()
         for player in teams["red"] + teams["blue"]:
+            if self.is_player_in_exception_list(player):
+                continue
             elo = self.elo_for_player(player)
             if elo is None:
                 continue
@@ -97,6 +99,13 @@ class merciful_elo_limit(Plugin):
                     self.db.delete(FREE_GAMES_KEY.format(player.steam_id))
                 else:
                     self.warn_lowelo_player(player)
+
+    def is_player_in_exception_list(self, player):
+        if 'mybalance' not in Plugin._loaded_plugins:
+            return False
+
+        mybalance_plugin = Plugin._loaded_plugins['mybalance']
+        return player.steam_id in mybalance_plugin.exceptions
 
     def get_value_from_db_or_zero(self, key):
         value = self.db.get(key)
@@ -153,6 +162,10 @@ class merciful_elo_limit(Plugin):
         for player in teams["red"] + teams["blue"]:
             if player.steam_id in self.tracked_player_sids:
                 continue
+
+            if self.is_player_in_exception_list(player):
+                continue
+
             elo = self.elo_for_player(player)
             if elo is None:
                 continue
@@ -163,7 +176,7 @@ class merciful_elo_limit(Plugin):
 
                 if self.db.exists(ABOVE_GAMES_KEY.format(player.steam_id)):
                     self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
-                return
+                continue
 
             if self.db.exists(FREE_GAMES_KEY.format(player.steam_id)):
                 self.tracked_player_sids.append(player.steam_id)
