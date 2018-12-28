@@ -72,33 +72,38 @@ class merciful_elo_limit(Plugin):
         self.fetch_elos_of_players(teams["red"] + teams["blue"])
 
     def callback_ratings(self, players, channel):
+        if not self.game:
+            return
+
+        teams = self.teams()
+        for player in teams["red"] + teams["blue"]:
+            self.handle_player_after_fetching_ratings(player)
+
+    def handle_player_after_fetching_ratings(self, player):
         @minqlx.next_frame
         def ban_player(player, duration, msg):
             minqlx.COMMANDS.handle_input(DummyOwner(self.logger),
                                          "!ban {} {} {}".format(player.steam_id, duration, msg),
                                          DummyChannel(self.logger))
 
-        if not self.game:
+        if self.is_player_in_exception_list(player):
             return
 
-        teams = self.teams()
-        for player in teams["red"] + teams["blue"]:
-            if self.is_player_in_exception_list(player):
-                continue
-            elo = self.elo_for_player(player)
-            if elo is None:
-                continue
+        elo = self.elo_for_player(player)
+        if elo is None:
+            return
 
-            if elo < self.min_elo:
-                free_games_played = self.get_value_from_db_or_zero(FREE_GAMES_KEY.format(player.steam_id))
+        if elo < self.min_elo:
+            free_games_played = self.get_value_from_db_or_zero(FREE_GAMES_KEY.format(player.steam_id))
 
-                if free_games_played > self.free_games:
-                    ban_player(player, "30 days",
-                               "Automatically banned after using up {} free games".format(self.free_games))
-                    self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
-                    self.db.delete(FREE_GAMES_KEY.format(player.steam_id))
-                else:
-                    self.warn_lowelo_player(player)
+            if free_games_played > self.free_games:
+                ban_player(player, "30 days",
+                           "Automatically banned after using up {} free games".format(self.free_games))
+                self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
+                self.db.delete(FREE_GAMES_KEY.format(player.steam_id))
+                return
+
+            self.warn_lowelo_player(player)
 
     def is_player_in_exception_list(self, player):
         if 'mybalance' not in Plugin._loaded_plugins:
@@ -161,31 +166,34 @@ class merciful_elo_limit(Plugin):
     def handle_round_start(self, round_number):
         teams = Plugin.teams()
         for player in teams["red"] + teams["blue"]:
-            if player.steam_id in self.tracked_player_sids:
-                continue
+            self.handle_player_at_round_start(player)
 
-            if self.is_player_in_exception_list(player):
-                continue
+    def handle_player_at_round_start(self, player):
+        if self.is_player_in_exception_list(player):
+            return
 
-            elo = self.elo_for_player(player)
-            if elo is None:
-                continue
+        if player.steam_id in self.tracked_player_sids:
+            return
 
-            if elo < self.min_elo:
-                self.db.incr(FREE_GAMES_KEY.format(player.steam_id))
-                self.tracked_player_sids.append(player.steam_id)
+        elo = self.elo_for_player(player)
+        if elo is None:
+            return
 
-                if self.db.exists(ABOVE_GAMES_KEY.format(player.steam_id)):
-                    self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
-                continue
+        if elo < self.min_elo:
+            self.db.incr(FREE_GAMES_KEY.format(player.steam_id))
+            self.tracked_player_sids.append(player.steam_id)
 
-            if self.db.exists(FREE_GAMES_KEY.format(player.steam_id)):
-                self.tracked_player_sids.append(player.steam_id)
-                self.db.incr(ABOVE_GAMES_KEY.format(player.steam_id))
-                above_games = self.get_value_from_db_or_zero(ABOVE_GAMES_KEY.format(player.steam_id))
-                if above_games > self.above_games:
-                    self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
-                    self.db.delete(FREE_GAMES_KEY.format(player.steam_id))
+            if self.db.exists(ABOVE_GAMES_KEY.format(player.steam_id)):
+                self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
+            return
+
+        if self.db.exists(FREE_GAMES_KEY.format(player.steam_id)):
+            self.tracked_player_sids.append(player.steam_id)
+            self.db.incr(ABOVE_GAMES_KEY.format(player.steam_id))
+            above_games = self.get_value_from_db_or_zero(ABOVE_GAMES_KEY.format(player.steam_id))
+            if above_games > self.above_games:
+                self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
+                self.db.delete(FREE_GAMES_KEY.format(player.steam_id))
 
 
 class DummyChannel(minqlx.AbstractChannel):
