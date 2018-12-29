@@ -33,6 +33,7 @@ class merciful_elo_limit(Plugin):
         self.banned_days = self.get_cvar("qlx_mercifulelo_daysbanned", int)
 
         self.tracked_player_sids = []
+        self.announced_player_elos = []
 
         self.add_hook("map", self.handle_map_change)
         self.add_hook("player_connect", self.handle_player_connect)
@@ -41,6 +42,7 @@ class merciful_elo_limit(Plugin):
 
     def handle_map_change(self, mapname, factory):
         self.tracked_player_sids = []
+        self.announced_player_elos = []
         self.fetch_elos_of_players(Plugin.players())
 
     def handle_player_connect(self, player):
@@ -148,8 +150,10 @@ class merciful_elo_limit(Plugin):
             "Tip: Practice the Elevate and Accelerate training from the Quake Live menu and some Free For All on other "
             "servers."
             .format(self.free_games, self.banned_days))
-        self.msg("Player {} is below {}, but has {} free games left."
-                 .format(player.clean_name, self.min_elo, remaining_matches))
+        if player.steam_id not in self.announced_player_elos:
+            self.msg("Player {} is below {}, but has {} free games left."
+                     .format(player.clean_name, self.min_elo, remaining_matches))
+            self.announced_player_elos.append(player.steam_id)
 
     @minqlx.thread
     def blink2(self, player, message, count=12, interval=.12):

@@ -64,6 +64,15 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         assert_that(self.plugin.tracked_player_sids, is_([]))
 
+    def test_handle_map_change_resets_announced_player_ids(self):
+        connected_players()
+        self.setup_balance_ratings([])
+        self.plugin.announced_player_elos = [123, 455]
+
+        self.plugin.handle_map_change("campgrounds", "ca")
+
+        assert_that(self.plugin.announced_player_elos, is_([]))
+
     def test_handle_map_change_fetches_elos_of_connected_players(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -183,7 +192,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 free matches.*"))
 
-    def test_callback_ratings_announces_warning_to_other_players(self):
+    def test_callback_ratings_announces_information_to_other_players(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -197,6 +206,22 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         assert_plugin_sent_to_console(matches("Player.*is below.*, but has 8 free games left.*"))
+
+    def test_callback_ratings_announces_information_to_other_players_just_once_per_connect(self):
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        connected_players(player1, player2)
+        self.setup_balance_ratings({(player1, 900), (player2, 799)})
+        self.plugin.announced_player_elos = [456]
+
+        patch(minqlx.next_frame, lambda func: func)
+        patch(minqlx.thread, lambda func: func)
+        patch(time.sleep, lambda int: None)
+        when(self.db).get(any).thenReturn(2)
+
+        self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
+
+        assert_plugin_sent_to_console(matches("Player.*is below.*, but has 8 free games left.*"), times=0)
 
     def test_callback_ratings_makes_exception_for_player_in_exception_list(self):
         player1 = fake_player(123, "Fake Player1", team="red")
