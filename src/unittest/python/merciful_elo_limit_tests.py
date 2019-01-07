@@ -185,7 +185,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda int: None)
-        when(self.db).get(any).thenReturn(2)
+        when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -201,7 +201,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda int: None)
-        when(self.db).get(any).thenReturn(2)
+        when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -217,7 +217,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda int: None)
-        when(self.db).get(any).thenReturn(2)
+        when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -234,7 +234,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda int: None)
-        when(self.db).get(any).thenReturn(2)
+        when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2, player3], minqlx.CHAT_CHANNEL)
 
@@ -265,7 +265,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn(11)
+        when(self.db).get(any).thenReturn("11")
         spy2(minqlx.COMMANDS.handle_input)
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
@@ -286,7 +286,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn(3)
+        when(self.db).get(any).thenReturn("3")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(False)
         when(self.db).incr(any).thenReturn(None)
@@ -303,7 +303,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.setup_balance_ratings({(player1, 900), (player2, 799), (player3, 600)})
         self.setup_exception_list([player3])
 
-        when(self.db).get(any).thenReturn(3)
+        when(self.db).get(any).thenReturn("3")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(False)
         when(self.db).incr(any).thenReturn(None)
@@ -319,7 +319,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn(3)
+        when(self.db).get(any).thenReturn("3")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(False)
         when(self.db).incr(any).thenReturn(None)
@@ -334,7 +334,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn(3)
+        when(self.db).get(any).thenReturn("3")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(True)
         when(self.db).incr(any).thenReturn(None)
@@ -349,7 +349,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn(3)
+        when(self.db).get(any).thenReturn("3")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(True)
         when(self.db).incr(any).thenReturn(None)
@@ -364,7 +364,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn(1)
+        when(self.db).get(any).thenReturn("1")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(True)
         when(self.db).incr(any).thenReturn(None)
@@ -379,7 +379,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn(3)
+        when(self.db).get(any).thenReturn("3")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(True)
         when(self.db).incr(any).thenReturn(None)
@@ -394,7 +394,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn(11)
+        when(self.db).get(any).thenReturn("11")
         when(self.db).delete(any).thenReturn(None)
         when(self.db).exists(any).thenReturn(True)
         when(self.db).incr(any).thenReturn(None)
@@ -453,9 +453,9 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player, player1, player2, player3)
         self.setup_balance_ratings({(player, 1400), (player1, 801), (player2, 799), (player3, 900)})
 
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player1.steam_id)).thenReturn(2)
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player2.steam_id)).thenReturn(3)
-        when(self.db).get("minqlx:players:{}:minelo:abovegames".format(player1.steam_id)).thenReturn(6)
+        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player1.steam_id)).thenReturn("2")
+        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player2.steam_id)).thenReturn("3")
+        when(self.db).get("minqlx:players:{}:minelo:abovegames".format(player1.steam_id)).thenReturn("6")
         when(self.db).get("minqlx:players:{}:minelo:freegames".format(player.steam_id)).thenReturn(None)
         when(self.db).get("minqlx:players:{}:minelo:freegames".format(player3.steam_id)).thenReturn(None)
 

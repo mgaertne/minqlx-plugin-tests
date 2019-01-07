@@ -215,7 +215,7 @@ class merciful_elo_limit(Plugin):
         self.msg("Players currently within their application period:")
         for player in reported_players:
             elo = self.elo_for_player(player)
-            remaining_matches = self.application_games - self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id))
+            remaining_matches = self.application_games - int(self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id)))
             if elo > self.min_elo:
                 above_games = self.db.get(ABOVE_GAMES_KEY.format(player.steam_id))
                 self.msg("{} (elo: {}): ^3{}^7 application matches left, ^2{}^7 matches above {}".format(
