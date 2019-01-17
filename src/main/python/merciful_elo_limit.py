@@ -234,6 +234,7 @@ class merciful_elo_limit(Plugin):
 
         return channel
 
+
 class DummyChannel(minqlx.AbstractChannel):
     def __init__(self, logger):
         super().__init__("merciful_elo_limit")
