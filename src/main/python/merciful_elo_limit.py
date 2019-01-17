@@ -202,6 +202,7 @@ class merciful_elo_limit(Plugin):
                 self.db.delete(APPLICATION_GAMES_KEY.format(player.steam_id))
 
     def cmd_mercis(self, player, msg, channel):
+        reply_channel = self.identify_reply_channel(channel)
         players = self.players()
 
         reported_players = []
@@ -212,20 +213,26 @@ class merciful_elo_limit(Plugin):
         if len(reported_players) == 0:
             return
 
-        self.msg("Players currently within their application period:")
+        reply_channel.reply("Players currently within their application period:")
         for player in reported_players:
             elo = self.elo_for_player(player)
             remaining_matches = self.application_games - int(self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id)))
             if elo > self.min_elo:
                 above_games = self.db.get(ABOVE_GAMES_KEY.format(player.steam_id))
-                self.msg("{} (elo: {}): ^3{}^7 application matches left, ^2{}^7 matches above {}".format(
+                reply_channel.reply("{} (elo: {}): ^3{}^7 application matches left, ^2{}^7 matches above {}".format(
                     player.clean_name, elo, remaining_matches, above_games, self.min_elo
                 ))
             else:
-                self.msg("{} (elo: {}): ^3{}^7 application matches left".format(
+                reply_channel.reply("{} (elo: {}): ^3{}^7 application matches left".format(
                     player.clean_name, elo, remaining_matches
                 ))
 
+    def identify_reply_channel(self, channel):
+        if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
+                       minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
+            return minqlx.CHAT_CHANNEL
+
+        return channel
 
 class DummyChannel(minqlx.AbstractChannel):
     def __init__(self, logger):

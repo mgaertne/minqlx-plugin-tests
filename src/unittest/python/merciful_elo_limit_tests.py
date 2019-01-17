@@ -27,6 +27,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         setup_game_in_progress()
         self.plugin = merciful_elo_limit()
+        self.reply_channel = mocked_channel()
 
         self.plugin.database = Redis
         self.db = mock(Redis)
@@ -459,11 +460,38 @@ class MercifulEloLimitTests(unittest.TestCase):
         when(self.db).get("minqlx:players:{}:minelo:freegames".format(player.steam_id)).thenReturn(None)
         when(self.db).get("minqlx:players:{}:minelo:freegames".format(player3.steam_id)).thenReturn(None)
 
-        self.plugin.cmd_mercis(player, ["!mercis"], minqlx.CHAT_CHANNEL)
+        self.plugin.cmd_mercis(player, ["!mercis"], self.reply_channel)
 
-        assert_plugin_sent_to_console(matches("Fake Player1 \(elo: 801\):.*8.*application matches left,"
-                                              ".*6.*matches above.*"))
-        assert_plugin_sent_to_console(matches("Fake Player2 \(elo: 799\):.*7.*application matches left"))
+        assert_channel_was_replied(self.reply_channel, matches("Fake Player1 \(elo: 801\):.*8.*application matches "
+                                                               "left,.*6.*matches above.*"))
+        assert_channel_was_replied(self.reply_channel, matches("Fake Player2 \(elo: 799\):.*7.*application matches "
+                                                               "left"))
+
+    def test_cmd_mercis_replies_to_main_cbannel_instead_of_team_chat(self):
+        self.addCleanup(self.reset_chat_channel, minqlx.CHAT_CHANNEL)
+        minqlx.CHAT_CHANNEL = mocked_channel()
+        player = fake_player(666, "Cmd using Player")
+        player1 = fake_player(123, "Fake Player1", team="red")
+        player2 = fake_player(456, "Fake Player2", team="blue")
+        player3 = fake_player(789, "Fake Player3", team="blue")
+        connected_players(player, player1, player2, player3)
+        self.setup_balance_ratings({(player, 1400), (player1, 801), (player2, 799), (player3, 900)})
+
+        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player1.steam_id)).thenReturn("2")
+        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player2.steam_id)).thenReturn("3")
+        when(self.db).get("minqlx:players:{}:minelo:abovegames".format(player1.steam_id)).thenReturn("6")
+        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player.steam_id)).thenReturn(None)
+        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player3.steam_id)).thenReturn(None)
+
+        self.plugin.cmd_mercis(player, ["!mercis"], minqlx.BLUE_TEAM_CHAT_CHANNEL)
+
+        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches("Fake Player1 \(elo: 801\):.*8.*application matches "
+                                                                "left,.*6.*matches above.*"))
+        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches("Fake Player2 \(elo: 799\):.*7.*application matches "
+                                                                "left"))
+
+    def reset_chat_channel(self, original_chat_channel):
+        minqlx.CHAT_CHANNEL = original_chat_channel
 
     def test_cmd_mercis_shows_no_mercis_if_no_player_using_their_application_matches(self):
         player = fake_player(666, "Cmd using Player")
