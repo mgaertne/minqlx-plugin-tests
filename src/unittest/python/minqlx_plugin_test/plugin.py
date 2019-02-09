@@ -1,5 +1,4 @@
-from mockito import mock, when, any, verify
-
+import minqlx
 from minqlx import Plugin
 
 from mockito import *
@@ -35,6 +34,8 @@ def setup_plugin():
     when2(Plugin.set_cvar, any, any).thenReturn(None)
     spy2(Plugin.kick)
     when2(Plugin.kick, any, any(str)).thenReturn(None)
+    spy2(minqlx.get_cvar)
+    when2(minqlx.get_cvar, "zmq_stats_enable").thenReturn("0")
 
 
 def setup_cvar(cvar_name, cvar_value, return_type=None):

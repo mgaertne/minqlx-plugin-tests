@@ -14,9 +14,6 @@ class DuelArenaTests(unittest.TestCase):
 
     def setUp(self):
         setup_plugin()
-        setup_cvars({
-            "zmq_stats_enable": ("0", None)
-        })
         setup_game_in_progress("ca")
         connected_players()
         self.plugin = duelarena()
