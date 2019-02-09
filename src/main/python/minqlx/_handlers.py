@@ -227,6 +227,7 @@ def handle_frame():
 
 _zmq_warning_issued = False
 _first_game = True
+_ad_round_number = 0
 
 def handle_new_game(is_restart):
     # This is called early in the launch process, so it's a good place to initialize
@@ -266,6 +267,8 @@ def handle_set_configstring(index, value):
     False to stop the event.
 
     """
+    global _ad_round_number
+
     try:
         res = minqlx.EVENT_DISPATCHERS["set_configstring"].dispatch(index, value)
         if res is False:
@@ -293,6 +296,7 @@ def handle_set_configstring(index, value):
                 if old_state == "PRE_GAME" and new_state == "IN_PROGRESS":
                     pass
                 elif old_state == "PRE_GAME" and new_state == "COUNT_DOWN":
+                    _ad_round_number = 1
                     minqlx.EVENT_DISPATCHERS["game_countdown"].dispatch()
                 elif old_state == "COUNT_DOWN" and new_state == "IN_PROGRESS":
                     pass
@@ -308,12 +312,22 @@ def handle_set_configstring(index, value):
         elif index == 661:
             cvars = minqlx.parse_variables(value)
             if cvars:
-                round_number = int(cvars["round"])
-                if round_number and "time" in cvars:
-                    if round_number == 1:  # This is the case when the first countdown starts.
-                        minqlx.EVENT_DISPATCHERS["round_countdown"].dispatch(round_number)
+                if "turn" in cvars:
+                    # it is A&D
+                    if int(cvars["state"]) == 0:
                         return
+                    # round cvar appears only on round countdown
+                    # and first round is 0, not 1
+                    try:
+                        round_number = int(cvars["round"]) * 2 + 1 + int(cvars["turn"])
+                        _ad_round_number = round_number
+                    except KeyError:
+                        round_number = _ad_round_number
+                else:
+                    # it is CA
+                    round_number = int(cvars["round"])
 
+                if round_number and "time" in cvars:
                     minqlx.EVENT_DISPATCHERS["round_countdown"].dispatch(round_number)
                     return
                 elif round_number:
@@ -418,6 +432,34 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
         minqlx.log_exception()
         return True
 
+def handle_player_inactivity_kick(client_id):
+    """This will be called player is going to be kicked 'cos of inactivity.
+
+    :param client_id: The client identifier.
+    :type client_id: int
+
+    """
+    try:
+        player = minqlx.Player(client_id)
+        return minqlx.EVENT_DISPATCHERS["player_inactivity_kick"].dispatch(player)
+    except:
+        minqlx.log_exception()
+        return True
+
+def handle_player_items_toss(client_id):
+    """This will be called client drops items on death or disconect.
+
+    :param client_id: The client identifier.
+    :type client_id: int
+
+    """
+    try:
+        player = minqlx.Player(client_id)
+        return minqlx.EVENT_DISPATCHERS["player_items_toss"].dispatch(player)
+    except:
+        minqlx.log_exception()
+        return True
+
 def handle_console_print(text):
     """Called whenever the server prints something to the console and when rcon is used."""
     try:
@@ -496,3 +538,5 @@ def register_handlers():
 
     minqlx.register_handler("kamikaze_use", handle_kamikaze_use)
     minqlx.register_handler("kamikaze_explode", handle_kamikaze_explode)
+    minqlx.register_handler("player_inactivity_kick", handle_player_inactivity_kick)
+    minqlx.register_handler("player_items_toss", handle_player_items_toss)

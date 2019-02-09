@@ -31,9 +31,11 @@ class EventDispatcher:
 
     """
     no_debug = ("frame", "set_configstring", "stats", "server_command", "death", "kill", "command", "console_print")
+    need_zmq_stats_enabled = False
 
     def __init__(self):
         self.name = type(self).name
+        self.need_zmq_enabled = type(self).need_zmq_stats_enabled
         self.plugins = {}
 
     def dispatch(self, *args, **kwargs):
@@ -124,6 +126,9 @@ class EventDispatcher:
         """
         if not (minqlx.PRI_HIGHEST <= priority <= minqlx.PRI_LOWEST):
             raise ValueError("'{}' is an invalid priority level.".format(priority))
+
+        if self.need_zmq_stats_enabled and not bool(int(minqlx.get_cvar("zmq_stats_enable"))):
+            raise AssertionError("{} hook requires zmq_stats_enabled cvar to have nonzero value".format(self.name))
 
         if plugin not in self.plugins:
             # Initialize tuple.
@@ -386,6 +391,7 @@ class PlayerSpawnDispatcher(EventDispatcher):
 class StatsDispatcher(EventDispatcher):
     """Event that triggers whenever the server sends stats over ZMQ."""
     name = "stats"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, stats):
         return super().dispatch(stats)
@@ -452,6 +458,7 @@ class GameCountdownDispatcher(EventDispatcher):
 class GameStartDispatcher(EventDispatcher):
     """Event that goes off when a game starts."""
     name = "game_start"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, data):
         return super().dispatch(data)
@@ -459,6 +466,7 @@ class GameStartDispatcher(EventDispatcher):
 class GameEndDispatcher(EventDispatcher):
     """Event that goes off when a game ends."""
     name = "game_end"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, data):
         return super().dispatch(data)
@@ -480,6 +488,7 @@ class RoundStartDispatcher(EventDispatcher):
 class RoundEndDispatcher(EventDispatcher):
     """Event that goes off when a round ends."""
     name = "round_end"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, data):
         return super().dispatch(data)
@@ -491,6 +500,7 @@ class TeamSwitchDispatcher(EventDispatcher):
     If possible, consider using team_switch_attempt for a cleaner
     solution if you need to cancel the event."""
     name = "team_switch"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, player, old_team, new_team):
         return super().dispatch(player, old_team, new_team)
@@ -528,6 +538,7 @@ class NewGameDispatcher(EventDispatcher):
 class KillDispatcher(EventDispatcher):
     """Event that goes off when someone is killed."""
     name = "kill"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, victim, killer, data):
         return super().dispatch(victim, killer, data)
@@ -535,6 +546,7 @@ class KillDispatcher(EventDispatcher):
 class DeathDispatcher(EventDispatcher):
     """Event that goes off when someone dies."""
     name = "death"
+    need_zmq_stats_enabled = True
 
     def dispatch(self, victim, killer, data):
         return super().dispatch(victim, killer, data)
@@ -569,6 +581,25 @@ class KamikazeExplodeDispatcher(EventDispatcher):
     def dispatch(self, player, is_used_on_demand):
         return super().dispatch(player, is_used_on_demand)
 
+class PlayerInactivityKickDispatcher(EventDispatcher):
+    """Event that goes off when inactive player is going be kicked."""
+    name = "player_inactivity_kick"
+
+    def dispatch(self, player):
+        return super().dispatch(player)
+
+class PlayerItemsTossDispatcher(EventDispatcher):
+    """Event that goes off when player's items are dropeed (on death or disconnects."""
+    name = "player_items_toss"
+
+    def dispatch(self, player):
+        return super().dispatch(player)
+
+    def handle_return(self, handler, value):
+        if isinstance(value, int) or isinstance(value, list) or isinstance(value, str):
+            self.return_value = value
+        else:
+            return super().handle_return(handler, value)
 
 EVENT_DISPATCHERS = EventDispatcherManager()
 EVENT_DISPATCHERS.add_dispatcher(ConsolePrintDispatcher)
@@ -585,6 +616,7 @@ EVENT_DISPATCHERS.add_dispatcher(PlayerDisonnectDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(PlayerSpawnDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(KamikazeUseDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(KamikazeExplodeDispatcher)
+EVENT_DISPATCHERS.add_dispatcher(PlayerItemsTossDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(StatsDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(VoteCalledDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(VoteStartedDispatcher)
@@ -603,3 +635,4 @@ EVENT_DISPATCHERS.add_dispatcher(NewGameDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(KillDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(DeathDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(UserinfoDispatcher)
+EVENT_DISPATCHERS.add_dispatcher(PlayerInactivityKickDispatcher)
