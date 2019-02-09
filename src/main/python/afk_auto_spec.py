@@ -16,8 +16,6 @@ class afk_auto_spec(minqlx.Plugin):
 
         self.spec_warmup = self.get_cvar("qlx_autoSpecWarmup", bool)
 
-        self.warned_players = {}
-
     def handle_player_inactive(self, player):
         if not self.game:
             return minqlx.RET_STOP_ALL
