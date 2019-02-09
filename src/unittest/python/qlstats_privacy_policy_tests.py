@@ -15,6 +15,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
+            "zmq_stats_enable": (0, int),
             "qlx_qlstatsPrivacyKick": (False, bool),
             "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
             "qlx_qlstatsPrivacyJoinAttempts": (5, int)

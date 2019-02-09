@@ -14,7 +14,10 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
     def setUp(self):
         self.warner = thirtysecwarn()
         setup_plugin()
-        setup_cvar("qlx_thirtySecondWarnAnnouncer", "standard")
+        setup_cvars({
+            "zmq_stats_enable": (0, int),
+            "qlx_thirtySecondWarnAnnouncer": "standard"
+        })
 
     def tearDown(self):
         unstub()

@@ -23,7 +23,10 @@ class MyDiscordBotTests(unittest.TestCase):
         setup_game_in_warmup("ca")
         connected_players()
         self.discord = mock(spec=Bot, strict=False)
-        setup_cvar("qlx_discordQuakeRelayMessageFilters", {"^\!s$", "^\!p$"}, set)
+        setup_cvars({
+            "zmq_stats_enable": (0, int),
+            "qlx_discordQuakeRelayMessageFilters": ({"^\!s$", "^\!p$"}, set)
+        })
         self.plugin = mydiscordbot(discord_client=self.discord)
 
     def tearDown(self):

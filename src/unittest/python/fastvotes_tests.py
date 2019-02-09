@@ -14,6 +14,7 @@ class FastVotesTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
+            "zmq_stats_enable": (0, int),
             "qlx_fastvoteTypes": (["map"], list),
             "qlx_fastvoteStrategy": ("threshold", str),
             "qlx_fastvoteThresholdFastPassDiff": (6, int),
