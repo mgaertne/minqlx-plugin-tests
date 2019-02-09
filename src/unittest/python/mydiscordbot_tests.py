@@ -24,7 +24,7 @@ class MyDiscordBotTests(unittest.TestCase):
         connected_players()
         self.discord = mock(spec=Bot, strict=False)
         setup_cvars({
-            "zmq_stats_enable": (0, int),
+            "zmq_stats_enable": ("0", str),
             "qlx_discordQuakeRelayMessageFilters": ({"^\!s$", "^\!p$"}, set)
         })
         self.plugin = mydiscordbot(discord_client=self.discord)

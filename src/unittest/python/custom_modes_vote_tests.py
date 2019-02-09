@@ -15,7 +15,7 @@ class CustomModesVoteTests(unittest.TestCase):
         setup_plugin()
 
         setup_cvars({
-            "zmq_stats_enable": (0, int),
+            "zmq_stats_enable": ("0", str),
             "qlx_modeVoteNewMapDefault": ("vql", str),
         })
         spy2(Plugin.callvote)

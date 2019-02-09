@@ -15,7 +15,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         self.warner = thirtysecwarn()
         setup_plugin()
         setup_cvars({
-            "zmq_stats_enable": (0, int),
+            "zmq_stats_enable": ("0", str),
             "qlx_thirtySecondWarnAnnouncer": "standard"
         })
 
