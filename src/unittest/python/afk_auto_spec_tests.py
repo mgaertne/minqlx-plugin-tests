@@ -14,7 +14,7 @@ class AfkAutoSpecTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "zmq_stats_enable": ("0", str),
+            "zmq_stats_enable": ("0", None),
             "qlx_autoSpecWarmup": (False, bool)
         })
         setup_game_in_progress()

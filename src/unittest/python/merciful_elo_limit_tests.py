@@ -17,7 +17,7 @@ class MercifulEloLimitTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "zmq_stats_enable": ("0", str),
+            "zmq_stats_enable": ("0", None),
             "qlx_mercifulelo_minelo": (800, int),
             "qlx_mercifulelo_applicationgames": (10, int),
             "qlx_mercifulelo_abovegames": (10, int),

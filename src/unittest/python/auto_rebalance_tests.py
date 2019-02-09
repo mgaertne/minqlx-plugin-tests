@@ -16,7 +16,7 @@ class AutoRebalanceTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "zmq_stats_enable": ("0", str),
+            "zmq_stats_enable": ("0", None),
             "qlx_rebalanceScoreDiffThreshold": (3, int),
             "qlx_rebalanceWinningStreakThreshold": (3, int),
             "qlx_rebalanceNumAnnouncements": (2, int)
