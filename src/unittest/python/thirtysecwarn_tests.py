@@ -12,10 +12,10 @@ from undecorated import undecorated
 class TestThirtySecondWarnPlugin(unittest.TestCase):
 
     def setUp(self):
-        self.warner = thirtysecwarn()
         setup_plugin()
+        self.warner = thirtysecwarn()
         setup_cvars({
-            "qlx_thirtySecondWarnAnnouncer": "standard"
+            "qlx_thirtySecondWarnAnnouncer": ("standard", None)
         })
 
     def tearDown(self):

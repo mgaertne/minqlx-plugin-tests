@@ -20,9 +20,8 @@ class MercifulEloLimitTests(unittest.TestCase):
             "qlx_mercifulelo_minelo": (800, int),
             "qlx_mercifulelo_applicationgames": (10, int),
             "qlx_mercifulelo_abovegames": (10, int),
-            "qlx_mercifulelo_daysbanned": (30, int)
+            "qlx_mercifulelo_daysbanned": (30, int),
         })
-        spy2(minqlx.get_cvar)
         when(minqlx).get_cvar("qlx_owner").thenReturn("42")
 
         setup_game_in_progress()
