@@ -27,10 +27,10 @@ class afk_auto_spec(minqlx.Plugin):
         return True
 
     def validate_player(self, game, player):
-        if self.game.type_short != "ffa" and player.team not in ["red", "blue"]:
+        if game.type_short != "ffa" and player.team not in ["red", "blue"]:
             return False
 
-        if self.game.type_short == "ffa" and player.team not in ["free", "red", "blue"]:
+        if game.type_short == "ffa" and player.team not in ["free", "red", "blue"]:
             return False
 
         return True
