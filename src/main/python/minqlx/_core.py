@@ -36,6 +36,12 @@ import os
 
 from logging.handlers import RotatingFileHandler
 
+# em92: reasons not to support older than 3.5
+# https://docs.python.org/3.5/whatsnew/3.5.html#whatsnew-ordereddict
+# plugins already assume, that they are running on python >= 3.5
+if sys.version_info < (3,5):
+    raise AssertionError("Only python 3.5 and later is supported by minqlx")
+
 # Team number -> string
 TEAMS = collections.OrderedDict(enumerate(("free", "red", "blue", "spectator")))
 
@@ -307,10 +313,17 @@ class PluginUnloadError(Exception):
     pass
 
 def load_preset_plugins():
-    plugins = minqlx.Plugin.get_cvar("qlx_plugins", set)
-    if "DEFAULT" in plugins:
-        plugins.remove("DEFAULT")
-        plugins.update(DEFAULT_PLUGINS)
+    plugins_temp = []
+    for p in minqlx.Plugin.get_cvar("qlx_plugins", list):
+        if p == "DEFAULT":
+           plugins_temp += list(DEFAULT_PLUGINS)
+        else:
+           plugins_temp.append(p)
+
+    plugins = []
+    for p in plugins_temp:
+        if p not in plugins:
+           plugins.append(p)
 
     plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
     plugins_dir = os.path.basename(plugins_path)
