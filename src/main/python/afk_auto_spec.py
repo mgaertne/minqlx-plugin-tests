@@ -23,6 +23,12 @@ class afk_auto_spec(minqlx.Plugin):
         if not self.spec_warmup and self.game.state != "in_progress":
             return minqlx.RET_STOP_ALL
 
+        if self.game.type_short != "ffa" and player.team not in ["red", "blue"]:
+            return minqlx.RET_STOP_ALL
+
+        if self.game.type_short == "ffa" and player.team not in ["free", "red", "blue"]:
+            return minqlx.RET_STOP_ALL
+
         self.msg("^7Putting {}^7 to spec for inactivity.".format(player.name))
         player.put("spectator")
         return minqlx.RET_STOP_ALL

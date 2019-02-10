@@ -74,3 +74,29 @@ class AfkAutoSpecTests(unittest.TestCase):
         self.plugin.handle_player_inactive(idle_player)
 
         assert_player_was_put_on(idle_player, "spectator")
+
+    def test_handle_player_inactive_on_team_free_in_ca(self):
+        idle_player = fake_player(42, "Idle Player", "free")
+        connected_players(idle_player)
+
+        self.plugin.handle_player_inactive(idle_player)
+
+        assert_player_was_put_on(idle_player, "spectator", times=0)
+
+    def test_handle_player_inactive_on_team_free_in_ffa(self):
+        setup_game_in_progress("ffa")
+        idle_player = fake_player(42, "Idle Player", "free")
+        connected_players(idle_player)
+
+        self.plugin.handle_player_inactive(idle_player)
+
+        assert_player_was_put_on(idle_player, "spectator")
+
+    def test_handle_player_inactive_on_team_spectator_in_ffa(self):
+        setup_game_in_progress("ffa")
+        idle_player = fake_player(42, "Idle Player", "spectator")
+        connected_players(idle_player)
+
+        self.plugin.handle_player_inactive(idle_player)
+
+        assert_player_was_put_on(idle_player, "spectator", times=0)
