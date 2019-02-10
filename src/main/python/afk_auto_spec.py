@@ -10,7 +10,8 @@ class afk_auto_spec(minqlx.Plugin):
     def __init__(self):
         super().__init__()
 
-        self.add_hook("player_inactivity_kick_warning", self.handle_player_inactive_warning, priority=minqlx.PRI_HIGHEST)
+        self.add_hook("player_inactivity_kick_warning", self.handle_player_inactive_warning,
+                      priority=minqlx.PRI_HIGHEST)
         self.add_hook("player_inactivity_kick", self.handle_player_inactive, priority=minqlx.PRI_HIGHEST)
 
         self.set_cvar_once("qlx_autoSpecWarmup", "0")
