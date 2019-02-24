@@ -1,5 +1,8 @@
 import minqlx
 
+import requests
+import threading
+
 """
 Plugin that restricts playing on the server to certain QLStats.net privacy settings.
 
@@ -11,7 +14,7 @@ Uses:
     if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
 """
 
-COLORED_QLSTATS_INSTRUCTIONS = "Open qlstats.net, click log in, choose either of these: ^6{}^7, " \
+COLORED_QLSTATS_INSTRUCTIONS = "Error: Open qlstats.net, click Login/Sign-up, set privacy settings to ^6{}^7, " \
                                "click save and reconnect!"
 
 
@@ -19,6 +22,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
     def __init__(self):
         super().__init__()
+        self.set_cvar_once("qlx_qlstatsPrivacyBlock", "1")
         self.set_cvar_once("qlx_qlstatsPrivacyKick", "0")
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, anonymous, private, untracked")
         self.set_cvar_once("qlx_qlstatsPrivacyJoinAttempts", "5")
@@ -31,7 +35,10 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.exceptions = set()
         self.join_attempts = dict()
 
-        self.add_hook("player_connect", self.handle_player_connect)
+        # Collection of threads looking up elo of players {steam_id: thread }
+        self.connectthreads = {}
+
+        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
 
@@ -57,8 +64,10 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         return True
 
-    @minqlx.delay(5)
     def handle_player_connect(self, player):
+        if not self.plugin_enabled:
+            return
+
         if not self.game:
             return
 
@@ -68,6 +77,46 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         b = minqlx.Plugin._loaded_plugins['balance']
         b.add_request({player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
+
+        if not self.get_cvar("qlx_qlstatsPrivacyBlock", bool):
+            return
+
+        if player.steam_id not in self.connectthreads:
+            ct = ConnectThread(player.steam_id, self.get_cvar("qlx_balanceApi"))
+            self.connectthreads[player.steam_id] = ct
+            ct.start()
+            self.remove_thread(player.steam_id)  # remove it after a while
+
+        # Check if thread is ready or not
+        ct = self.connectthreads[player.steam_id]
+        if ct.isAlive():
+            return "Fetching your qlstats settings..."
+
+        # Check if thread is ready or not
+        try:
+            res = ct._result
+            if not res:
+                return "Fetching your qlstats settings..."
+
+            if res.status_code != requests.codes.ok:
+                raise IOError("Invalid response code from qlstats.net.")
+            self.logger.debug(res.text)
+            js = res.json()
+
+            if "playerinfo" not in js:
+                raise IOError("Invalid response content from qlstats.net.")
+
+            if str(player.steam_id) not in js["playerinfo"]:
+                raise IOError("Response from qlstats.net did not include data for the requested player.")
+
+            if "privacy" not in js["playerinfo"][str(player.steam_id)]:
+                raise IOError("Response from qlstats.net did not include privacy information.")
+
+            if js["playerinfo"][str(player.steam_id)]["privacy"] not in self.allowed_privacy:
+                return minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
+
+        except Exception as e:
+            minqlx.console_command("echo QLStatsPrivacyError: {}".format(e))
 
     def callback_connect(self, players, channel):
         if not self.plugin_enabled:
@@ -226,3 +275,21 @@ class qlstats_privacy_policy(minqlx.Plugin):
                             .format(player_info[player.steam_id]["privacy"].lower()))
                 player.tell(self.colored_qlstats_instructions())
                 player.put("spectator")
+
+    @minqlx.delay(30)  # 30 seconds
+    def remove_thread(self, sid):
+        if sid in self.connectthreads:
+            del self.connectthreads[sid]
+
+
+class ConnectThread(threading.Thread):
+
+    def __init__(self, steam_id, balance_api):
+        super(ConnectThread, self).__init__()
+        self._balance_api = balance_api
+        self._steam_id = steam_id
+        self._result = None
+
+    def run(self):
+        url = "http://qlstats.net/{elo}/{}".format(self._steam_id, elo=self._balance_api)
+        self._result = requests.get(url)
