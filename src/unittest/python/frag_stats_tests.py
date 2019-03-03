@@ -205,7 +205,7 @@ class FragStatsTests(unittest.TestCase):
             (player.steam_id, disconnected_killed2.steam_id)
         ]
         when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id))\
+        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)) \
             .thenReturn(disconnected_killed2.name)
 
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz"], self.reply_channel)
@@ -289,7 +289,7 @@ class FragStatsTests(unittest.TestCase):
         ]
 
         when(self.db).exists("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(fragging_player.steam_id))\
+        when(self.db).get("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)) \
             .thenReturn(fragging_player.name)
 
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "{}".format(fragging_player.steam_id)], self.reply_channel)
@@ -591,7 +591,7 @@ class FragStatsTests(unittest.TestCase):
             (disconnected_killed2.steam_id, player.steam_id)
         ]
         when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id))\
+        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)) \
             .thenReturn(disconnected_killed2.name)
 
         self.plugin.cmd_mapreaperz(player, ["!mapreaperz"], self.reply_channel)
@@ -620,12 +620,13 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, killed1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killed1.steam_id, 1),
-            (disconnected_killed2.steam_id, 2)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killed1.steam_id, 1),
+                (disconnected_killed2.steam_id, 2)
+            ])
         when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id))\
+        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)) \
             .thenReturn(disconnected_killed2.name)
 
         self.plugin.cmd_soulz(player, ["!soulz"], self.reply_channel)
@@ -643,12 +644,13 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, killed1, killed2, killed3, killed4)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killed1.steam_id, 2),
-            (killed2.steam_id, 3),
-            (killed3.steam_id, 5),
-            (killed4.steam_id, 8)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killed1.steam_id, 2),
+                (killed2.steam_id, 3),
+                (killed3.steam_id, 5),
+                (killed4.steam_id, 8)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz"], self.reply_channel)
 
@@ -667,10 +669,11 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragging_player, killed1, killed2, killed3, killed4)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(fragging_player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killed2.steam_id, 2),
-            (killed3.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killed2.steam_id, 2),
+                (killed3.steam_id, 1)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz", "Fragging"], self.reply_channel)
 
@@ -688,12 +691,13 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, killed1, killed2, killed3, killed4)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(fragging_player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killed2.steam_id, 2),
-            (killed3.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killed2.steam_id, 2),
+                (killed3.steam_id, 1)
+            ])
         when(self.db).exists("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(fragging_player.steam_id))\
+        when(self.db).get("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)) \
             .thenReturn(fragging_player.name)
 
         self.plugin.cmd_soulz(player, ["!soulz", "{}".format(fragging_player.steam_id)], self.reply_channel)
@@ -757,9 +761,10 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("lava"),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (fragged_player.steam_id, 2)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (fragged_player.steam_id, 2)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz", "!lava"], self.reply_channel)
 
@@ -775,9 +780,10 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("void"),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (player.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (player.steam_id, 1)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz", "!void"], self.reply_channel)
 
@@ -793,9 +799,10 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("drowning"),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (player.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (player.steam_id, 1)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz", "!drowning"], self.reply_channel)
 
@@ -811,9 +818,10 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("acid"),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (fragged_player.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (fragged_player.steam_id, 1)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz", "!acid"], self.reply_channel)
 
@@ -829,9 +837,10 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("unknown"),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (fragged_player.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (fragged_player.steam_id, 1)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz", "!unknown"], self.reply_channel)
 
@@ -862,12 +871,13 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, killer1, killer2, killer3, killer4)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killer1.steam_id, 2),
-            (killer2.steam_id, 3),
-            (killer3.steam_id, 5),
-            (killer4.steam_id, 7),
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killer1.steam_id, 2),
+                (killer2.steam_id, 3),
+                (killer3.steam_id, 5),
+                (killer4.steam_id, 7),
+            ])
 
         self.plugin.cmd_reaperz(player, ["!reaperz"], self.reply_channel)
 
@@ -886,10 +896,11 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1, killer2, killer3, killer4)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(fragged_player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killer2.steam_id, 2),
-            (killer3.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killer2.steam_id, 2),
+                (killer3.steam_id, 1)
+            ])
 
         self.plugin.cmd_reaperz(player, ["!reaperz", "Fragged"], self.reply_channel)
 
@@ -927,10 +938,11 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, fragged_player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(fragged_player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            ("lava", 2),
-            ("void", 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                ("lava", 2),
+                ("void", 1)
+            ])
 
         self.plugin.cmd_reaperz(player, ["!reaperz", "Fragged"], self.reply_channel)
 
@@ -946,12 +958,13 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, killer1)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (disconnected_killer2.steam_id, 2),
-            (killer1.steam_id, 1)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (disconnected_killer2.steam_id, 2),
+                (killer1.steam_id, 1)
+            ])
         when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killer2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killer2.steam_id))\
+        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killer2.steam_id)) \
             .thenReturn(disconnected_killer2.name)
 
         self.plugin.cmd_reaperz(player, ["!mapreaperz"], self.reply_channel)
@@ -971,12 +984,13 @@ class FragStatsTests(unittest.TestCase):
         connected_players(player, killed1, killed2, killed3, killed4)
 
         when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([
-            (killed1.steam_id, 2),
-            (killed2.steam_id, 3),
-            (killed3.steam_id, 5),
-            (killed4.steam_id, 8)
-        ])
+                                       "+INF", "-INF", start=0, num=10, withscores=True)\
+            .thenReturn([
+                (killed1.steam_id, 2),
+                (killed2.steam_id, 3),
+                (killed3.steam_id, 5),
+                (killed4.steam_id, 8)
+            ])
 
         self.plugin.cmd_soulz(player, ["!soulz"], minqlx.RED_TEAM_CHAT_CHANNEL)
 
