@@ -50,8 +50,8 @@ class frag_stats(minqlx.Plugin):
     def record_frag(self, recorded_killer, victim_sid):
         self.frag_log.append((recorded_killer, victim_sid))
 
-        self.db.hincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim_sid, 1)
-        self.db.hincrby(REAPERZ_KEY.format(victim_sid), recorded_killer, 1)
+        self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim_sid, 1)
+        self.db.zincrby(REAPERZ_KEY.format(victim_sid), recorded_killer, 1)
 
     def determine_killer(self, killer, means_of_death):
         if killer is not None:
@@ -146,10 +146,11 @@ class frag_stats(minqlx.Plugin):
         return Counter(resolved_fragged_log)
 
     def resolve_player_names(self, entries):
-        if isinstance(entries, list):
-            return [self.resolve_player_name(item) for item in entries]
-
-        return {self.resolve_player_name(key): int(value) for key, value in entries.items()}
+        if len(entries) == 0:
+            return []
+        if isinstance(entries[0], tuple):
+            return {self.resolve_player_name(steam_id): int(value) for steam_id, value in entries}
+        return [self.resolve_player_name(item) for item in entries]
 
     def resolve_player_name(self, item):
         try:
@@ -227,7 +228,8 @@ class frag_stats(minqlx.Plugin):
                 victim, kill_count in fragged_statistics.most_common(self.toplimit))))
 
     def overall_frag_statistics_for(self, fragger_identifier):
-        player_fragged_log = self.db.hgetall(COLLECTED_SOULZ_KEY.format(fragger_identifier))
+        player_fragged_log = self.db.zrevrangebyscore(COLLECTED_SOULZ_KEY.format(fragger_identifier),
+                                                      "+INF", "-INF", start=0, num=self.toplimit, withscores=True)
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
         return Counter(resolved_fragged_log)
@@ -255,7 +257,8 @@ class frag_stats(minqlx.Plugin):
                 victim, kill_count in fragged_statistics.most_common(self.toplimit))))
 
     def overall_fraggers_of(self, fragged_identifier):
-        player_fragger_log = self.db.hgetall(REAPERZ_KEY.format(fragged_identifier))
+        player_fragger_log = self.db.zrevrangebyscore(REAPERZ_KEY.format(fragged_identifier), "+INF", "-INF",
+                                                      start=0, num=self.toplimit, withscores=True)
 
         resolved_fragger_log = self.resolve_player_names(player_fragger_log)
         return Counter(resolved_fragger_log)
