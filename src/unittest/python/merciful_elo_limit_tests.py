@@ -17,12 +17,12 @@ class MercifulEloLimitTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "qlx_mercifulelo_minelo": (800, int),
-            "qlx_mercifulelo_applicationgames": (10, int),
-            "qlx_mercifulelo_abovegames": (10, int),
-            "qlx_mercifulelo_daysbanned": (30, int),
+            "qlx_mercifulelo_minelo": "800",
+            "qlx_mercifulelo_applicationgames": "10",
+            "qlx_mercifulelo_abovegames": "10",
+            "qlx_mercifulelo_daysbanned": "30",
+            "qlx_owner": "42"
         })
-        when(minqlx).get_cvar("qlx_owner").thenReturn("42")
 
         setup_game_in_progress()
         self.plugin = merciful_elo_limit()

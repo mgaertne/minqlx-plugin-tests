@@ -14,8 +14,8 @@ class AfkAutoSpecTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "qlx_autoSpecWarmup": (False, bool),
-            "g_inactivityWarning": (10, int)
+            "qlx_autoSpecWarmup": "0",
+            "g_inactivityWarning": "10"
         })
         setup_game_in_progress()
 

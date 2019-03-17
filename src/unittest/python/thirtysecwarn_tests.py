@@ -15,7 +15,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         setup_plugin()
         self.warner = thirtysecwarn()
         setup_cvars({
-            "qlx_thirtySecondWarnAnnouncer": ("standard", None)
+            "qlx_thirtySecondWarnAnnouncer": "standard"
         })
 
     def tearDown(self):
@@ -99,7 +99,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         assert_that(self.warner.warner_thread_name, is_(None))
 
     def test_warntimer_sets_thread_name(self):
-        setup_cvar("roundtimelimit", 180, int)
+        setup_cvar("roundtimelimit", "180")
         patch(time.sleep, lambda int: None)
 
         undecorated(self.warner.warntimer)(self.warner)
@@ -107,7 +107,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         assert_that(self.warner.warner_thread_name, any(str))
 
     def test_warntimer_waits_until_30_seconds_before_roundtimelimit(self):
-        setup_cvar("roundtimelimit", 180, int)
+        setup_cvar("roundtimelimit", "180")
         patch(time.sleep, lambda int: None)
 
         undecorated(self.warner.warntimer)(self.warner)

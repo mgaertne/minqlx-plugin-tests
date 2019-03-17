@@ -15,7 +15,7 @@ class CustomModesVoteTests(unittest.TestCase):
         setup_plugin()
 
         setup_cvars({
-            "qlx_modeVoteNewMapDefault": ("vql", str),
+            "qlx_modeVoteNewMapDefault": "vql",
         })
         spy2(Plugin.callvote)
         spy2(minqlx.console_command)

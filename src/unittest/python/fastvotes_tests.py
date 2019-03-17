@@ -14,11 +14,11 @@ class FastVotesTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "qlx_fastvoteTypes": (["map"], list),
-            "qlx_fastvoteStrategy": ("threshold", str),
-            "qlx_fastvoteThresholdFastPassDiff": (6, int),
-            "qlx_fastvoteThresholdFastFailDiff": (5, int),
-            "qlx_fastvoteParticipationPercentage": (0.67, float)
+            "qlx_fastvoteTypes": "map",
+            "qlx_fastvoteStrategy": "threshold",
+            "qlx_fastvoteThresholdFastPassDiff": "6",
+            "qlx_fastvoteThresholdFastFailDiff": "5",
+            "qlx_fastvoteParticipationPercentage": "0.67"
         })
         spy2(Plugin.force_vote)
         spy2(Plugin.current_vote_count)
@@ -154,7 +154,7 @@ class ParticipationFastVoteStrategyTests(unittest.TestCase):
 
     def setUp(self):
         setup_cvars({
-            "qlx_fastvoteParticipationPercentage": (0.67, float)
+            "qlx_fastvoteParticipationPercentage": "0.67"
         })
         self.strategy = ParticipationFastVoteStrategy()
 

@@ -24,7 +24,7 @@ class MyDiscordBotTests(unittest.TestCase):
         connected_players()
         self.discord = mock(spec=Bot, strict=False)
         setup_cvars({
-            "qlx_discordQuakeRelayMessageFilters": ({"^\!s$", "^\!p$"}, set)
+            "qlx_discordQuakeRelayMessageFilters": "^\!s$, ^\!p$"
         })
         self.plugin = mydiscordbot(discord_client=self.discord)
 
@@ -586,27 +586,25 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
 
-        spy2(minqlx.get_cvar)
-        when2(minqlx.get_cvar, "qlx_owner").thenReturn("1234567890")
-
         setup_cvars({
-            "qlx_discordBotToken": ("bottoken", None),
-            "qlx_discordRelayChannelIds": ({"1234"}, set),
-            "qlx_discordTriggeredChannelIds": ({"456", "789"}, set),
-            "qlx_discordUpdateTopicOnTriggeredChannels": (True, bool),
-            "qlx_discordKeepTopicSuffixChannelIds": ({"1234", "456"}, set),
-            "qlx_discordTriggerTriggeredChannelChat": ("trigger", None),
-            "qlx_discordCommandPrefix": ("%", None),
-            "qlx_discordTriggerStatus": ("minqlx", None),
-            "qlx_discordMessagePrefix": ("[DISCORD]", None),
-            "qlx_discordEnableHelp": (True, bool),
-            "qlx_discordEnableVersion": (True, bool),
-            "qlx_displayChannelForDiscordRelayChannels": (False, bool),
-            "qlx_discordReplaceMentionsForRelayedMessages": (False, bool),
-            "qlx_discordReplaceMentionsForTriggeredMessages": (True, bool),
-            "qlx_discordAdminPassword": ("adminpassword", None),
-            "qlx_discordAuthCommand": ("auth", None),
-            "qlx_discordExecPrefix": ("exec", None)
+            "qlx_owner": "1234567890",
+            "qlx_discordBotToken": "bottoken",
+            "qlx_discordRelayChannelIds": "1234",
+            "qlx_discordTriggeredChannelIds": "456, 789",
+            "qlx_discordUpdateTopicOnTriggeredChannels": "1",
+            "qlx_discordKeepTopicSuffixChannelIds": "1234, 456",
+            "qlx_discordTriggerTriggeredChannelChat": "trigger",
+            "qlx_discordCommandPrefix": "%",
+            "qlx_discordTriggerStatus": "minqlx",
+            "qlx_discordMessagePrefix": "[DISCORD]",
+            "qlx_discordEnableHelp": "1",
+            "qlx_discordEnableVersion": "1",
+            "qlx_displayChannelForDiscordRelayChannels": "0",
+            "qlx_discordReplaceMentionsForRelayedMessages": "0",
+            "qlx_discordReplaceMentionsForTriggeredMessages": "1",
+            "qlx_discordAdminPassword": "adminpassword",
+            "qlx_discordAuthCommand": "auth",
+            "qlx_discordExecPrefix": "exec"
         })
 
         self.logger = mock(spec=logging.Logger)
@@ -1182,8 +1180,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         setup_game_in_progress()
         connected_players()
 
-        when2(Plugin.get_cvar, "qlx_discordUpdateTopicOnTriggeredChannels", bool).thenReturn(False)
-        when2(Plugin.get_cvar, "qlx_discordKeepTopicSuffixChannelIds", set).thenReturn(set())
+        setup_cvar("qlx_discordUpdateTopicOnTriggeredChannels", "0")
+        setup_cvar("qlx_discordKeepTopicSuffixChannelIds", "")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
@@ -1222,7 +1220,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         setup_game_in_progress()
         connected_players()
 
-        when2(Plugin.get_cvar, "qlx_discordKeepTopicSuffixChannelIds", set).thenReturn({"1234", "456", "789"})
+        setup_cvar("qlx_discordKeepTopicSuffixChannelIds", "1234, 456, 789")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
@@ -1320,7 +1318,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(relay_channel).send("**\*Chatting\* player**: QL is great!")
 
     def test_relay_chat_message_replace_user_mention(self):
-        when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForRelayedMessages", bool).thenReturn(True)
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
@@ -1338,7 +1336,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_user.mention))
 
     def test_relay_chat_message_mentioned_member_not_found(self):
-        when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForRelayedMessages", bool).thenReturn(True)
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
@@ -1355,7 +1353,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(relay_channel).send("**Chatting player**: QL is great, @chatter !")
 
     def test_relay_chat_message_replace_channel_mention(self):
-        when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForRelayedMessages", bool).thenReturn(True)
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v0_16_discord_library()
 
@@ -1374,7 +1372,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
                                                  .format(mentioned_channel.mention))
 
     def test_relay_chat_message_mentioned_channel_not_found(self):
-        when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForRelayedMessages", bool).thenReturn(True)
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
@@ -1391,7 +1389,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(relay_channel).send("**Chatting player**: QL is great, #mention !")
 
     def test_relay_chat_message_discord_not_logged_in(self):
-        when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForRelayedMessages", bool).thenReturn(True)
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v1_discord_library()
 
@@ -1583,7 +1581,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
                                                  .format(mentioned_user.mention, mentioned_channel.mention))
 
     def test_triggered_message_no_triggered_channels_configured(self):
-        when2(Plugin.get_cvar, "qlx_discordTriggeredChannelIds", set).thenReturn(set())
+        setup_cvar("qlx_discordTriggeredChannelIds", "")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v0_16_discord_library()
 
@@ -1594,7 +1592,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         verify(self.discord_client, times=0).send_message(any, any)
 
     def test_triggered_message_no_replacement_configured(self):
-        when2(Plugin.get_cvar, "qlx_discordReplaceMentionsForTriggeredMessages", bool).thenReturn(False)
+        setup_cvar("qlx_discordReplaceMentionsForTriggeredMessages", "0")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_v0_16_discord_library()
 

@@ -30,15 +30,15 @@ def setup_plugin():
     when2(Plugin.player, any()).thenReturn(None)
     spy2(Plugin.switch)
     when2(Plugin.switch, any, any).thenReturn(None)
-    spy2(Plugin.set_cvar)
-    when2(Plugin.set_cvar, any, any).thenReturn(None)
+    spy2(minqlx.set_cvar)
+    when2(minqlx.set_cvar, any, any).thenReturn(None)
     spy2(Plugin.kick)
     when2(Plugin.kick, any, any(str)).thenReturn(None)
     spy2(minqlx.get_cvar)
     when2(minqlx.get_cvar, "zmq_stats_enable").thenReturn("1")
 
 
-def setup_cvar(cvar_name, cvar_value, return_type=None):
+def setup_cvar(cvar_name, cvar_value):
     """Setup a minqlx.Plugin with the provided cvar and value.
 
     **Make sure to use :func:`mockito.unstub()` after calling this function to avoid side effects spilling into the
@@ -46,14 +46,8 @@ def setup_cvar(cvar_name, cvar_value, return_type=None):
 
     :param cvar_name: the name of the cvar
     :param cvar_value: the value the plugin should return for the cvar
-    :param return_type: the type that the get_cvar call shall be casting to. (Default: None)
     """
-    spy2(Plugin.get_cvar)
-    if return_type is None:
-        when2(Plugin.get_cvar, cvar_name).thenReturn(cvar_value)
-        return
-
-    when2(Plugin.get_cvar, cvar_name, return_type).thenReturn(cvar_value)
+    when2(minqlx.get_cvar, cvar_name).thenReturn(cvar_value)
 
 
 def setup_cvars(cvars):
@@ -62,14 +56,10 @@ def setup_cvars(cvars):
     **Make sure to use :func:`mockito.unstub()` after calling this function to avoid side effects spilling into the
     next test.**
 
-    :param cvars: a dictionary containing the cvar names as keys, and a tuple of values and types
+    :param cvars: a dictionary containing the cvar names as keys, and their values
     """
-    spy2(Plugin.get_cvar)
-    for name, (value, value_type) in cvars.items():
-        if value_type is None:
-            when2(Plugin.get_cvar, name).thenReturn(value)
-        else:
-            when2(Plugin.get_cvar, name, value_type).thenReturn(value)
+    for cvar in cvars:
+        when2(minqlx.get_cvar, cvar).thenReturn(cvars[cvar])
 
 
 def assert_plugin_sent_to_console(matcher, times=1, atleast=None):

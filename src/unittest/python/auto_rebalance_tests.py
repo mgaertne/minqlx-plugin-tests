@@ -16,9 +16,9 @@ class AutoRebalanceTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "qlx_rebalanceScoreDiffThreshold": (3, int),
-            "qlx_rebalanceWinningStreakThreshold": (3, int),
-            "qlx_rebalanceNumAnnouncements": (2, int)
+            "qlx_rebalanceScoreDiffThreshold": "3",
+            "qlx_rebalanceWinningStreakThreshold": "3",
+            "qlx_rebalanceNumAnnouncements": "2"
         })
         setup_game_in_progress()
         connected_players()

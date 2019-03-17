@@ -16,8 +16,7 @@ class FragStatsTests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "zmq_stats_enable": (0, int),
-            "qlx_fragstats_toplimit": (10, int)
+            "qlx_fragstats_toplimit": "10"
         })
         setup_game_in_progress()
 

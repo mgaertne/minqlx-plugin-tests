@@ -17,10 +17,10 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def setUp(self):
         setup_plugin()
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (False, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "0",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5"
         })
         setup_game_in_progress()
         self.setup_balance_playerprivacy([])
@@ -88,11 +88,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
     def test_handle_player_connect_fetches_elos_from_qlstats_connect_thread_still_alive(self):
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -108,11 +108,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def test_handle_player_connect_postpones_connect_if_there_is_no_result(self):
         self.setup_qlstats_response(None)
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -124,11 +124,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def test_handle_player_connect_dispatches_fetching_of_privacy_settings_from_qlstats(self):
         self.setup_qlstats_response(None)
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -142,11 +142,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.setup_qlstats_response(result)
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -161,11 +161,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.setup_qlstats_response(result)
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -180,11 +180,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.setup_qlstats_response(result)
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -195,11 +195,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
     def test_handle_player_connect_logs_error_if_privacy_information_not_included(self):
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -216,11 +216,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
     def test_handle_player_connect_disallows_connect_with_wrong_privacy_settings(self):
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
@@ -237,11 +237,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
     def test_handle_player_connect_allows_connect_with_right_privacy_settings(self):
         setup_cvars({
-            "qlx_qlstatsPrivacyKick": (False, bool),
-            "qlx_qlstatsPrivacyBlock": (True, bool),
-            "qlx_qlstatsPrivacyWhitelist": (["public", "anonymous"], list),
-            "qlx_qlstatsPrivacyJoinAttempts": (5, int),
-            "qlx_balanceApi": ("belo", None)
+            "qlx_qlstatsPrivacyKick": "0",
+            "qlx_qlstatsPrivacyBlock": "1",
+            "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
+            "qlx_qlstatsPrivacyJoinAttempts": "5",
+            "qlx_balanceApi": "belo"
         })
 
         connecting_player = fake_player(123, "Connecting Player")
