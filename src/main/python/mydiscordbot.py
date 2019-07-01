@@ -591,7 +591,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
-        asyncio.run_coroutine_threadsafe(self.discord.start(self.discord_bot_token), loop=self.discord.loop)
+        self.discord.loop.run_until_complete(self.discord.start(self.discord_bot_token))
 
     def initialize_bot(self, discord_bot):
         """
