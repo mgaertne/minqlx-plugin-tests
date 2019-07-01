@@ -713,7 +713,7 @@ class SimpleAsyncDiscord(threading.Thread):
                     DiscordChannel(self, ctx.message.author, ctx.message.channel))
             except Exception as e:
                 send_message = ctx.send("{}: {}".format(e.__class__.__name__, e))
-                self.discord.loop.create_task(send_message)
+                asyncio.run_coroutine_threadsafe(send_message, loop=ctx.bot.loop)
                 minqlx.log_exception()
 
         f()
@@ -928,8 +928,8 @@ class SimpleAsyncDiscord(threading.Thread):
         if self.discord is None:
             return
 
-        self.discord.loop.create_task(self.discord.change_presence(status="offline"))
-        self.discord.loop.create_task(self.discord.logout())
+        asyncio.run_coroutine_threadsafe(self.discord.change_presence(status="offline"), loop=self.discord.loop)
+        asyncio.run_coroutine_threadsafe(self.discord.logout(), loop=self.discord.loop)
 
     def relay_message(self, msg):
         """
@@ -959,7 +959,7 @@ class SimpleAsyncDiscord(threading.Thread):
             if channel is None:
                 continue
 
-            self.discord.loop.create_task(channel.send(content))
+            asyncio.run_coroutine_threadsafe(channel.send(content), loop=self.discord.loop)
 
     def relay_chat_message(self, player, channel, message):
         """
