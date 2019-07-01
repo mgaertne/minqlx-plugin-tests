@@ -15,14 +15,19 @@ import re
 import asyncio
 import threading
 
+import logging
+import os
+from logging.handlers import RotatingFileHandler
+
 import minqlx
 from minqlx import Plugin
 
 import discord
 from discord import ChannelType
-from discord.ext.commands import Bot, Command, HelpFormatter
+from discord.ext.commands import Bot, Command, DefaultHelpCommand
+import discord.ext.tasks
 
-plugin_version = "v1.0.0-fehu"
+plugin_version = "v1.2.3"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -433,11 +438,13 @@ class mydiscordbot(minqlx.Plugin):
         self.discord.stop()
 
 
-class DiscordHelpFormatter(HelpFormatter):
+class MinqlxHelpCommand(DefaultHelpCommand):
     """
     A help formatter for the minqlx plugin's bot to provide help information. This is a customized variation of
-    discord.py's :class:`HelpFormatter`.
+    discord.py's :class:`DefaultHelpCommand`.
     """
+    def __init__(self):
+        super().__init__(no_category="minqlx Commands")
 
     def get_ending_note(self):
         """
@@ -446,42 +453,8 @@ class DiscordHelpFormatter(HelpFormatter):
         command_name = self.context.invoked_with
         return "Type {0}{1} command for more info on a command.".format(self.clean_prefix, command_name)
 
-    def format(self):
-        """Handles the actual behaviour involved with formatting.
-
-        :return A paginated output list of the help command.
-        """
-        if not SimpleAsyncDiscord.is_discord_client_v1(self.context.bot):
-            if not self.command.can_run(self.context) or not self.context.bot.can_run(self.context):
-                return []
-
-            pages = super().format()
-
-            return [page.replace('\u200bNo Category:\n', '\u200bminqlx Commands:\n')
-                    for page in pages if page != '\u200bNo Category:']
-
-        return self.format_v1()
-
-    @asyncio.coroutine
-    def format_v1(self):
-        """Handles the actual behaviour involved with formatting.
-
-        To change the behaviour, this method should be overridden.
-
-        Returns
-        --------
-        list
-            A paginated output of the help command.
-        """
-        command_can_run = yield from self.command.can_run(self.context)
-        bot_can_run = yield from self.context.bot.can_run(self.context)
-        if not command_can_run or not bot_can_run:
-            return []
-
-        pages = yield from super().format()
-
-        return [page.replace('\u200bNo Category:\n', '\u200bminqlx Commands:\n')
-                for page in pages if page != '\u200bNo Category:']
+    async def send_error_message(self, error):
+        pass
 
 
 class DiscordChannel(minqlx.AbstractChannel):
@@ -588,10 +561,6 @@ class SimpleAsyncDiscord(threading.Thread):
 
         return int_set
 
-    @staticmethod
-    def is_discord_client_v1(client):
-        return discord.version_info.major > 0
-
     def status(self):
         if self.discord is None:
             return "No discord connection set up."
@@ -610,14 +579,19 @@ class SimpleAsyncDiscord(threading.Thread):
         asyncio.set_event_loop(loop)
 
         # init the bot, and init the main discord interactions
-        self.discord = Bot(command_prefix=self.discord_command_prefix,
-                           description="{}".format(self.version_information),
-                           formatter=DiscordHelpFormatter(),
-                           command_not_found="")
+        if self.discord_help_enabled:
+            self.discord = Bot(command_prefix=self.discord_command_prefix,
+                               description="{}".format(self.version_information),
+                               help_command=MinqlxHelpCommand(), loop=loop)
+        else:
+            self.discord = Bot(command_prefix=self.discord_command_prefix,
+                               description="{}".format(self.version_information),
+                               help_command=None, loop=loop)
+
         self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
-        loop.run_until_complete(self.discord.start(self.discord_bot_token))
+        asyncio.run_coroutine_threadsafe(self.discord.start(self.discord_bot_token), loop=self.discord.loop)
 
     def initialize_bot(self, discord_bot):
         """
@@ -625,27 +599,23 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param discord_bot: the discord_bot to initialize
         """
-        discord_bot.add_command(Command(name=self.discord_auth_command,
-                                        callback=self.auth,
+        discord_bot.add_command(Command(self.auth, name=self.discord_auth_command,
                                         checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
                                                 lambda ctx: not self.is_barred_from_auth(ctx)],
                                         hidden=True,
                                         pass_context=True,
                                         help="auth with the bot"))
-        discord_bot.add_command(Command(name=self.discord_exec_prefix,
-                                        callback=self.qlx,
+        discord_bot.add_command(Command(self.qlx, name=self.discord_exec_prefix,
                                         checks=[self.is_private_message, self.is_authed],
                                         hidden=True,
                                         pass_context=True,
                                         help="execute minqlx commands on the server"))
-        discord_bot.add_command(Command(name=self.discord_trigger_status,
-                                        callback=self.trigger_status,
+        discord_bot.add_command(Command(self.trigger_status, name=self.discord_trigger_status,
                                         checks=[self.is_message_in_relay_or_triggered_channel],
                                         pass_context=True,
                                         ignore_extra=False,
                                         help="display current game status information"))
-        discord_bot.add_command(Command(name=self.discord_trigger_triggered_channel_chat,
-                                        callback=self.triggered_chat,
+        discord_bot.add_command(Command(self.triggered_chat, name=self.discord_trigger_triggered_channel_chat,
                                         checks=[self.is_message_in_triggered_channel],
                                         pass_context=True,
                                         help="send [message...] to the Quake Live server"))
@@ -653,19 +623,12 @@ class SimpleAsyncDiscord(threading.Thread):
         discord_bot.add_listener(self.on_message)
 
         if self.discord_version_enabled:
-            discord_bot.add_command(Command(name="version",
-                                            callback=self.version,
+            discord_bot.add_command(Command(self.version, name="version",
                                             pass_context=True,
                                             ignore_extra=False,
                                             help="display the plugin's version information"))
 
-        if not self.discord_help_enabled:
-            discord_bot.remove_command("help")
-
     def reply_to_context(self, ctx, message):
-        if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
-            return ctx.bot.say(message)
-
         return ctx.send(message)
 
     async def version(self, ctx):
@@ -682,9 +645,6 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param ctx: the context the trigger happened in
         """
-        if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
-            return ctx.message.channel.is_private
-
         return isinstance(ctx.message.channel, discord.DMChannel)
 
     def is_authed(self, ctx):
@@ -752,11 +712,8 @@ class SimpleAsyncDiscord(threading.Thread):
                     " ".join(qlx_command),
                     DiscordChannel(self, ctx.message.author, ctx.message.channel))
             except Exception as e:
-                if not SimpleAsyncDiscord.is_discord_client_v1(ctx.bot):
-                    send_message = ctx.bot.send_message(ctx.message.channel, "{}: {}".format(e.__class__.__name__, e))
-                else:
-                    send_message = ctx.send("{}: {}".format(e.__class__.__name__, e))
-                asyncio.run_coroutine_threadsafe(send_message, loop=ctx.bot.loop)
+                send_message = ctx.send("{}: {}".format(e.__class__.__name__, e))
+                self.discord.loop.create_task(send_message)
                 minqlx.log_exception()
 
         f()
@@ -767,7 +724,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param ctx: the context the trigger happened in
         """
-        return int(ctx.message.channel.id) in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        return ctx.message.channel.id in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
 
     async def trigger_status(self, ctx):
         """
@@ -791,7 +748,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param ctx: the context the trigger happened in
         """
-        return int(ctx.message.channel.id) in self.discord_triggered_channel_ids
+        return ctx.message.channel.id in self.discord_triggered_channel_ids
 
     async def triggered_chat(self, ctx, *message: str):
         """
@@ -821,7 +778,7 @@ class SimpleAsyncDiscord(threading.Thread):
         if author.nick is not None:
             sender = author.nick
 
-        if not self.discord_show_relay_channel_names and int(channel.id) in self.discord_relay_channel_ids:
+        if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
             return "{0} ^6{1}^7:^2 {2}".format(self.discord_message_prefix, sender, content)
         return "{0} ^5#{1.name} ^6{2}^7:^2 {3}".format(self.discord_message_prefix, channel, sender, content)
 
@@ -832,7 +789,7 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         self.logger.info("Logged in to discord as: {} ({})".format(self.discord.user.name, self.discord.user.id))
         Plugin.msg("Connected to discord")
-        await self.discord.change_presence(game=discord.Game(name="Quake Live"))
+        await self.discord.change_presence(activity=discord.Game(name="Quake Live"))
         self.update_topics()
 
     async def on_message(self, message):
@@ -850,7 +807,7 @@ class SimpleAsyncDiscord(threading.Thread):
             return
 
         # relay all messages from the relay channels back to Quake Live.
-        if int(message.channel.id) in self.discord_relay_channel_ids:
+        if message.channel.id in self.discord_relay_channel_ids:
             content = message.clean_content
             if len(content) > 0:
                 minqlx.CHAT_CHANNEL.reply(
@@ -910,27 +867,17 @@ class SimpleAsyncDiscord(threading.Thread):
         # set the topic in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
             channel = self.discord.get_channel(channel_id)
-            if channel is None:
-                channel = self.discord.get_channel(str(channel_id))
 
             if channel is None:
                 continue
 
-            if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
-                edit_channel = self.discord.edit_channel(channel, topic=topic)
-            else:
-                edit_channel = channel.edit(topic=topic)
-
-            asyncio.run_coroutine_threadsafe(edit_channel, loop=self.discord.loop)
+            asyncio.run_coroutine_threadsafe(channel.edit(topic=topic), loop=self.discord.loop)
 
     def is_discord_logged_in(self):
         if self.discord is None:
             return False
 
-        if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
-            return not self.discord.is_closed and self.discord.is_logged_in
-
-        return not self.discord.is_closed and self.discord.is_ready()
+        return not self.discord.is_closed() and self.discord.is_ready()
 
     def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids, topic):
         """
@@ -970,9 +917,6 @@ class SimpleAsyncDiscord(threading.Thread):
         channel = self.discord.get_channel(channel_id)
 
         if channel is None:
-            channel = self.discord.get_channel(str(channel_id))
-
-        if channel is None:
             return None
 
         return channel.topic
@@ -984,8 +928,8 @@ class SimpleAsyncDiscord(threading.Thread):
         if self.discord is None:
             return
 
-        asyncio.run_coroutine_threadsafe(self.discord.change_presence(status="offline"), loop=self.discord.loop)
-        asyncio.run_coroutine_threadsafe(self.discord.logout(), loop=self.discord.loop)
+        self.discord.loop.create_task(self.discord.change_presence(status="offline"))
+        self.discord.loop.create_task(self.discord.logout())
 
     def relay_message(self, msg):
         """
@@ -1011,18 +955,11 @@ class SimpleAsyncDiscord(threading.Thread):
         # send the message in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
             channel = self.discord.get_channel(channel_id)
-            if channel is None:
-                channel = self.discord.get_channel(str(channel_id))
 
             if channel is None:
                 continue
 
-            if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
-                sender = self.discord.send_message(channel, content)
-            else:
-                sender = channel.send(content)
-
-            asyncio.run_coroutine_threadsafe(sender, loop=self.discord.loop)
+            self.discord.loop.create_task(channel.send(content))
 
     def relay_chat_message(self, player, channel, message):
         """
@@ -1124,13 +1061,8 @@ class SimpleAsyncDiscord(threading.Thread):
         # prefixed by a space or at the beginning of the string
         matcher = re.compile("(?:^| )#([^ ]{3,})")
 
-        if not SimpleAsyncDiscord.is_discord_client_v1(self.discord):
-            channel_list = [ch for ch in self.discord.get_all_channels()
-                            if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
-        else:
-            channel_list = [ch for ch in self.discord.get_all_channels()
-                            if isinstance(ch, discord.TextChannel) or isinstance(ch, discord.VoiceChannel) or
-                            isinstance(ch, discord.GroupChannel)]
+        channel_list = [ch for ch in self.discord.get_all_channels()
+                        if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda channel_match: len(channel_match), reverse=True):
