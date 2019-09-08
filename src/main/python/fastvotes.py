@@ -30,7 +30,7 @@ class fastvotes(minqlx.Plugin):
         self.fastvote_types = self.get_cvar("qlx_fastvoteTypes", list)
 
         self.add_hook("vote", self.process_vote, priority=minqlx.PRI_LOWEST)
-        self.add_hook("vote_called", self.handle_vote, priority=minqlx.PRI_LOWEST)
+        self.add_hook("vote_started", self.handle_vote, priority=minqlx.PRI_LOWEST)
         self.add_hook("vote_ended", self.handle_vote_ended, priority=minqlx.PRI_LOWEST)
 
         self.track_vote = False
