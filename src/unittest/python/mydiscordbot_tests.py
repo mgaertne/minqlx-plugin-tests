@@ -24,7 +24,7 @@ class MyDiscordBotTests(unittest.TestCase):
         connected_players()
         self.discord = mock(spec=Bot, strict=False)
         setup_cvars({
-            "qlx_discordQuakeRelayMessageFilters": "^\!s$, ^\!p$"
+            "qlx_discordQuakeRelayMessageFilters": r"^\!s$, ^\!p$"
         })
         self.plugin = mydiscordbot(discord_client=self.discord)
 
@@ -55,6 +55,13 @@ class MyDiscordBotTests(unittest.TestCase):
 
         verify(self.discord).relay_chat_message(player_that_matches(chatter), "", "relayed message")
 
+    def test_handle_ql_teamchat_message_relayed(self):
+        chatter = fake_player(1, "Chatter")
+        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.RedTeamChatChannel())
+
+        verify(self.discord).relay_team_chat_message(player_that_matches(chatter),
+                                                     " *(to red team)*", "relayed message")
+
     def test_handle_ql_chat_message_on_filtered_out_channel(self):
         self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.ConsoleChannel())
 
@@ -74,12 +81,12 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_handle_player_with_asterisk_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
 
-        verify(self.discord).relay_message("_Connecting\*Player connected._")
+        verify(self.discord).relay_message(r"_Connecting\*Player connected._")
 
     def test_handle_player_with_underscore_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting_Player"))
 
-        verify(self.discord).relay_message("_Connecting\_Player connected._")
+        verify(self.discord).relay_message(r"_Connecting\_Player connected._")
 
     def test_handle_player_disconnects(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
@@ -132,7 +139,7 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_handle_vote_with_escaped_characters(self):
         self.plugin.handle_vote_started(fake_player(1, "Vote*Caller"), "map", "13house_a1")
 
-        verify(self.discord).relay_message("_Vote\*Caller called a vote: map 13house\_a1_")
+        verify(self.discord).relay_message(r"_Vote\*Caller called a vote: map 13house\_a1_")
 
     def test_handle_vote_passed(self):
         votes = (4, 3)
@@ -388,11 +395,11 @@ def async_test(f):
         future = coro(*args, **kwargs)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(future)
+
     return wrapper
 
 
 def mocked_coro(return_value=None):
-
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return return_value
@@ -544,7 +551,10 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
             "qlx_discordReplaceMentionsForTriggeredMessages": "1",
             "qlx_discordAdminPassword": "adminpassword",
             "qlx_discordAuthCommand": "auth",
-            "qlx_discordExecPrefix": "exec"
+            "qlx_discordExecPrefix": "exec",
+            "qlx_discordLogToSeparateLogfile": "0",
+            "qlx_discordTriggeredChatMessagePrefix": "",
+            "qlx_discordRelayTeamchatChannelIds": "242"
         })
 
         self.logger = mock(spec=logging.Logger)
@@ -593,6 +603,13 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         return channel
 
+    def relay_teamchat_channel(self):
+        channel = mocked_channel(id=242, name="relay-teamchat-channel")
+
+        when(self.discord_client).get_channel(channel.id).thenReturn(channel)
+
+        return channel
+
     def triggered_channel(self):
         channel = mocked_channel(id=456, name="triggered-channel")
 
@@ -616,11 +633,10 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
     def verify_added_command(self, name, callback, checks=None):
         if checks is None:
             verify(self.discord_client).add_command(arg_that(lambda command: command.name == name and
-                                                             command.callback == callback))
+                                                    command.callback == callback))
         else:
             verify(self.discord_client).add_command(arg_that(lambda command: command.name == name and
-                                                             command.callback == callback and
-                                                             command.checks == checks))
+                                                    command.callback == callback and command.checks == checks))
 
     def test_status_connected(self):
         status = self.discord.status()
@@ -843,13 +859,6 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         await self.discord.trigger_status(context)
 
         verify(context).send("Currently no game running.")
-
-    def test_is_message_in_triggered_channel_in_triggered_channels(self):
-        context = self.mocked_context(message=mocked_message(channel=mocked_channel(id="456")))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(True))
 
     def test_is_message_in_triggered_channel_not_in_any_channels(self):
         context = self.mocked_context(message=mocked_message(channel=mocked_channel(id="987")))
@@ -1141,7 +1150,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great!")
 
-        verify(relay_channel).send("**\*Chatting\* player**: QL is great!")
+        verify(relay_channel).send(r"**\*Chatting\* player**: QL is great!")
 
     def test_relay_chat_message_replace_user_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1226,6 +1235,112 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         minqlx_channel = ""
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great, @member #mention !")
+
+        verify(relay_channel, times=0).send(any)
+
+    def test_relay_team_chat_message_simple_message(self):
+        relay_channel = self.relay_teamchat_channel()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great!")
+
+        verify(relay_channel).send("**Chatting player**: QL is great!")
+
+    def test_relay_team_chat_message_with_asterisks_in_playername(self):
+        relay_channel = self.relay_teamchat_channel()
+
+        player = fake_player(steam_id=1, name="*Chatting* player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great!")
+
+        verify(relay_channel).send(r"**\*Chatting\* player**: QL is great!")
+
+    def test_relay_team_chat_message_replace_user_mention(self):
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_discord_library()
+
+        relay_channel = self.relay_teamchat_channel()
+
+        mentioned_user = mocked_user(id=123, name="chatter")
+        self.setup_discord_members(mentioned_user)
+        self.setup_discord_channels()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @chatter !")
+
+        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_user.mention))
+
+    def test_relay_team_chat_message_mentioned_member_not_found(self):
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_discord_library()
+
+        relay_channel = self.relay_teamchat_channel()
+
+        self.setup_discord_members()
+        self.setup_discord_channels()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @chatter !")
+
+        verify(relay_channel).send("**Chatting player**: QL is great, @chatter !")
+
+    def test_relay_team_chat_message_replace_channel_mention(self):
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_discord_library()
+
+        relay_channel = self.relay_teamchat_channel()
+
+        mentioned_channel = mocked_channel(id=456, name="mentioned-channel")
+        self.setup_discord_members()
+        self.setup_discord_channels(mentioned_channel)
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, #mention !")
+
+        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_channel.mention))
+
+    def test_relay_team_chat_message_mentioned_channel_not_found(self):
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_discord_library()
+
+        relay_channel = self.relay_teamchat_channel()
+
+        self.setup_discord_members()
+        self.setup_discord_channels()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, #mention !")
+
+        verify(relay_channel).send("**Chatting player**: QL is great, #mention !")
+
+    def test_relay_team_chat_message_discord_not_logged_in(self):
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_discord_library()
+
+        when(self.discord_client).is_ready().thenReturn(False)
+
+        relay_channel = self.relay_teamchat_channel()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @member #mention !")
 
         verify(relay_channel, times=0).send(any)
 
@@ -1384,8 +1499,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        verify(trigger_channel1).send("**\*Chatting\_player\***: QL is great!")
-        verify(trigger_channel2).send("**\*Chatting\_player\***: QL is great!")
+        verify(trigger_channel1).send(r"**\*Chatting\_player\***: QL is great!")
+        verify(trigger_channel2).send(r"**\*Chatting\_player\***: QL is great!")
 
     def test_triggered_message_replaces_mentions(self):
         trigger_channel1 = self.triggered_channel()
@@ -1429,3 +1544,20 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord.triggered_message(player, "QL is great, @member #mention !")
 
         verify(trigger_channel1).send("**Chatting player**: QL is great, @member #mention !")
+
+    def test_prefixed_triggered_message(self):
+        self.discord.discord_triggered_channel_message_prefix = "Server Prefix"
+        trigger_channel1 = self.triggered_channel()
+
+        trigger_channel2 = mocked_channel(id=789)
+        when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
+
+        self.setup_discord_members()
+        self.setup_discord_channels()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+
+        self.discord.triggered_message(player, "QL is great!")
+
+        verify(trigger_channel1).send("Server Prefix **Chatting player**: QL is great!")
+        verify(trigger_channel2).send("Server Prefix **Chatting player**: QL is great!")
