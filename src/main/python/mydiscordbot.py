@@ -23,11 +23,11 @@ import minqlx
 from minqlx import Plugin
 
 import discord
-from discord import ChannelType
+from discord import ChannelType, AllowedMentions
 from discord.ext.commands import Bot, Command, DefaultHelpCommand
 import discord.ext.tasks
 
-plugin_version = "v1.3.3"
+plugin_version = "v1.4"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -626,6 +626,7 @@ class SimpleAsyncDiscord(threading.Thread):
                                description="{}".format(self.version_information),
                                help_command=None, loop=loop)
 
+        self.discord.allowed_mentions(AllowedMentions(everyone=False, users=True, roles=True))
         self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
