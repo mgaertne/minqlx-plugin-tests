@@ -625,8 +625,6 @@ class SimpleAsyncDiscord(threading.Thread):
             self.discord = Bot(command_prefix=self.discord_command_prefix,
                                description="{}".format(self.version_information),
                                help_command=None, loop=loop)
-
-        self.discord.allowed_mentions(AllowedMentions(everyone=False, users=True, roles=True))
         self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
@@ -998,7 +996,11 @@ class SimpleAsyncDiscord(threading.Thread):
             if channel is None:
                 continue
 
-            asyncio.run_coroutine_threadsafe(channel.send(content), loop=self.discord.loop)
+            asyncio.run_coroutine_threadsafe(channel.send(content,
+                                                          allowed_mentions=AllowedMentions(everyone=False,
+                                                                                           users=True,
+                                                                                           roles=True)),
+                                             loop=self.discord.loop)
 
     def relay_chat_message(self, player, channel, message):
         """
@@ -1054,6 +1056,8 @@ class SimpleAsyncDiscord(threading.Thread):
         matches = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda user_match: len(user_match), reverse=True):
+            if match in ["all", "everyone", "here"]:
+                continue
             member = SimpleAsyncDiscord.find_user_that_matches(match, member_list, player)
             if member is not None:
                 returned_message = returned_message.replace("@{}".format(match), member.mention)

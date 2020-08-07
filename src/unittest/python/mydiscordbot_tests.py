@@ -428,7 +428,7 @@ def mocked_channel(id=666, name="channel-name", channel_type=ChannelType.text, t
     channel.topic = topic
     channel.mention = "<#%s>" % channel.id
 
-    when(channel).send(any).thenReturn(mocked_coro())
+    when(channel).send(any, allowed_mentions=any).thenReturn(mocked_coro())
     when(channel).edit(topic=any).thenReturn(mocked_coro())
 
     return channel
@@ -1111,7 +1111,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_message("awesome relayed message")
 
-        verify(relay_channel).send("awesome relayed message")
+        verify(relay_channel).send("awesome relayed message", allowed_mentions=any)
 
     def test_relay_message_with_not_connected_client(self):
         when(self.discord_client).is_ready().thenReturn(False)
@@ -1140,7 +1140,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great!")
 
-        verify(relay_channel).send("**Chatting player**: QL is great!")
+        verify(relay_channel).send("**Chatting player**: QL is great!", allowed_mentions=any)
 
     def test_relay_chat_message_with_asterisks_in_playername(self):
         relay_channel = self.relay_channel()
@@ -1150,7 +1150,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great!")
 
-        verify(relay_channel).send(r"**\*Chatting\* player**: QL is great!")
+        verify(relay_channel).send(r"**\*Chatting\* player**: QL is great!", allowed_mentions=any)
 
     def test_relay_chat_message_replace_user_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1168,7 +1168,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great, @chatter !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_user.mention))
+        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_user.mention),
+                                   allowed_mentions=any)
 
     def test_relay_chat_message_mentioned_member_not_found(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1185,7 +1186,26 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great, @chatter !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, @chatter !")
+        verify(relay_channel).send("**Chatting player**: QL is great, @chatter !", allowed_mentions=any)
+
+    def test_relay_chat_message_does_not_replace_all_everyone_and_here(self):
+        setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
+        self.discord = SimpleAsyncDiscord("version information", self.logger)
+        self.setup_discord_library()
+
+        relay_channel = self.relay_channel()
+
+        unmentioned_user = mocked_user(id=123, name="chatter")
+        self.setup_discord_members(unmentioned_user)
+        self.setup_discord_channels()
+
+        player = fake_player(steam_id=1, name="Chatting player")
+        minqlx_channel = ""
+
+        self.discord.relay_chat_message(player, minqlx_channel, "QL is great, @all @everyone @here !")
+
+        verify(relay_channel).send("**Chatting player**: QL is great, @all @everyone @here !",
+                                   allowed_mentions=any)
 
     def test_relay_chat_message_replace_channel_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1203,7 +1223,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great, #mention !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_channel.mention))
+        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_channel.mention),
+                                   allowed_mentions=any)
 
     def test_relay_chat_message_mentioned_channel_not_found(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1220,7 +1241,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_chat_message(player, minqlx_channel, "QL is great, #mention !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, #mention !")
+        verify(relay_channel).send("**Chatting player**: QL is great, #mention !", allowed_mentions=any)
 
     def test_relay_chat_message_discord_not_logged_in(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1246,7 +1267,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great!")
 
-        verify(relay_channel).send("**Chatting player**: QL is great!")
+        verify(relay_channel).send("**Chatting player**: QL is great!", allowed_mentions=any)
 
     def test_relay_team_chat_message_with_asterisks_in_playername(self):
         relay_channel = self.relay_teamchat_channel()
@@ -1256,7 +1277,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great!")
 
-        verify(relay_channel).send(r"**\*Chatting\* player**: QL is great!")
+        verify(relay_channel).send(r"**\*Chatting\* player**: QL is great!", allowed_mentions=any)
 
     def test_relay_team_chat_message_replace_user_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1274,7 +1295,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @chatter !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_user.mention))
+        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_user.mention),
+                                   allowed_mentions=any)
 
     def test_relay_team_chat_message_mentioned_member_not_found(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1291,7 +1313,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @chatter !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, @chatter !")
+        verify(relay_channel).send("**Chatting player**: QL is great, @chatter !", allowed_mentions=any)
 
     def test_relay_team_chat_message_replace_channel_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1309,7 +1331,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, #mention !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_channel.mention))
+        verify(relay_channel).send("**Chatting player**: QL is great, {} !".format(mentioned_channel.mention),
+                                   allowed_mentions=any)
 
     def test_relay_team_chat_message_mentioned_channel_not_found(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1326,7 +1349,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, #mention !")
 
-        verify(relay_channel).send("**Chatting player**: QL is great, #mention !")
+        verify(relay_channel).send("**Chatting player**: QL is great, #mention !", allowed_mentions=any)
 
     def test_relay_team_chat_message_discord_not_logged_in(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
@@ -1483,8 +1506,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        verify(trigger_channel1).send("**Chatting player**: QL is great!")
-        verify(trigger_channel2).send("**Chatting player**: QL is great!")
+        verify(trigger_channel1).send("**Chatting player**: QL is great!", allowed_mentions=any)
+        verify(trigger_channel2).send("**Chatting player**: QL is great!", allowed_mentions=any)
 
     def test_triggered_message_with_escaped_playername(self):
         trigger_channel1 = self.triggered_channel()
@@ -1499,8 +1522,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        verify(trigger_channel1).send(r"**\*Chatting\_player\***: QL is great!")
-        verify(trigger_channel2).send(r"**\*Chatting\_player\***: QL is great!")
+        verify(trigger_channel1).send(r"**\*Chatting\_player\***: QL is great!", allowed_mentions=any)
+        verify(trigger_channel2).send(r"**\*Chatting\_player\***: QL is great!", allowed_mentions=any)
 
     def test_triggered_message_replaces_mentions(self):
         trigger_channel1 = self.triggered_channel()
@@ -1515,7 +1538,8 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
         self.discord.triggered_message(player, "QL is great, @chatter #mention !")
 
         verify(trigger_channel1).send("**Chatting player**: QL is great, {} {} !"
-                                      .format(mentioned_user.mention, mentioned_channel.mention))
+                                      .format(mentioned_user.mention, mentioned_channel.mention),
+                                      allowed_mentions=any)
 
     def test_triggered_message_no_triggered_channels_configured(self):
         setup_cvar("qlx_discordTriggeredChannelIds", "")
@@ -1543,7 +1567,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.triggered_message(player, "QL is great, @member #mention !")
 
-        verify(trigger_channel1).send("**Chatting player**: QL is great, @member #mention !")
+        verify(trigger_channel1).send("**Chatting player**: QL is great, @member #mention !", allowed_mentions=any)
 
     def test_prefixed_triggered_message(self):
         self.discord.discord_triggered_channel_message_prefix = "Server Prefix"
@@ -1559,5 +1583,5 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        verify(trigger_channel1).send("Server Prefix **Chatting player**: QL is great!")
-        verify(trigger_channel2).send("Server Prefix **Chatting player**: QL is great!")
+        verify(trigger_channel1).send("Server Prefix **Chatting player**: QL is great!", allowed_mentions=any)
+        verify(trigger_channel2).send("Server Prefix **Chatting player**: QL is great!", allowed_mentions=any)
