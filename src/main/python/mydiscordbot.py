@@ -27,7 +27,7 @@ from discord import ChannelType, AllowedMentions
 from discord.ext.commands import Bot, Command, DefaultHelpCommand
 import discord.ext.tasks
 
-plugin_version = "v1.4"
+plugin_version = "v1.5"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -43,6 +43,11 @@ class mydiscordbot(minqlx.Plugin):
 
     For a description on how to set up a bot for you discord network take a look `here
     <https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token>`.
+
+    As of version 1.5 of the mydiscordbot, you also need to enable the Server Members Intent for the bot in order to be
+    able to replace discord user mentions. If you don't need that, i.e. you did configured and of the
+    qlx_discordReplaceMentions cvars as '0', you can leave it unchecked. By default, this will be enabled and therefore
+    mandatory. Check  <https://discordpy.readthedocs.io/en/latest/intents.html#privileged-intents> for a description.
 
     Uses:
     * qlx_discordBotToken (default: "") The token of the discord bot to use to connect to discord.
@@ -616,15 +621,21 @@ class SimpleAsyncDiscord(threading.Thread):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
+        members_intent = self.discord_replace_relayed_mentions or self.discord_replace_triggered_mentions
+        intents = discord.Intents(members=members_intent, guilds=True, bans=False, emojis=False, integrations=False,
+                                  webhooks=False, invites=False, voice_states=False, presences=False, messages=True,
+                                  guild_messages=True, dm_messages=True, reactions=False, guild_reactions=False,
+                                  dm_reactions=False, typing=False, guild_typing=False, dm_typing=False)
+
         # init the bot, and init the main discord interactions
         if self.discord_help_enabled:
             self.discord = Bot(command_prefix=self.discord_command_prefix,
                                description="{}".format(self.version_information),
-                               help_command=MinqlxHelpCommand(), loop=loop)
+                               help_command=MinqlxHelpCommand(), loop=loop, intents=intents)
         else:
             self.discord = Bot(command_prefix=self.discord_command_prefix,
                                description="{}".format(self.version_information),
-                               help_command=None, loop=loop)
+                               help_command=None, loop=loop, intents=intents)
         self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
