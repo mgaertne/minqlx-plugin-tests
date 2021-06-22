@@ -1,6 +1,5 @@
 from minqlx_plugin_test import *
 
-import logging
 import time
 
 import unittest
@@ -44,11 +43,6 @@ class MyDiscordBotTests(unittest.TestCase):
 
         verify(self.discord, times=0).stop()
 
-    def test_update_topics(self):
-        self.plugin.update_topics()
-
-        verify(self.discord).update_topics()
-
     def test_handle_ql_chat_message_relayed(self):
         chatter = fake_player(1, "Chatter")
         self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.ChatChannel())
@@ -76,7 +70,6 @@ class MyDiscordBotTests(unittest.TestCase):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting Player"))
 
         verify(self.discord).relay_message("_Connecting Player connected._")
-        verify(self.discord).update_topics()
 
     def test_handle_player_with_asterisk_connects(self):
         undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
@@ -94,7 +87,6 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           "disconnected")
 
         verify(self.discord).relay_message("_Disconnecting Player disconnected._")
-        verify(self.discord).update_topics()
 
     def test_handle_player_times_out(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
@@ -102,7 +94,6 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           "timed out")
 
         verify(self.discord).relay_message("_Disconnecting Player timed out._")
-        verify(self.discord).update_topics()
 
     def test_handle_player_is_kicked(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
@@ -110,7 +101,6 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           "was kicked")
 
         verify(self.discord).relay_message("_Disconnecting Player was kicked._")
-        verify(self.discord).update_topics()
 
     def test_handle_player_is_kicked_with_reason(self):
         undecorated(self.plugin.handle_player_disconnect)(self.plugin,
@@ -118,13 +108,11 @@ class MyDiscordBotTests(unittest.TestCase):
                                                           "llamah")
 
         verify(self.discord).relay_message("_Disconnecting Player was kicked (llamah)._")
-        verify(self.discord).update_topics()
 
     def test_handle_map(self):
         self.plugin.handle_map("Theatre of Pain", None)
 
         verify(self.discord).relay_message("*Changing map to Theatre of Pain...*")
-        verify(self.discord).update_topics()
 
     def test_handle_vote_started_by_player(self):
         self.plugin.handle_vote_started(fake_player(1, "Votecaller"), "kick", "asdf")
@@ -756,7 +744,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         await self.discord.auth(context, "wrong password")
 
-        assert_that(self.discord.auth_attempts, contains(user.id))
+        assert_that(self.discord.auth_attempts, has_item(user.id))
         verify(context).send(matches(".*Wrong password.*"))
 
     @async_test
@@ -786,7 +774,7 @@ class SimpleAsyncDiscordTests(unittest.TestCase):
 
         time.sleep(0.00001)
 
-        assert_that(self.discord.auth_attempts, not_(contains(user.id)))
+        assert_that(self.discord.auth_attempts, not_(has_item(user.id)))
 
     @async_test
     async def test_qlx_executes_command(self):

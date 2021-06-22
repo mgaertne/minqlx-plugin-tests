@@ -135,9 +135,6 @@ class mydiscordbot(minqlx.Plugin):
         self.add_hook("vote_ended", self.handle_vote_ended)
         self.add_hook("game_countdown", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
         self.add_hook("game_end", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
-        # Update topic on these hooks
-        for hook in ["round_end", "game_start"]:
-            self.add_hook(hook, self.update_topics, priority=minqlx.PRI_LOW)
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
         self.add_command("discordbot", self.cmd_discordbot, permission=1,
@@ -165,13 +162,6 @@ class mydiscordbot(minqlx.Plugin):
         """
         if plugin == self.__class__.__name__:
             self.discord.stop()
-
-    def update_topics(self, *args, **kwargs):
-        """
-        Update the current topic on the general relay channels, and the triggered relay channels. The latter will only
-        happen when cvar qlx_discordUpdateTopicOnIdleChannels is set to "1".
-        """
-        self.discord.update_topics()
 
     @staticmethod
     def game_status_information(game: minqlx.Game):
@@ -307,8 +297,6 @@ class mydiscordbot(minqlx.Plugin):
         content = "_{} connected._".format(mydiscordbot.escape_text_for_discord(player.clean_name))
         self.discord.relay_message(content)
 
-        self.discord.update_topics()
-
     @staticmethod
     def escape_text_for_discord(text):
         """
@@ -338,8 +326,6 @@ class mydiscordbot(minqlx.Plugin):
                                    reason_str)
         self.discord.relay_message(content)
 
-        self.discord.update_topics()
-
     def handle_map(self, mapname, factory):
         """
         Handler called when a map is changed. The method sends a corresponding message to the discord relay channels.
@@ -350,8 +336,6 @@ class mydiscordbot(minqlx.Plugin):
         """
         content = "*Changing map to {}...*".format(mydiscordbot.escape_text_for_discord(mapname))
         self.discord.relay_message(content)
-
-        self.discord.update_topics()
 
     def handle_vote_started(self, caller, vote, args):
         """
