@@ -287,9 +287,6 @@ class DuelArenaGame:
 
         self.initduel = (self.game is not None and self.game.state == "in_progress" and len(self.scores) == 0)
 
-        if self.initduel:
-            self.init_scores()
-
     def announce_activation(self):
         if not self.game:
             return
@@ -314,16 +311,18 @@ class DuelArenaGame:
         if not self.is_activated():
             return
 
+        self.print_reset_scores = (self.game is not None and self.game.state == "in_progress" and
+                                   not self.is_pending_initialization() and len(self.scores) != 0)
+
+        if not self.print_reset_scores and not self.is_pending_initialization():
+            self.reset_duelarena_scores()
+
         self.duelmode = False
         self.initduel = False
         self.player_red = None
         self.player_blue = None
         self.player_spec = []
         self.announce_deactivation()
-        self.print_reset_scores = (self.game is not None and self.game.state == "in_progress" and len(self.scores) != 0)
-
-        if not self.print_reset_scores:
-            self.reset_duelarena_scores()
 
     def announce_deactivation(self):
         if not self.game:
@@ -348,6 +347,7 @@ class DuelArenaGame:
 
     def reset(self):
         self.deactivate()
+        self.print_reset_scores = False
         self.playerset = []
         self.queue = []
 

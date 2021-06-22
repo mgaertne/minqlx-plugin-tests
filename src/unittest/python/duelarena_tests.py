@@ -1170,17 +1170,6 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_that(self.duelarena_game.initduel, is_(True))
 
-    def test_activate_initializes_scores_for_players_in_playerset(self):
-        setup_game_in_progress()
-        self.duelarena_game.duelmode = False
-        self.duelarena_game.scores = {}
-        self.duelarena_game.playerset = [123, 456, 789]
-
-        self.duelarena_game.activate()
-
-        assert_that(self.duelarena_game.initduel, is_(True))
-        assert_that(self.duelarena_game.scores, is_({123: 0, 456: 0, 789: 0}))
-
     def test_activate_leaves_existing_scores_untouched(self):
         setup_game_in_progress()
         self.duelarena_game.duelmode = False
@@ -1308,6 +1297,17 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_that(self.duelarena_game.print_reset_scores, is_(False))
         assert_that(self.duelarena_game.scores, is_({}))
+
+    def test_deactivate_leaves_scores_with_duelarena_pending_init(self):
+        setup_game_in_progress()
+        self.duelarena_game.duelmode = True
+        self.duelarena_game.initduel = True
+        self.duelarena_game.scores = {123: 3, 456: 2, 789: 1}
+
+        self.duelarena_game.deactivate()
+
+        assert_that(self.duelarena_game.print_reset_scores, is_(False))
+        assert_that(self.duelarena_game.scores, is_({123: 3, 456: 2, 789: 1}))
 
     def test_deactivate_resets_scores_with_no_scores_initialized(self):
         setup_game_in_progress()
