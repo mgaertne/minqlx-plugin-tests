@@ -63,6 +63,9 @@ class mydiscordbot(minqlx.Plugin):
     the current game state on triggered relay channels. Your bot needs edit_channel permission for these channels.
     * qlx_discordKeepTopicSuffixChannelIds (default: "") Comma separated list of channel ids where the topic suffix
     will be kept upon updating.
+    * qlx_discordUpdateTopicInterval (default: 305) Amount of seconds between automatic topic updates
+    * qlx_discordKeptTopicSuffixes (default: {}) A dictionary of channel_ids for kept topic suffixes and the related
+    suffixes. Make sure to use single quotes for the suffixes.
     * qlx_discordCommandPrefix (default: "!") Command prefix for all commands from discord
     * qlx_discordTriggerTriggeredChannelChat (default: "quakelive") Message prefix for the trigger on triggered relay
     channels.
@@ -103,6 +106,7 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
         Plugin.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
         Plugin.set_cvar_once("qlx_discordUpdateTopicInterval", "305")
+        Plugin.set_cvar_once("qlx_discordKeptTopicSuffixes", "{}")
         Plugin.set_cvar_once("qlx_discordCommandPrefix", "!")
         Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
         Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
