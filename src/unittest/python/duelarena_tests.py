@@ -18,7 +18,7 @@ class DuelArenaTests(unittest.TestCase):
             "qlx_duelarenaDuelToNormalThreshold": "6",
             "qlx_duelarenaNormalToDuelThreshold": "11",
             "g_roundWarmupDelay": "2000"
-                     })
+        })
         setup_game_in_progress("ca")
         connected_players()
         self.plugin = duelarena()
