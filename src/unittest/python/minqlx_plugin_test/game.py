@@ -16,7 +16,7 @@ def setup_no_game():
     when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
 
 
-def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, maxclients=16):
+def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, roundlimit=8, maxclients=16):
     """Setup the server with a game currently in warmup mode.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
@@ -25,6 +25,7 @@ def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, 
     :param game_type: the game_type currently being played (default: "ca")
     :param mapname: the map the game is currently running on (default: "campgrounds")
     :param map_title: the long title of the the map (default: None)
+    :param roundlimit: (default: 8)
     :param maxclients: (default: 16)
     """
     mock_game = mock(spec=Game, strict=False)
@@ -33,6 +34,7 @@ def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, 
     mock_game.type_short = game_type
     mock_game.map = mapname
     mock_game.map_title = map_title
+    mock_game.roundlimit = roundlimit
     mock_game.maxclients = maxclients
 
 
