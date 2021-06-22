@@ -27,7 +27,9 @@ from discord import ChannelType, AllowedMentions
 from discord.ext.commands import Bot, Command, DefaultHelpCommand
 import discord.ext.tasks
 
-plugin_version = "v1.5"
+plugin_version = "v1.51"
+
+MAP_SUBSCRIBER_KEY = "minqlx:maps:{}:subscribers"
 
 
 class mydiscordbot(minqlx.Plugin):
@@ -100,6 +102,7 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordTriggeredChatMessagePrefix", "")
         Plugin.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
         Plugin.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
+        Plugin.set_cvar_once("qlx_discordUpdateTopicInterval", "305")
         Plugin.set_cvar_once("qlx_discordCommandPrefix", "!")
         Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
         Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
@@ -392,8 +395,6 @@ class mydiscordbot(minqlx.Plugin):
 
         self.discord.relay_message("{}{}".format(topic, top5_players))
 
-        self.discord.update_topics_on_relay_and_triggered_channels(topic)
-
     def cmd_discord(self, player: minqlx.Player, msg, channel):
         """
         Handler of the !discord command. Forwards any messages after !discord to the discord triggered relay channels.
@@ -553,8 +554,10 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord_triggered_channel_message_prefix = Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix")
         self.discord_update_triggered_channels_topic = \
             Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
+        self.discord_topic_update_interval = Plugin.get_cvar("qlx_discordUpdateTopicInterval", int)
         self.discord_keep_topic_suffix_channel_ids = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set))
+        self.discord_kept_topic_suffixes = eval(Plugin.get_cvar("qlx_discordKeptTopicSuffixes", str))
         self.discord_trigger_triggered_channel_chat = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_command_prefix = Plugin.get_cvar("qlx_discordCommandPrefix")
         self.discord_help_enabled = Plugin.get_cvar("qlx_discordEnableHelp", bool)
@@ -636,6 +639,7 @@ class SimpleAsyncDiscord(threading.Thread):
             self.discord = Bot(command_prefix=self.discord_command_prefix,
                                description="{}".format(self.version_information),
                                help_command=None, loop=loop, intents=intents)
+
         self.initialize_bot(self.discord)
 
         # connect the now configured bot to discord in the event_loop
@@ -782,11 +786,27 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         try:
             game = minqlx.Game()
-            reply = "{}{}".format(
-                mydiscordbot.game_status_information(game),
+
+            ginfo = mydiscordbot.get_game_info(game)
+
+            num_players = len(Plugin.players())
+            max_players = game.maxclients
+
+            maptitle = game.map_title if game.map_title else game.map
+            gametype = game.type_short.upper()
+
+            reply = "{0} on **{1}** ({2}) with **{3}/{4}** players. {5}".format(
+                ginfo,
+                Plugin.clean_text(maptitle),
+                gametype,
+                num_players,
+                max_players,
                 mydiscordbot.player_data())
         except minqlx.NonexistentGameError:
             reply = "Currently no game running."
+
+        if self.is_message_in_triggered_channel(ctx):
+            reply = "{0} {1}".format(self.discord_triggered_channel_message_prefix, reply)
 
         await self.reply_to_context(ctx, reply)
 
@@ -838,7 +858,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.logger.info("Logged in to discord as: {} ({})".format(self.discord.user.name, self.discord.user.id))
         Plugin.msg("Connected to discord")
         await self.discord.change_presence(activity=discord.Game(name="Quake Live"))
-        self.update_topics()
+        self._topic_updater()
 
     async def on_message(self, message):
         """
@@ -869,17 +889,14 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         pass
 
-    def update_topics(self):
-        """
-        Update the current topic on the general relay channels, and the triggered relay channels. The latter will only
-        happen when cvar qlx_discordUpdateTopicOnIdleChannels is set to "1".
-        """
+    def _topic_updater(self):
         try:
             game = minqlx.Game()
         except minqlx.NonexistentGameError:
             return
         topic = mydiscordbot.game_status_information(game)
         self.update_topics_on_relay_and_triggered_channels(topic)
+        threading.Timer(self.discord_topic_update_interval, self._topic_updater).start()
 
     def update_topics_on_relay_and_triggered_channels(self, topic):
         """
@@ -951,6 +968,9 @@ class SimpleAsyncDiscord(threading.Thread):
             position = previous_topic.find(topic_ending)
             topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
 
+            if channel_id in self.discord_kept_topic_suffixes:
+                topic_suffix = self.discord_kept_topic_suffixes[channel_id]
+
             # update the topic on the triggered channels
             self.set_topic_on_discord_channels({channel_id}, "{}{}".format(topic, topic_suffix))
 
@@ -1007,11 +1027,10 @@ class SimpleAsyncDiscord(threading.Thread):
             if channel is None:
                 continue
 
-            asyncio.run_coroutine_threadsafe(channel.send(content,
-                                                          allowed_mentions=AllowedMentions(everyone=False,
-                                                                                           users=True,
-                                                                                           roles=True)),
-                                             loop=self.discord.loop)
+            asyncio.run_coroutine_threadsafe(
+                channel.send(content,
+                             allowed_mentions=AllowedMentions(everyone=False, users=True, roles=True)),
+                loop=self.discord.loop)
 
     def relay_chat_message(self, player, channel, message):
         """
@@ -1098,7 +1117,8 @@ class SimpleAsyncDiscord(threading.Thread):
             return member[0]
 
         # if direct searches for the match fail, we try to match portions of the name or portions of the nick, if set
-        member = [user for user in member_list if user.name.lower().find(match.lower()) != -1 or
+        member = [user for user in member_list
+                  if user.name.lower().find(match.lower()) != -1 or
                   (user.nick is not None and user.nick.lower().find(match.lower()) != -1)]
         if len(member) == 1:
             return list(member)[0]
