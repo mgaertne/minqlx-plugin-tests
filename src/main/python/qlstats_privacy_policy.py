@@ -8,7 +8,7 @@ Plugin that restricts playing on the server to certain QLStats.net privacy setti
 
 Uses:
 - qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
-- qlx_qlstatsPrivacyWhitelist (default: "public, anoynmous, private, untracked")
+- qlx_qlstatsPrivacyWhitelist (default: "public, private, untracked")
     List of allowed privacy settings on this server. Take out any value from the default expansive list.
 - qlx_qlstatsPrivacyJoinAttempts (default: 5), amount of join attempts before the player gets kicked,
     if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
@@ -24,7 +24,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
         super().__init__()
         self.set_cvar_once("qlx_qlstatsPrivacyBlock", "1")
         self.set_cvar_once("qlx_qlstatsPrivacyKick", "0")
-        self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, anonymous, private, untracked")
+        self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, private, untracked")
         self.set_cvar_once("qlx_qlstatsPrivacyJoinAttempts", "5")
 
         self.plugin_enabled = True
