@@ -83,7 +83,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         verify(self.plugin._loaded_plugins["balance"]).add_request(
             {player1.steam_id: 'ca', player2.steam_id: 'ca'},
-            self.plugin.callback_ratings, minqlx.CHAT_CHANNEL
+            self.plugin.callback_ratings, CHAT_CHANNEL
         )
 
     def test_handle_player_connect_fetches_elo_of_connecting_player(self):
@@ -97,7 +97,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         verify(self.plugin._loaded_plugins["balance"]).add_request(
             {connecting_player.steam_id: 'ca'},
-            self.plugin.callback_ratings, minqlx.CHAT_CHANNEL
+            self.plugin.callback_ratings, CHAT_CHANNEL
         )
 
     def test_fetch_elos_of_players_with_no_game_setup(self):
@@ -149,7 +149,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         verify(self.plugin._loaded_plugins["balance"]).add_request(
             {player1.steam_id: 'ca', player2.steam_id: 'ca'},
-            self.plugin.callback_ratings, minqlx.CHAT_CHANNEL
+            self.plugin.callback_ratings, CHAT_CHANNEL
         )
 
     def test_callback_ratings_with_no_game_running(self):
