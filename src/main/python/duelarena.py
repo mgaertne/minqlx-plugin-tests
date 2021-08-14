@@ -7,6 +7,9 @@ from operator import itemgetter
 MIN_ACTIVE_PLAYERS = 3  # min players for duelarena
 MAX_ACTIVE_PLAYERS = 4  # max players for duelarena
 
+DUELARENA_JOIN_CMD = ("join", "j")
+DUELARENA_JOIN_MSG = "You joined ^6DuelArena^7 mode, and you will automatically rotate with round loser."
+
 
 class duelarena(minqlx.Plugin):
 
@@ -15,19 +18,19 @@ class duelarena(minqlx.Plugin):
 
         self.set_cvar_once("qlx_duelarenaDuelToNormalThreshold", "6")
         self.set_cvar_once("qlx_duelarenaNormalToDuelThreshold", "11")
+        self.set_cvar_once("qlx_duelarenaDuelToNormalScoreReset", "continue")
 
         self.add_hook("map", self.handle_map_change)
         self.add_hook("player_loaded", self.handle_player_loaded, priority=minqlx.PRI_LOWEST)
         self.add_hook("team_switch_attempt", self.handle_team_switch_event)
-        self.add_hook("player_disconnect", self.handle_player_disco)
+        self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("game_countdown", self.handle_game_countdown)
         self.add_hook("round_countdown", self.handle_round_countdown)
         self.add_hook("round_end", self.handle_round_end)
         self.add_hook("game_end", self.handle_game_end)
-        self.add_command("join", self.cmd_join)
+        self.add_command(DUELARENA_JOIN_CMD, self.cmd_join)
 
         self.duelarena_game = DuelArenaGame()
-        self.player_agree_to_join = []
 
         teams = Plugin.teams()
         for _p in teams["red"] + teams["blue"]:
@@ -35,13 +38,13 @@ class duelarena(minqlx.Plugin):
 
     def handle_map_change(self, mapname, factory):
         self.duelarena_game.reset()
-        self.player_agree_to_join = []
 
     @minqlx.delay(3)
     def handle_player_loaded(self, player):
         if not self.game:
             return
 
+        player.update()
         if player.team != "spectator":
             return
 
@@ -56,9 +59,8 @@ class duelarena(minqlx.Plugin):
             return
 
         player.tell(
-            "{}, type !join to join Duel Arena or press join button to force switch to Clan Arena!".format(
-                player.name))
-        self.player_agree_to_join.append(player.steam_id)
+            "{}^7, type !{} to join Duel Arena or press join button to force switch to Clan Arena!".format(
+                player.name, DUELARENA_JOIN_CMD.__getitem__(0)))
 
     def handle_team_switch_event(self, player, old, new):
         if not self.game:
@@ -95,10 +97,10 @@ class duelarena(minqlx.Plugin):
             return
 
         if new in ['red', 'blue', 'any']:
-            player.tell("Server is now in ^6DuelArena^7 mode. You will automatically rotate with round loser.")
+            player.tell(DUELARENA_JOIN_MSG)
             return minqlx.RET_STOP_ALL
 
-    def handle_player_disco(self, player, reason):
+    def handle_player_disconnect(self, player, reason):
         self.duelarena_game.remove_player(player.steam_id)
 
     @minqlx.delay(3)
@@ -133,6 +135,7 @@ class duelarena(minqlx.Plugin):
             return
 
         if self.duelarena_game.should_print_and_reset_scores():
+            self.duelarena_game.record_scores(self.game.red_score, self.game.blue_score)
             self.duelarena_game.print_and_reset_scores()
             return
 
@@ -183,13 +186,12 @@ class duelarena(minqlx.Plugin):
         if not self.duelarena_game.is_activated():
             return
 
-        if player.steam_id not in self.player_agree_to_join:
+        if self.duelarena_game.is_player(player.steam_id) or player.team != "spectator":
             return
 
         self.duelarena_game.add_player(player.steam_id)
         player.tell("You successfully joined the DuelArena queue. Prepare for your duel!")
         Plugin.msg("^7{} joined DuelArena!".format(player.clean_name))
-        self.player_agree_to_join.remove(player.steam_id)
 
 
 class DuelArenaGame:
@@ -207,6 +209,7 @@ class DuelArenaGame:
 
         self.duel_to_normal_threshold = Plugin.get_cvar("qlx_duelarenaDuelToNormalThreshold", int)
         self.normal_to_duel_threshold = Plugin.get_cvar("qlx_duelarenaNormalToDuelThreshold", int)
+        self.duel_to_normal_score_reset = Plugin.get_cvar("qlx_duelarenaDuelToNormalScoreReset")
 
     @property
     def game(self):
@@ -270,12 +273,16 @@ class DuelArenaGame:
     def check_for_activation_or_abortion(self):
         if self.should_be_aborted():
             self.deactivate()
-
-        if self.is_activated() and not self.should_be_activated():
-            self.deactivate()
+            return
 
         if not self.is_activated() and self.should_be_activated():
             self.activate()
+            return
+
+        if self.is_activated() and (
+                MIN_ACTIVE_PLAYERS < len(self.playerset) or len(self.playerset) > MAX_ACTIVE_PLAYERS) and len(
+                self.scores) > 0 and max(self.scores.values()) < self.duel_to_normal_threshold:
+            self.deactivate()
 
     def activate(self):
         if self.is_activated():
@@ -285,7 +292,8 @@ class DuelArenaGame:
         self.print_reset_scores = False
         self.announce_activation()
 
-        self.initduel = (self.game is not None and self.game.state == "in_progress" and len(self.scores) == 0)
+        self.initduel = (self.game is not None and (self.game.state == "countdown" or
+                                                    (self.game.state == "in_progress" and len(self.scores) == 0)))
 
     def announce_activation(self):
         if not self.game:
@@ -314,6 +322,9 @@ class DuelArenaGame:
         self.print_reset_scores = (self.game is not None and self.game.state == "in_progress" and
                                    not self.is_pending_initialization() and len(self.scores) != 0)
 
+        self.print_reset_scores = self.print_reset_scores and len(self.playerset) != 2
+        self.print_reset_scores = self.print_reset_scores and max(self.scores.values()) < self.duel_to_normal_threshold
+
         if not self.print_reset_scores and not self.is_pending_initialization():
             self.reset_duelarena_scores()
 
@@ -335,7 +346,7 @@ class DuelArenaGame:
             return False
 
         if not self.game or self.game.state != "in_progress":
-            return False
+            return True
 
         if MIN_ACTIVE_PLAYERS <= len(self.playerset) <= MAX_ACTIVE_PLAYERS:
             return False
@@ -505,13 +516,14 @@ class DuelArenaGame:
     def insert_next_player(self, team):
         loser_team_score = getattr(self.game, "{}_score".format(team))
         next_sid = self.next_player_sid()
+
         if next_sid is None:
             Plugin.msg("Problem fetching next player. Aborting DuelArena ...")
             self.deactivate()
             return
 
         next_player = Plugin.player(next_sid)
-        if next_player is None or next_player.team != "spectator":
+        if next_player is None:
             Plugin.msg("Problem fetching next player. Aborting DuelArena ...")
             self.deactivate()
             return
@@ -534,9 +546,9 @@ class DuelArenaGame:
 
     def print_and_reset_scores(self):
         self.print_results()
-        self.reset_duelarena_scores()
         self.reset_team_scores()
         self.print_reset_scores = False
+        self.reset_duelarena_scores()
 
     def print_results(self):
         Plugin.msg("DuelArena results:")
@@ -557,5 +569,24 @@ class DuelArenaGame:
         if not self.game or self.game.state != "in_progress":
             return
 
-        self.game.addteamscore("red", -self.game.red_score)
-        self.game.addteamscore("blue", -self.game.blue_score)
+        if self.duel_to_normal_score_reset == "zero":
+            self.game.addteamscore("red", -self.game.red_score)
+            self.game.addteamscore("blue", -self.game.blue_score)
+            return
+
+        if self.duel_to_normal_score_reset == "maximum":
+            teams = Plugin.teams()
+            red_team_scores = [self.scores[player.steam_id] for player in teams["red"] if
+                               player.steam_id in self.scores]
+            blue_team_scores = [self.scores[player.steam_id] for player in teams["blue"] if
+                                player.steam_id in self.scores]
+
+            if len(red_team_scores) == 0:
+                self.game.addteamscore("red", -self.game.red_score)
+            else:
+                self.game.addteamscore("red", max(red_team_scores) - self.game.red_score)
+            if len(blue_team_scores) == 0:
+                self.game.addteamscore("blue", -self.game.blue_score)
+            else:
+                self.game.addteamscore("blue", max(blue_team_scores) - self.game.blue_score)
+            return
