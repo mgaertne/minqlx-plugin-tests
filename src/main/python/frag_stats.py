@@ -1,8 +1,10 @@
 import minqlx
+import redis
 
 from collections import Counter
 
-COLLECTED_SOULZ_KEY = "minqlx:players:{}:soulz"
+COLLECTED_SOULZ_KEY =\
+    "minqlx:players:{}:soulz"
 REAPERZ_KEY = "minqlx:players:{}:reaperz"
 _name_key = "minqlx:players:{}:last_used_name"
 
@@ -50,8 +52,12 @@ class frag_stats(minqlx.Plugin):
     def record_frag(self, recorded_killer, victim_sid):
         self.frag_log.append((recorded_killer, victim_sid))
 
-        self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim_sid, 1)
-        self.db.zincrby(REAPERZ_KEY.format(victim_sid), recorded_killer, 1)
+        if redis.VERSION[0] == 2:
+            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim_sid, 1)
+            self.db.zincrby(REAPERZ_KEY.format(victim_sid), recorded_killer, 1)
+        else:
+            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), 1, victim_sid)
+            self.db.zincrby(REAPERZ_KEY.format(victim_sid), 1, recorded_killer)
 
     def determine_killer(self, killer, means_of_death):
         if killer is not None:
