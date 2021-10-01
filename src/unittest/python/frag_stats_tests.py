@@ -67,7 +67,7 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        verify(self.db).zincrby("minqlx:players:{}:soulz".format(killer.steam_id), victim.steam_id, 1)
+        verify(self.db).zincrby("minqlx:players:{}:soulz".format(killer.steam_id), 1, victim.steam_id)
 
     def test_handle_death_records_reaper_in_db(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -77,7 +77,7 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), killer.steam_id, 1)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, killer.steam_id)
 
     def test_handle_death_on_own_death_does_nothing(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -109,8 +109,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.handle_death(victim, None, {"MOD": "LAVA"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))
-        verify(self.db).zincrby("minqlx:players:lava:soulz", victim.steam_id, 1)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), "lava", 1)
+        verify(self.db).zincrby("minqlx:players:lava:soulz", 1, victim.steam_id)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "lava")
 
     def test_handle_death_by_hurt_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -121,8 +121,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.handle_death(victim, None, {"MOD": "HURT"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))
-        verify(self.db).zincrby("minqlx:players:void:soulz", victim.steam_id, 1)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), "void", 1)
+        verify(self.db).zincrby("minqlx:players:void:soulz", 1, victim.steam_id)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "void")
 
     def test_handle_death_by_slime_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -133,8 +133,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.handle_death(victim, None, {"MOD": "SLIME"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))
-        verify(self.db).zincrby("minqlx:players:acid:soulz", victim.steam_id, 1)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), "acid", 1)
+        verify(self.db).zincrby("minqlx:players:acid:soulz", 1, victim.steam_id)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "acid")
 
     def test_handle_death_by_water_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -145,8 +145,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.handle_death(victim, None, {"MOD": "WATER"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))
-        verify(self.db).zincrby("minqlx:players:drowning:soulz", victim.steam_id, 1)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), "drowning", 1)
+        verify(self.db).zincrby("minqlx:players:drowning:soulz", 1, victim.steam_id)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "drowning")
 
     def test_handle_death_by_crush_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -157,8 +157,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.handle_death(victim, None, {"MOD": "CRUSH"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))
-        verify(self.db).zincrby("minqlx:players:squished:soulz", victim.steam_id, 1)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), "squished", 1)
+        verify(self.db).zincrby("minqlx:players:squished:soulz", 1, victim.steam_id)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "squished")
 
     def test_handle_death_by_unknown_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -169,8 +169,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.handle_death(victim, None, {"MOD": "UNKNOWN"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))
-        verify(self.db).zincrby("minqlx:players:unknown:soulz", victim.steam_id, 1)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), "unknown", 1)
+        verify(self.db).zincrby("minqlx:players:unknown:soulz", 1, victim.steam_id)
+        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "unknown")
 
     def test_handle_death_by_team_switch_is_not_recorded(self):
         victim = fake_player(123, "Fragged Player", team="red")
