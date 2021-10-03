@@ -98,7 +98,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         connecting_player = fake_player(123, "Connecting Player")
 
         connect_thread = mock(ConnectThread)
-        when(connect_thread).isAlive().thenReturn(True)
+        when(connect_thread).is_alive().thenReturn(True)
         self.plugin.connectthreads[connecting_player.steam_id] = connect_thread
 
         result = self.plugin.handle_player_connect(connecting_player)
