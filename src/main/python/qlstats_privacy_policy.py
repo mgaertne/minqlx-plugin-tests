@@ -89,7 +89,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         # Check if thread is ready or not
         ct = self.connectthreads[player.steam_id]
-        if ct.isAlive():
+        if ct.is_alive():
             return "Fetching your qlstats settings..."
 
         # Check if thread is ready or not
