@@ -1,0 +1,355 @@
+import minqlx
+from minqlx.database import Redis
+
+import math
+import redis
+
+WEAPON_STATS_KEY = "minqlx:{}:weaponstats"
+_name_key = "minqlx:players:{}:last_used_name"
+
+
+class asdf(minqlx.Plugin):
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_hook("stats", self.handle_stats)
+
+        self.add_hook("player_spawn", self.handle_player_spawn)
+
+        self.add_hook("game_countdown", self.handle_game_countdown)
+        self.add_hook("round_start", self.handle_round_start)
+        self.add_hook("round_end", self.handle_round_end)
+
+        self.add_command("weaponstats", self.cmd_weaponstats, usage="[player or id]")
+
+        self.stats_snapshot = {}
+        self.red_overall_damage = 0
+        self.blue_overall_damage = 0
+
+    def handle_player_spawn(self, player):
+        if not self.game or self.game.state != "in_progress":
+            return
+
+        if not player.is_alive:
+            return
+
+        if abs(self.game.red_score - self.game.blue_score) < 3:
+            return
+
+        teams = self.teams()
+        if len(teams["red"]) == 1 or len(teams["blue"]) == 1:
+            return
+
+        leading_team = "red"
+        if self.game.blue_score > self.game.red_score:
+            leading_team = "blue"
+
+        if player.team != leading_team:
+            return
+
+        self.adjust_ammo_for_player(player)
+
+    @minqlx.thread
+    def adjust_ammo_for_player(self, player):
+        weapon_stats = self.weapon_stats_for(player.steam_id)
+
+        total_team_damage = self.red_overall_damage if player.team == "red" else self.blue_overall_damage
+        self.logger.debug("total_team_damage: {}".format(total_team_damage))
+
+        if total_team_damage == 0.0:
+            total_team_damage = player.stats.damage_dealt
+        damage_factor = 1.0 - float(player.stats.damage_dealt) / float(total_team_damage)
+
+        if damage_factor > 0.9:
+            return
+
+        filtered_weapon_stats = [weapon_entry for weapon_entry in weapon_stats.values() if
+                                 weapon_entry.accuracy() > 25.0]
+        sorted_weapon_stats = sorted(filtered_weapon_stats, key=lambda entry: entry.time)
+        ammo_settings = {}
+        ammo_info = ""
+
+        current_ammo = player.state.ammo
+
+        for weapon_entry in sorted_weapon_stats:
+            if getattr(current_ammo, weapon_entry.weapon.ammo_type()) == -1:
+                continue
+
+            starting_ammo = getattr(current_ammo, weapon_entry.weapon.ammo_type())
+            accuracy_factor = (100.0 - weapon_entry.accuracy()) / 100.0
+            adjusted_starting_ammo = math.ceil(starting_ammo * accuracy_factor * damage_factor)
+            ammo_settings[weapon_entry.weapon.ammo_type()] = adjusted_starting_ammo
+            ammo_info = ammo_info + " ^1{}^7: ^4{}^3->^4{}^7".format(weapon_entry.weapon.ammo_type().upper(),
+                                                                     starting_ammo, adjusted_starting_ammo)
+
+        if len(ammo_settings.keys()) == 0:
+            return
+
+        self.logger.debug("Adjusted ammo settings for {}: {}".format(player.name, ammo_settings))
+
+        player.ammo(**ammo_settings)
+        player.tell(
+            "{}, your team is dominating right now. Some of your ammo was reduced:{}".format(player.name, ammo_info))
+
+    def handle_stats(self, stats):
+        if stats["TYPE"] != "PLAYER_STATS":
+            return
+
+        if stats["DATA"]["WARMUP"]:
+            return
+
+        if stats["DATA"]["ABORTED"]:
+            return
+
+        if "WEAPONS" not in stats["DATA"]:
+            return
+
+        self.store_weapon_stats(stats)
+
+    @minqlx.thread
+    def store_weapon_stats(self, stats):
+        steam_id = stats["DATA"]["STEAM_ID"]
+        for weapon in stats["DATA"]["WEAPONS"]:
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "deaths",
+                            stats["DATA"]["WEAPONS"][weapon]["D"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "damage_dealt",
+                            stats["DATA"]["WEAPONS"][weapon]["DG"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "damage_received",
+                            stats["DATA"]["WEAPONS"][weapon]["DR"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "hits",
+                            stats["DATA"]["WEAPONS"][weapon]["H"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "kills",
+                            stats["DATA"]["WEAPONS"][weapon]["K"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "pickups",
+                            stats["DATA"]["WEAPONS"][weapon]["P"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "shots",
+                            stats["DATA"]["WEAPONS"][weapon]["S"])
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "time",
+                            stats["DATA"]["WEAPONS"][weapon]["T"])
+
+    def handle_game_countdown(self):
+        self.stats_snapshot = {}
+        self.red_overall_damage = 0
+        self.blue_overall_damage = 0
+
+    def handle_round_start(self, round_number):
+        teams = self.teams()
+        self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
+
+    def handle_round_end(self, data):
+        if self.game is None:
+            return
+
+        if self.game.roundlimit in [self.game.blue_score, self.game.red_score]:
+            return
+
+        self.calculate_team_round_damages()
+
+    def calculate_team_round_damages(self):
+        deltas = self.calculate_damage_deltas()
+
+        teams = self.teams()
+
+        red_diff = sum([deltas[player.steam_id] for player in teams["red"] if player.steam_id in deltas])
+        self.red_overall_damage += red_diff
+
+        blue_diff = sum([deltas[player.steam_id] for player in teams["blue"] if player.steam_id in deltas])
+        self.blue_overall_damage += blue_diff
+
+        self.logger.debug("red_diff: {} blue_diff: {}".format(red_diff, blue_diff))
+
+    def calculate_damage_deltas(self):
+        returned = {}
+
+        for steam_id in self.stats_snapshot:
+            minqlx_player = self.player(steam_id)
+
+            if minqlx_player is None:
+                continue
+
+            returned[steam_id] = minqlx_player.stats.damage_dealt - self.stats_snapshot[steam_id]
+
+        return returned
+
+    def cmd_weaponstats(self, player, msg, channel):
+        if len(msg) == 1:
+            player_name, player_identifier = self.identify_target(player, player)
+        else:
+            player_name, player_identifier = self.identify_target(player, msg[1])
+            if player_name is None and player_identifier is None:
+                return
+
+        reply_channel = self.identify_reply_channel(channel)
+
+        weapon_stats = self.weapon_stats_for(player_identifier)
+        stats_strings = []
+        for weapon in ["MACHINEGUN", "HMG", "SHOTGUN", "GRENADE", "ROCKET", "LIGHTNING", "RAILGUN", "PLASMA", "BFG",
+                       "NAILGUN", "PROXMINE", "CHAINGUN"]:
+            if weapon not in weapon_stats:
+                continue
+            if weapon_stats[weapon].accuracy() != 0:
+                stats_strings.append(
+                    "^1{}^7: ^4{:.0f}^7".format(weapon_stats[weapon].name, weapon_stats[weapon].accuracy()))
+
+        if len(stats_strings) == 0:
+            return
+        stats_string = ", ".join(stats_strings)
+        reply_channel.reply("Weapon statistics for player {}^7: {}".format(player_name, stats_string))
+
+    def weapon_stats_for(self, steam_id):
+        returned = {}
+        for key in self.db.keys(WEAPON_STATS_KEY.format(steam_id) + ":*"):
+            weapon_stats = self.db.hgetall(key)
+            weapon = key.split(":")[-1]
+            if int(weapon_stats["shots"]) != 0 and int(weapon_stats["hits"]) != 0:
+                returned[weapon] = WeaponStatsEntry(Weapon(weapon), int(weapon_stats["kills"]),
+                                                    int(weapon_stats["deaths"]), int(weapon_stats["damage_dealt"]),
+                                                    int(weapon_stats["damage_received"]), int(weapon_stats["shots"]),
+                                                    int(weapon_stats["hits"]), int(weapon_stats["pickups"]),
+                                                    int(weapon_stats["time"]))
+
+        return returned
+
+    def identify_target(self, player, target):
+        if hasattr(target, "name") and hasattr(target, "steam_id"):
+            return target.name, target.steam_id
+
+        try:
+            steam_id = int(target)
+            if self.db.exists(_name_key.format(steam_id)):
+                return self.resolve_player_name(steam_id), steam_id
+        except ValueError:
+            pass
+
+        target_player = self.find_target_player_or_list_alternatives(player, target)
+        if target_player is None:
+            return None, None
+
+        return target_player.name, target_player.steam_id
+
+    def resolve_player_name(self, item):
+        if not isinstance(item, int) and not item.isdigit():
+            return item
+
+        steam_id = int(item)
+
+        player = self.player(steam_id)
+
+        if player is not None:
+            return player.name
+
+        if self.db.exists(_name_key.format(steam_id)):
+            return self.db.get(_name_key.format(steam_id))
+
+        return item
+
+    def find_target_player_or_list_alternatives(self, player, target):
+        # Tell a player which players matched
+        def list_alternatives(players, indent=2):
+            player.tell("A total of ^6{}^7 players matched for {}:".format(len(players), target))
+            out = ""
+            for p in players:
+                out += " " * indent
+                out += "{}^6:^7 {}\n".format(p.id, p.name)
+            player.tell(out[:-1])
+
+        try:
+            steam_id = int(target)
+
+            target_player = self.player(steam_id)
+            if target_player:
+                return target_player
+
+        except ValueError:
+            pass
+        except minqlx.NonexistentPlayerError:
+            pass
+
+        target_players = self.find_player(target)
+
+        # If there were absolutely no matches
+        if not target_players:
+            player.tell("Sorry, but no players matched your tokens: {}.".format(target))
+            return None
+
+        # If there were more than 1 matches
+        if len(target_players) > 1:
+            list_alternatives(target_players)
+            return None
+
+        # By now there can only be one person left
+        return target_players.pop()
+
+    def identify_reply_channel(self, channel):
+        if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
+                       minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
+            return minqlx.CHAT_CHANNEL
+
+        return channel
+
+
+class Weapon:
+    def __init__(self, name):
+        self.name = name
+
+    def weapon_name(self):
+        return self.ammo_type().upper()
+
+    def ammo_type(self):
+        weapon_name = self.name.upper()
+        if weapon_name == "MACHINEGUN":
+            return "mg"
+        if weapon_name == "SHOTGUN":
+            return "sg"
+        if weapon_name == "GRENADE":
+            return "gl"
+        if weapon_name == "ROCKET":
+            return "rl"
+        if weapon_name == "LIGHTNING":
+            return "lg"
+        if weapon_name == "RAILGUN":
+            return "rg"
+        if weapon_name == "PLASMA":
+            return "pg"
+        if weapon_name == "HMG":
+            return "hmg"
+        if weapon_name == "BFG":
+            return "bfg"
+        if weapon_name == "GAUNTLET":
+            return "g"
+        if weapon_name == "NAILGUN":
+            return "ng"
+        if weapon_name == "PROMINE":
+            return "pm"
+        if weapon_name == "CHAINGUN":
+            return "cg"
+        return "other"
+
+
+class WeaponStatsEntry:
+    def __init__(self, weapon, kills, deaths, damage_dealt, damage_received, shots, hits, pickups, time):
+        self.weapon = weapon
+        self.kills = kills
+        self.deaths = deaths
+        self.damage_dealt = damage_dealt
+        self.damage_received = damage_received
+        self.shots = shots
+        self.hits = hits
+        self.pickups = pickups
+        self.time = time
+
+    def __repr__(self):
+        return "[{}: K:{} D:{} DG:{} DR:{} S:{} H:{} P:{} T:{}]".format(self.weapon.ammo_type().upper(), self.kills,
+                                                                        self.deaths, self.damage_dealt,
+                                                                        self.damage_received, self.shots, self.hits,
+                                                                        self.pickups, self.time)
+
+    def accuracy(self):
+        if self.shots == 0:
+            return 0
+        return self.hits / self.shots * 100
+
+    @property
+    def name(self):
+        return self.weapon.weapon_name()
