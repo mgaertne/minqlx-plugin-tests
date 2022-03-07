@@ -13,6 +13,8 @@ class asdf(minqlx.Plugin):
     def __init__(self):
         super().__init__()
 
+        self.set_cvar_once("qlx_asdf_minammo_rate", "0.25")
+
         self.add_hook("stats", self.handle_stats)
 
         self.add_hook("player_spawn", self.handle_player_spawn)
@@ -27,8 +29,13 @@ class asdf(minqlx.Plugin):
         self.red_overall_damage = 0
         self.blue_overall_damage = 0
 
+        self.min_ammo_rate = self.get_cvar("qlx_asdf_minammo_rate", float)
+
     def handle_player_spawn(self, player):
         if not self.game or self.game.state != "in_progress":
+            return
+
+        if self.game.type_short not in ["ca", "midair"]:
             return
 
         if not player.is_alive:
@@ -55,7 +62,7 @@ class asdf(minqlx.Plugin):
         weapon_stats = self.weapon_stats_for(player.steam_id)
 
         total_team_damage = self.red_overall_damage if player.team == "red" else self.blue_overall_damage
-        self.logger.debug("total_team_damage: {}".format(total_team_damage))
+        self.logger.debug(f"total_team_damage: {total_team_damage}")
 
         if total_team_damage == 0.0:
             total_team_damage = player.stats.damage_dealt
@@ -79,18 +86,19 @@ class asdf(minqlx.Plugin):
             starting_ammo = getattr(current_ammo, weapon_entry.weapon.ammo_type())
             accuracy_factor = (100.0 - weapon_entry.accuracy()) / 100.0
             adjusted_starting_ammo = math.ceil(starting_ammo * accuracy_factor * damage_factor)
+            adjusted_starting_ammo = max(starting_ammo * self.min_ammo_rate, adjusted_starting_ammo)
             ammo_settings[weapon_entry.weapon.ammo_type()] = adjusted_starting_ammo
-            ammo_info = ammo_info + " ^1{}^7: ^4{}^3->^4{}^7".format(weapon_entry.weapon.ammo_type().upper(),
-                                                                     starting_ammo, adjusted_starting_ammo)
+            formatted_ammo_type = weapon_entry.weapon.ammo_type().upper()
+            ammo_info = ammo_info + f" ^1{formatted_ammo_type}^7: ^4{starting_ammo}^3->^4{adjusted_starting_ammo}^7"
 
-        if len(ammo_settings.keys()) == 0:
+        if len(ammo_settings) == 0:
             return
 
-        self.logger.debug("Adjusted ammo settings for {}: {}".format(player.name, ammo_settings))
+        self.logger.debug(f"Adjusted ammo settings for {player.name}: {ammo_settings}")
 
         player.ammo(**ammo_settings)
         player.tell(
-            "{}, your team is dominating right now. Some of your ammo was reduced:{}".format(player.name, ammo_info))
+            f"{player.name}, your team is dominating right now. Some of your ammo was reduced:{ammo_info}")
 
     def handle_stats(self, stats):
         if stats["TYPE"] != "PLAYER_STATS":
@@ -111,21 +119,21 @@ class asdf(minqlx.Plugin):
     def store_weapon_stats(self, stats):
         steam_id = stats["DATA"]["STEAM_ID"]
         for weapon in stats["DATA"]["WEAPONS"]:
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "deaths",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "deaths",
                             stats["DATA"]["WEAPONS"][weapon]["D"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "damage_dealt",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "damage_dealt",
                             stats["DATA"]["WEAPONS"][weapon]["DG"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "damage_received",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "damage_received",
                             stats["DATA"]["WEAPONS"][weapon]["DR"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "hits",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "hits",
                             stats["DATA"]["WEAPONS"][weapon]["H"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "kills",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "kills",
                             stats["DATA"]["WEAPONS"][weapon]["K"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "pickups",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "pickups",
                             stats["DATA"]["WEAPONS"][weapon]["P"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "shots",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "shots",
                             stats["DATA"]["WEAPONS"][weapon]["S"])
-            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + ":{}".format(weapon), "time",
+            self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "time",
                             stats["DATA"]["WEAPONS"][weapon]["T"])
 
     def handle_game_countdown(self):
@@ -157,7 +165,7 @@ class asdf(minqlx.Plugin):
         blue_diff = sum([deltas[player.steam_id] for player in teams["blue"] if player.steam_id in deltas])
         self.blue_overall_damage += blue_diff
 
-        self.logger.debug("red_diff: {} blue_diff: {}".format(red_diff, blue_diff))
+        self.logger.debug(f"red_diff: {red_diff} blue_diff: {blue_diff}")
 
     def calculate_damage_deltas(self):
         returned = {}
@@ -188,14 +196,14 @@ class asdf(minqlx.Plugin):
                        "NAILGUN", "PROXMINE", "CHAINGUN"]:
             if weapon not in weapon_stats:
                 continue
-            if weapon_stats[weapon].accuracy() != 0:
-                stats_strings.append(
-                    "^1{}^7: ^4{:.0f}^7".format(weapon_stats[weapon].name, weapon_stats[weapon].accuracy()))
+            accuracy = weapon_stats[weapon].accuracy()
+            if accuracy != 0:
+                stats_strings.append(f"^1{weapon_stats[weapon].name}^7: ^4{accuracy:.0f}^7")
 
         if len(stats_strings) == 0:
             return
         stats_string = ", ".join(stats_strings)
-        reply_channel.reply("Weapon statistics for player {}^7: {}".format(player_name, stats_string))
+        reply_channel.reply(f"Weapon statistics for player {player_name}^7: {stats_string}")
 
     def weapon_stats_for(self, steam_id):
         returned = {}
@@ -247,11 +255,12 @@ class asdf(minqlx.Plugin):
     def find_target_player_or_list_alternatives(self, player, target):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
-            player.tell("A total of ^6{}^7 players matched for {}:".format(len(players), target))
+            amount_alternatives = len(players)
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
             for p in players:
                 out += " " * indent
-                out += "{}^6:^7 {}\n".format(p.id, p.name)
+                out += f"{p.id}^6:^7 {p.name}\n"
             player.tell(out[:-1])
 
         try:
@@ -270,7 +279,7 @@ class asdf(minqlx.Plugin):
 
         # If there were absolutely no matches
         if not target_players:
-            player.tell("Sorry, but no players matched your tokens: {}.".format(target))
+            player.tell(f"Sorry, but no players matched your tokens: {target}.")
             return None
 
         # If there were more than 1 matches
@@ -340,10 +349,9 @@ class WeaponStatsEntry:
         self.time = time
 
     def __repr__(self):
-        return "[{}: K:{} D:{} DG:{} DR:{} S:{} H:{} P:{} T:{}]".format(self.weapon.ammo_type().upper(), self.kills,
-                                                                        self.deaths, self.damage_dealt,
-                                                                        self.damage_received, self.shots, self.hits,
-                                                                        self.pickups, self.time)
+        formatted_ammo_type = self.weapon.ammo_type().upper()
+        return f"[{formatted_ammo_type}: K:{self.kills} D:{self.deaths} DG:{self.damage_dealt} " \
+               f"DR:{self.damage_received} S:{self.shots} H:{self.hits} P:{self.pickups} T:{self.time}]"
 
     def accuracy(self):
         if self.shots == 0:

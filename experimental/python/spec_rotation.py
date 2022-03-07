@@ -1,6 +1,6 @@
-import minqlx
+from operator import itemgetter
 
-from minqlx.database import Redis
+import minqlx
 
 
 class spec_rotation(minqlx.Plugin):
@@ -22,6 +22,7 @@ class spec_rotation(minqlx.Plugin):
         self.stats_snapshot = {}
         self.scheduled_switches = []
         self.spec_rotation = []
+        self.team_score_snapshots = {}
         self.score_snapshots = {}
 
         self.in_countdown = False
@@ -31,6 +32,7 @@ class spec_rotation(minqlx.Plugin):
         self.stats_snapshot = {}
         self.scheduled_switches = []
         self.spec_rotation = []
+        self.team_score_snapshots = {}
         self.score_snapshots = {}
 
     def handle_client_command(self, player, command):
@@ -39,10 +41,8 @@ class spec_rotation(minqlx.Plugin):
             if command == "team s":
                 if player.steam_id in self.spec_rotation:
                     self.spec_rotation.remove(player.steam_id)
-                    player.tell("You have been removed from the auto-rotation.")
-                    player.center_print("You are set to spectate only")
+                    player.tell("You have been removed from the spec rotation.")
 
-        self.logger.debug("{}: {}".format(player, command))
         handler()
 
     def handle_team_switch_attempt(self, player, old_team, new_team):
@@ -54,18 +54,15 @@ class spec_rotation(minqlx.Plugin):
         if len(teams["red"]) != len(teams["blue"]):
             return
 
-        if len(teams["red"]) == 1 or len(teams["blue"]) == 1:
-            return
-
         if new_team in ["red", "blue", "any"] and len(self.spec_rotation) == 0:
             self.spec_rotation.append(player.steam_id)
+            player.tell(
+                f"{player.name}^7, we added you to the spec rotation "
+                f"and you will automatically rotate with the weakest player on the losing team.")
 
         if new_team not in ["red", "blue", "any"] or player.steam_id not in self.spec_rotation:
             return
 
-        player.tell(
-            "{}^7, you will be automatically exchanged with the weakest player on the losing team next round.".format(
-                player.name))
         return minqlx.RET_STOP_ALL
 
     def handle_team_switch(self, player, old_team, new_team):
@@ -79,8 +76,8 @@ class spec_rotation(minqlx.Plugin):
             if player.steam_id not in self.spec_rotation:
                 self.spec_rotation.append(player.steam_id)
             player.tell(
-                "{}^7, you will automatically rotate with the weakest player on the losing team next round.".format(
-                    player.name))
+                f"{player.name}^7, you will automatically rotate "
+                f"with the weakest player on the losing team next round.")
 
         if self.game.state != "in_progress":
             return
@@ -93,18 +90,24 @@ class spec_rotation(minqlx.Plugin):
             return
 
         teams = self.teams()
-        if len(teams["red"]) == 1 or len(teams["blue"]) == 1:
-            return
-
         if len(teams["red"]) == len(teams["blue"]):
             return
 
-        if new_team in ["red", "blue"] and old_team == "spectator" and player.steam_id not in self.spec_rotation:
-            other_team = self.other_team(new_team)
-            next_steam_id = self.spec_rotation.pop(0)
-            self.switch_player(next_steam_id, other_team,
-                               msg="Disabling spec rotation since there are enough players now.")
-            return
+        if new_team in ["red", "blue"] and old_team == "spectator":
+            if player.steam_id in self.team_score_snapshots:
+                current_team_score = getattr(self.game, f"{new_team}_score")
+                team_scores = [self.team_score_snapshots[player.steam_id] for player in teams[new_team]
+                               if player.steam_id in self.team_score_snapshots]
+                max_team_score = max(team_scores)
+                if max_team_score > current_team_score:
+                    self.game.addteamscore(new_team, max_team_score - current_team_score)
+
+            if player.steam_id not in self.spec_rotation:
+                other_team = self.other_team(new_team)
+                next_steam_id = self.spec_rotation.pop(0)
+                self.switch_player(next_steam_id, other_team)
+                self.msg("Disabling spec rotation since there are enough players now.")
+                return
 
         if new_team == "spectator" and old_team in ["red", "blue"] and player.steam_id not in self.spec_rotation:
             next_steam_id = self.spec_rotation.pop(0)
@@ -114,10 +117,6 @@ class spec_rotation(minqlx.Plugin):
         switching_player = self.player(steam_id)
         if not switching_player:
             return
-
-        self.logger.debug("steam_id: {} team: {} snapshots: {}".format(steam_id, team, self.score_snapshots))
-        if team == "spectator":
-            self.score_snapshots[steam_id] = switching_player.score
 
         self.scheduled_switches.append(steam_id)
         switching_player.put(team)
@@ -139,15 +138,11 @@ class spec_rotation(minqlx.Plugin):
         if len(teams["red"]) != len(teams["blue"]):
             return
 
-        if len(teams["red"]) == 1:
-            return
-
         if len(self.spec_rotation) != 0:
             return
 
-        player.tell(
-            "{}, join to activate spec rotation! Player with fewest damage on losing team will be rotated with you."
-            .format(player.name))
+        player.tell(f"{player.name}, join to activate spec rotation! "
+                    f"Player with fewest damage on losing team will be rotated with you.")
 
     def handle_player_disconnect(self, player, reason):
         if not self.game or self.game.state != "in_progress":
@@ -167,10 +162,9 @@ class spec_rotation(minqlx.Plugin):
     def handle_game_countdown(self):
         self.in_countdown = True
 
-        teams = self.teams()
-        if len(teams["red"]) == 1 or len(teams["blue"]) == 1:
-            return
+        self.team_score_snapshots = {}
 
+        teams = self.teams()
         if len(teams["red"]) == len(teams["blue"]):
             return
 
@@ -180,28 +174,26 @@ class spec_rotation(minqlx.Plugin):
 
         spec_player = self.find_player_to_spec(teams[bigger_team])
         self.spec_rotation.append(spec_player.steam_id)
-        spec_player.put("spectator")
+        self.switch_player(spec_player.steam_id, "spectator",
+                           msg=f"{spec_player.name}^7, we added you to the spec rotation "
+                               f"and you will automatically rotate with the weakest player on the losing team.")
 
     def handle_game_start(self, data):
-        self.logger.debug("game_start: {}".format(data))
-
         self.in_countdown = False
 
     def find_player_to_spec(self, players):
         return min(players, key=lambda _player: self.find_games_here(_player))
 
     def find_games_here(self, player):
-        completed_key = "minqlx:players:{}:games_completed"
+        completed_key = f"minqlx:players:{player.steam_id}:games_completed"
 
-        if not self.db.exists(completed_key.format(player.steam_id)):
+        if not self.db.exists(completed_key):
             return 0
 
-        return int(self.db[completed_key.format(player.steam_id)])
+        return int(self.db[completed_key])
 
     def handle_round_countdown(self, round_number):
         teams = self.teams()
-        if len(teams["red"]) == 1 or len(teams["blue"]) == 1:
-            return
 
         if len(teams["red"]) == len(teams["blue"]):
             return
@@ -217,6 +209,12 @@ class spec_rotation(minqlx.Plugin):
             self.switch_player(next_steam_id, smaller_team)
             return
 
+        spec_player = self.find_player_to_spec(teams[bigger_team])
+        self.spec_rotation.append(spec_player.steam_id)
+        spec_player.tell(
+            f"{spec_player.name}^7, we added you to the spec rotation and you will automatically rotate "
+            f"with the weakest player on the losing team.")
+
     def handle_round_start(self, round_number):
         teams = self.teams()
         self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
@@ -225,11 +223,18 @@ class spec_rotation(minqlx.Plugin):
         if self.game is None:
             return
 
+        teams = self.teams()
+
+        for player in teams["red"] + teams["blue"]:
+            self.team_score_snapshots[player.steam_id] = getattr(self.game, f"{player.team}_score")
+            self.score_snapshots[player.steam_id] = player.score
+
         if self.game.roundlimit in [self.game.blue_score, self.game.red_score]:
+            if len(teams["red"]) == 1 and len(teams["blue"]) == 1 and len(self.team_score_snapshots) > 2:
+                self.print_scores()
             return
 
-        teams = self.teams()
-        if len(teams["red"]) <= 1 or len(teams["blue"]) <= 1:
+        if len(teams["red"]) < 1 or len(teams["blue"]) < 1:
             return
 
         if len(self.spec_rotation) == 0:
@@ -257,15 +262,34 @@ class spec_rotation(minqlx.Plugin):
         if next_player.team != "spectator":
             return
 
-        self.msg(
-            "Replacing player with fewest round damage on team {}^7 {}^7 with the next player from the rotation {}^7."
-            .format(losing_team, spec_player.name, next_player.name))
+        self.msg(f"Replacing player with fewest round damage on team {losing_team}^7 {spec_player.name}^7 "
+                 f"with the next player from the rotation {next_player.name}^7.")
+
+        if len(teams["red"]) == 1 and len(teams["blue"]) == 1:
+            if next_steam_id not in self.team_score_snapshots:
+                self.game.addteamscore(losing_team, - getattr(self.game, f"{losing_team}_score"))
+            else:
+                self.game.addteamscore(losing_team,
+                                       self.team_score_snapshots[next_steam_id] -
+                                       getattr(self.game, f"{losing_team}_score"))
+
         self.switch_player(next_steam_id, losing_team)
         self.spec_rotation.append(spec_player.steam_id)
         self.switch_player(spec_player.steam_id, "spectator",
-                           msg="{}^7, you will automatically rotate with the weakest player "
-                               "on the losing team next round."
-                           .format(spec_player.name))
+                           msg=f"{spec_player.name}^7, you will automatically rotate with the weakest player "
+                               f"on the losing team next round.")
+
+    def print_scores(self):
+        self.msg("DuelArena results:")
+        place = 0
+        prev_score = -1
+        for steam_id, score in sorted(self.team_score_snapshots.items(), key=itemgetter(1), reverse=True):
+            if score != prev_score:
+                place += 1
+            prev_score = score
+            player = self.player(steam_id)
+            if player and len(player.name) != 0:
+                self.msg(f"Place ^3{place}.^7 {player.name} ^7(Wins:^2{score}^7)")
 
     def other_team(self, team):
         if team == "red":

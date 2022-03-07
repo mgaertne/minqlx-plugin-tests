@@ -41,8 +41,8 @@ class bday(minqlx.Plugin):
     def cmd_bday(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel):
         if self.has_birthday_set(player):
             _bday = self.db[BDAY_KEY.format(player.steam_id)]
-            player.tell("^7You already set your birthday to {}. If you need to correct it, please consult an admin."
-                        .format(_bday))
+            player.tell(
+                f"^7You already set your birthday to {_bday}. If you need to correct it, please consult an admin.")
             return
 
         if len(msg) < 2 or len(msg) > 4 or (len(msg) == 3 and msg[2] != "confirm"):
@@ -58,10 +58,10 @@ class bday(minqlx.Plugin):
             player.tell("^7Invalid date given")
             return minqlx.RET_USAGE
 
-        self.pending_bday_confirmations[player.steam_id] = "{0}.{1}.".format(birthday.day, birthday.month)
-        player.tell("^7We will remember your birthday as ^6{0}.{1}.^7. Please confirm with ^6!confirmbday^7 within the "
-                    "next 2 minutes."
-                    .format(birthday.day, birthday.month))
+        self.pending_bday_confirmations[player.steam_id] = f"{birthday.day}.{birthday.month}."
+        player.tell(
+            f"^7We will remember your birthday as ^6{birthday.day}.{birthday.month}.^7. "
+            f"Please confirm with ^6!confirmbday^7 within the next 2 minutes.")
         self.delayed_removal_of_pending_registration(player.steam_id)
 
     @minqlx.delay(120)
@@ -78,8 +78,7 @@ class bday(minqlx.Plugin):
         _bday = self.pending_bday_confirmations[player.steam_id]
         self.db[BDAY_KEY.format(player.steam_id)] = _bday
         del self.pending_bday_confirmations[player.steam_id]
-        player.tell("^7Your birthday was stored as ^6{1}^7."
-                    .format(msg[0], _bday))
+        player.tell(f"^7Your birthday was stored as ^6{_bday}^7.")
 
     def cmd_bmap(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel):
         if not self.has_birthday_set(player):
@@ -110,8 +109,7 @@ class bday(minqlx.Plugin):
             return
 
         self.bmap_map = bday_map
-        self.msg("{}^7 picked {}^7 for her/his birthday".format(player.name, bday_map),
-                 "chat")
+        self.msg(f"{player.name}^7 picked {bday_map}^7 for her/his birthday")
         self.delay_change_map(bday_map)
 
     def cmd_bdayedit(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel):
@@ -132,9 +130,8 @@ class bday(minqlx.Plugin):
             admin.tell("^7Invalid date given")
             return minqlx.RET_USAGE
 
-        admin.tell("^6{0}'s birthday stored as ^6{1}.{2}."
-                   .format(player_name, _bday.day, _bday.month))
-        self.db[BDAY_KEY.format(player_sid)] = "{}.{}.".format(_bday.day, _bday.month)
+        admin.tell(f"^6{player_name}'s birthday stored as ^6{_bday.day}.{_bday.month}.")
+        self.db[BDAY_KEY.format(player_sid)] = f"{_bday.day}.{_bday.month}."
 
     def identify_target(self, player: minqlx.Player, target: str):
         if hasattr(target, "name") and hasattr(target, "steam_id"):
@@ -172,11 +169,12 @@ class bday(minqlx.Plugin):
     def find_target_player_or_list_alternatives(self, player: minqlx.Player, target: str):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
-            player.tell("A total of ^6{}^7 players matched for {}:".format(len(players), target))
+            amount_alternatives = len(players)
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
             for p in players:
                 out += " " * indent
-                out += "{}^6:^7 {}\n".format(p.id, p.name)
+                out += f"{p.id}^6:^7 {p.name}\n"
             player.tell(out[:-1])
 
         try:
@@ -195,7 +193,7 @@ class bday(minqlx.Plugin):
 
         # If there were absolutely no matches
         if not target_players:
-            player.tell("Sorry, but no players matched your tokens: {}.".format(target))
+            player.tell(f"Sorry, but no players matched your tokens: {target}.")
             return None
 
         # If there were more than 1 matches
@@ -215,12 +213,12 @@ class bday(minqlx.Plugin):
             return
 
         if BDAY_KEY.format(player_sid) not in self.db:
-            self.msg("{} did not tell us about her/his birthday.".format(player_name))
+            self.msg(f"{player_name} did not tell us about her/his birthday.")
             return
 
         birthday = self.db[BDAY_KEY.format(player_sid)]
 
-        self.msg("{}^7's birthday is on ^6{}^7.".format(player_name, birthday))
+        self.msg(f"{player_name}^7's birthday is on ^6{birthday}^7.")
 
     def cmd_nextbday(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel):
         reply_channel = self.identify_reply_channel(channel)
@@ -253,14 +251,13 @@ class bday(minqlx.Plugin):
         player_bday = self.db[BDAY_KEY.format(min_player_sid)]
 
         if min_delta == 0:
-            channel.reply("Next birthday: {}^7 has her/his birthday today! ({}) Happy Birthday!".format(
-                player_name, player_bday))
+            channel.reply(f"Next birthday: {player_name}^7 has her/his birthday today! ({player_bday}) Happy Birthday!")
             return
         if min_delta == 1:
-            channel.reply("Next birthday: {}^7 ({}) will be tomorrow!".format(player_name, player_bday))
+            channel.reply(f"Next birthday: {player_name}^7 ({player_bday}) will be tomorrow!")
             return
 
-        channel.reply("Next birthday: {}^7 ({}) in {} days.".format(player_name, player_bday, min_delta))
+        channel.reply(f"Next birthday: {player_name}^7 ({player_bday}) in {min_delta} days.")
 
     def next_birthdate(self, birthday: datetime):
         today = datetime.now()
@@ -278,14 +275,14 @@ class bday(minqlx.Plugin):
     @minqlx.delay(5)
     def handle_player_connected(self, player: minqlx.Player):
         if self.has_birthday_today(player) and self.can_still_pick_bday_map(player):
-            self.msg("It's {}^7's birthday today! Congratulate her/him!".format(player.name))
+            self.msg(f"It's {player.name}^7's birthday today! Congratulate her/him!")
             player.tell("Happy Birthday! You can pick a birthday map by using ^6!bmap^7 <mapname>!")
 
     def handle_game_end(self, data):
         if self.bmap_steamid is None:
             return
 
-        self.db.incr("{}:{}".format(BDAY_KEY.format(self.bmap_steamid), datetime.today().year))
+        self.db.incr(f"{BDAY_KEY.format(self.bmap_steamid)}:{datetime.today().year}")
         self.bmap_steamid = None
         self.bmap_map = None
 
@@ -343,11 +340,11 @@ class bday(minqlx.Plugin):
         return BDAY_KEY.format(player.steam_id) in self.db
 
     def can_still_pick_bday_map(self, player: minqlx.Player):
-        this_years_map_picks_key = "{}:{}".format(BDAY_KEY.format(player.steam_id), datetime.today().year)
+        this_years_map_picks_key = f"{BDAY_KEY.format(player.steam_id)}:{datetime.today().year}"
         if this_years_map_picks_key not in self.db:
             return True
 
-        maps_picked_this_year = int(self.db["{}:{}".format(BDAY_KEY.format(player.steam_id), datetime.today().year)])
+        maps_picked_this_year = int(self.db[f"{BDAY_KEY.format(player.steam_id)}:{datetime.today().year}"])
         return maps_picked_this_year < self.number_of_bday_maps
 
     def resolve_short_mapname(self, mapstring: str, player: minqlx.Player):
@@ -359,7 +356,7 @@ class bday(minqlx.Plugin):
         long_map_names_lookup = {key: self.cleaned_up_longmapname(value) for (key, value) in
                                  long_map_names_db_lookup.items()}
 
-        if mapstring in long_map_names_lookup.keys():
+        if mapstring in long_map_names_lookup:
             return mapstring
 
         if len(mapstring) < 3:
@@ -379,10 +376,10 @@ class bday(minqlx.Plugin):
 
         player.tell("More than one map matched your criteria:")
         for _mapname in matched_maps:
-            if _mapname in long_map_names_lookup.keys():
-                player.tell("  ^4{}^7 (short name: ^4{}^7)".format(long_map_names_db_lookup[_mapname], _mapname))
+            if _mapname in long_map_names_lookup:
+                player.tell(f"  ^4{long_map_names_db_lookup[_mapname]}^7 (short name: ^4{_mapname}^7)")
             else:
-                player.tell("  ^4{}^7".format(_mapname))
+                player.tell(f"  ^4{_mapname}^7")
 
         return None
 
@@ -400,4 +397,4 @@ class bday(minqlx.Plugin):
 
     @minqlx.delay(3)
     def delay_change_map(self, _mapname: str):
-        self.change_map("{} ca".format(_mapname))
+        self.change_map(f"{_mapname} ca")
