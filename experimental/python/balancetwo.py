@@ -105,8 +105,10 @@ class balancetwo(minqlx.Plugin):
 
         self.set_cvar_once("qlx_balancetwo_minimumSuggestionDiff", "2")
         self.set_cvar_once("qlx_balancetwo_minimumStddevDiff", "50")
+        self.set_cvar_once("qlx_balancetwo_lastAction", "spec")
 
         self.set_cvar_once("qlx_balancetwo_autoSwitch", "0")
+        self.set_cvar_once("qlx_balancetwo_repeatvetoedsuggestions", "0")
         self.set_cvar_once("qlx_balancetwo_uniquePlayerSwitches", "0")
         self.set_cvar_once("qlx_balancetwo_autoRebalance", "1")
 
@@ -127,7 +129,10 @@ class balancetwo(minqlx.Plugin):
         self.minimum_suggestion_diff = self.get_cvar("qlx_balancetwo_minimumSuggestionDiff", float)
         self.minimum_suggestion_stddev_diff = self.get_cvar("qlx_balancetwo_minimumStddevDiff", int)
 
+        self.last_action = self.get_cvar("qlx_balancetwo_lastAction")
+
         self.auto_switch = self.get_cvar("qlx_balancetwo_autoSwitch", bool)
+        self.repeat_vetoed_switches = self.get_cvar("qlx_balancetwo_repeatvetoedsuggestions", bool)
         self.unique_player_switches = self.get_cvar("qlx_balancetwo_uniquePlayerSwitches", bool)
         self.auto_rebalance = self.get_cvar("qlx_balancetwo_autoRebalance", bool)
 
@@ -150,6 +155,7 @@ class balancetwo(minqlx.Plugin):
         self.add_command("eloupdates", self.cmd_switch_elo_changes_notifications, usage="<0/1>")
 
         self.add_command("balance", self.cmd_balance, 1)
+        self.add_command("last", self.cmd_last_action, 2, usage="[SPEC|IGNORE]")
         self.add_command(("teams", "teens"), self.cmd_teams)
         self.add_command("do", self.cmd_do, 1)
         self.add_command("dont", self.cmd_dont, 1)
@@ -188,6 +194,7 @@ class balancetwo(minqlx.Plugin):
 
         self.informed_players = []
 
+        self.vetoed_switches = []
         self.switched_players = []
         self.switch_suggestion = None
         self.in_countdown = False
@@ -195,9 +202,6 @@ class balancetwo(minqlx.Plugin):
         self.twovstwo_steam_ids = []
         self.twovstwo_combinations = []
         self.twovstwo_iter = None
-
-        self.prevent = False
-        self.last_action = "spec"
 
         self.privacy_checks_enabled = True
         self.join_attempts = dict()
@@ -719,57 +723,10 @@ class balancetwo(minqlx.Plugin):
     def find_balanced_teams(self):
         teams = self.teams()
 
-        #        if 3 < len(teams["red"] + teams["blue"]) < 6:
-        #            return self.find_next_2vs2_teams()
-
         if len(teams["red"] + teams["blue"]) < 8:
             return self.find_non_recent_small_balanced_teams()
 
         return self.find_large_balanced_teams()
-
-    def find_next_2vs2_teams(self):
-        teams = self.teams()
-
-        steam_ids = [player.steam_id for player in teams["red"] + teams["blue"]]
-
-        if self.twovstwo_iter is None or not self.check_all_steam_ids(steam_ids):
-            self.twovstwo_steam_ids = steam_ids
-            self.twovstwo_combinations = self.filter_combinations(steam_ids)
-            self.twovstwo_iter = random_iterator(self.twovstwo_combinations)
-
-        red_steam_ids = list(next(self.twovstwo_iter))
-        blue_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in red_steam_ids]
-
-        return red_steam_ids, blue_steam_ids
-
-    def check_all_steam_ids(self, steam_ids):
-        return sorted(steam_ids) == sorted(self.twovstwo_steam_ids)
-
-    def filter_combinations(self, steam_ids):
-        gametype = self.game.type_short
-
-        configured_rating_provider_name = self.configured_rating_provider_name()
-        if configured_rating_provider_name not in self.ratings:
-            self.logger.debug(f"Balancing aborted. No ratings found for {configured_rating_provider_name}.")
-            return []
-        configured_rating_provider = self.ratings[configured_rating_provider_name]
-
-        combinations = []
-        if len(steam_ids) != 4:
-            return []
-        combinations_list = [(steam_ids[0], steam_ids[1]), (steam_ids[0], steam_ids[2]), (steam_ids[0], steam_ids[3])]
-
-        for red_steam_ids in combinations_list:
-            blue_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in red_steam_ids]
-
-            red_avg = self.team_average(red_steam_ids, gametype, rating_provider=configured_rating_provider)
-            blue_avg = self.team_average(blue_steam_ids, gametype, rating_provider=configured_rating_provider)
-            diff = abs(red_avg - blue_avg)
-
-            if diff < self.minimum_suggestion_diff:
-                combinations.append((red_steam_ids, diff))
-
-        return combinations_list
 
     def find_non_recent_small_balanced_teams(self):
         teams = self.teams()
@@ -809,9 +766,6 @@ class balancetwo(minqlx.Plugin):
         filtered_combinations = [(red_steam_ids, blue_steam_ids, diff) for (red_steam_ids, blue_steam_ids, diff) in
                                  team_combinations if diff < self.minimum_suggestion_diff]
 
-        self.logger.debug(f"team_combinations: {team_combinations}")
-        self.logger.debug(f"filtered_combinations: {filtered_combinations}")
-
         if len(filtered_combinations) > 0:
             red_team, blue_team, diff = random.choice(filtered_combinations)
         elif len(team_combinations) > 0:
@@ -842,7 +796,10 @@ class balancetwo(minqlx.Plugin):
         rated_steam_ids = [steam_id for steam_id in rated_steam_ids if
                            configured_rating_provider[steam_id][gametype]["games"] > 0]
         rated_steam_ids.sort(key=lambda steam_id: configured_rating_provider[steam_id][gametype]["elo"])
+        parked_lowest_steam_id = None
         if len(rated_steam_ids) % 2 == 1:
+            if self.last_action == "spec":
+                parked_lowest_steam_id = rated_steam_ids[0]
             rated_steam_ids.remove(rated_steam_ids[0])
 
         red_steam_ids = []
@@ -870,6 +827,27 @@ class balancetwo(minqlx.Plugin):
             else:
                 red_steam_ids.append(player2)
                 blue_steam_ids.append(player1)
+
+        if parked_lowest_steam_id is None:
+            return red_steam_ids, blue_steam_ids
+
+        option1_red_average = self.team_average(red_steam_ids + [parked_lowest_steam_id], gametype,
+                                                rating_provider=configured_rating_provider)
+        option1_blue_average = self.team_average(blue_steam_ids, gametype,
+                                                 rating_provider=configured_rating_provider)
+        option1_diff = abs(option1_red_average - option1_blue_average)
+
+        option2_red_average = self.team_average(red_steam_ids, gametype,
+                                                rating_provider=configured_rating_provider)
+        option2_blue_average = self.team_average(blue_steam_ids + [parked_lowest_steam_id], gametype,
+                                                 rating_provider=configured_rating_provider)
+        option2_diff = abs(option2_red_average - option2_blue_average)
+
+        if option1_diff < option2_diff:
+            red_steam_ids.append(parked_lowest_steam_id)
+        else:
+            blue_steam_ids.append(parked_lowest_steam_id)
+
         return red_steam_ids, blue_steam_ids
 
     def report_teams(self, red_team, blue_team, channel):
@@ -973,6 +951,18 @@ class balancetwo(minqlx.Plugin):
         team_elos = [pow(configured_rating_provider[steam_id][gametype]["elo"] - mu, 2) for steam_id in steam_ids]
         return math.sqrt(sum(team_elos) / len(steam_ids))
 
+    def cmd_last_action(self, player, msg, channel):
+        if len(msg) < 2:
+            channel.reply("^7The current action when teams are uneven is: ^6{}^7.".format(self.last_action))
+            return
+
+        if msg[1] not in ["spec", "ignore"]:
+            return minqlx.RET_USAGE
+
+        self.last_action = msg[1]
+
+        channel.reply("^7Action has been succesfully changed to: ^6{}^7.".format(msg[1]))
+
     def cmd_teams(self, player, msg, channel):
         gametype = self.game.type_short
         if gametype not in SUPPORTED_GAMETYPES:
@@ -980,7 +970,7 @@ class balancetwo(minqlx.Plugin):
             return minqlx.RET_STOP_ALL
 
         teams = self.teams()
-        if len(teams["red"]) != len(teams["blue"]):
+        if self.last_action == "spec" and len(teams["red"]) != len(teams["blue"]):
             player.tell("Both teams should have the same number of players.")
             return minqlx.RET_STOP_ALL
 
@@ -1006,6 +996,10 @@ class balancetwo(minqlx.Plugin):
     @minqlx.thread
     def collect_suggestions(self, teams, gametype, channel):
         possible_switches = self.filtered_suggestions(teams, gametype)
+
+        if not self.repeat_vetoed_switches and len(self.vetoed_switches) > 0:
+            possible_switches = list(filter(lambda suggestion: suggestion not in self.vetoed_switches,
+                                            possible_switches))
 
         if self.unique_player_switches and len(self.switched_players) > 0:
             possible_switches = list(filter(lambda suggestion:
@@ -1121,6 +1115,7 @@ class balancetwo(minqlx.Plugin):
             return
 
         self.msg("An admin prevented the switch! The switch will be terminated.")
+        self.vetoed_switches.append(self.switch_suggestion)
         self.switch_suggestion = None
 
     def cmd_agree(self, player, msg, channel):
@@ -1157,6 +1152,7 @@ class balancetwo(minqlx.Plugin):
             return
 
         self.switched_players += self.switch_suggestion.affected_steam_ids()
+        self.vetoed_switches.append(self.switch_suggestion)
         self.switch_suggestion = None
 
     def cmd_veto(self, player, msg, channel):
@@ -1283,6 +1279,7 @@ class balancetwo(minqlx.Plugin):
             steam_ids = [player.steam_id for player in self.players()]
             self.fetch_mapbased_ratings(steam_ids, mapname=_mapname)
 
+        self.vetoed_switches = []
         self.switched_players = []
         self.informed_players = []
         self.previous_ratings = self.ratings
@@ -1395,11 +1392,14 @@ class balancetwo(minqlx.Plugin):
         if ct.is_alive():
             return "Fetching your ratings..."
 
-        rating_provider = RatingProvider.from_json(ct._result)
+        self.append_ratings(configured_rating_provider.name, ct._result)
+        rating_provider = self.ratings[configured_rating_provider.name]
         if not self.is_player_within_configured_rating_limit(steam_id, rating_provider):
             return f"You do not meet the skill rating requirements to play on this server {self.rating_system} " \
                    f"between {self.ratingLimit_min} and {self.ratingLimit_max} " \
                    f"in at least {self.ratingLimit_minGames} games"
+
+        self.append_ratings(configured_rating_provider.name, ct._result)
 
     def check_player_privacy(self, steam_id):
         if A_ELO.name in self.ratings and steam_id in self.ratings[A_ELO.name]:
@@ -1417,7 +1417,8 @@ class balancetwo(minqlx.Plugin):
         if ct.is_alive():
             return "Fetching your ratings..."
 
-        rating_provider = RatingProvider.from_json(ct._result)
+        self.append_ratings(A_ELO.name, ct._result)
+        rating_provider = self.ratings[A_ELO.name]
         if not self.is_player_with_allowed_privacy_settings(steam_id, rating_provider):
             return minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
 
@@ -1867,7 +1868,7 @@ class balancetwo(minqlx.Plugin):
         if team_diff % 2 != 0:
             last = self.identify_player_to_move()
 
-            if self.prevent or self.last_action == "ignore":
+            if self.last_action == "ignore":
                 self.msg(f"^6Uneven teams^7: {last.name}^7 will not be moved to spec")
             else:
                 self.msg(f"^6Uneven teams action^7: {last.name}^7 was moved to spec to even teams!")
@@ -1882,7 +1883,7 @@ class balancetwo(minqlx.Plugin):
 
         even_to, even_from = ["blue", "red"] if team_diff > 0 else ["red", "blue"]
 
-        while abs(team_diff) > 0:
+        while abs(team_diff) > 0 or (self.last_action == "ignore" and abs(team_diff) > 1):
             last = self.identify_player_to_move()
 
             if not last:
