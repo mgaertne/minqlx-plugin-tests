@@ -46,7 +46,7 @@ class spec_rotation(minqlx.Plugin):
         handler()
 
     def handle_team_switch_attempt(self, player, old_team, new_team):
-        if not self.game or self.game.state != "in_progress":
+        if not self.game or self.game.state not in ["in_progress"]:
             return
 
         teams = self.teams()
@@ -79,7 +79,7 @@ class spec_rotation(minqlx.Plugin):
                 f"{player.name}^7, you will automatically rotate "
                 f"with the weakest player on the losing team next round.")
 
-        if self.game.state != "in_progress":
+        if self.game.state not in ["in_progress", "countdown"]:
             return
 
         if len(self.spec_rotation) == 0:
@@ -96,11 +96,10 @@ class spec_rotation(minqlx.Plugin):
         if new_team in ["red", "blue"] and old_team == "spectator":
             if player.steam_id in self.team_score_snapshots:
                 current_team_score = getattr(self.game, f"{new_team}_score")
-                team_scores = [self.team_score_snapshots[player.steam_id] for player in teams[new_team]
-                               if player.steam_id in self.team_score_snapshots]
-                max_team_score = max(team_scores)
-                if max_team_score > current_team_score:
-                    self.game.addteamscore(new_team, max_team_score - current_team_score)
+                new_player_team_score = self.team_score_snapshots[player.steam_id]
+
+                if new_player_team_score > current_team_score:
+                    self.game.addteamscore(new_team, new_player_team_score - current_team_score)
 
             if player.steam_id not in self.spec_rotation:
                 other_team = self.other_team(new_team)
@@ -224,6 +223,13 @@ class spec_rotation(minqlx.Plugin):
             return
 
         teams = self.teams()
+
+        for team in ["red", "blue"]:
+            current_team_score = getattr(self.game, f"{team}_score")
+            team_scores = [self.team_score_snapshots[player.steam_id] for player in teams[team]]
+            max_team_score = max(team_scores)
+            if max_team_score > current_team_score:
+                self.game.addteamscore(team, max_team_score - current_team_score)
 
         for player in teams["red"] + teams["blue"]:
             self.team_score_snapshots[player.steam_id] = getattr(self.game, f"{player.team}_score")
