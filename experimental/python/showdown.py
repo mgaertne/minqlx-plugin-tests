@@ -135,8 +135,8 @@ class showdown(minqlx.Plugin):
 
             self.play_sound(vote_now_sound, player)
             player.tell(f"Have a say in your team mate's fate:\n"
-                        "  ^5!showdown^7 for a random weapon showdown^7\n"
-                        "  ^5!hurry^7 to punish ^7{showdown_player.name}")
+                        f"  ^5!showdown^7 for a random weapon showdown^7\n"
+                        f"  ^5!hurry^7 to punish ^7{showdown_player.name}")
 
     def should_allow_automatic_showdown(self):
         if self.showdown_is_counting_down:
