@@ -43,9 +43,24 @@ class spec_rotation(minqlx.Plugin):
                     self.spec_rotation.remove(player.steam_id)
                     player.tell("You have been removed from the spec rotation.")
 
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         handler()
 
+    def spec_rotation_plugin_is_enabled(self):
+        for autospec_plugin in ["balancetwo", "mybalance"]:
+            if autospec_plugin in minqlx.Plugin._loaded_plugins:
+                plugin = minqlx.Plugin._loaded_plugins[autospec_plugin]
+                if plugin.last_action == "ignore":
+                    return False
+
+        return True
+
     def handle_team_switch_attempt(self, player, old_team, new_team):
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         if not self.game or self.game.state not in ["in_progress"]:
             return
 
@@ -66,6 +81,9 @@ class spec_rotation(minqlx.Plugin):
         return minqlx.RET_STOP_ALL
 
     def handle_team_switch(self, player, old_team, new_team):
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         if not self.game:
             return
 
@@ -130,6 +148,9 @@ class spec_rotation(minqlx.Plugin):
 
     @minqlx.delay(3)
     def handle_player_loaded(self, player):
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -144,6 +165,9 @@ class spec_rotation(minqlx.Plugin):
                     f"Player with fewest damage on losing team will be rotated with you.")
 
     def handle_player_disconnect(self, player, reason):
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -162,6 +186,9 @@ class spec_rotation(minqlx.Plugin):
         self.in_countdown = True
 
         self.team_score_snapshots = {}
+
+        if not self.spec_rotation_plugin_is_enabled():
+            return
 
         teams = self.teams()
         if len(teams["red"]) == len(teams["blue"]):
@@ -192,6 +219,9 @@ class spec_rotation(minqlx.Plugin):
         return int(self.db[completed_key])
 
     def handle_round_countdown(self, round_number):
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         teams = self.teams()
 
         if len(teams["red"]) == len(teams["blue"]):
@@ -219,6 +249,9 @@ class spec_rotation(minqlx.Plugin):
         self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
 
     def handle_round_end(self, data):
+        if not self.spec_rotation_plugin_is_enabled():
+            return
+
         if self.game is None:
             return
 
@@ -226,8 +259,9 @@ class spec_rotation(minqlx.Plugin):
 
         for team in ["red", "blue"]:
             current_team_score = getattr(self.game, f"{team}_score")
-            team_scores = [self.team_score_snapshots[player.steam_id] for player in teams[team]]
-            max_team_score = max(team_scores)
+            team_scores = [self.team_score_snapshots[player.steam_id] for player in teams[team] \
+                           if player.steam_id in self.team_score_snapshots]
+            max_team_score = max(team_scores, default=0)
             if max_team_score > current_team_score:
                 self.game.addteamscore(team, max_team_score - current_team_score)
 
