@@ -1971,7 +1971,6 @@ class balancetwo(minqlx.Plugin):
 
     @minqlx.thread
     def balance_before_round_start(self, direct=False):
-
         countdown = int(self.get_cvar('g_roundWarmupDelay'))
         if self.game.type_short == "ft":
             countdown = int(self.get_cvar('g_freezeRoundDelay'))
