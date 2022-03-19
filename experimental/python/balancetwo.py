@@ -99,8 +99,8 @@ class balancetwo(minqlx.Plugin):
         self.set_cvar_once("qlx_balancetwo_ratingLimit_block", "0")
         self.set_cvar_once("qlx_balancetwo_ratingLimit_kick", "1")
 
-        self.set_cvar_once("qlx_balancetwo_ratingLimit_min", "15")
-        self.set_cvar_once("qlx_balancetwo_ratingLimit_max", "35")
+        self.set_cvar_once("qlx_balancetwo_ratingLimit_min", "{'a-elo': 800, 'b-elo': 800, 'truskills': 15}")
+        self.set_cvar_once("qlx_balancetwo_ratingLimit_max", "{'a-elo': 800, 'b-elo': 800, 'truskills': 35}")
         self.set_cvar_once("qlx_balancetwo_ratingLimit_minGames", "10")
 
         self.set_cvar_once("qlx_balancetwo_minimumSuggestionDiff", "2")
@@ -120,11 +120,13 @@ class balancetwo(minqlx.Plugin):
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, private, untracked")
         self.set_cvar_once("qlx_qlstatsPrivacyJoinAttempts", "5")
 
+        self.rating_system = self.get_cvar("qlx_balancetwo_ratingSystem")
+
         self.ratingLimit_kick = self.get_cvar("qlx_balancetwo_ratingLimit_kick", bool)
 
-        self.ratingLimit_min = self.get_cvar("qlx_balancetwo_ratingLimit_min", int)
-        self.ratingLimit_max = self.get_cvar("qlx_balancetwo_ratingLimit_max", int)
-        self.ratingLimit_minGames = self.get_cvar("qlx_balancetwo_ratingLimit_minGames", int)
+        self.ratingLimit_min = self.parse_rating_limit("qlx_balancetwo_ratingLimit_min")
+        self.ratingLimit_max = self.parse_rating_limit("qlx_balancetwo_ratingLimit_max")
+        self.ratingLimit_minGames = self.parse_rating_limit("qlx_balancetwo_ratingLimit_minGames")
 
         self.minimum_suggestion_diff = self.get_cvar("qlx_balancetwo_minimumSuggestionDiff", float)
         self.minimum_suggestion_stddev_diff = self.get_cvar("qlx_balancetwo_minimumStddevDiff", int)
@@ -165,7 +167,7 @@ class balancetwo(minqlx.Plugin):
         self.add_command("privacy", self.cmd_switch_privacy_checks, permission=1, usage="[0/1]")
 
         self.add_hook("map", self.handle_map_change)
-        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_LOWEST)
+        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
         self.add_hook("team_switch", self.handle_team_switch)
@@ -173,9 +175,6 @@ class balancetwo(minqlx.Plugin):
         self.add_hook("round_countdown", self.handle_round_countdown)
         self.add_hook("round_start", self.handle_round_start)
         self.add_hook("game_end", self.handle_game_end)
-
-        self.rating_system = self.get_cvar("qlx_balancetwo_ratingSystem")
-        self.balance_api = self.get_cvar("qlx_balanceApi")
 
         self.connectthreads = {}
         self.kickthreads = {}
@@ -206,6 +205,36 @@ class balancetwo(minqlx.Plugin):
         self.privacy_checks_enabled = True
         self.join_attempts = dict()
 
+    def parse_rating_limit(self, cvar):
+        configured_rating_limits = self.get_cvar(cvar)
+        evaluated_rating_limits = eval(configured_rating_limits)
+
+        if isinstance(evaluated_rating_limits, int):
+            if self.rating_system.endswith(TRUSKILLS.name):
+                return {TRUSKILLS.name: evaluated_rating_limits}
+
+            return {self.rating_system: evaluated_rating_limits}
+
+        if isinstance(evaluated_rating_limits, dict):
+            returned_rating_limits = {}
+            for rating_system in evaluated_rating_limits.keys():
+                if rating_system.lower() not in ["a-elo", "b-elo", "truskills"]:
+                    self.logger.debug(f"Found unknown rating provider in {cvar}: {rating_system} Ignoring")
+                    continue
+                if rating_system.lower() == "a-elo":
+                    rating_provider_name = A_ELO.name
+                elif rating_system.lower() == "b-elo":
+                    rating_provider_name = B_ELO.name
+                else:
+                    rating_provider_name = TRUSKILLS.name
+                returned_rating_limits[rating_provider_name] = evaluated_rating_limits[rating_system]
+
+            return returned_rating_limits
+
+        self.logger.debug(f"Rating limit cvar {cvar} misconfigured. Could not parse {configured_rating_limits} "
+                          f"No rating limits will be used!")
+        return {}
+
     @minqlx.thread
     def fetch_elos_from_all_players(self):
         self.fetch_ratings([player.steam_id for player in self.players()])
@@ -214,7 +243,12 @@ class balancetwo(minqlx.Plugin):
         self.fetch_mapbased_ratings(steam_ids, mapname)
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
-            rating_results = rating_provider.fetch_elos(steam_ids)
+            missing_steam_ids = steam_ids
+            if rating_provider in self.ratings:
+                rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
+                missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
+
+            rating_results = rating_provider.fetch_elos(missing_steam_ids)
             self.append_ratings(rating_provider.name, rating_results)
 
     def fetch_mapbased_ratings(self, steam_ids, mapname=None):
@@ -224,8 +258,16 @@ class balancetwo(minqlx.Plugin):
         if mapname is None:
             mapname = self.game.map.lower()
 
-        rating_results = TRUSKILLS.fetch_elos(steam_ids, headers={"X-QuakeLive-Map": mapname})
         rating_provider_name = f"{mapname} {TRUSKILLS.name}"
+        missing_steam_ids = steam_ids
+        if rating_provider_name in self.ratings:
+            rated_steam_ids = self.ratings[rating_provider_name].rated_steam_ids()
+            missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
+
+        if len(missing_steam_ids) == 0:
+            return
+
+        rating_results = TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
         self.append_ratings(rating_provider_name, rating_results)
 
     def append_ratings(self, rating_provider_name, json_result):
@@ -1331,75 +1373,109 @@ class balancetwo(minqlx.Plugin):
 
     def handle_player_connect(self, player):
         @minqlx.thread
-        def fetch_player_elos(_player):
-            self.fetch_ratings([_player.steam_id])
-            self.schedule_kick_for_players_outside_rating_limits([_player.steam_id])
+        def fetch_player_elos(_steam_id):
+            self.fetch_ratings([_steam_id])
+            self.schedule_kick_for_players_outside_rating_limits([_steam_id])
 
         if self.get_cvar("qlx_balancetwo_ratingLimit_block", bool):
-            self.logger.debug("checking rating limit")
             connect_check = self.check_player_ratings(player.steam_id)
-            self.logger.debug(f"{connect_check = }")
             if connect_check is not None:
                 return connect_check
 
         if self.get_cvar("qlx_qlstatsPrivacyBlock", bool):
-            self.logger.debug("checking privacy settings")
             connect_check = self.check_player_privacy(player.steam_id)
-            self.logger.debug(f"{connect_check = }")
             if connect_check is not None:
                 return connect_check
 
-        self.record_join_times(player)
-        fetch_player_elos(player)
+        self.record_join_times(player.steam_id)
+        fetch_player_elos(player.steam_id)
 
     def check_player_ratings(self, steam_id):
-        if self.rating_system.endswith("truskills"):
-            configured_rating_provider = TRUSKILLS
-        elif self.rating_system == "a-elo":
-            configured_rating_provider = A_ELO
-        elif self.rating_system == "b-elo":
-            configured_rating_provider = B_ELO
-        else:
-            self.logger.debug("ERROR: Unknown rating provider configured! Please fix immediately.")
-            return
+        gametype = self.game.type_short
 
-        if configured_rating_provider.name in self.ratings and \
-                steam_id in self.ratings[configured_rating_provider.name]:
-            if not self.is_player_within_configured_rating_limit(steam_id,
-                                                                 self.ratings[configured_rating_provider.name]):
-                return f"You do not meet the skill rating requirements to play on this server {self.rating_system} " \
-                        f"between {self.ratingLimit_min} and {self.ratingLimit_max} " \
-                        f"in at least {self.ratingLimit_minGames} games"
-            return
+        for rating_provider_name in self.ratingLimit_minGames.keys():
+            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
+                self.logger.debug(f"{rating_provider_name = } {rated_games = }")
+                if rated_games < self.ratingLimit_minGames[rating_provider_name]:
+                    return f"You have insufficient rated games ({rated_games}) for {gametype} " \
+                           f"to play on this server. " \
+                           f"At least {self.ratingLimit_minGames[rating_provider_name]} {rating_provider_name} " \
+                           f"rated games required."
 
-        if steam_id not in self.connectthreads:
-            if self.rating_system.endswith("truskills"):
-                configured_rating_provider = TRUSKILLS
-            elif self.rating_system == "a-elo":
-                configured_rating_provider = A_ELO
-            elif self.rating_system == "b-elo":
-                configured_rating_provider = B_ELO
-            else:
-                self.logger.debug("ERROR: Unknown rating provider configured! Please fix immediately.")
-                return
+        for rating_provider_name in self.ratingLimit_min.keys():
+            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                if player_ratings < self.ratingLimit_min[rating_provider_name]:
+                    return f"Your {rating_provider_name } skill rating ({player_ratings}) is too low " \
+                           f"to play on this server. " \
+                           f"{rating_provider_name} rating of at least " \
+                           f"{self.ratingLimit_min[rating_provider_name]} required."
 
-            ct = ConnectThread(steam_id, configured_rating_provider)
-            self.connectthreads[steam_id] = ct
-            ct.start()
-            self.remove_thread(steam_id)
+        for rating_provider_name in self.ratingLimit_max.keys():
+            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                if player_ratings > self.ratingLimit_max[rating_provider_name]:
+                    return f"Your {rating_provider_name } skill rating ({player_ratings}) is too high " \
+                           f"to play on this server. " \
+                           f"{rating_provider_name} rating of at most " \
+                           f"{self.ratingLimit_max[rating_provider_name]} required."
 
-        ct = self.connectthreads[steam_id]
-        if ct.is_alive():
-            return "Fetching your ratings..."
+        for rating_provider_name in set(self.ratingLimit_minGames.keys()) | \
+                set(self.ratingLimit_min.keys()) | set(self.ratingLimit_max.keys()):
+            threadname = f"{steam_id}_{rating_provider_name}"
+            if threadname not in self.connectthreads:
+                ct = ConnectThread(steam_id, self.rating_provider_for(rating_provider_name))
+                self.connectthreads[threadname] = ct
+                ct.start()
+                self.remove_thread(threadname)
 
-        self.append_ratings(configured_rating_provider.name, ct._result)
-        rating_provider = self.ratings[configured_rating_provider.name]
-        if not self.is_player_within_configured_rating_limit(steam_id, rating_provider):
-            return f"You do not meet the skill rating requirements to play on this server {self.rating_system} " \
-                   f"between {self.ratingLimit_min} and {self.ratingLimit_max} " \
-                   f"in at least {self.ratingLimit_minGames} games"
+            ct = self.connectthreads[threadname]
+            if ct.is_alive():
+                return "Fetching your ratings..."
 
-        self.append_ratings(configured_rating_provider.name, ct._result)
+            self.append_ratings(rating_provider_name, ct._result)
+
+        for rating_provider_name in self.ratingLimit_minGames.keys():
+            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
+                self.logger.debug(f"{rating_provider_name = } {rated_games = }")
+                if rated_games < self.ratingLimit_minGames[rating_provider_name]:
+                    return f"You have insufficient rated games ({rated_games}) for {gametype} " \
+                           f"to play on this server. " \
+                           f"At least {self.ratingLimit_minGames[rating_provider_name]} {rating_provider_name} " \
+                           f"rated games required."
+
+        for rating_provider_name in self.ratingLimit_min.keys():
+            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                if player_ratings < self.ratingLimit_min[rating_provider_name]:
+                    return f"Your {rating_provider_name } skill rating ({player_ratings}) is too low " \
+                           f"to play on this server. " \
+                           f"{rating_provider_name} rating of at least " \
+                           f"{self.ratingLimit_min[rating_provider_name]} required."
+
+        for rating_provider_name in self.ratingLimit_max.keys():
+            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                if player_ratings > self.ratingLimit_max[rating_provider_name]:
+                    return f"Your {rating_provider_name } skill rating ({player_ratings}) is too high " \
+                           f"to play on this server. " \
+                           f"{rating_provider_name} rating of at most " \
+                           f"{self.ratingLimit_max[rating_provider_name]} required."
+
+    def rating_provider_for(self, rating_provider_name):
+        if rating_provider_name.endswith(TRUSKILLS.name):
+            return TRUSKILLS
+
+        if rating_provider_name == A_ELO.name:
+            return A_ELO
+
+        if rating_provider_name == B_ELO.name:
+            return B_ELO
+
+        self.logger.debug("ERROR: Unknown rating provider configured! Please fix immediately.")
+        return None
 
     def check_player_privacy(self, steam_id):
         if A_ELO.name in self.ratings and steam_id in self.ratings[A_ELO.name]:
@@ -1427,12 +1503,12 @@ class balancetwo(minqlx.Plugin):
         if sid in self.connectthreads:
             del self.connectthreads[sid]
 
-    def record_join_times(self, player):
-        if player.steam_id in self.jointimes:
-            if (time.time() - self.jointimes[player.steam_id]) < 5:
+    def record_join_times(self, steam_id):
+        if steam_id in self.jointimes:
+            if (time.time() - self.jointimes[steam_id]) < 5:
                 return
 
-        self.jointimes[player.steam_id] = time.time()
+        self.jointimes[steam_id] = time.time()
 
     def schedule_kick_for_players_outside_rating_limits(self, steam_ids):
         if not self.ratingLimit_kick:
@@ -1450,10 +1526,10 @@ class balancetwo(minqlx.Plugin):
                     gametype = self.game.type_short
                     player_ratings = configured_rating_provider.rating_for(steam_id, gametype)
 
-                    if self.ratingLimit_min <= player_ratings:
-                        highlow = "high"
-                    else:
+                    if not self.is_player_above_lower_rating_limit(steam_id):
                         highlow = "low"
+                    else:
+                        highlow = "high"
 
                     t = KickThread(steam_id, player_ratings, highlow)
                     t.start()
@@ -1561,31 +1637,57 @@ class balancetwo(minqlx.Plugin):
         return minqlx.RET_STOP_ALL
 
     def is_player_within_configured_rating_limit(self, steam_id, rating_provider=None):
-        ratings = rating_provider
-
-        if ratings is None:
-            configured_rating_provider_name = self.configured_rating_provider_name()
-            if configured_rating_provider_name.endswith("truskills"):
-                configured_rating_provider_name = TRUSKILLS.name
-
-            if configured_rating_provider_name not in self.ratings:
-                self.logger.debug(f"Ratings not found. Allowing player to join: {configured_rating_provider_name}.")
+        gametype = self.game.type_short
+        for limited_rating_provider in self.ratingLimit_minGames.keys():
+            if limited_rating_provider not in self.ratings:
+                self.logger.debug(f"Ratings not found for {steam_id}. "
+                                  f"Allowing player to join: {limited_rating_provider}.")
                 return True
 
-            ratings = self.ratings[configured_rating_provider_name]
+            ratings = self.ratings[limited_rating_provider]
+            if steam_id not in ratings:
+                return False
 
-        if steam_id not in ratings:
+            if ratings.games_for(steam_id, gametype) < self.ratingLimit_minGames[limited_rating_provider]:
+                return False
+
+        if not self.is_player_above_lower_rating_limit(steam_id):
             return False
 
+        for limited_rating_provider in self.ratingLimit_max.keys():
+            if limited_rating_provider not in self.ratings:
+                self.logger.debug(f"Ratings not found for {steam_id}. "
+                                  f"Allowing player to join: {limited_rating_provider}.")
+                return True
+
+            ratings = self.ratings[limited_rating_provider]
+            if steam_id not in ratings:
+                return False
+
+            player_ratings = ratings.rating_for(steam_id, gametype)
+            if player_ratings > self.ratingLimit_max[limited_rating_provider]:
+                return False
+
+        return True
+
+    def is_player_above_lower_rating_limit(self, steam_id):
         gametype = self.game.type_short
-        player_ratings = ratings.rating_for(steam_id, gametype)
 
-        if self.ratingLimit_min <= player_ratings <= self.ratingLimit_max:
-            return True
+        for limited_rating_provider in self.ratingLimit_min.keys():
+            if limited_rating_provider not in self.ratings:
+                self.logger.debug(f"Ratings not found for {limited_rating_provider}. "
+                                  f"Allowing player to join: {steam_id}.")
+                return True
 
-        player_games = ratings.games_for(steam_id, gametype)
+            ratings = self.ratings[limited_rating_provider]
+            if steam_id not in ratings:
+                return False
 
-        return player_games < self.ratingLimit_minGames
+            player_ratings = ratings.rating_for(steam_id, gametype)
+            if player_ratings < self.ratingLimit_min[limited_rating_provider]:
+                return False
+
+        return True
 
     def try_auto_rebalance(self, player, old, new):
         if not self.game:
@@ -1791,7 +1893,10 @@ class balancetwo(minqlx.Plugin):
 
         amount_players_moved = "lowest player" if n == 1 else f"{n} lowest players"
         message = f" and move {amount_players_moved} to {even_to}" if n > 0 else ''
-        self.msg(f"^6Uneven teams detected!^7 Server will auto spec {last.name}{message}.")
+        if self.last_action == "spec":
+            self.msg(f"^6Uneven teams detected!^7 Server will auto spec {last.name}{message}.")
+        else:
+            self.msg(f"^6Uneven teams detected!^7 Server will not auto spec {last.name}{message}.")
 
     def identify_player_to_move(self):
         teams = self.teams()
@@ -2203,7 +2308,6 @@ class PlayerRating:
 
 
 class ConnectThread(threading.Thread):
-
     def __init__(self, steam_id, rating_provider: SkillRatingProvider):
         super(ConnectThread, self).__init__()
         self.rating_provider = rating_provider
@@ -2320,7 +2424,6 @@ class Suggestion:
 
 
 class KickThread(threading.Thread):
-
     def __init__(self, steam_id, rating, highlow):
         threading.Thread.__init__(self)
         self.steam_id = steam_id
