@@ -1528,19 +1528,19 @@ class balancetwo(minqlx.Plugin):
                 if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
                     rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
                     if rated_games < self.ratingLimit_minGames[rating_provider_name]:
-                        kickmsg =  f"You have insufficient rated games ({rated_games}) for {gametype} " \
-                                   f"to play on this server. " \
-                                   f"At least {self.ratingLimit_minGames[rating_provider_name]} " \
-                                   f"{rating_provider_name} rated games required."
+                        kickmsg = f"You have insufficient rated games ({rated_games}) for {gametype} " \
+                                  f"to play on this server. " \
+                                  f"At least {self.ratingLimit_minGames[rating_provider_name]} " \
+                                  f"{rating_provider_name} rated games required."
 
             for rating_provider_name in self.ratingLimit_min.keys():
                 if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
                     player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
                     if player_ratings < self.ratingLimit_min[rating_provider_name]:
-                        kickmsg =  f"Your {rating_provider_name} skill rating ({player_ratings}) is too low " \
-                                   f"to play on this server. " \
-                                   f"{rating_provider_name} rating of at least " \
-                                   f"{self.ratingLimit_min[rating_provider_name]} required."
+                        kickmsg = f"Your {rating_provider_name} skill rating ({player_ratings}) is too low " \
+                                  f"to play on this server. " \
+                                  f"{rating_provider_name} rating of at least " \
+                                  f"{self.ratingLimit_min[rating_provider_name]} required."
 
             for rating_provider_name in self.ratingLimit_max.keys():
                 if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
