@@ -1396,7 +1396,6 @@ class balancetwo(minqlx.Plugin):
         for rating_provider_name in self.ratingLimit_minGames.keys():
             if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
                 rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
-                self.logger.debug(f"{rating_provider_name = } {rated_games = }")
                 if rated_games < self.ratingLimit_minGames[rating_provider_name]:
                     return f"You have insufficient rated games ({rated_games}) for {gametype} " \
                            f"to play on this server. " \
@@ -1439,7 +1438,6 @@ class balancetwo(minqlx.Plugin):
         for rating_provider_name in self.ratingLimit_minGames.keys():
             if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
                 rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
-                self.logger.debug(f"{rating_provider_name = } {rated_games = }")
                 if rated_games < self.ratingLimit_minGames[rating_provider_name]:
                     return f"You have insufficient rated games ({rated_games}) for {gametype} " \
                            f"to play on this server. " \
@@ -1514,26 +1512,53 @@ class balancetwo(minqlx.Plugin):
         if not self.ratingLimit_kick:
             return
 
+        new_steam_ids_to_kick = []
         for steam_id in steam_ids:
             if not self.is_player_within_configured_rating_limit(steam_id):
                 if steam_id not in self.kickthreads or not self.kickthreads[steam_id].is_alive():
-                    configured_rating_provider_name = self.configured_rating_provider_name()
-                    configured_rating_provider = self.ratings[configured_rating_provider_name]
+                    new_steam_ids_to_kick.append(steam_id)
 
-                    if steam_id not in configured_rating_provider:
-                        continue
+        if len(new_steam_ids_to_kick) == 0:
+            return
 
-                    gametype = self.game.type_short
-                    player_ratings = configured_rating_provider.rating_for(steam_id, gametype)
+        gametype = self.game.type_short
+        for steam_id in new_steam_ids_to_kick:
+            kickmsg = None
+            for rating_provider_name in self.ratingLimit_minGames.keys():
+                if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                    rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
+                    if rated_games < self.ratingLimit_minGames[rating_provider_name]:
+                        kickmsg =  f"You have insufficient rated games ({rated_games}) for {gametype} " \
+                                   f"to play on this server. " \
+                                   f"At least {self.ratingLimit_minGames[rating_provider_name]} " \
+                                   f"{rating_provider_name} rated games required."
 
-                    if not self.is_player_above_lower_rating_limit(steam_id):
-                        highlow = "low"
-                    else:
-                        highlow = "high"
+            for rating_provider_name in self.ratingLimit_min.keys():
+                if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                    player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                    if player_ratings < self.ratingLimit_min[rating_provider_name]:
+                        kickmsg =  f"Your {rating_provider_name} skill rating ({player_ratings}) is too low " \
+                                   f"to play on this server. " \
+                                   f"{rating_provider_name} rating of at least " \
+                                   f"{self.ratingLimit_min[rating_provider_name]} required."
 
-                    t = KickThread(steam_id, player_ratings, highlow)
-                    t.start()
-                    self.kickthreads[steam_id] = t
+            for rating_provider_name in self.ratingLimit_max.keys():
+                if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
+                    player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                    if player_ratings > self.ratingLimit_max[rating_provider_name]:
+                        kickmsg = f"Your {rating_provider_name} skill rating ({player_ratings}) is too high " \
+                                  f"to play on this server. " \
+                                  f"{rating_provider_name} rating of at most " \
+                                  f"{self.ratingLimit_max[rating_provider_name]} required."
+
+            if kickmsg is None:
+                self.logger.debug(f"ERROR: Something went wrong when double-checking player rating limits. "
+                                  f"Not kicking {steam_id}")
+                continue
+
+            t = KickThread(steam_id, kickmsg)
+            t.start()
+            self.kickthreads[steam_id] = t
 
     def handle_player_disconnect(self, player, reason):
         if player.steam_id in self.jointimes:
@@ -2424,11 +2449,10 @@ class Suggestion:
 
 
 class KickThread(threading.Thread):
-    def __init__(self, steam_id, rating, highlow):
+    def __init__(self, steam_id, kickmsg):
         threading.Thread.__init__(self)
         self.steam_id = steam_id
-        self.rating = rating
-        self.highlow = highlow
+        self.kickmsg = kickmsg
         self.go = True
 
     def try_msg(self):
@@ -2440,8 +2464,7 @@ class KickThread(threading.Thread):
         if not self.go:
             return
 
-        kickmsg = "so you'll be ^6kicked ^7shortly..."
-        Plugin.msg(f"^7Sorry, {player.name} your rating ({self.rating}) is too {self.highlow}, {kickmsg}")
+        Plugin.msg(f"^7Sorry, {player.name} {self.kickmsg}, so you'll be ^6kicked ^7shortly...")
 
     def try_mute(self):
         @minqlx.next_frame
@@ -2465,7 +2488,7 @@ class KickThread(threading.Thread):
         @minqlx.next_frame
         def execute():
             try:
-                player.kick(f"^1GOT KICKED!^7 Rating ({self.rating}) was too {self.highlow} for this server.")
+                player.kick(f"^1GOT KICKED!^7 {self.kickmsg}")
             except ValueError:
                 pass
 
