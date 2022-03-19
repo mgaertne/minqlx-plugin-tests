@@ -694,7 +694,6 @@ class balancetwo(minqlx.Plugin):
 
         if len(current) % 2 == 1:
             player_to_spec = self.find_player_to_spec(current)
-            self.logger.debug(f"putting {player_to_spec.clean_name} to spec")
             player_to_spec.put("spectator")
 
         balanced_teams = self.find_balanced_teams()
@@ -710,14 +709,12 @@ class balancetwo(minqlx.Plugin):
             player = self.player(steam_id)
             if player.team != team1:
                 changed = True
-                self.logger.debug(f"putting {player.clean_name} to {team1}")
                 player.put(team1)
 
         for steam_id in team2_steam_ids:
             player = self.player(steam_id)
             if player.team != team2:
                 changed = True
-                self.logger.debug(f"putting {player.clean_name} to {team2}")
                 player.put(team2)
 
         if not changed:
@@ -1568,7 +1565,6 @@ class balancetwo(minqlx.Plugin):
             del self.join_attempts[player.steam_id]
 
     def handle_team_switch_attempt(self, player, old, new):
-        self.logger.debug(f"{player.clean_name} switched from {old} to {new}")
         if not self.game:
             return minqlx.RET_NONE
 
