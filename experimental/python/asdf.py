@@ -1,14 +1,26 @@
-import minqlx
-from minqlx.database import Redis
-
 import math
-import redis
+
+from typing import Union
+
+import minqlx  # type: ignore
+from minqlx import AbstractChannel, Player, Plugin
 
 WEAPON_STATS_KEY = "minqlx:{}:weaponstats"
 _name_key = "minqlx:players:{}:last_used_name"
 
+SteamId = int
 
-class asdf(minqlx.Plugin):
+
+def identify_reply_channel(channel: AbstractChannel) -> AbstractChannel:
+    if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
+                   minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
+        return minqlx.CHAT_CHANNEL
+
+    return channel
+
+
+# noinspection PyPep8Naming
+class asdf(Plugin):
 
     def __init__(self):
         super().__init__()
@@ -26,12 +38,12 @@ class asdf(minqlx.Plugin):
         self.add_command("weaponstats", self.cmd_weaponstats, usage="[player or id]")
 
         self.stats_snapshot = {}
-        self.red_overall_damage = 0
-        self.blue_overall_damage = 0
+        self.red_overall_damage: int = 0
+        self.blue_overall_damage: int = 0
 
-        self.min_ammo_rate = self.get_cvar("qlx_asdf_minammo_rate", float)
+        self.min_ammo_rate: float = self.get_cvar("qlx_asdf_minammo_rate", float)
 
-    def handle_player_spawn(self, player):
+    def handle_player_spawn(self, player: Player):
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -58,7 +70,7 @@ class asdf(minqlx.Plugin):
         self.adjust_ammo_for_player(player)
 
     @minqlx.thread
-    def adjust_ammo_for_player(self, player):
+    def adjust_ammo_for_player(self, player: Player):
         weapon_stats = self.weapon_stats_for(player.steam_id)
 
         total_team_damage = self.red_overall_damage if player.team == "red" else self.blue_overall_damage
@@ -100,7 +112,7 @@ class asdf(minqlx.Plugin):
         player.tell(
             f"{player.name}, your team is dominating right now. Some of your ammo was reduced:{ammo_info}")
 
-    def handle_stats(self, stats):
+    def handle_stats(self, stats: dict):
         if stats["TYPE"] != "PLAYER_STATS":
             return
 
@@ -116,7 +128,7 @@ class asdf(minqlx.Plugin):
         self.store_weapon_stats(stats)
 
     @minqlx.thread
-    def store_weapon_stats(self, stats):
+    def store_weapon_stats(self, stats: dict):
         steam_id = stats["DATA"]["STEAM_ID"]
         for weapon in stats["DATA"]["WEAPONS"]:
             self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "deaths",
@@ -141,11 +153,11 @@ class asdf(minqlx.Plugin):
         self.red_overall_damage = 0
         self.blue_overall_damage = 0
 
-    def handle_round_start(self, round_number):
+    def handle_round_start(self, _round_number: int):
         teams = self.teams()
         self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
 
-    def handle_round_end(self, data):
+    def handle_round_end(self, _data: dict):
         if self.game is None:
             return
 
@@ -180,7 +192,7 @@ class asdf(minqlx.Plugin):
 
         return returned
 
-    def cmd_weaponstats(self, player, msg, channel):
+    def cmd_weaponstats(self, player: Player, msg: str, channel: AbstractChannel):
         if len(msg) == 1:
             player_name, player_identifier = self.identify_target(player, player)
         else:
@@ -188,7 +200,7 @@ class asdf(minqlx.Plugin):
             if player_name is None and player_identifier is None:
                 return
 
-        reply_channel = self.identify_reply_channel(channel)
+        reply_channel = identify_reply_channel(channel)
 
         weapon_stats = self.weapon_stats_for(player_identifier)
         stats_strings = []
@@ -205,7 +217,7 @@ class asdf(minqlx.Plugin):
         stats_string = ", ".join(stats_strings)
         reply_channel.reply(f"Weapon statistics for player {player_name}^7: {stats_string}")
 
-    def weapon_stats_for(self, steam_id):
+    def weapon_stats_for(self, steam_id: SteamId):
         returned = {}
         for key in self.db.keys(WEAPON_STATS_KEY.format(steam_id) + ":*"):
             weapon_stats = self.db.hgetall(key)
@@ -219,8 +231,8 @@ class asdf(minqlx.Plugin):
 
         return returned
 
-    def identify_target(self, player, target):
-        if hasattr(target, "name") and hasattr(target, "steam_id"):
+    def identify_target(self, player: Player, target: Union[SteamId, str, Player]):
+        if isinstance(target, Player):
             return target.name, target.steam_id
 
         try:
@@ -236,7 +248,7 @@ class asdf(minqlx.Plugin):
 
         return target_player.name, target_player.steam_id
 
-    def resolve_player_name(self, item):
+    def resolve_player_name(self, item: Union[SteamId, str]):
         if not isinstance(item, int) and not item.isdigit():
             return item
 
@@ -252,9 +264,9 @@ class asdf(minqlx.Plugin):
 
         return item
 
-    def find_target_player_or_list_alternatives(self, player, target):
+    def find_target_player_or_list_alternatives(self, player: Player, target: Union[int, str, Player]):
         # Tell a player which players matched
-        def list_alternatives(players, indent=2):
+        def list_alternatives(players: list[Player], indent: int = 2):
             amount_alternatives = len(players)
             player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
@@ -290,13 +302,6 @@ class asdf(minqlx.Plugin):
         # By now there can only be one person left
         return target_players.pop()
 
-    def identify_reply_channel(self, channel):
-        if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
-                       minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
-            return minqlx.CHAT_CHANNEL
-
-        return channel
-
 
 class Weapon:
     def __init__(self, name):
@@ -329,8 +334,8 @@ class Weapon:
             return "g"
         if weapon_name == "NAILGUN":
             return "ng"
-        if weapon_name == "PROMINE":
-            return "pm"
+        if weapon_name == "PROXMINE":
+            return "pl"
         if weapon_name == "CHAINGUN":
             return "cg"
         return "other"
