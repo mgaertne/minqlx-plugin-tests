@@ -966,25 +966,36 @@ def format_weapon_fact(weapon_stat: str, player_names: str, weapon_name: str, st
 def random_weapon_stats(stats: list[PlayerStatsEntry], *, count: int = 3) -> list[str]:
     returned: list[str] = []
 
-    while len(returned) < count:
-        random_weapon = random.choice(Weapons._fields)
-        random_weapon_fact = random.choice([field for field in WeaponStats._fields if field not in ["name"]])
-        most_weaponed_stats = filter_stats_for_max_value(
-            stats, lambda stats_entry: getattr(getattr(stats_entry.weapons, random_weapon), random_weapon_fact))
+    weaponstats = [field for field in WeaponStats._fields if field not in ["name"]]
+    randomized_weapon_stats = list(itertools.product(Weapons._fields, weaponstats))
+    random.shuffle(randomized_weapon_stats)
+    for weapon, weapon_fact in randomized_weapon_stats:
+        formatted_fact = formatted_weapon_fact(stats, weapon, weapon_fact)
+        if formatted_weapon_fact is not None and len(formatted_fact) > 0:
+            returned.append(formatted_fact)
 
-        if len(most_weaponed_stats) > 0:
-            if len(most_weaponed_stats) == 1:
-                player_names = most_weaponed_stats[0].name
-            else:
-                player_names = "^7, ".join([stats.name for stats in most_weaponed_stats[:-1]]) + \
-                               "^7 and " + most_weaponed_stats[-1].name
-            stats_amount = getattr(getattr(most_weaponed_stats[0].weapons, random_weapon), random_weapon_fact)
-            if stats_amount > 0:
-                returned.append(
-                    format_weapon_fact(random_weapon_fact, player_names,
-                                       random_weapon.replace('other', 'grapple'), stats_amount))
+        if len(returned) == count:
+            return returned
 
     return returned
+
+
+def formatted_weapon_fact(stats: list[PlayerStatsEntry], weapon: str, weapon_fact: str) -> str:
+    most_weaponed_stats = filter_stats_for_max_value(
+        stats, lambda stats_entry: getattr(getattr(stats_entry.weapons, weapon), weapon_fact))
+
+    if len(most_weaponed_stats) > 0:
+        if len(most_weaponed_stats) == 1:
+            player_names = most_weaponed_stats[0].name
+        else:
+            player_names = "^7, ".join([stats.name for stats in most_weaponed_stats[:-1]]) + \
+                           "^7 and " + most_weaponed_stats[-1].name
+        stats_amount = getattr(getattr(most_weaponed_stats[0].weapons, weapon), weapon_fact)
+        if stats_amount > 0:
+            return format_weapon_fact(weapon_fact, player_names,
+                                      weapon.replace('other', 'grapple'), stats_amount)
+
+    return ""
 
 
 # noinspection PyPep8Naming
