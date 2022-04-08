@@ -565,18 +565,34 @@ def random_conjunction() -> str:
 def random_medal_facts(stats: list[PlayerStatsEntry], *, count: int = 1) -> list[str]:
     returned: list[str] = []
 
-    while len(returned) < count:
-        medal_stat = random.choice(Medals._fields)
-        most_medaled_stats = \
-            filter_stats_for_max_value(stats, lambda stats_entry: getattr(stats_entry.medals, medal_stat))
+    medalstats = list(Medals._fields)
+    random.shuffle(medalstats)
 
-        if len(most_medaled_stats) > 0:
-            medal_stat_value: int = getattr(most_medaled_stats[0].medals, medal_stat)
-            if medal_stat_value > 0:
-                player_names = "^7 and ".join([stats.name for stats in most_medaled_stats])
-                returned.append(f"{player_names} received {medal_stat_value} {medal_stat} medals")
+    for medalstat in medalstats:
+        formatted_fact = formatted_medal_fact(stats, medalstat)
+        if formatted_fact is not None and len(formatted_fact) > 0:
+            returned.append(formatted_fact)
+        if len(returned) == count:
+            return returned
 
     return returned
+
+
+def formatted_medal_fact(stats: list[PlayerStatsEntry], medal_stat: str) -> str:
+    most_medaled_stats = \
+        filter_stats_for_max_value(stats, lambda stats_entry: getattr(stats_entry.medals, medal_stat))
+
+    if len(most_medaled_stats) > 0:
+        medal_stat_value: int = getattr(most_medaled_stats[0].medals, medal_stat)
+        if medal_stat_value > 0:
+            if len(most_medaled_stats) == 1:
+                player_names = most_medaled_stats[0].name
+            else:
+                player_names = "^7, ".join([stats.name for stats in most_medaled_stats[:-1]]) + \
+                               "^7 and " + most_medaled_stats[-1].name
+            return f"{player_names} received {medal_stat_value} {medal_stat} medals"
+
+    return ""
 
 
 WEAPON_FACTS_LOOKUP: dict[str, dict[str, list[str]]] = {
