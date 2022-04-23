@@ -1,11 +1,14 @@
 import random
 import math
 
-from typing import NamedTuple, Optional, Callable, Any, Literal
+from typing import NamedTuple, Optional, Callable, Any
 import itertools
+import statistics
 
-import minqlx  # type: ignore
-from minqlx import Plugin, Player
+from datetime import datetime, timedelta
+
+import minqlx
+from minqlx import Plugin, Player, AbstractChannel
 
 SteamId = int
 
@@ -31,7 +34,12 @@ def format_int(value: int) -> str:
     return f"{value:,d}".replace(",", ".")
 
 
-def determine_means_of_death(means_of_death):
+def convert_units_to_meters(units: float) -> float:
+    # source for the conversion: https://www.quake3world.com/forum/viewtopic.php?f=10&t=50384
+    return 0.3048 * units / 8  # 8 units equal one inch, one inch equals 30,48cm
+
+
+def determine_means_of_death(means_of_death: str) -> str:
     if means_of_death == "HURT":
         return "void"
 
@@ -590,7 +598,7 @@ def formatted_medal_fact(stats: list[PlayerStatsEntry], medal_stat: str) -> str:
             else:
                 player_names = "^7, ".join([stats.name for stats in most_medaled_stats[:-1]]) + \
                                "^7 and " + most_medaled_stats[-1].name
-            return f"{player_names} received {medal_stat_value} {medal_stat} medals"
+            return f"{player_names} received ^5{medal_stat_value} {medal_stat} medals^7"
 
     return ""
 
@@ -637,7 +645,7 @@ WEAPON_FACTS_LOOKUP: dict[str, dict[str, list[str]]] = {
         ],
         "gauntlet": [
             "{player_names} was ^5pummeled {stats_amount} times^7",
-            "{player_names} was ^5humiliated {stats_amount} times^7}"
+            "{player_names} was ^5humiliated {stats_amount} times^7"
         ],
         "nailgun": [
             "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7",
@@ -692,7 +700,7 @@ WEAPON_FACTS_LOOKUP: dict[str, dict[str, list[str]]] = {
             "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
         ],
         "proximity_mine_launcher": [
-            "{player_names} ^2dealt^7 a total of ^5proximity mine {weapon_name} damage^7"
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} proximity mine damage^7"
         ],
         "chaingun": [
             "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
@@ -755,7 +763,7 @@ WEAPON_FACTS_LOOKUP: dict[str, dict[str, list[str]]] = {
         "grenade_launcher": [
             "{player_names} hit with the ^5grenade launcher^7 ^5{stats_amount} times^7",
             "{stats_amount} of {player_names}'s lost nades have been found",
-            "{player_names} dropped {stats_amount} lucky nades}"
+            "{player_names} dropped {stats_amount} lucky nades"
         ],
         "rocket_launcher": [
             "{player_names} hit with the ^5rocket launcher^7 ^5{stats_amount} times^7"
@@ -886,85 +894,85 @@ WEAPON_FACTS_LOOKUP: dict[str, dict[str, list[str]]] = {
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "shotgun": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "grenade_launcher": [
             "{player_names} used the ^5grenade launcher^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5grenade launcher^7 and held it for {stats_amount} seconds",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "rocket_launcher": [
             "{player_names} used the ^5rocket launcher^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5rocket launcher^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5rocket launcher^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "lightninggun": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "railgun": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "plasmagun": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "hmg": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "bfg": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "gauntlet": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "nailgun": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "proximity_mine_launcher": [
             "{player_names} used the ^5proximity mine launcher^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5proximity mine launcher^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5proximity mine launcher^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "chaingun": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ],
         "grapple": [
             "{player_names} used the ^5{weapon_name}^7 for ^5{stats_amount} seconds^7",
             "{player_names} really liked the ^5{weapon_name}^7 and held it for ^5{stats_amount} seconds^7",
             "{player_names}, in case you're wondering, cuddled with the ^5{weapon_name}^7 "
-            "for ^5{stats_amount}^7 seconds."
+            "for ^5{stats_amount}^7 seconds"
         ]
     }
 }
@@ -1014,40 +1022,85 @@ def formatted_weapon_fact(stats: list[PlayerStatsEntry], weapon: str, weapon_fac
     return ""
 
 
+interval: float = 0.5
+
+
 # noinspection PyPep8Naming
 class weird_stats(Plugin):
     def __init__(self):
         super().__init__()
 
+        self.game_start_time: Optional[datetime] = None
+        self.join_times: dict[SteamId, datetime] = {}
+        self.play_times: dict[SteamId, float] = {}
+
         self.in_round: bool = False
         self.game_ended: bool = False
-        self.means_of_death: dict[SteamId, dict[str, int]] = {}
         self.match_end_announced: bool = False
+
+        self.means_of_death: dict[SteamId, dict[str, int]] = {}
+
+        self.round_start_datetime: Optional[datetime] = None
+        self.alive_times: dict[SteamId, float] = {}
         self.previous_positions: dict[SteamId, Position] = {}
-        self.round_travelled_distances: dict[SteamId, float] = {}
-        self.sightseer_awards: dict[SteamId, int] = {}
-        self.picnicker_awards: dict[SteamId, int] = {}
+        self.travelled_distances: dict[SteamId, float] = {}
+
         self.player_stats: dict[SteamId, PlayerStatsEntry] = {}
         self.playerstats_announcements: list[Callable[[list[PlayerStatsEntry]], Optional[str]]] = \
             [most_accurate_railbitches_announcement, longest_shaftlamers_announcement,
              most_honorable_haste_pickup_announcement, weird_facts]
 
+        self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("frame", self.handle_frame)
         self.add_hook("map", self.handle_map_change)
-        self.add_hook("new_game", self.handle_new_game)
+        self.add_hook("game_start", self.handle_game_start)
         self.add_hook("round_start", self.handle_round_start)
         self.add_hook("death", self.handle_death)
         self.add_hook("round_end", self.handle_round_end)
         self.add_hook("game_end", self.handle_game_end)
         self.add_hook("stats", self.handle_stats)
 
-    def handle_frame(self) -> None:
-        if not self.in_round:
+        self.add_command("speeds", self.cmd_player_speeds)
+
+    def handle_team_switch(self, player: Player, old_team: str, new_team: str):
+        if not player:
             return
 
-        for player in [player for player in self.players() if player.is_alive and player.team in ["red", "blue"]]:
-            distance = self.round_travelled_distances.get(player.steam_id, 0.0)
-            self.round_travelled_distances[player.steam_id] = distance + self.calculate_player_distance(player)
+        if not self.game:
+            return
+
+        if self.game.state in ["warmup", "countdown"]:
+            return
+
+        if player.steam_id in self.join_times:
+            if new_team in ["spectator"]:
+                self.play_times[player.steam_id] = \
+                    (datetime.now() - self.join_times[player.steam_id]).total_seconds() + \
+                    self.play_times.get(player.steam_id, 0.0)
+                del self.join_times[player.steam_id]
+            return
+
+        if new_team not in ["red", "blue"]:
+            return
+
+        if old_team not in "spectator":
+            return
+
+        self.join_times[player.steam_id] = datetime.now()
+
+    def handle_frame(self) -> None:
+        teams = self.teams()
+        for player in teams["red"] + teams["blue"]:
+            if not player.is_alive:
+                if player.steam_id in self.previous_positions:
+                    del self.previous_positions[player.steam_id]
+                continue
+
+            distance = self.travelled_distances.get(player.steam_id, 0.0)
+            moved_distance = self.calculate_player_distance(player)
+
+            if self.in_round and moved_distance < 800.0:
+                self.travelled_distances[player.steam_id] = distance + moved_distance
 
             self.previous_positions[player.steam_id] = Position(*player.position())
 
@@ -1058,34 +1111,40 @@ class weird_stats(Plugin):
         if player.steam_id not in self.previous_positions:
             return 0.0
 
-        return calculate_distance(
-            self.previous_positions[player.steam_id],
-            Position(*player.position()))
+        return calculate_distance(self.previous_positions[player.steam_id], Position(*player.position()))
 
     def handle_map_change(self, _mapname: str, _factory: str) -> None:
         self.reinitialize_game()
 
     def reinitialize_game(self) -> None:
+        self.game_start_time = None
+        self.join_times = {}
+        self.play_times = {}
+        self.alive_times = {}
         self.in_round = False
         self.game_ended = False
         self.means_of_death = {}
         self.match_end_announced = False
+        self.round_start_datetime = None
         self.player_stats = {}
-        self.sightseer_awards = {}
-        self.picnicker_awards = {}
         self.previous_positions = {}
-        self.round_travelled_distances = {}
+        self.travelled_distances = {}
 
-    def handle_new_game(self) -> None:
-        self.reinitialize_game()
+    @minqlx.delay(3)
+    def handle_game_start(self, _data) -> None:
+        teams = self.teams()
+        self.game_start_time = datetime.now()
+        self.join_times = {player.steam_id: self.game_start_time for player in teams["red"] + teams["blue"]}
 
     def handle_round_start(self, _round_number: int) -> None:
         self.in_round = True
         self.game_ended = False
         self.match_end_announced = False
-        self.round_travelled_distances = {}
+        self.round_start_datetime = datetime.now()
+
+        teams = self.teams()
         self.previous_positions = {player.steam_id: Position(*player.position())
-                                   for player in self.players() if player.is_alive}
+                                   for player in teams["red"] + teams["blue"]}
 
     def handle_death(self, victim: Player, killer: Player, data: dict) -> None:
         if not self.game or self.game.state != "in_progress":
@@ -1106,54 +1165,44 @@ class weird_stats(Plugin):
         self.means_of_death[victim.steam_id][means_of_death] = \
             self.means_of_death[victim.steam_id].get(means_of_death, 0) + 1
 
+        if not self.in_round:
+            return
+
+        if self.round_start_datetime is None:
+            return
+
+        player_alive_timedelta: timedelta = datetime.now() - self.round_start_datetime
+        player_alive_time: float = player_alive_timedelta.total_seconds()
+        self.alive_times[victim.steam_id] = self.alive_times.get(victim.steam_id, 0.0) + player_alive_time
+
     def handle_round_end(self, _data: dict) -> None:
         self.in_round = False
 
-        if len(self.round_travelled_distances) == 0:
+        if self.round_start_datetime is None:
             return
 
-        farthest_traveller_sid = max(self.round_travelled_distances,
-                                     key=self.round_travelled_distances.get)  # type: ignore
-        sightseer_awards = self.round_end_award_announcement_for(farthest_traveller_sid, "sightseer")
-        if sightseer_awards is not None:
-            self.msg(sightseer_awards)
-
-        shortest_travelled_sid = min(self.round_travelled_distances,
-                                     key=self.round_travelled_distances.get)  # type: ignore
-        picnicker_awards = self.round_end_award_announcement_for(shortest_travelled_sid, "picnicker")
-
+        round_end_time = datetime.now()
         teams = self.teams()
-        if len(teams["red"] + teams["blue"]) == 2:
-            return
+        for steam_id in [player.steam_id for player in teams["red"] + teams["blue"] if
+                         player.is_alive and player.health > 0]:
+            player_alive_timedelta: timedelta = round_end_time - self.round_start_datetime
+            player_alive_time: float = player_alive_timedelta.total_seconds()
+            self.alive_times[steam_id] = self.alive_times.get(steam_id, 0.0) + player_alive_time
 
-        if picnicker_awards is not None:
-            self.msg(picnicker_awards)
-
-    Awards = Literal["sightseer", "picnicker"]
-
-    def round_end_award_announcement_for(self, steam_id: SteamId, award: Awards) -> Optional[str]:
-        if award not in ["sightseer", "picnicker"]:
-            return None
-
-        travelled_distance = self.round_travelled_distances[steam_id]
-        same_distance_travellers = [_steam_id for
-                                    _steam_id, _travelled_distance in self.round_travelled_distances.items()
-                                    if _travelled_distance == travelled_distance]
-
-        for _steam_id in same_distance_travellers:
-            collected_awards = getattr(self, f"{award}_awards")
-            collected_awards[_steam_id] = collected_awards.get(steam_id, 0) + 1
-
-        return f"  ^5{award[0].upper()}{award[1:].lower()} award^7: " \
-               f"{self.format_player_names(same_distance_travellers)}^7 " \
-               f"^5{format_float(travelled_distance)}^7 units"
-
-    def format_player_names(self, players: list[SteamId]) -> str:
-        return "^7, ".join([self.player(steam_id).name for steam_id in players if self.player(steam_id) is not None])
+        self.round_start_datetime = None
 
     @minqlx.delay(3)
     def handle_game_end(self, _data: dict) -> None:
         self.game_ended = True
+
+        teams = self.teams()
+        for player in teams["red"] + teams["blue"]:
+            if player.steam_id not in self.join_times:
+                continue
+            self.play_times[player.steam_id] = \
+                (datetime.now() - self.join_times[player.steam_id]).total_seconds() + \
+                self.play_times.get(player.steam_id, 0.0)
+
         self.announce_match_end_stats()
 
     def handle_stats(self, stats: dict) -> None:
@@ -1187,12 +1236,8 @@ class weird_stats(Plugin):
 
         self.match_end_announced = True
 
-        for sightseer_award_announcement in self.game_end_awards_announcement_for("sightseer"):
-            self.msg(sightseer_award_announcement)
-
-        if len(self.picnicker_awards.keys()) > 2:
-            for picnicker_award_announcement in self.game_end_awards_announcement_for("picnicker"):
-                self.msg(picnicker_award_announcement)
+        for msg in self.player_speeds_announcements():
+            self.msg(msg)
 
         most_environmental_deaths_announcement = \
             self.environmental_deaths(self.means_of_death, ["void", "acid", "drowning", "squished"])
@@ -1216,29 +1261,66 @@ class weird_stats(Plugin):
 
         return True
 
-    def game_end_awards_announcement_for(self, award: Awards) -> list[str]:
-        if award not in ["sightseer", "picnicker"]:
+    def player_speeds_announcements(self) -> list[str]:
+        if len(self.travelled_distances) == 0 or len(self.alive_times) == 0:
             return []
 
-        awards = getattr(self, f"{award}_awards")
-        if len(awards) == 0:
+        current_play_times = self.play_times.copy()
+        if self.game and self.game.state == "in_progress":
+            current_datetime = datetime.now()
+            teams = self.teams()
+            for player in teams["red"] + teams["blue"]:
+                if player.steam_id not in self.join_times:
+                    continue
+                current_play_times[player.steam_id] = \
+                    current_play_times.get(player.steam_id, 0.0) + \
+                    (current_datetime - self.join_times[player.steam_id]).total_seconds()
+
+        if len(current_play_times) == 0:
             return []
 
-        grouped_awards = itertools.groupby(sorted(awards, key=awards.get, reverse=True), key=awards.get)
+        longest_join_time = max(current_play_times.values())
 
-        returned = [f"  ^5{award[0].upper()}{award[1:]} awards:"]
+        player_speeds: dict[SteamId, float] = {}
+        for steam_id, alive_time in self.alive_times.items():
+            player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
+            if player_alive_time == 0.0:
+                continue
+            player_distance = convert_units_to_meters(player_units)
+
+            if current_play_times.get(steam_id, 0.0) < 0.75 * longest_join_time:
+                continue
+
+            player_speed = 3.6 * player_distance / player_alive_time
+
+            player_speeds[steam_id] = round(player_speed, 2)
+
+        if len(player_speeds) == 0:
+            return []
+
+        grouped_speeds = itertools.groupby(
+            sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
+            key=player_speeds.get)
+
+        average_speed = statistics.mean(player_speeds.values())
+        returned = [f"  ^5Player speeds^7 (avg: ^5{format_float(average_speed)} km/h^7)"]
 
         counter = 1
-        for award_count, grouped_steam_ids in grouped_awards:
+        for speed, steam_ids in grouped_speeds:
             prefix = f"^5{counter:2}^7."
 
-            for steam_id in grouped_steam_ids:
+            if speed is None:
+                continue
+
+            for steam_id in steam_ids:
                 counter += 1
                 player = self.player(steam_id)
                 if player is not None:
-                    returned.append(f"  {prefix} {player.name}^7 (^5{award_count}^7 rounds)")
-                else:
-                    returned.append(f"  {prefix} {steam_id}^7 (^5{award_count}^7 rounds)")
+                    _, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
+                    dmg_per_second = player.stats.damage_dealt / player_alive_time
+                    returned.append(
+                        f"  {prefix} {player.name}^7 (^5{format_float(speed)} km/h^7, "
+                        f"^5{format_float(dmg_per_second)} dmg/sec.^7)")
 
                 prefix = "   "
 
@@ -1269,4 +1351,26 @@ class weird_stats(Plugin):
         formatted_names = "^7, ".join(most_environmental_deaths_names)
 
         return f"  ^5Most environmental deaths^7: {formatted_names} " \
-               f"^5({filtered_means_of_death[most_environmental_deaths]})^7"
+               f"(^5{filtered_means_of_death[most_environmental_deaths]}^7)"
+
+    def cmd_player_speeds(self, _player: Player, _msg: str, _channel: AbstractChannel) -> None:
+        announcements = self.player_speeds_announcements()
+        for announcement in announcements:
+            self.msg(announcement)
+
+    def gather_data_for_speed_calculation(self, steam_id: SteamId) -> tuple[float, float]:
+        if steam_id not in self.travelled_distances:
+            return 0.0, 0.0
+
+        current_datetime = datetime.now()
+
+        player_units = self.travelled_distances[steam_id]
+
+        player_alive_time = self.alive_times.get(steam_id, 0.0)
+
+        player = self.player(steam_id)
+        if self.in_round and self.round_start_datetime is not None and player is not None and player.is_alive:
+            player_alive_timedelta: timedelta = current_datetime - self.round_start_datetime
+            player_alive_time = self.alive_times.get(steam_id, 0.0) + player_alive_timedelta.total_seconds()
+
+        return player_units, player_alive_time
