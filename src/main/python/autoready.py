@@ -194,9 +194,10 @@ class CountdownThread(Thread):
 
 def display_countdown(remaining: int) -> None:
     time_color_format = "^1" if remaining <= 30 else "^3"
+    remaining_minutes, remaining_seconds = divmod(remaining, 60)
     Plugin.center_print(f"Match will ^2auto-start^7 in\n"
-                        f"{time_color_format}{int(remaining / 60):01}^7:"
-                        f"{time_color_format}{int(remaining % 60):02}")
+                        f"{time_color_format}{int(remaining_minutes):01}^7:"
+                        f"{time_color_format}{int(remaining_seconds):02}")
 
 
 def blink(remaining: int, *, sleep: float = 0.4) -> None:
