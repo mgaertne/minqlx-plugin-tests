@@ -3,7 +3,7 @@ PyHamcrest
 mockito
 coverage
 undecorated
-discord.py
+discord.py==1.7.2
 redis
 requests
 zmq
