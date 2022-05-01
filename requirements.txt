@@ -3,7 +3,9 @@ PyHamcrest
 mockito
 coverage
 undecorated
-discord.py==1.7.2
+#discord.py==1.7.3
+git+https://github.com/Rapptz/discord.py.git@0c613148afa8b8676021ae7abd2bd584a0c77245#egg=discord.py
 redis
 requests
 zmq
+aiohttp

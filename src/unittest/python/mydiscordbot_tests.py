@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import AsyncMock
 
 from mockito import mock, unstub, verify, when, when2, spy2, patch  # type: ignore
-from mockito.matchers import matches, arg_that  # type: ignore
+from mockito.matchers import matches, arg_that, ANY  # type: ignore
 from hamcrest import assert_that, is_, has_item, not_
 
 from undecorated import undecorated  # type: ignore
@@ -430,6 +430,7 @@ def mocked_channel(_id=666, name="channel-name", channel_type=ChannelType.text, 
 def mocked_message(content="message content", user=mocked_user(), channel=mocked_channel()):
     message = mock(spec=discord.Message)
 
+    message.content = content
     message.clean_content = content
     message.author = user
     message.channel = channel
@@ -448,7 +449,6 @@ class MinqlxHelpCommandTests(unittest.TestCase):
         self.help_command.context.bot.user = mocked_user()
         self.help_command.context.bot.user.display_name = "Discord-Bot"
         self.help_command.context.bot.user.mention = "Discord-Bot#123"
-        self.help_command.context.guild = None
         help_command = mock({'name': 'help', 'description': 'Fake Help', 'short_doc': 'Fake Help',
                              'hidden': False, 'cog_name': None, 'aliases': []})
         when(help_command).can_run(self.help_command.context).thenReturn(AsyncMock(return_value=True))
@@ -585,7 +585,6 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord_client.loop = asyncio.new_event_loop()
 
     def setup_discord_library(self):
-        discord.version_info = discord.VersionInfo(major=1, minor=0, micro=0, releaselevel="", serial=0)
         self.setup_discord_client_mock_common()
 
         when(self.discord_client).is_ready().thenReturn(True)
@@ -746,75 +745,77 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_successful_auth(self):
         user = mocked_user()
-        context = self.mocked_context(message=mocked_message(user=user))
+        context = self.mocked_context(message=mocked_message(user=user, content="!auth adminpassword"))
 
-        await self.discord.auth(context, "adminpassword")
+        await self.discord.auth(context)
 
         assert_that(self.discord.authed_discord_ids, is_({user.id}))
         assert_matching_string_send_to_discord_context(context, matches(".*successfully authenticated.*"))
 
     async def test_first_failed_auth_attempt(self):
         user = mocked_user()
-        context = self.mocked_context(message=mocked_message(user=user))
+        context = self.mocked_context(message=mocked_message(user=user, content="!auth wrong password"))
 
-        await self.discord.auth(context, "wrong password")
+        await self.discord.auth(context)
 
         assert_that(self.discord.auth_attempts, has_item(user.id))
         assert_matching_string_send_to_discord_context(context, matches(".*Wrong password.*"))
 
     async def test_third_failed_auth_attempt_bars_user_from_auth(self):
         user = mocked_user()
-        context = self.mocked_context(message=mocked_message(user=user))
+        context = self.mocked_context(message=mocked_message(user=user, content="!auth wrong password"))
 
         self.discord.auth_attempts[user.id] = 1
 
         patch(threading.Timer, "start", lambda: None)
 
-        await self.discord.auth(context, "wrong password")
+        await self.discord.auth(context)
 
         assert_that(self.discord.auth_attempts[user.id], is_(0))
         assert_matching_string_send_to_discord_context(context, matches(".*Maximum authentication attempts reached.*"))
 
     async def test_third_failed_auth_attempt_bars_user_from_auth_and_resets_attempts(self):
         user = mocked_user()
-        context = self.mocked_context(message=mocked_message(user=user))
+        context = self.mocked_context(message=mocked_message(user=user, content="!auth wrong password"))
 
         self.discord.auth_attempts[user.id] = 1
 
         patch(threading.Event, "wait", lambda *args: None)
 
-        await self.discord.auth(context, "wrong password")
+        await self.discord.auth(context)
 
         time.sleep(0.00001)
 
         assert_that(self.discord.auth_attempts, not_(has_item(user.id)))
 
     async def test_qlx_executes_command(self):
-        context = self.mocked_context()
+        context = self.mocked_context(prefix="!", invoked_with="qlx",
+                                      message=mocked_message(content="!qlx exec to minqlx"))
 
         spy2(minqlx.COMMANDS.handle_input)
-        when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
+        when2(minqlx.COMMANDS.handle_input, ANY, ANY, ANY).thenReturn(None)
 
         patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
         patch(minqlx.next_frame, lambda func: func)
 
-        await self.discord.qlx(context, "exec to minqlx")
+        await self.discord.qlx(context)
 
-        verify(minqlx.COMMANDS).handle_input(any, "exec to minqlx", any)
+        verify(minqlx.COMMANDS).handle_input(ANY, "exec to minqlx", ANY)
 
     async def test_qlx_fails_to_execute_command(self):
-        context = self.mocked_context()
+        context = self.mocked_context(prefix="!", invoked_with="qlx",
+                                      message=mocked_message(content="!qlx exec to minqlx"))
 
         spy2(minqlx.COMMANDS.handle_input)
-        when2(minqlx.COMMANDS.handle_input, any, any, any).thenRaise(Exception())
+        when2(minqlx.COMMANDS.handle_input, ANY, ANY, ANY).thenRaise(Exception())
 
         patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.log_exception, lambda: None)
 
-        await self.discord.qlx(context, "exec to minqlx")
+        await self.discord.qlx(context)
 
-        verify(minqlx.COMMANDS).handle_input(any, "exec to minqlx", any)
+        verify(minqlx.COMMANDS).handle_input(ANY, "exec to minqlx", ANY)
         assert_matching_string_send_to_discord_context(context, matches(".*Exception.*"))
 
     def test_is_message_in_relay_or_triggered_channel_in_relay_channel(self):
@@ -966,12 +967,12 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
 
     def test_stop_discord_client(self):
-        self.discord_client.logout = AsyncMock()
+        self.discord_client.close = AsyncMock()
 
         self.discord.stop()
 
-        self.discord_client.change_presence.assert_called_once_with(status="offline")
-        self.discord_client.logout.assert_called_once()
+        self.discord_client.change_presence.assert_called_once_with(status=discord.Status.offline)
+        self.discord_client.close.assert_called_once()
 
     def test_stop_discord_client_discord_not_initialized(self):
         self.discord.discord = None

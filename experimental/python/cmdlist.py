@@ -1,8 +1,11 @@
+import time
+
 import minqlx
 
 from minqlx import Plugin
 
 
+# noinspection PyPep8Naming
 class cmdlist(Plugin):
 
     def __init__(self):
@@ -10,16 +13,12 @@ class cmdlist(Plugin):
 
         self.add_command("cmdlist", self.cmd_cmdlist)
 
-    def cmd_cmdlist(self, player, msg, channel):
-        if self.game is None or self.game.state == "in_progress":
-            player.tell("cmdlist unavailable while a game is running.")
-            return
-
+    def cmd_cmdlist(self, player: minqlx.Player, _msg: str, _channel: minqlx.AbstractChannel) -> None:
         self.thread_reply(player)
 
     @minqlx.thread
-    def thread_reply(self, player):
-        available_commands = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+    def thread_reply(self, player: minqlx.Player) -> None:
+        available_commands: dict[int, list[str]] = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
         for command in minqlx.COMMANDS.commands:
             if not command.is_eligible_player(player, False):
@@ -43,4 +42,6 @@ class cmdlist(Plugin):
             level_colorcode = level % 6 + 1
             player.tell(f"^{level_colorcode}Permission level {level}^7 commands:")
             formatted_commands = f"^7, ^{level_colorcode}".join(available_commands[level])
-            player.tell(f"^{level_colorcode}{formatted_commands}")
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_commands, delimiter=","):
+                player.tell(f"^{level_colorcode}  {line}")
+                time.sleep(0.005)

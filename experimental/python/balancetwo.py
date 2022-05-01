@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import os
 import math
-import time
 import random
 import itertools
 import threading
+import time
+import asyncio
 
 from abc import abstractmethod
 from ast import literal_eval
@@ -21,14 +22,17 @@ from collections import Counter
 from operator import itemgetter
 from typing import Callable, Any, Optional, Iterator, Sequence, TypeVar
 
+from datetime import datetime, timedelta
+
+import aiohttp
 from requests import Session, RequestException, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
-import minqlx
+import minqlx  # type: ignore
 from minqlx import Plugin, Player, AbstractChannel
 
-from minqlx.database import Redis
+from minqlx.database import Redis  # type: ignore
 
 
 SteamId = int
@@ -288,7 +292,7 @@ class balancetwo(Plugin):
         self.kickthreads: dict[SteamId, KickThread] = {}
         self.exceptions: set[SteamId] = set()
 
-        self.jointimes: dict[SteamId, float] = {}
+        self.jointimes: dict[SteamId, datetime] = {}
         self.last_new_player_id: Optional[SteamId] = None
         self.previous_teams: tuple[list[SteamId], list[SteamId]] = ([], [])
 
@@ -401,10 +405,10 @@ class balancetwo(Plugin):
 
     @minqlx.thread
     def fetch_elos_from_all_players(self) -> None:
-        self.fetch_ratings([player.steam_id for player in self.players()])
+        asyncio.run(self.fetch_ratings([player.steam_id for player in self.players()]))
 
-    def fetch_ratings(self, steam_ids: list[SteamId], mapname: str = None) -> None:
-        self.fetch_mapbased_ratings(steam_ids, mapname)
+    async def fetch_ratings(self, steam_ids: list[SteamId], mapname: str = None) -> None:
+        async_requests = []
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
             missing_steam_ids = steam_ids
@@ -412,13 +416,24 @@ class balancetwo(Plugin):
                 rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
                 missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
 
-            rating_results = rating_provider.fetch_elos(missing_steam_ids)
-            if rating_results is not None:
-                self.append_ratings(rating_provider.name, rating_results)
+            async_requests.append(rating_provider.fetch_elos(missing_steam_ids))
 
-    def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None) -> None:
+        mapbased_rating_provider_name, mapbased_fetching = self.fetch_mapbased_ratings(steam_ids, mapname)
+
+        fetched_rating_providers = [TRUSKILLS.name, A_ELO.name, B_ELO.name]
+        if mapbased_rating_provider_name is not None:
+            fetched_rating_providers.append(mapbased_rating_provider_name)
+            async_requests.append(mapbased_fetching)
+
+        results = await asyncio.gather(*async_requests)
+        print(results)
+
+        for rating_provider_name, rating_results in zip(fetched_rating_providers, results):
+            self.append_ratings(rating_provider_name, rating_results)
+
+    def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None):
         if mapname is None and (self.game is None or self.game.map is None):
-            return
+            return None, None
 
         if mapname is None:
             mapname = self.game.map.lower()
@@ -430,11 +445,9 @@ class balancetwo(Plugin):
             missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
 
         if len(missing_steam_ids) == 0:
-            return
+            return None, None
 
-        rating_results = TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
-        if rating_results is not None:
-            self.append_ratings(rating_provider_name, rating_results)
+        return rating_provider_name, TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
 
     def append_ratings(self, rating_provider_name: str, json_result: dict[str, Any]) -> None:
         if json_result is None:
@@ -460,70 +473,85 @@ class balancetwo(Plugin):
 
     @minqlx.thread
     def do_elocheck(self, player: Player, target: str, channel: AbstractChannel) -> None:
-        target_players = self.find_target_player(target)
+        async def _async_elocheck():
+            target_players = self.find_target_player(target)
 
-        target_steam_id = None
+            target_steam_id = None
 
-        if target_players is None or len(target_players) == 0:
-            try:
-                target_steam_id = int(target)
+            if target_players is None or len(target_players) == 0:
+                try:
+                    target_steam_id = int(target)
 
-                if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
-                    player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
+                    if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                        player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
+                        return
+                except ValueError:
+                    player.tell(f"Sorry, but no players matched your tokens: {target}.")
                     return
-            except ValueError:
-                player.tell(f"Sorry, but no players matched your tokens: {target}.")
+
+            if len(target_players) > 1:
+                amount_matched_players = len(target_players)
+                player.tell(f"A total of ^6{amount_matched_players}^7 players matched for {target}:")
+                out = ""
+                for p in target_players:
+                    out += " " * 2
+                    out += f"{p.id}^6:^7 {p.name}\n"
+                player.tell(out[:-1])
                 return
 
-        if len(target_players) > 1:
-            amount_matched_players = len(target_players)
-            player.tell(f"A total of ^6{amount_matched_players}^7 players matched for {target}:")
-            out = ""
-            for p in target_players:
-                out += " " * 2
-                out += f"{p.id}^6:^7 {p.name}\n"
-            player.tell(out[:-1])
-            return
+            if len(target_players) == 1:
+                target_steam_id = target_players.pop().steam_id
 
-        if len(target_players) == 1:
-            target_steam_id = target_players.pop().steam_id
+            if target_steam_id is None:
+                return
 
-        if target_steam_id is None:
-            return
+            reply_func = self.reply_func(player, channel)
 
-        reply_func = self.reply_func(player, channel)
+            used_steam_ids = self.used_steam_ids_for(target_steam_id)
+            aliases = self.fetch_aliases(used_steam_ids)
 
-        used_steam_ids = self.used_steam_ids_for(target_steam_id)
-        aliases = self.fetch_aliases(used_steam_ids)
-        truskill = RatingProvider.from_json(TRUSKILLS.fetch_elos(used_steam_ids))
-        a_elo = RatingProvider.from_json(A_ELO.fetch_elos(used_steam_ids))
-        b_elo = RatingProvider.from_json(B_ELO.fetch_elos(used_steam_ids))
-        map_based_truskill = None
-        if self.game is not None and self.game.map is not None:
-            map_based_truskill = RatingProvider.from_json(
-                TRUSKILLS.fetch_elos(used_steam_ids, headers={"X-QuakeLive-Map": self.game.map.lower()}))
+            async_requests = [
+                TRUSKILLS.fetch_elos(used_steam_ids),
+                A_ELO.fetch_elos(used_steam_ids),
+                B_ELO.fetch_elos(used_steam_ids),
+            ]
+            if self.game is not None and self.game.map is not None:
+                async_requests.append(
+                    TRUSKILLS.fetch_elos(used_steam_ids, headers={"X-QuakeLive-Map": self.game.map.lower()})
+                )
 
-        if target_steam_id in aliases:
-            target_player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill,
-                                                         target_steam_id, aliases=aliases[target_steam_id])
-        else:
-            target_player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill,
-                                                         target_steam_id)
-        reply_func(f"{target_player_elos}^7")
+            results = await asyncio.gather(*async_requests)
 
-        alternative_steam_ids = used_steam_ids[:]
-        alternative_steam_ids.remove(target_steam_id)
-        if len(alternative_steam_ids) == 0:
-            return
+            truskill = RatingProvider.from_json(results[0])
+            a_elo = RatingProvider.from_json(results[1])
+            b_elo = RatingProvider.from_json(results[2])
+            map_based_truskill = None
+            if self.game is not None and self.game.map is not None:
+                map_based_truskill = RatingProvider.from_json(results[3])
 
-        reply_func("Players from the same IPs:\n")
-        for steam_id in alternative_steam_ids:
-            if steam_id in aliases:
-                player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id,
-                                                      aliases=aliases[steam_id])
+            if target_steam_id in aliases:
+                target_player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill,
+                                                             target_steam_id, aliases=aliases[target_steam_id])
             else:
-                player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id)
-            reply_func(f"{player_elos}^7")
+                target_player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill,
+                                                             target_steam_id)
+            reply_func(f"{target_player_elos}^7")
+
+            alternative_steam_ids = used_steam_ids[:]
+            alternative_steam_ids.remove(target_steam_id)
+            if len(alternative_steam_ids) == 0:
+                return
+
+            reply_func("Players from the same IPs:\n")
+            for steam_id in alternative_steam_ids:
+                if steam_id in aliases:
+                    player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id,
+                                                          aliases=aliases[steam_id])
+                else:
+                    player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id)
+                reply_func(f"{player_elos}^7")
+
+        asyncio.run(_async_elocheck())
 
     def find_target_player(self, target: str) -> list[Player]:
         try:
@@ -853,10 +881,10 @@ class balancetwo(Plugin):
 
         return "red"
 
-    def find_time(self, player: Player) -> float:
-        if player.steam_id not in self.jointimes:
-            self.jointimes[player.steam_id] = time.time()
-        return self.jointimes[player.steam_id]
+    def find_time(self, steam_id: SteamId) -> datetime:
+        if steam_id not in self.jointimes:
+            self.jointimes[steam_id] = datetime.now()
+        return self.jointimes[steam_id]
 
     def find_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
         teams = self.teams()
@@ -1309,7 +1337,6 @@ class balancetwo(Plugin):
             return
 
         self.switched_players += self.switch_suggestion.affected_steam_ids()
-        self.vetoed_switches.append(self.switch_suggestion)
         self.switch_suggestion = None
 
     def cmd_veto(self, player: Player, _msg: str, _channel: AbstractChannel):
@@ -1525,10 +1552,14 @@ class balancetwo(Plugin):
         return minqlx.RET_STOP_ALL
 
     def handle_map_change(self, mapname: str, _factory: str) -> None:
-        @minqlx.delay(3)
-        def fetch_ratings_from_newmap(_mapname) -> None:
+        async def fetch_ratings_from_newmap(_mapname) -> None:
             steam_ids = [player.steam_id for player in self.players()]
-            self.fetch_mapbased_ratings(steam_ids, mapname=_mapname)
+            mapbased_rating_provider_name, mapbased_fetching = \
+                self.fetch_mapbased_ratings(steam_ids, mapname=_mapname)
+            if mapbased_rating_provider_name is None:
+                return
+            rating_results = await mapbased_fetching
+            self.append_ratings(mapbased_rating_provider_name, rating_results)
 
         self.vetoed_switches = []
         self.switched_players = []
@@ -1537,7 +1568,7 @@ class balancetwo(Plugin):
         self.ratings = {}
         self.fetch_and_diff_ratings()
 
-        fetch_ratings_from_newmap(mapname.lower())
+        asyncio.run(fetch_ratings_from_newmap(mapname.lower()))
 
         self.clean_up_kickthreads()
 
@@ -1553,37 +1584,35 @@ class balancetwo(Plugin):
 
     @minqlx.thread
     def fetch_and_diff_ratings(self) -> None:
-        for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
-            if rating_provider.name in self.previous_ratings:
-                rating_results = \
-                    rating_provider.fetch_elos(self.previous_ratings[rating_provider.name].rated_steam_ids())
-                if rating_results is None:
-                    continue
+        async def _fetch_and_diff_ratings():
+            rating_providers_fetched = []
+            async_requests = []
+            for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
+                if rating_provider.name in self.previous_ratings:
+                    rating_providers_fetched.append(rating_provider.name)
+                    async_requests.append(
+                        rating_provider.fetch_elos(self.previous_ratings[rating_provider.name].rated_steam_ids()))
 
-                self.append_ratings(rating_provider.name, rating_results)
-                self.rating_diffs[rating_provider.name] = \
-                    RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider.name]
+            if self.previous_map is not None:
+                mapbased_rating_provider_name = f"{self.previous_map} {TRUSKILLS.name}"
+                if mapbased_rating_provider_name in self.previous_ratings:
+                    rating_providers_fetched.append(mapbased_rating_provider_name)
+                    async_requests.append(
+                        TRUSKILLS.fetch_elos(self.previous_ratings[mapbased_rating_provider_name].rated_steam_ids(),
+                                             headers={"X-QuakeLive-Map": self.previous_map}))
 
-        if self.previous_map is None:
-            return
+            results = await asyncio.gather(*async_requests)
+            for rating_provider_name, rating_results in zip(rating_providers_fetched, results):
+                self.append_ratings(rating_provider_name, rating_results)
+                self.rating_diffs[rating_provider_name] = \
+                    RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
 
-        rating_provider_name = f"{self.previous_map} {TRUSKILLS.name}"
-        if rating_provider_name not in self.previous_ratings:
-            return
-
-        rating_results = TRUSKILLS.fetch_elos(self.previous_ratings[rating_provider_name].rated_steam_ids(),
-                                              headers={"X-QuakeLive-Map": self.previous_map})
-        if rating_results is None:
-            return
-
-        self.append_ratings(rating_provider_name, rating_results)
-        self.rating_diffs[rating_provider_name] = \
-            RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
+        asyncio.run(_fetch_and_diff_ratings())
 
     def handle_player_connect(self, player: Player) -> Optional[str]:
         @minqlx.thread
         def fetch_player_elos(_steam_id) -> None:
-            self.fetch_ratings([_steam_id])
+            asyncio.run(self.fetch_ratings([_steam_id]))
             self.schedule_kick_for_players_outside_rating_limits([_steam_id])
 
         if self.get_cvar("qlx_balancetwo_ratingLimit_block", bool):
@@ -1719,11 +1748,12 @@ class balancetwo(Plugin):
             del self.connectthreads[threadname]
 
     def record_join_times(self, steam_id: SteamId) -> None:
+        current_time = datetime.now()
         if steam_id in self.jointimes:
-            if (time.time() - self.jointimes[steam_id]) < 5:
+            if (current_time - self.jointimes[steam_id]) < timedelta(seconds=5):
                 return
 
-        self.jointimes[steam_id] = time.time()
+        self.jointimes[steam_id] = current_time
 
     def schedule_kick_for_players_outside_rating_limits(self, steam_ids: list[SteamId]) -> None:
         if not self.ratingLimit_kick:
@@ -1789,6 +1819,9 @@ class balancetwo(Plugin):
         return False
 
     def handle_player_disconnect(self, player: Player, _reason: str) -> None:
+        if self.last_new_player_id == player.steam_id:
+            self.last_new_player_id = None
+
         if player.steam_id in self.jointimes:
             del self.jointimes[player.steam_id]
 
@@ -1808,12 +1841,12 @@ class balancetwo(Plugin):
 
         if new in ["red", "blue", "any"]:
             privacy_check = self.check_privacy_settings(player)
-            if privacy_check is not None:
+            if privacy_check not in [None, minqlx.RET_NONE]:
                 return privacy_check
 
         if new in ["red", "blue", "any", "free"] and not self.has_exception_to_play(player.steam_id):
             rating_check = self.check_rating_limit(player)
-            if rating_check is not None:
+            if rating_check not in [None, minqlx.RET_NONE]:
                 return rating_check
 
         if self.game.state != "in_progress":
@@ -1950,6 +1983,18 @@ class balancetwo(Plugin):
         return True
 
     def try_auto_rebalance(self, player: Player, old: str, new: str) -> Optional[int]:
+        if not self.auto_rebalance:
+            return minqlx.RET_NONE
+
+        if self.last_new_player_id == player.steam_id and new in ["spectator", "free"]:
+            self.last_new_player_id = None
+
+        if old not in ["spectator", "free"] or new not in ["red", "blue", "any"]:
+            return minqlx.RET_NONE
+
+        if player.steam_id == self.last_new_player_id:
+            return minqlx.RET_NONE
+
         if not self.game:
             return minqlx.RET_NONE
 
@@ -1958,16 +2003,6 @@ class balancetwo(Plugin):
 
         gametype = self.game.type_short
         if gametype not in SUPPORTED_GAMETYPES:
-            return minqlx.RET_NONE
-
-        if not self.auto_rebalance:
-            return minqlx.RET_NONE
-
-        if old not in ["spectator", "free"] or new not in ['red', 'blue', 'any']:
-            return minqlx.RET_NONE
-
-        if player.steam_id == self.last_new_player_id:
-            self.last_new_player_id = None
             return minqlx.RET_NONE
 
         teams = self.teams()
@@ -1982,8 +2017,6 @@ class balancetwo(Plugin):
         if not last_new_player:
             self.last_new_player_id = None
             return minqlx.RET_NONE
-
-        gametype = self.game.type_short
 
         other_than_last_players_team = other_team(last_new_player.team)
         new_player_team = teams[other_than_last_players_team].copy() + [player]
@@ -2030,17 +2063,12 @@ class balancetwo(Plugin):
         team2_avg = self.team_average(gametype, team2_steam_ids, rating_provider=configured_rating_provider)
         return abs(team1_avg - team2_avg)
 
-    def handle_team_switch(self, player: Player, old_team: str, new_team: str) -> None:
+    def handle_team_switch(self, player: Player, _old_team: str, new_team: str) -> None:
         if not player:
             return
 
-        if self.last_new_player_id == player.steam_id and new_team in ["free", "spectator"]:
-            self.last_new_player_id = None
-
         if new_team not in ["red", "blue", "any"]:
             return
-
-        self.try_auto_rebalance(player, old_team, new_team)
 
         self.inform_about_rating_changes(player)
 
@@ -2142,9 +2170,9 @@ class balancetwo(Plugin):
         teams = self.teams()
 
         if len(teams["blue"]) > len(teams["red"]):
-            bigger_team = teams["blue"].copy()
+            bigger_team = teams["blue"]
         elif len(teams["red"]) > len(teams["blue"]):
-            bigger_team = teams["red"].copy()
+            bigger_team = teams["red"]
         else:
             self.msg("Cannot pick last player since there are none.")
             return None
@@ -2175,15 +2203,14 @@ class balancetwo(Plugin):
                 if len(lowest_players2) == 1:
                     lowest_player = lowest_players2[0]
                 else:
-                    lowest_player = max(lowest_players2, key=self.find_time)
+                    lowest_player = max(lowest_players2, key=lambda _player: self.find_time(_player.steam_id))
         else:
             self.msg(f"Picking someone to {self.last_action} based on join times.")
-            lowest_player = max(bigger_team, key=self.find_time)
+            lowest_player = max(bigger_team, key=lambda _player: self.find_time(_player.steam_id))
         self.msg(f"Picked {lowest_player.name} from the {lowest_player.team} team.")
         return lowest_player
 
     def handle_round_start(self, _round_number: int) -> None:
-        self.last_new_player_id = None
         self.in_countdown = False
 
         self.balance_before_round_start()
@@ -2230,8 +2257,16 @@ class balancetwo(Plugin):
 
         moved_to = other_team(bigger_team)
 
+        if self.switch_suggestion is not None:
+            suggestion = self.switch_suggestion
+            relevant_players = [player for player in teams[bigger_team]
+                                if player.steam_id not in suggestion.affected_steam_ids() + self.switched_players]
+        else:
+            relevant_players = [player for player in teams[bigger_team]
+                                if player.steam_id not in self.switched_players]
+
         if (self.game.red_score + self.game.blue_score) < 1:
-            sorted_team = sorted(teams[bigger_team], key=self.find_time, reverse=True)
+            sorted_team = sorted(relevant_players, key=lambda _player: self.find_time(_player.steam_id), reverse=True)
             if abs(team_diff) % 2 == 1 and self.last_action == "spec":
                 return [(sorted_team[0], "spectator")] + \
                        [(player, moved_to) for player in sorted_team[1:amount_players_moved]]
@@ -2239,7 +2274,7 @@ class balancetwo(Plugin):
             return [(player, moved_to) for player in sorted_team[:amount_players_moved]]
 
         sorted_team = sorted(
-            sorted(teams[bigger_team], key=lambda player: player.stats.damage_dealt),
+            sorted(relevant_players, key=lambda player: player.stats.damage_dealt),
             key=lambda player: max(player.score, 0))
 
         if abs(team_diff) % 2 == 1 and self.last_action == "spec":
@@ -2325,23 +2360,17 @@ class SkillRatingProvider:
         self.balance_api = balance_api
         self.timeout = timeout
 
-    def fetch_elos(self, steam_ids: list[SteamId], headers: Optional[dict[str, str]] = None):
+    async def fetch_elos(self, steam_ids: list[SteamId], headers: Optional[dict[str, str]] = None):
         if len(steam_ids) == 0:
             return None
 
         formatted_steam_ids = "+".join([str(steam_id) for steam_id in steam_ids])
         request_url = f"{self.url_base}{self.balance_api}/{formatted_steam_ids}"
-        try:
-            result = requests_retry_session().get(request_url, headers=headers, timeout=self.timeout)
-        except RequestException as exception:
-            # noinspection PyProtectedMember
-            minqlx.get_logger(Plugin._loaded_plugins["balancetwo"])\
-                .debug(f"request exception: {exception}")  # pylint: disable=W0212
-            return None
-
-        if result.status_code != codes.ok:
-            return None
-        return result.json()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(request_url, headers=headers) as result:
+                if result.status != 200:
+                    return None
+                return await result.json()
 
 
 TRUSKILLS = SkillRatingProvider("Truskill", "http://stats.houseofquake.com/", "elo/map_based")
@@ -2549,7 +2578,10 @@ class ConnectThread(threading.Thread):
         self.fetched_result: Optional[dict[str, Any]] = None
 
     def run(self) -> None:
-        self.fetched_result = self.rating_provider.fetch_elos([self._steam_id])
+        async def fetch_ratings():
+            self.fetched_result = await self.rating_provider.fetch_elos([self._steam_id])
+
+        asyncio.run(fetch_ratings())
 
 
 class SuggestionRatingStrategy:
