@@ -474,12 +474,14 @@ class DiscordChannelTests(unittest.TestCase):
         patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
 
         self.client = mock(spec=SimpleAsyncDiscord)
-        when(self.client).send_to_discord_channels(any, any).thenReturn(None)
+        self.client.discord = mock()
+        self.client.discord.loop = mock()
 
         self.author = mocked_user()
         self.author.display_name = "Discord-User"
 
         self.discord_channel = mocked_channel()
+        self.discord_channel.send = AsyncMock()
 
         self.minqlx_discord_channel = DiscordChannel(self.client, self.author, self.discord_channel)
 
@@ -490,7 +492,7 @@ class DiscordChannelTests(unittest.TestCase):
     def test_reply(self):
         self.minqlx_discord_channel.reply("asdf")
 
-        verify(self.client).send_to_discord_channels({self.discord_channel.id}, "asdf")
+        self.discord_channel.send.assert_called_once_with("asdf")
 
 
 class DiscordDummyPlayerTests(unittest.IsolatedAsyncioTestCase):
@@ -499,12 +501,14 @@ class DiscordDummyPlayerTests(unittest.IsolatedAsyncioTestCase):
         patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
 
         self.client = mock(spec=SimpleAsyncDiscord)
-        when(self.client).send_to_discord_channels(any, any).thenReturn(None)
+        self.client.discord = mock()
+        self.client.discord.loop = mock()
 
         self.author = mocked_user()
         self.author.display_name = "Discord-User"
 
         self.discord_channel = mocked_channel()
+        self.discord_channel.send = AsyncMock()
 
         self.dummy_player = DiscordDummyPlayer(self.client, self.author, self.discord_channel)
 
@@ -520,7 +524,7 @@ class DiscordDummyPlayerTests(unittest.IsolatedAsyncioTestCase):
     def test_tell(self):
         self.dummy_player.tell("asdf")
 
-        verify(self.client).send_to_discord_channels({self.discord_channel.id}, "asdf")
+        self.discord_channel.send.assert_called_once_with("asdf")
 
 
 def assert_matching_string_send_to_discord_context(context, matcher):

@@ -489,7 +489,9 @@ class DiscordChannel(minqlx.AbstractChannel):
 
         :param: msg: the message to send to this channel
         """
-        self.client.send_to_discord_channels({self.discord_channel.id}, Plugin.clean_text(msg))
+        asyncio.run_coroutine_threadsafe(
+            self.discord_channel.send(Plugin.clean_text(msg)),
+            loop=self.client.discord.loop)
 
 
 class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
@@ -517,7 +519,9 @@ class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
 
         :param: msg: the msg to send to this player
         """
-        self.client.send_to_discord_channels({self.discord_channel.id}, Plugin.clean_text(msg))
+        asyncio.run_coroutine_threadsafe(
+            self.discord_channel.send(Plugin.clean_text(msg)),
+            loop=self.client.discord.loop)
 
 
 class SimpleAsyncDiscord(threading.Thread):
