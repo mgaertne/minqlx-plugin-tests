@@ -565,7 +565,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
             "qlx_discordExecPrefix": "exec",
             "qlx_discordLogToSeparateLogfile": "0",
             "qlx_discordTriggeredChatMessagePrefix": "",
-            "qlx_discordRelayTeamchatChannelIds": "242"
+            "qlx_discordRelayTeamchatChannelIds": "242",
+            "qlx_discord_extensions": ""
         })
 
         self.logger = mock(spec=logging.Logger)

@@ -59,9 +59,6 @@ class mydiscordbot(minqlx.Plugin):
     qlx_discordReplaceMentions cvars as '0', you can leave it unchecked. By default, this will be enabled and therefore
     mandatory. Check  <https://discordpy.readthedocs.io/en/latest/intents.html#privileged-intents> for a description.
 
-    As of v2.0, make sure to enable 'message content intent' at <https://discord.com/developers/applications/>
-    for your bot. As of discord.py v2.0 (development pre-version) this appears to be necessary.
-
     Uses:
     * qlx_discordBotToken (default: "") The token of the discord bot to use to connect to discord.
     * qlx_discordRelayChannelIds (default: "") Comma separated list of channel ids for full relay.
@@ -103,6 +100,7 @@ class mydiscordbot(minqlx.Plugin):
     * qlx_discordExecPrefix (default: "qlx") command for authenticated users to execute server commands from discord
     * qlx_discordLogToSeparateLogfile (default: "0") enables extended logging for the discord library (logs to
     minqlx_discord.log in the homepath)
+    * qlx_discord_extensions (default: "") discord extensions to load after initializing
     """
 
     def __init__(self, discord_client: SimpleAsyncDiscord = None):
@@ -132,6 +130,7 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordAuthCommand", "auth")
         Plugin.set_cvar_once("qlx_discordExecPrefix", "qlx")
         Plugin.set_cvar_once("qlx_discordLogToSeparateLogfile", "0")
+        Plugin.set_cvar_once("qlx_discord_extensions", "")
 
         # get the actual cvar values from the server
         self.discord_message_filters: set[str] = Plugin.get_cvar("qlx_discordQuakeRelayMessageFilters", set)
@@ -540,7 +539,7 @@ class SimpleAsyncDiscord(threading.Thread):
         super().__init__()
         self.version_information: str = version_information
         self.logger: logging.Logger = logger
-        self.discord: Optional[discord.Client] = None
+        self.discord: Optional[Bot] = None
 
         self.authed_discord_ids: set[int] = set()
         self.auth_attempts: dict[int: int] = {}
@@ -634,9 +633,10 @@ class SimpleAsyncDiscord(threading.Thread):
         members_intent: bool = self.discord_replace_relayed_mentions or self.discord_replace_triggered_mentions
         intents: discord.Intents = \
             discord.Intents(members=members_intent, guilds=True, bans=False, emojis=False, integrations=False,
-                            webhooks=False, invites=False, voice_states=False, presences=False, messages=True,
+                            webhooks=False, invites=False, voice_states=False, presences=True, messages=True,
                             guild_messages=True, dm_messages=True, reactions=False, guild_reactions=False,
-                            dm_reactions=False, typing=False, guild_typing=False, dm_typing=False, message_content=True)
+                            dm_reactions=False, typing=False, guild_typing=False, dm_typing=False, message_content=True,
+                            guild_scheduled_events=True)
 
         # init the bot, and init the main discord interactions
         if self.discord_help_enabled:
@@ -866,6 +866,16 @@ class SimpleAsyncDiscord(threading.Thread):
         Function called once the bot connected. Mainly displays status update from the bot in the game console
         and server logfile, and sets the bot to playing Quake Live on discord.
         """
+        extensions = Plugin.get_cvar("qlx_discord_extensions", list)
+        configured_extensions = []
+        for extension in extensions:
+            if len(extension.strip()) > 0:
+                configured_extensions.append(
+                    self.discord.load_extension(f".{extension}", package="minqlx-plugins.discord_extensions"))
+
+        if len(configured_extensions) > 0:
+            await asyncio.gather(*configured_extensions)
+
         self.logger.info(f"Logged in to discord as: {self.discord.user.name} ({self.discord.user.id})")
         Plugin.msg("Connected to discord")
         await self.discord.change_presence(activity=discord.Game(name="Quake Live"))
