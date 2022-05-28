@@ -60,6 +60,9 @@ def check_playing_activity(bot: Bot) -> None:
 
 
 async def setup(bot: Bot):
+    if not bot.intents.guild_scheduled_events:
+        raise ValueError("client needs guild_scheduled_events for this extension")
+
     schedule.every(1).minute.do(check_playing_activity, bot)
     threading.Thread(target=run_schedule).start()
 
