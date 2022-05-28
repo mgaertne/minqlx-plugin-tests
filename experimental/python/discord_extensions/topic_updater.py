@@ -47,7 +47,7 @@ def game_status_information(game: minqlx.Game) -> str:
     gametype = game.type_short.upper()
 
     # CAUTION: if you change anything on the next line, you may need to change the topic_ending logic in
-    #          :func:`mydiscordbot.update_topic_on_triggered_channels(self, topic)` to keep the right portion
+    #          :func:`TopicUpdater.update_topic_on_triggered_channels(self, topic)` to keep the right portion
     #          of the triggered relay channels' topics!
     return f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) " \
            f"with **{num_players}/{max_players}** players. "
