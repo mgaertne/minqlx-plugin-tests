@@ -21,8 +21,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from ast import literal_eval
-from typing import Optional
+from typing import Optional, Union
 
 import minqlx
 from minqlx import Plugin
@@ -67,13 +66,6 @@ class mydiscordbot(minqlx.Plugin):
     * qlx_discordTriggeredChannelIds (default: "") Comma separated list of channel ids for triggered relay.
     * qlx_discordTriggeredChatMessagePrefix (default: "") Prefix any triggered message from QL with this text portion.
     Useful when running multiple servers on the same host with the same discord connected to.
-    * qlx_discordUpdateTopicOnTriggeredChannels (default: "1") Boolean flag to indicate whether to update the topic with
-    the current game state on triggered relay channels. Your bot needs edit_channel permission for these channels.
-    * qlx_discordKeepTopicSuffixChannelIds (default: "") Comma separated list of channel ids where the topic suffix
-    will be kept upon updating.
-    * qlx_discordUpdateTopicInterval (default: 305) Amount of seconds between automatic topic updates
-    * qlx_discordKeptTopicSuffixes (default: {}) A dictionary of channel_ids for kept topic suffixes and the related
-    suffixes. Make sure to use single quotes for the suffixes.
     * qlx_discordCommandPrefix (default: "!") Command prefix for all commands from discord
     * qlx_discordTriggerTriggeredChannelChat (default: "quakelive") Message prefix for the trigger on triggered relay
     channels.
@@ -93,16 +85,10 @@ class mydiscordbot(minqlx.Plugin):
     sent towards relay channels
     * qlx_discordReplaceMentionsForTriggeredMessages (default: "1") replace mentions (@user and #channel) for triggered
     messages sent towards the triggered channels
-    * qlx_discordAdminPassword (default "supersecret") passwort for remote admin of the server via discord private
-    messages to the discord bot.
-    * qlx_discordAuthCommand (default: "auth") command for authenticating a discord user to the plugin via private
-    message
-    * qlx_discordExecPrefix (default: "qlx") command for authenticated users to execute server commands from discord
     * qlx_discordLogToSeparateLogfile (default: "0") enables extended logging for the discord library (logs to
     minqlx_discord.log in the homepath)
     * qlx_discord_extensions (default: "") discord extensions to load after initializing
     """
-
     def __init__(self, discord_client: SimpleAsyncDiscord = None):
         super().__init__()
 
@@ -112,10 +98,6 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordRelayTeamchatChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChatMessagePrefix", "")
-        Plugin.set_cvar_once("qlx_discordUpdateTopicOnTriggeredChannels", "1")
-        Plugin.set_cvar_once("qlx_discordKeepTopicSuffixChannelIds", "")
-        Plugin.set_cvar_once("qlx_discordUpdateTopicInterval", "305")
-        Plugin.set_cvar_once("qlx_discordKeptTopicSuffixes", "{}")
         Plugin.set_cvar_once("qlx_discordCommandPrefix", "!")
         Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
         Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
@@ -126,9 +108,6 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordQuakeRelayMessageFilters", r"^\!s$, ^\!p$")
         Plugin.set_cvar_once("qlx_discordReplaceMentionsForRelayedMessages", "1")
         Plugin.set_cvar_once("qlx_discordReplaceMentionsForTriggeredMessages", "1")
-        Plugin.set_cvar_once("qlx_discordAdminPassword", "supersecret")
-        Plugin.set_cvar_once("qlx_discordAuthCommand", "auth")
-        Plugin.set_cvar_once("qlx_discordExecPrefix", "qlx")
         Plugin.set_cvar_once("qlx_discordLogToSeparateLogfile", "0")
         Plugin.set_cvar_once("qlx_discord_extensions", "")
 
@@ -251,7 +230,7 @@ class mydiscordbot(minqlx.Plugin):
 
         team_data = ""
         for player in players_by_score:
-            team_data += f"**{mydiscordbot.escape_text_for_discord(player.clean_name)}**({player.score}) "
+            team_data += f"**{discord.utils.escape_markdown(player.clean_name)}**({player.score}) "
 
         return team_data
 
@@ -301,20 +280,8 @@ class mydiscordbot(minqlx.Plugin):
 
         :param: player: the player that connected
         """
-        content = f"_{mydiscordbot.escape_text_for_discord(player.clean_name)} connected._"
+        content = f"_{discord.utils.escape_markdown(player.clean_name)} connected._"
         self.discord.relay_message(content)
-
-    @staticmethod
-    def escape_text_for_discord(text: str) -> str:
-        """
-        Escapes the provided player's name for proper formatting to discord (i.e. replace '*' (asterisks) with a
-        variant to not interfere with discord's formattings.)
-
-        :param: text: the text that shall be escaped for discord chat channels
-        """
-        escaped_text = text.replace('_', r'\_')
-        escaped_text = escaped_text.replace('*', r"\*")
-        return escaped_text
 
     @minqlx.delay(3)
     def handle_player_disconnect(self, player: minqlx.Player, reason: str) -> None:
@@ -328,8 +295,8 @@ class mydiscordbot(minqlx.Plugin):
         if reason in ["disconnected", "timed out", "was kicked", "was kicked."]:
             reason_str = f"{reason}."
         else:
-            reason_str = f"was kicked ({mydiscordbot.escape_text_for_discord(Plugin.clean_text(reason))})."
-        content = f"_{mydiscordbot.escape_text_for_discord(player.clean_name)} {reason_str}_"
+            reason_str = f"was kicked ({discord.utils.escape_markdown(Plugin.clean_text(reason))})."
+        content = f"_{discord.utils.escape_markdown(player.clean_name)} {reason_str}_"
         self.discord.relay_message(content)
 
     def handle_map(self, mapname: str, _factory: str) -> None:
@@ -340,7 +307,7 @@ class mydiscordbot(minqlx.Plugin):
         :param: mapname: the new map
         :param: _factory: the map factory used
         """
-        content = f"*Changing map to {mydiscordbot.escape_text_for_discord(mapname)}...*"
+        content = f"*Changing map to {discord.utils.escape_markdown(mapname)}...*"
         self.discord.relay_message(content)
 
     def handle_vote_started(self, caller: Optional[minqlx.Player], vote: str, args: str) -> None:
@@ -351,9 +318,9 @@ class mydiscordbot(minqlx.Plugin):
         :param: vote: the vote itself, i.e. map change, kick player, etc.
         :param: args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller_name = mydiscordbot.escape_text_for_discord(caller.clean_name) if caller else "The server"
+        caller_name = discord.utils.escape_markdown(caller.clean_name) if caller else "The server"
         content = f"_{caller_name} called a vote: {vote} " \
-                  f"{mydiscordbot.escape_text_for_discord(Plugin.clean_text(args))}_"
+                  f"{discord.utils.escape_markdown(Plugin.clean_text(args))}_"
 
         self.discord.relay_message(content)
 
@@ -468,61 +435,6 @@ class MinqlxHelpCommand(DefaultHelpCommand):
         pass
 
 
-class DiscordChannel(minqlx.AbstractChannel):
-    """
-    a minqlx channel class to respond to from within minqlx for interactions with discord
-    """
-    def __init__(self, client: SimpleAsyncDiscord, author: discord.Member,
-                 discord_channel: [discord.TextChannel | discord.DMChannel]):
-        super().__init__("discord")
-        self.client: SimpleAsyncDiscord = client
-        self.author: discord.Member = author
-        self.discord_channel: [discord.TextChannel | discord.DMChannel] = discord_channel
-
-    def __repr__(self) -> str:
-        return f"{str(self)} {self.author.display_name}"
-
-    def reply(self, msg: str) -> None:
-        """
-        overwrites the ```channel.reply``` function to relay messages to discord
-
-        :param: msg: the message to send to this channel
-        """
-        asyncio.run_coroutine_threadsafe(
-            self.discord_channel.send(Plugin.clean_text(msg)),
-            loop=self.client.discord.loop)
-
-
-class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
-    """
-    a minqlx dummy player class to relay messages to discord
-    """
-    def __init__(self, client: SimpleAsyncDiscord, author: discord.Member,
-                 discord_channel: [discord.TextChannel | discord.DMChannel]):
-        self.client: SimpleAsyncDiscord = client
-        self.author: discord.Member = author
-        self.discord_channel: [discord.TextChannel | discord.DMChannel] = discord_channel
-        super().__init__(name=f"Discord-{author.display_name}")
-
-    @property
-    def steam_id(self) -> int:
-        return minqlx.owner()
-
-    @property
-    def channel(self) -> DiscordChannel:
-        return DiscordChannel(self.client, self.author, self.discord_channel)
-
-    def tell(self, msg: str) -> None:
-        """
-        overwrites the ```player.tell``` function to relay messages to discord
-
-        :param: msg: the msg to send to this player
-        """
-        asyncio.run_coroutine_threadsafe(
-            self.discord_channel.send(Plugin.clean_text(msg)),
-            loop=self.client.discord.loop)
-
-
 class SimpleAsyncDiscord(threading.Thread):
     """
     SimpleAsyncDiscord client which is used to communicate to discord, and provides certain commands in the relay and
@@ -541,9 +453,6 @@ class SimpleAsyncDiscord(threading.Thread):
         self.logger: logging.Logger = logger
         self.discord: Optional[Bot] = None
 
-        self.authed_discord_ids: set[int] = set()
-        self.auth_attempts: dict[int: int] = {}
-
         self.discord_bot_token: str = Plugin.get_cvar("qlx_discordBotToken")
         self.discord_relay_channel_ids: set[int] = \
             SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
@@ -552,13 +461,6 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord_triggered_channel_ids: set[int] = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
         self.discord_triggered_channel_message_prefix: str = Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix")
-        self.discord_update_triggered_channels_topic: bool = \
-            Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
-        self.discord_topic_update_interval: int = Plugin.get_cvar("qlx_discordUpdateTopicInterval", int)
-        self.discord_keep_topic_suffix_channel_ids: set[int] = \
-            SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set))
-        self.discord_kept_topic_suffixes: dict[int, str] = \
-            literal_eval(Plugin.get_cvar("qlx_discordKeptTopicSuffixes", str))
         self.discord_trigger_triggered_channel_chat: str = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_command_prefix: str = Plugin.get_cvar("qlx_discordCommandPrefix")
         self.discord_help_enabled: bool = Plugin.get_cvar("qlx_discordEnableHelp", bool)
@@ -570,9 +472,6 @@ class SimpleAsyncDiscord(threading.Thread):
             Plugin.get_cvar("qlx_discordReplaceMentionsForRelayedMessages", bool)
         self.discord_replace_triggered_mentions: bool = \
             Plugin.get_cvar("qlx_discordReplaceMentionsForTriggeredMessages", bool)
-        self.discord_admin_password: str = Plugin.get_cvar("qlx_discordAdminPassword")
-        self.discord_auth_command: str = Plugin.get_cvar("qlx_discordAuthCommand")
-        self.discord_exec_prefix: str = Plugin.get_cvar("qlx_discordExecPrefix")
 
         extended_logging_enabled: bool = Plugin.get_cvar("qlx_discordLogToSeparateLogfile", bool)
         if extended_logging_enabled:
@@ -659,19 +558,6 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param: discord_bot: the discord_bot to initialize
         """
-        discord_bot.add_command(Command(self.auth, name=self.discord_auth_command,
-                                        checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
-                                                lambda ctx: not self.is_barred_from_auth(ctx)],
-                                        hidden=True,
-                                        pass_context=True,
-                                        help="auth with the bot",
-                                        require_var_positional=True))
-        discord_bot.add_command(Command(self.qlx, name=self.discord_exec_prefix,
-                                        checks=[self.is_private_message, self.is_authed],
-                                        hidden=True,
-                                        pass_context=True,
-                                        help="execute minqlx commands on the server",
-                                        require_var_positional=True))
         discord_bot.add_command(Command(self.trigger_status, name=self.discord_trigger_status,
                                         checks=[self.is_message_in_relay_or_triggered_channel],
                                         pass_context=True,
@@ -698,89 +584,6 @@ class SimpleAsyncDiscord(threading.Thread):
         :param: ctx: the context the trigger happened in
         """
         await ctx.send(f"```{self.version_information}```")
-
-    @staticmethod
-    def is_private_message(ctx: Context) -> bool:
-        """
-        Checks whether a message was sent on a private chat to the bot
-
-        :param: ctx: the context the trigger happened in
-        """
-        return ctx.message.channel.type == ChannelType.private
-
-    def is_authed(self, ctx: Context) -> bool:
-        """
-        Checks whether a user is authed to the bot
-
-        :param: ctx: the context the trigger happened in
-        """
-        return ctx.message.author.id in self.authed_discord_ids
-
-    def is_barred_from_auth(self, ctx: Context) -> bool:
-        """
-        Checks whether an author is currently barred from authentication to the bot
-
-        :param: ctx: the context the trigger happened in
-        """
-        return ctx.message.author.id in self.auth_attempts and self.auth_attempts[ctx.message.author.id] <= 0
-
-    async def auth(self, ctx: Context, *_args, **_kwargs) -> None:
-        """
-        Handles the authentication to the bot via private message
-
-        :param: ctx: the context of the original message sent for authentication
-        :param: password: the password to authenticate
-        """
-        command_length = self.command_length(ctx)
-        password = ctx.message.content[command_length:]
-        if password == self.discord_admin_password:
-            self.authed_discord_ids.add(ctx.message.author.id)
-            await ctx.send(
-                f"You have been successfully authenticated. "
-                f"You can now use {self.discord_command_prefix}{self.discord_exec_prefix} to execute commands.")
-            return
-        # Allow up to 3 attempts for the user's discord id to authenticate.
-        if ctx.message.author.id not in self.auth_attempts:
-            self.auth_attempts[ctx.message.author.id] = 3
-        self.auth_attempts[ctx.message.author.id] -= 1
-        if self.auth_attempts[ctx.message.author.id] > 0:
-            await ctx.send(
-                f"Wrong password. You have {self.auth_attempts[ctx.message.author.id]} attempts left.")
-            return
-
-        # User has reached maximum auth attempts, we will bar her/him from authentication for 5 minutes (300 seconds)
-        bar_delay = 300
-        await ctx.send(
-            f"Maximum authentication attempts reached. "
-            f"You will be barred from authentication for {bar_delay} seconds.")
-
-        def f():
-            del self.auth_attempts[ctx.message.author.id]
-
-        threading.Timer(bar_delay, f).start()
-
-    async def qlx(self, ctx: Context, *_args, **_kwargs) -> None:
-        """
-        Handles exec messages from discord via private message to the bot
-
-        :param: ctx: the context the trigger happened in
-        :param: qlx_command: the command that was sent by the user
-        """
-        @minqlx.next_frame
-        def f():
-            command_length = self.command_length(ctx)
-            qlx_command = ctx.message.content[command_length:].split(" ")
-            try:
-                minqlx.COMMANDS.handle_input(
-                    DiscordDummyPlayer(self, ctx.message.author, ctx.message.channel),
-                    " ".join(qlx_command),
-                    DiscordChannel(self, ctx.message.author, ctx.message.channel))
-            except Exception as e:  # pylint: disable=broad-except
-                send_message = ctx.send(f"{e.__class__.__name__}: {e}")
-                asyncio.run_coroutine_threadsafe(send_message, loop=ctx.bot.loop)
-                minqlx.log_exception()
-
-        f()
 
     def is_message_in_relay_or_triggered_channel(self, ctx: Context) -> bool:
         """
@@ -879,7 +682,6 @@ class SimpleAsyncDiscord(threading.Thread):
         self.logger.info(f"Logged in to discord as: {self.discord.user.name} ({self.discord.user.id})")
         Plugin.msg("Connected to discord")
         await self.discord.change_presence(activity=discord.Game(name="Quake Live"))
-        self._topic_updater()
 
     async def on_message(self, message) -> None:
         """
@@ -909,105 +711,11 @@ class SimpleAsyncDiscord(threading.Thread):
         Might be changed in the future to log those problems to the ´´`minqlx.logger```
         """
 
-    def _topic_updater(self) -> None:
-        try:
-            game = minqlx.Game()
-        except minqlx.NonexistentGameError:
-            return
-        topic = mydiscordbot.game_status_information(game)
-        self.update_topics_on_relay_and_triggered_channels(topic)
-        threading.Timer(self.discord_topic_update_interval, self._topic_updater).start()
-
-    def update_topics_on_relay_and_triggered_channels(self, topic: str) -> None:
-        """
-        Helper function to update the topics on all the relay and all the triggered channels
-
-        :param: topic: the topic to set on all the channels
-        """
-        if not self.is_discord_logged_in():
-            return
-
-        if self.discord_update_triggered_channels_topic:
-            topic_channel_ids = self.discord_relay_channel_ids | self.discord_triggered_channel_ids
-        else:
-            topic_channel_ids = self.discord_relay_channel_ids
-
-        # directly set the topic on channels with no topic suffix
-        self.set_topic_on_discord_channels(topic_channel_ids - self.discord_keep_topic_suffix_channel_ids, topic)
-        # keep the topic suffix on the channels that are configured accordingly
-        self.update_topic_on_channels_and_keep_channel_suffix(
-            topic_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
-
-    def set_topic_on_discord_channels(self, channel_ids: set[int], topic: str) -> None:
-        """
-        Set the topic on a set of channel_ids on discord provided.
-
-        :param: channel_ids: the ids of the channels the topic should be set upon.
-        :param: topic: the new topic that should be set.
-        """
-        # if we were not provided any channel_ids, do nothing.
-        if not channel_ids or len(channel_ids) == 0:
-            return
-
-        # set the topic in its own thread to avoid blocking of the server
-        for channel_id in channel_ids:
-            channel: Optional[discord.TextChannel] = self.discord.get_channel(channel_id)
-
-            if channel is None:
-                continue
-
-            asyncio.run_coroutine_threadsafe(channel.edit(topic=topic), loop=self.discord.loop)
-
     def is_discord_logged_in(self) -> bool:
         if self.discord is None:
             return False
 
         return not self.discord.is_closed() and self.discord.is_ready()
-
-    def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids: set[int], topic: str) -> None:
-        """
-        Updates the topic on the given channels and keeps the topic suffix intact on the configured channels
-
-        :param: channel_ids: the set of channels to update the topic on
-        :param: topic: the topic to set on the given channels
-        """
-        # if there are not triggered relay channels configured, do nothing.
-        if not channel_ids or len(channel_ids) == 0:
-            return
-
-        # take the final 10 characters from the topic, and search for it in the current topic
-        topic_ending = topic[-10:]
-
-        for channel_id in channel_ids:
-            previous_topic = self.get_channel_topic(channel_id)
-
-            if previous_topic is None:
-                previous_topic = topic
-
-            # preserve the original channel's topic.
-            position = previous_topic.find(topic_ending)
-            topic_suffix = previous_topic[position + len(topic_ending):] if position != -1 else previous_topic
-
-            if channel_id in self.discord_kept_topic_suffixes:
-                topic_suffix = self.discord_kept_topic_suffixes[channel_id]
-
-            # update the topic on the triggered channels
-            self.set_topic_on_discord_channels({channel_id}, f"{topic}{topic_suffix}")
-
-    def get_channel_topic(self, channel_id: int) -> Optional[str]:
-        """
-        get the topic of the provided channel id
-
-        :param: channel_id: the id of the channel to get the topic from
-
-        :return: the topic of the channel
-        """
-        channel = self.discord.get_channel(channel_id)
-
-        if channel is None:
-            return None
-
-        return channel.topic
 
     def stop(self) -> None:
         """
@@ -1028,7 +736,7 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         self.send_to_discord_channels(self.discord_relay_channel_ids, msg)
 
-    def send_to_discord_channels(self, channel_ids: set[str | int], content: str) -> None:
+    def send_to_discord_channels(self, channel_ids: set[Union[str, int]], content: str) -> None:
         """
         Send a message to a set of channel_ids on discord provided.
 
@@ -1065,7 +773,8 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = f"**{mydiscordbot.escape_text_for_discord(player.clean_name)}**{channel}: {message}"
+        content = f"**{discord.utils.escape_markdown(player.clean_name)}**{channel}: " \
+                  f"{discord.utils.escape_markdown(message)}"
 
         self.relay_message(content)
 
@@ -1081,7 +790,8 @@ class SimpleAsyncDiscord(threading.Thread):
             message = self.replace_user_mentions(message, player)
             message = self.replace_channel_mentions(message, player)
 
-        content = f"**{mydiscordbot.escape_text_for_discord(player.clean_name)}**{channel}: {message}"
+        content = f"**{discord.utils.escape_markdown(player.clean_name)}**{channel}: " \
+                  f"{discord.utils.escape_markdown(message)}"
 
         self.send_to_discord_channels(self.discord_relay_team_chat_channel_ids, content)
 
@@ -1239,8 +949,10 @@ class SimpleAsyncDiscord(threading.Thread):
         if self.discord_triggered_channel_message_prefix is not None and \
                 self.discord_triggered_channel_message_prefix != "":
             content = f"{self.discord_triggered_channel_message_prefix} " \
-                      f"**{mydiscordbot.escape_text_for_discord(player.clean_name)}**: {message}"
+                      f"**{discord.utils.escape_markdown(player.clean_name)}**: " \
+                      f"{discord.utils.escape_markdown(message)}"
         else:
-            content = f"**{mydiscordbot.escape_text_for_discord(player.clean_name)}**: {message}"
+            content = f"**{discord.utils.escape_markdown(player.clean_name)}**: " \
+                      f"{discord.utils.escape_markdown(message)}"
 
         self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
