@@ -55,6 +55,9 @@ class TriggeredChat(Cog):
                                                        parent=None,
                                                        nsfw=False))
 
+    async def cog_load(self):
+        await self.bot.tree.sync()
+
     def is_message_in_triggered_channel(self, ctx: Context) -> bool:
         """
         Checks whether the message originate in a configured triggered channel

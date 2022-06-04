@@ -161,6 +161,9 @@ class Status(Cog):
 
         super().__init__()
 
+    async def cog_load(self):
+        await self.bot.tree.sync()
+
     def is_message_in_relay_or_triggered_channel(self, ctx: Context) -> bool:
         """
         Checks whether a message was either sent in a configured relay or triggered channel

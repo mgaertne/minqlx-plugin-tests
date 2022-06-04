@@ -89,20 +89,20 @@ class AdminCog(Cog):
         self.discord_auth_command: str = Plugin.get_cvar("qlx_discordAuthCommand")
         self.discord_exec_prefix: str = Plugin.get_cvar("qlx_discordExecPrefix")
 
-        bot.add_command(Command(self.auth, name=self.discord_auth_command,
-                                checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
-                                        lambda ctx: not self.is_barred_from_auth(ctx)],
-                                hidden=True,
-                                pass_context=True,
-                                help="auth with the bot",
-                                require_var_positional=True))
-        bot.add_command(Command(self.qlx, name=self.discord_exec_prefix,
-                                checks=[self.is_private_message, self.is_authed],
-                                hidden=True,
-                                pass_context=True,
-                                help="execute minqlx commands on the server",
-                                require_var_positional=True))
-        bot.tree.add_command(
+        self.bot.add_command(Command(self.auth, name=self.discord_auth_command,
+                                     checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
+                                             lambda ctx: not self.is_barred_from_auth(ctx)],
+                                     hidden=True,
+                                     pass_context=True,
+                                     help="auth with the bot",
+                                     require_var_positional=True))
+        self.bot.add_command(Command(self.qlx, name=self.discord_exec_prefix,
+                                     checks=[self.is_private_message, self.is_authed],
+                                     hidden=True,
+                                     pass_context=True,
+                                     help="execute minqlx commands on the server",
+                                     require_var_positional=True))
+        self.bot.tree.add_command(
             app_commands.Command(name=self.discord_exec_prefix,
                                  description="execute minqlx commands on the server",
                                  callback=self.slash_qlx,
@@ -110,6 +110,9 @@ class AdminCog(Cog):
                                  nsfw=False))
 
         super().__init__()
+
+    async def cog_load(self):
+        await self.bot.tree.sync()
 
     @staticmethod
     def is_private_message(ctx: Context) -> bool:
