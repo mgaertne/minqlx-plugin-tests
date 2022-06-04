@@ -3,8 +3,11 @@ import threading
 import time
 from datetime import timedelta
 
+# noinspection PyPackageRequirements
 from discord import PrivacyLevel, EntityType, EventStatus
+# noinspection PyPackageRequirements
 from discord.utils import utcnow
+# noinspection PyPackageRequirements
 from discord.ext.commands import Bot
 
 import minqlx

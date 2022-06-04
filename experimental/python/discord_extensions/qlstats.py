@@ -1,7 +1,10 @@
 from typing import Union
 
+# noinspection PyPackageRequirements
 from discord import Interaction, Member, User, Embed, Color
+# noinspection PyPackageRequirements
 from discord.ext.commands import Bot
+# noinspection PyPackageRequirements
 from discord import app_commands
 
 from minqlx import Plugin
@@ -19,4 +22,3 @@ async def qlstats(interaction: Interaction, _item: Union[Member, User]) -> None:
 
 async def setup(bot: Bot):
     bot.tree.add_command(qlstats)
-    await bot.tree.sync()

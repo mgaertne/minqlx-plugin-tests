@@ -5,7 +5,9 @@ from typing import Optional
 
 import schedule
 
+# noinspection PyPackageRequirements
 from discord import app_commands, Member, Activity, ActivityType, Interaction, Color, Embed, User
+# noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Cog, GroupCog
 
 import minqlx
@@ -443,6 +445,7 @@ class SubscriberCog(Cog):
         self.notified_steam_ids = [player.steam_id for player in players]
         await asyncio.gather(*notification_actions)
 
+    # noinspection PyMethodMayBeStatic
     def find_relevant_activity(self, member: Member) -> Optional[Activity]:
         for activity in member.activities:
             if activity.type != ActivityType.playing:

@@ -10,15 +10,18 @@ from hamcrest import assert_that, is_
 
 from undecorated import undecorated  # type: ignore
 
-from discord import ChannelType  # type: ignore
+# noinspection PyPackageRequirements
+import discord
+# noinspection PyPackageRequirements
+from discord import ChannelType, User, Message, TextChannel, Status  # type: ignore
+# noinspection PyPackageRequirements
 from discord.ext.commands import Bot  # type: ignore
 
 import minqlx
-import discord
 from mydiscordbot import mydiscordbot, MinqlxHelpCommand, SimpleAsyncDiscord
 
 from minqlx_plugin_test import setup_plugin, setup_game_in_warmup, connected_players, setup_cvars, \
-    assert_plugin_sent_to_console, fake_player, player_that_matches, setup_no_game, setup_game_in_progress, setup_cvar
+    assert_plugin_sent_to_console, fake_player, player_that_matches, setup_no_game, setup_cvar
 
 
 class MyDiscordBotTests(unittest.TestCase):
@@ -397,7 +400,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
 
 def mocked_user(_id=777, name="Some-Discord-User", nick=None):
-    user = mock(spec=discord.User)
+    user = mock(spec=User)
 
     user.id = _id
     user.name = name
@@ -408,7 +411,7 @@ def mocked_user(_id=777, name="Some-Discord-User", nick=None):
 
 
 def mocked_channel(_id=666, name="channel-name", channel_type=ChannelType.text, topic=None):
-    channel = mock(spec=discord.TextChannel)
+    channel = mock(spec=TextChannel)
 
     channel.id = _id
     channel.name = name
@@ -424,7 +427,7 @@ def mocked_channel(_id=666, name="channel-name", channel_type=ChannelType.text, 
 
 
 def mocked_message(content="message content", user=mocked_user(), channel=mocked_channel()):
-    message = mock(spec=discord.Message)
+    message = mock(spec=Message)
 
     message.content = content
     message.clean_content = content
@@ -520,7 +523,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord_client.change_presence = AsyncMock()
 
-        self.discord_client.user = mock(discord.User)
+        self.discord_client.user = mock(User)
         self.discord_client.user.name = "Bot Name"
         self.discord_client.user.id = 24680
 
@@ -611,10 +614,6 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord.initialize_bot(self.discord_client)
 
         self.verify_added_command(name="version", callback=self.discord.version)
-        self.verify_added_command(name="minqlx", callback=self.discord.trigger_status,
-                                  checks=[self.discord.is_message_in_relay_or_triggered_channel])
-        self.verify_added_command(name="trigger", callback=self.discord.triggered_chat,
-                                  checks=[self.discord.is_message_in_triggered_channel])
         verify(self.discord_client).add_listener(self.discord.on_ready)
         verify(self.discord_client).add_listener(self.discord.on_message)
 
@@ -630,81 +629,6 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         await self.discord.version(context)
 
         assert_matching_string_send_to_discord_context(context, "```version information```")
-
-    def test_is_message_in_relay_or_triggered_channel_in_relay_channel(self):
-        context = self.mocked_context(message=mocked_message(channel=self.relay_channel()))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_relay_or_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(True))
-
-    def test_is_message_in_relay_or_triggered_channel_in_triggered_channels(self):
-        context = self.mocked_context(message=mocked_message(channel=self.triggered_channel()))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_relay_or_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(True))
-
-    def test_is_message_in_relay_or_triggered_channel_not_in_any_channels(self):
-        context = self.mocked_context(message=mocked_message(channel=self.uninteresting_channel()))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_relay_or_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(False))
-
-    async def test_status_during_game(self):
-        setup_game_in_progress()
-        connected_players()
-
-        context = self.mocked_context()
-
-        await self.discord.trigger_status(context)
-
-        assert_matching_string_send_to_discord_context(context, matches("Match in progress.*"))
-
-    async def test_status_no_game(self):
-        setup_no_game()
-        connected_players()
-
-        context = self.mocked_context()
-
-        await self.discord.trigger_status(context)
-
-        assert_matching_string_send_to_discord_context(context, "Currently no game running.")
-
-    def test_is_message_in_triggered_channel_not_in_any_channels(self):
-        context = self.mocked_context(message=mocked_message(channel=mocked_channel(_id=987)))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(False))
-
-    def test_is_message_in_triggered_channel_in_triggered_channels(self):
-        context = self.mocked_context(message=mocked_message(channel=self.triggered_channel()))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(True))
-
-    def test_is_message_in_triggered_channel_not_in_any_interesting_channels(self):
-        context = self.mocked_context(message=mocked_message(channel=self.relay_channel()))
-
-        is_message_in_interesting_channel = self.discord.is_message_in_triggered_channel(context)
-
-        assert_that(is_message_in_interesting_channel, is_(False))
-
-    async def test_triggered_chat(self):
-        message = mocked_message(content="%trigger message from discord to minqlx",
-                                 user=mocked_user(_id=456, name="Sender"),
-                                 channel=self.triggered_channel())
-        context = self.mocked_context(message=message, invoked_with="trigger")
-
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
-
-        await self.discord.triggered_chat(context, "message from discord to minqlx")
-
-        verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^5#triggered-channel ^6Sender^7:^2 message from discord to minqlx")
 
     async def test_on_ready(self):
         self.setup_discord_library()
@@ -784,7 +708,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.stop()
 
-        self.discord_client.change_presence.assert_called_once_with(status=discord.Status.offline)
+        self.discord_client.change_presence.assert_called_once_with(status=Status.offline)
         self.discord_client.close.assert_called_once()
 
     def test_stop_discord_client_discord_not_initialized(self):

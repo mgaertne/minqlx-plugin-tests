@@ -3,7 +3,9 @@ import asyncio
 from ast import literal_eval
 from typing import Optional
 
+# noinspection PyPackageRequirements
 from discord import TextChannel
+# noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot
 
 import minqlx

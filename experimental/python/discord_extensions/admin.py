@@ -2,8 +2,11 @@ import asyncio
 from asyncio import AbstractEventLoop
 import threading
 
+# noinspection PyPackageRequirements
 import discord.utils
+# noinspection PyPackageRequirements
 from discord import app_commands, Embed, Color, ChannelType, Interaction, Message, User
+# noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot, Command, Context
 
 import minqlx

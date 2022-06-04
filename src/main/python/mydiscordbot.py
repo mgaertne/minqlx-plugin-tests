@@ -67,10 +67,6 @@ class mydiscordbot(minqlx.Plugin):
     * qlx_discordTriggeredChatMessagePrefix (default: "") Prefix any triggered message from QL with this text portion.
     Useful when running multiple servers on the same host with the same discord connected to.
     * qlx_discordCommandPrefix (default: "!") Command prefix for all commands from discord
-    * qlx_discordTriggerTriggeredChannelChat (default: "quakelive") Message prefix for the trigger on triggered relay
-    channels.
-    * qlx_discordTriggerStatus (default: "status") Trigger for having the bot send the current status of the game
-    server.
     * qlx_discordMessagePrefix (default: "[DISCORD]") messages from discord to quake live will be prefixed with this
     prefix
     * qlx_discordEnableHelp (default: "1") indicates whether the bot will respond to !help or responses are completely
@@ -99,8 +95,6 @@ class mydiscordbot(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChatMessagePrefix", "")
         Plugin.set_cvar_once("qlx_discordCommandPrefix", "!")
-        Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
-        Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
         Plugin.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
         Plugin.set_cvar_once("qlx_discordEnableHelp", "1")
         Plugin.set_cvar_once("qlx_discordEnableVersion", "1")
@@ -461,11 +455,9 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord_triggered_channel_ids: set[int] = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
         self.discord_triggered_channel_message_prefix: str = Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix")
-        self.discord_trigger_triggered_channel_chat: str = Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat")
         self.discord_command_prefix: str = Plugin.get_cvar("qlx_discordCommandPrefix")
         self.discord_help_enabled: bool = Plugin.get_cvar("qlx_discordEnableHelp", bool)
         self.discord_version_enabled: bool = Plugin.get_cvar("qlx_discordEnableVersion", bool)
-        self.discord_trigger_status: str = Plugin.get_cvar("qlx_discordTriggerStatus")
         self.discord_message_prefix: str = Plugin.get_cvar("qlx_discordMessagePrefix")
         self.discord_show_relay_channel_names: bool = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool)
         self.discord_replace_relayed_mentions: bool = \
@@ -558,16 +550,6 @@ class SimpleAsyncDiscord(threading.Thread):
 
         :param: discord_bot: the discord_bot to initialize
         """
-        discord_bot.add_command(Command(self.trigger_status, name=self.discord_trigger_status,
-                                        checks=[self.is_message_in_relay_or_triggered_channel],
-                                        pass_context=True,
-                                        ignore_extra=False,
-                                        help="display current game status information"))
-        discord_bot.add_command(Command(self.triggered_chat, name=self.discord_trigger_triggered_channel_chat,
-                                        checks=[self.is_message_in_triggered_channel],
-                                        pass_context=True,
-                                        help="send [message...] to the Quake Live server",
-                                        require_var_positional=True))
         discord_bot.add_listener(self.on_ready)
         discord_bot.add_listener(self.on_message)
 
@@ -584,66 +566,6 @@ class SimpleAsyncDiscord(threading.Thread):
         :param: ctx: the context the trigger happened in
         """
         await ctx.send(f"```{self.version_information}```")
-
-    def is_message_in_relay_or_triggered_channel(self, ctx: Context) -> bool:
-        """
-        Checks whether a message was either sent in a configured relay or triggered channel
-
-        :param: ctx: the context the trigger happened in
-        """
-        return ctx.message.channel.id in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
-
-    async def trigger_status(self, ctx: Context, *_args, **_kwargs) -> None:
-        """
-        Triggers game status information sent towards the originating channel
-
-        :param: ctx: the context the trigger happened in
-        """
-        try:
-            game = minqlx.Game()
-
-            ginfo = mydiscordbot.get_game_info(game)
-
-            num_players = len(Plugin.players())
-            max_players = game.maxclients
-
-            maptitle = game.map_title if game.map_title else game.map
-            gametype = game.type_short.upper()
-
-            reply = f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) " \
-                    f"with **{num_players}/{max_players}** players. {mydiscordbot.player_data()}"
-        except minqlx.NonexistentGameError:
-            reply = "Currently no game running."
-
-        if self.is_message_in_triggered_channel(ctx):
-            reply = f"{self.discord_triggered_channel_message_prefix} {reply}"
-
-        await ctx.send(reply)
-
-    def is_message_in_triggered_channel(self, ctx: Context) -> bool:
-        """
-        Checks whether the message originate in a configured triggered channel
-
-        :param: ctx: the context the trigger happened in
-        """
-        return ctx.message.channel.id in self.discord_triggered_channel_ids
-
-    async def triggered_chat(self, ctx: Context, *_args, **_kwargs) -> None:
-        """
-        Relays a message from the triggered channels to minqlx
-
-        :param: ctx: the context the trigger happened in
-        :param: _message: the message to send to minqlx
-        """
-        prefix_length = self.command_length(ctx)
-        minqlx.CHAT_CHANNEL.reply(
-            self._format_message_to_quake(ctx.message.channel,
-                                          ctx.message.author,
-                                          ctx.message.clean_content[prefix_length:]))
-
-    @staticmethod
-    def command_length(ctx: Context) -> int:
-        return len(f"{ctx.prefix}{ctx.invoked_with} ")
 
     def _format_message_to_quake(self, channel: discord.TextChannel, author: discord.Member, content: str) -> str:
         """
