@@ -1,9 +1,9 @@
 import asyncio
+from asyncio import AbstractEventLoop
 import threading
-from typing import Union
 
 import discord.utils
-from discord import app_commands, Embed, Color, Member, TextChannel, DMChannel, ChannelType, Interaction
+from discord import app_commands, Embed, Color, ChannelType, Interaction, Message, User
 from discord.ext.commands import Cog, Bot, Command, Context
 
 import minqlx
@@ -14,14 +14,16 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
     """
     a minqlx channel class to respond to from within minqlx for interactions with discord
     """
-    def __init__(self, client: Bot, interaction: Interaction):
-        super().__init__("discord")
-        self.client: Bot = client
-        self.interaction: Interaction = interaction
+    def __init__(self, user: User, message: Message, *, loop: AbstractEventLoop):
+        self.user: User = user
+        self.message: Message = message
+        self.loop: AbstractEventLoop = loop
         self.embed = Embed(color=Color.red())
 
+        super().__init__(name=f"Discord-{self.user.display_name}")
+
     def __repr__(self) -> str:
-        return f"{str(self)} {self.interaction.user.display_name}"
+        return f"{str(self)} {self.user.display_name}"
 
     @property
     def steam_id(self) -> int:
@@ -37,7 +39,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         else:
             self.embed.description = f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
 
-        await self.interaction.edit_original_message(embed=self.embed)
+        await self.message.edit(embed=self.embed)
 
     def tell(self, msg: str) -> None:
         """
@@ -47,7 +49,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         """
         asyncio.run_coroutine_threadsafe(
             self.expand_original_reply(content=Plugin.clean_text(msg)),
-            loop=self.client.loop)
+            loop=self.loop)
 
     def reply(self, msg: str) -> None:
         """
@@ -57,60 +59,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         """
         asyncio.run_coroutine_threadsafe(
             self.expand_original_reply(content=Plugin.clean_text(msg)),
-            loop=self.client.loop)
-
-
-class DiscordChannel(minqlx.AbstractChannel):
-    """
-    a minqlx channel class to respond to from within minqlx for interactions with discord
-    """
-    def __init__(self, client: Bot, author: Member, discord_channel: Union[TextChannel, DMChannel]):
-        super().__init__("discord")
-        self.client: Bot = client
-        self.author: Member = author
-        self.discord_channel: Union[TextChannel, DMChannel] = discord_channel
-
-    def __repr__(self) -> str:
-        return f"{str(self)} {self.author.display_name}"
-
-    def reply(self, msg: str) -> None:
-        """
-        overwrites the ```channel.reply``` function to relay messages to discord
-
-        :param: msg: the message to send to this channel
-        """
-        asyncio.run_coroutine_threadsafe(
-            self.discord_channel.send(discord.utils.escape_markdown(Plugin.clean_text(msg))),
-            loop=self.client.loop)
-
-
-class DiscordDummyPlayer(minqlx.AbstractDummyPlayer):
-    """
-    a minqlx dummy player class to relay messages to discord
-    """
-    def __init__(self, client: Bot, author: Member, discord_channel: Union[TextChannel, DMChannel]):
-        self.client: Bot = client
-        self.author: Member = author
-        self.discord_channel: Union[TextChannel, DMChannel] = discord_channel
-        super().__init__(name=f"Discord-{author.display_name}")
-
-    @property
-    def steam_id(self) -> int:
-        return minqlx.owner()
-
-    @property
-    def channel(self) -> minqlx.AbstractChannel:
-        return DiscordChannel(self.client, self.author, self.discord_channel)
-
-    def tell(self, msg: str) -> None:
-        """
-        overwrites the ```player.tell``` function to relay messages to discord
-
-        :param: msg: the msg to send to this player
-        """
-        asyncio.run_coroutine_threadsafe(
-            self.discord_channel.send(discord.utils.escape_markdown(Plugin.clean_text(msg))),
-            loop=self.client.loop)
+            loop=self.loop)
 
 
 class AdminCog(Cog):
@@ -150,6 +99,12 @@ class AdminCog(Cog):
                                 pass_context=True,
                                 help="execute minqlx commands on the server",
                                 require_var_positional=True))
+        bot.tree.add_command(
+            app_commands.Command(name=self.discord_exec_prefix,
+                                 description="execute minqlx commands on the server",
+                                 callback=self.slash_qlx,
+                                 parent=None,
+                                 nsfw=False))
 
         super().__init__()
 
@@ -223,23 +178,21 @@ class AdminCog(Cog):
         :param: ctx: the context the trigger happened in
         :param: qlx_command: the command that was sent by the user
         """
-        @minqlx.next_frame
-        def f():
-            command_length = self.command_length(ctx)
-            qlx_command = ctx.message.content[command_length:].split(" ")
-            try:
-                minqlx.COMMANDS.handle_input(
-                    DiscordDummyPlayer(ctx.bot, ctx.message.author, ctx.message.channel),
-                    " ".join(qlx_command),
-                    DiscordChannel(ctx.bot, ctx.message.author, ctx.message.channel))
-            except Exception as e:  # pylint: disable=broad-except
-                send_message = ctx.send(f"{e.__class__.__name__}: {e}")
-                asyncio.run_coroutine_threadsafe(send_message, loop=ctx.bot.loop)
-                minqlx.log_exception()
+        command_length = self.command_length(ctx)
+        qlx_command = ctx.message.content[command_length:]
+        message = await ctx.reply(content=f"executing command `{qlx_command}`", ephemeral=False)
+        self.execute_qlx_command(ctx.author, message, qlx_command)
 
-        f()
+    @minqlx.next_frame
+    def execute_qlx_command(self, user: discord.User, message: Message, qlx_command: str):
+        discord_interaction = DiscordInteractionChannel(user, message, loop=self.bot.loop)
+        try:
+            minqlx.COMMANDS.handle_input(discord_interaction, qlx_command, discord_interaction)
+        except Exception as e:  # pylint: disable=broad-except
+            send_message = message.edit(content=f"{e.__class__.__name__}: {e}")
+            asyncio.run_coroutine_threadsafe(send_message, loop=self.bot.loop)
+            minqlx.log_exception()
 
-    @app_commands.command(name="qlx", description="execute minqlx commands on the server")
     @app_commands.describe(command="minqlx ommand to execute on the server")
     async def slash_qlx(self, interaction: Interaction, command: str):
         if interaction.user.id not in self.authed_discord_ids:
@@ -247,19 +200,10 @@ class AdminCog(Cog):
                                                     ephemeral=interaction.channel.guild is not None)
             return
 
-        @minqlx.next_frame
-        def f():
-            discord_interaction = DiscordInteractionChannel(self.bot, interaction)
-            try:
-                minqlx.COMMANDS.handle_input(discord_interaction, command, discord_interaction)
-            except Exception as e:  # pylint: disable=broad-except
-                send_message = interaction.edit_original_message(content=f"{e.__class__.__name__}: {e}")
-                asyncio.run_coroutine_threadsafe(send_message, loop=self.bot.loop)
-                minqlx.log_exception()
-
-        await interaction.response.send_message(content=f"executing command {command}",
+        await interaction.response.send_message(content=f"executing command `{command}`",
                                                 ephemeral=interaction.channel.guild is not None)
-        f()
+        message = await interaction.original_message()
+        self.execute_qlx_command(interaction.user, message, command)
 
 
 async def setup(bot: Bot):
