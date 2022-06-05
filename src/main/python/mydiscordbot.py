@@ -592,18 +592,17 @@ class SimpleAsyncDiscord(threading.Thread):
         and server logfile, and sets the bot to playing Quake Live on discord.
         """
         extensions = Plugin.get_cvar("qlx_discord_extensions", list)
-        configured_extensions = []
+        ready_actions = []
         for extension in extensions:
             if len(extension.strip()) > 0:
-                configured_extensions.append(
+                ready_actions.append(
                     self.discord.load_extension(f".{extension}", package="minqlx-plugins.discord_extensions"))
-
-        if len(configured_extensions) > 0:
-            await asyncio.gather(*configured_extensions)
 
         self.logger.info(f"Logged in to discord as: {self.discord.user.name} ({self.discord.user.id})")
         Plugin.msg("Connected to discord")
-        await self.discord.change_presence(activity=discord.Game(name="Quake Live"))
+
+        ready_actions.append(self.discord.change_presence(activity=discord.Game(name="Quake Live")))
+        await asyncio.gather(*ready_actions)
 
     async def on_message(self, message) -> None:
         """

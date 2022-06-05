@@ -186,6 +186,7 @@ class Status(Cog):
         await ctx.reply(reply)
 
     # noinspection PyMethodMayBeStatic
+    @app_commands.guild_only()
     async def slash_trigger_status(self, interaction: Interaction) -> None:
         """
         Triggers game status information sent towards the originating channel
