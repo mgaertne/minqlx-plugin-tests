@@ -10,7 +10,6 @@ from discord.utils import utcnow
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot
 
-import minqlx
 from minqlx import Plugin
 
 import schedule
@@ -39,27 +38,19 @@ async def end_event(bot: Bot):
             await scheduled_event.edit(
                 name=scheduled_event.name,
                 description=scheduled_event.description,
-                channel=scheduled_event.channel,
-                start_time=scheduled_event.start_time,
                 end_time=end_date,
                 privacy_level=scheduled_event.privacy_level,
                 entity_type=EntityType.external,
-                status=EventStatus.ended,
+                status=EventStatus.active,
                 location=scheduled_event.location)
 
 
 def check_playing_activity(bot: Bot) -> None:
-    try:
-        game = minqlx.Game()
-    except minqlx.NonexistentGameError:
-        return
-
-    if game.state == "in_progress":
+    players = Plugin.players()
+    if len(players) == 0:
+        asyncio.run_coroutine_threadsafe(end_event(bot), loop=bot.loop)
+    else:
         asyncio.run_coroutine_threadsafe(create_and_start_event(bot), loop=bot.loop)
-
-#    players = Plugin.players()
-#    if len(players) == 0:
-#        asyncio.run_coroutine_threadsafe(end_event(bot), loop=bot.loop)
 
 
 async def setup(bot: Bot):
