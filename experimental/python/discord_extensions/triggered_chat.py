@@ -50,7 +50,7 @@ class TriggeredChat(Cog):
 
         # noinspection PyTypeChecker
         slash_triggered_chat_command = app_commands.Command(name=self.discord_trigger_triggered_channel_chat,
-                                                            description="send [message...] to the Quake Live server",
+                                                            description="send a message to the Quake Live server",
                                                             callback=self.slash_triggered_chat, parent=None, nsfw=False)
         slash_triggered_chat_command.guild_only = True
         self.bot.tree.add_command(slash_triggered_chat_command)
