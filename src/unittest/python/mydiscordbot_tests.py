@@ -522,6 +522,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord_client = mock(spec=Bot)
 
         self.discord_client.change_presence = AsyncMock()
+        self.discord_client.tree = mock(spec=discord.app_commands.CommandTree)
+        self.discord_client.tree.sync = AsyncMock()
 
         self.discord_client.user = mock(User)
         self.discord_client.user.name = "Bot Name"

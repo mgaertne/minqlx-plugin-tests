@@ -111,9 +111,6 @@ class AdminCog(Cog):
 
         super().__init__()
 
-    async def cog_load(self):
-        await self.bot.tree.sync()
-
     @staticmethod
     def is_private_message(ctx: Context) -> bool:
         """

@@ -22,4 +22,3 @@ async def qlstats(interaction: Interaction, _item: Union[Member, User]) -> None:
 
 async def setup(bot: Bot):
     bot.tree.add_command(qlstats)
-    await bot.tree.sync()

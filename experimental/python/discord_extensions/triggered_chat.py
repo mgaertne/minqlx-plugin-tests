@@ -49,14 +49,11 @@ class TriggeredChat(Cog):
                                      require_var_positional=True))
 
         # noinspection PyTypeChecker
-        self.bot.tree.add_command(app_commands.Command(name=self.discord_trigger_triggered_channel_chat,
-                                                       description="send [message...] to the Quake Live server",
-                                                       callback=self.slash_triggered_chat,
-                                                       parent=None,
-                                                       nsfw=False))
-
-    async def cog_load(self):
-        await self.bot.tree.sync()
+        slash_triggered_chat_command = app_commands.Command(name=self.discord_trigger_triggered_channel_chat,
+                                                            description="send [message...] to the Quake Live server",
+                                                            callback=self.slash_triggered_chat, parent=None, nsfw=False)
+        slash_triggered_chat_command.guild_only = True
+        self.bot.tree.add_command(slash_triggered_chat_command)
 
     def is_message_in_triggered_channel(self, ctx: Context) -> bool:
         """
@@ -84,7 +81,6 @@ class TriggeredChat(Cog):
                                           ctx.message.clean_content[prefix_length:]))
 
     @app_commands.describe(message="message to send to the server")
-    @app_commands.guild_only()
     async def slash_triggered_chat(self, interaction: Interaction, message: str) -> None:
         channel = interaction.channel
         if not isinstance(channel, GuildChannel):

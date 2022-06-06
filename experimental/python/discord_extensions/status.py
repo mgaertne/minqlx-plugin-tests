@@ -153,16 +153,13 @@ class Status(Cog):
                                      help="display current game status information"))
 
         # noinspection PyTypeChecker
-        self.bot.tree.add_command(app_commands.Command(name=self.discord_trigger_status,
-                                                       description="display current game status information",
-                                                       callback=self.slash_trigger_status,
-                                                       parent=None,
-                                                       nsfw=False))
+        slash_status_command = app_commands.Command(name=self.discord_trigger_status,
+                                                    description="display current game status information",
+                                                    callback=self.slash_trigger_status, parent=None, nsfw=False)
+        slash_status_command.guild_only = True
+        self.bot.tree.add_command(slash_status_command)
 
         super().__init__()
-
-    async def cog_load(self):
-        await self.bot.tree.sync()
 
     def is_message_in_relay_or_triggered_channel(self, ctx: Context) -> bool:
         """
@@ -186,7 +183,6 @@ class Status(Cog):
         await ctx.reply(reply)
 
     # noinspection PyMethodMayBeStatic
-    @app_commands.guild_only()
     async def slash_trigger_status(self, interaction: Interaction) -> None:
         """
         Triggers game status information sent towards the originating channel

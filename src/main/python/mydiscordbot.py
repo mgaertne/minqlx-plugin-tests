@@ -60,6 +60,7 @@ class mydiscordbot(minqlx.Plugin):
 
     Uses:
     * qlx_discordBotToken (default: "") The token of the discord bot to use to connect to discord.
+    * qlx_discordApplicationId (default: "") The application id of the discord bot. Mandatory for syncing slash commands
     * qlx_discordRelayChannelIds (default: "") Comma separated list of channel ids for full relay.
     * qlx_discordRelayTeamchatChannelIds (default: "") Comma separated list of channel ids for relaying team chat
     messages.
@@ -90,6 +91,7 @@ class mydiscordbot(minqlx.Plugin):
 
         # maybe initialize plugin cvars
         Plugin.set_cvar_once("qlx_discordBotToken", "")
+        Plugin.set_cvar_once("qlx_discordApplicationId", "")
         Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
         Plugin.set_cvar_once("qlx_discordRelayTeamchatChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
@@ -448,6 +450,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord: Optional[Bot] = None
 
         self.discord_bot_token: str = Plugin.get_cvar("qlx_discordBotToken")
+        self.discord_application_id: str = Plugin.get_cvar("qlx_discordApplicationId", int)
         self.discord_relay_channel_ids: set[int] = \
             SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
         self.discord_relay_team_chat_channel_ids: set[int] = SimpleAsyncDiscord.int_set(
@@ -532,10 +535,12 @@ class SimpleAsyncDiscord(threading.Thread):
         # init the bot, and init the main discord interactions
         if self.discord_help_enabled:
             self.discord = Bot(command_prefix=self.discord_command_prefix,
+                               application_id=self.discord_application_id,
                                description=f"{self.version_information}",
                                help_command=MinqlxHelpCommand(), loop=loop, intents=intents)
         else:
             self.discord = Bot(command_prefix=self.discord_command_prefix,
+                               application_id=self.discord_application_id,
                                description=f"{self.version_information}",
                                help_command=None, loop=loop, intents=intents)
 
@@ -603,6 +608,8 @@ class SimpleAsyncDiscord(threading.Thread):
 
         ready_actions.append(self.discord.change_presence(activity=discord.Game(name="Quake Live")))
         await asyncio.gather(*ready_actions)
+        await self.discord.tree.sync()
+        self.logger.info("Application command tree synced!")
 
     async def on_message(self, message) -> None:
         """

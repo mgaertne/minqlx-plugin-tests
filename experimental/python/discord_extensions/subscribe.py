@@ -78,9 +78,6 @@ class SubscriberCog(Cog):
 
         return returned
 
-    async def cog_load(self) -> None:
-        await self.bot.tree.sync()
-
     @subscribe_group.command(name="map", description="Get notified when your favorite maps are played")
     @app_commands.describe(mapname="the name of the map to subscribe to")
     @app_commands.guild_only()

@@ -12,4 +12,3 @@ async def slap(interaction: Interaction, member: Member):
 
 async def setup(bot: Bot):
     bot.tree.add_command(slap)
-    await bot.tree.sync()
