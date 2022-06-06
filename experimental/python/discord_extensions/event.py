@@ -25,7 +25,9 @@ async def create_and_start_event(bot: Bot):
     start_date = utcnow() + timedelta(seconds=1)
     end_date = utcnow() + timedelta(hours=8)
     await bot.guilds[0].create_scheduled_event(
-        name=event_name, privacy_level=PrivacyLevel.guild_only, start_time=start_date, end_time=end_date,
+        name=event_name, privacy_level=PrivacyLevel.guild_only,
+        start_time=start_date,
+        end_time=end_date,
         entity_type=EntityType.external,
         location=event_location)
 
