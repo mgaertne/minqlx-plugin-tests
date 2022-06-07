@@ -474,7 +474,8 @@ class SubscriberCog(Cog):
                     continue
 
                 notifications.append(informed_user.send(
-                    content=f"{after.mention}, a discord user you are subscribed to, just started playing Quake Live."))
+                    content=f"{after.display_name}, a discord user you are subscribed to, "
+                            f"just started playing Quake Live."))
 
         await asyncio.gather(*notifications)
 
