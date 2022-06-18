@@ -220,7 +220,7 @@ class elocheck(Plugin):
     def handle_player_connect(self, player):
         @minqlx.thread
         def fetch_player_elos(_player):
-            self.fetch_ratings([_player.steam_id])
+            asyncio.run(self.fetch_ratings([_player.steam_id]))
 
         fetch_player_elos(player)
 
