@@ -8,4 +8,5 @@ redis
 requests
 zmq
 aiohttp
+aiohttp_retry
 schedule

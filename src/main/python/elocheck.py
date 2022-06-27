@@ -10,11 +10,14 @@ from __future__ import annotations
 import asyncio
 from typing import Optional, Any, Callable
 
+import aiohttp
+from aiohttp import ClientTimeout
+from aiohttp_retry import RetryClient, ExponentialRetry
+
 import minqlx
 from minqlx import Player, AbstractChannel, Plugin
 from minqlx.database import Redis
 
-import aiohttp
 from requests import Session, RequestException, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
@@ -140,9 +143,11 @@ class elocheck(Plugin):
             fetched_rating_providers.append(mapbased_rating_provider_name)
             async_requests.append(mapbased_fetching)
 
-        results = await asyncio.gather(*async_requests)
+        results = await asyncio.gather(*async_requests, return_exceptions=True)
 
         for rating_provider_name, rating_results in zip(fetched_rating_providers, results):
+            if isinstance(rating_results, BaseException):
+                continue
             self.append_ratings(rating_provider_name, rating_results)
 
     def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None):
@@ -209,8 +214,10 @@ class elocheck(Plugin):
                         TRUSKILLS.fetch_elos(self.previous_ratings[mapbased_rating_provider_name].rated_steam_ids(),
                                              headers={"X-QuakeLive-Map": self.previous_map}))
 
-            results = await asyncio.gather(*async_requests)
+            results = await asyncio.gather(*async_requests, return_exceptions=True)
             for rating_provider_name, rating_results in zip(rating_providers_fetched, results):
+                if isinstance(rating_results, BaseException):
+                    continue
                 self.append_ratings(rating_provider_name, rating_results)
                 self.rating_diffs[rating_provider_name] = \
                     RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
@@ -350,13 +357,13 @@ class elocheck(Plugin):
                     TRUSKILLS.fetch_elos(used_steam_ids, headers={"X-QuakeLive-Map": self.game.map.lower()})
                 )
 
-            results = await asyncio.gather(*async_requests)
+            results = await asyncio.gather(*async_requests, return_exceptions=True)
 
-            truskill = RatingProvider.from_json(results[0])
-            a_elo = RatingProvider.from_json(results[1])
-            b_elo = RatingProvider.from_json(results[2])
+            truskill = RatingProvider.from_json(results[0]) if not isinstance(results[0], Exception) else None
+            a_elo = RatingProvider.from_json(results[1]) if not isinstance(results[1], Exception) else None
+            b_elo = RatingProvider.from_json(results[2]) if not isinstance(results[2], Exception) else None
             map_based_truskill = None
-            if self.game is not None and self.game.map is not None:
+            if self.game is not None and self.game.map is not None and not isinstance(results[3], BaseException):
                 map_based_truskill = RatingProvider.from_json(results[3])
 
             if target_steam_id in aliases:
@@ -469,15 +476,15 @@ class elocheck(Plugin):
                 formatted_mapname = self.game.map.lower()
                 result += " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}\n"
 
-        formatted_truskills = truskill.format_elos(steam_id)
+        formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
         if formatted_truskills is not None and len(formatted_truskills) > 0:
             result += " " * indent + "  " + f"Truskills: {formatted_truskills}\n"
 
-        formatted_a_elos = a_elo.format_elos(steam_id)
+        formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
             result += " " * indent + "  " + f"Elos: {formatted_a_elos}\n"
 
-        formatted_b_elos = b_elo.format_elos(steam_id)
+        formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
             result += " " * indent + "  " + f"B-Elos: {formatted_b_elos}\n"
 
@@ -596,11 +603,15 @@ class SkillRatingProvider:
 
         formatted_steam_ids = "+".join([str(steam_id) for steam_id in steam_ids])
         request_url = f"{self.url_base}{self.balance_api}/{formatted_steam_ids}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(request_url, headers=headers) as result:
-                if result.status != 200:
-                    return None
-                return await result.json()
+        retry_options = ExponentialRetry(attempts=3, factor=0.1,
+                                         statuses={500, 502, 504},
+                                         exceptions={aiohttp.ClientResponseError, aiohttp.ClientPayloadError})
+        retry_client = RetryClient(raise_for_status=False, retry_options=retry_options,
+                                   timeout=ClientTimeout(total=5, connect=3, sock_connect=3, sock_read=5))
+        async with retry_client.get(request_url, headers=headers) as result:
+            if result.status != 200:
+                return None
+            return await result.json()
 
 
 TRUSKILLS = SkillRatingProvider("Truskill", "http://stats.houseofquake.com/", "elo/map_based")

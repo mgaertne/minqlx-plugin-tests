@@ -24,7 +24,10 @@ from typing import Callable, Any, Optional, Iterator, Sequence, TypeVar
 
 from datetime import datetime, timedelta
 
-import aiohttp
+import aiohttp.client_exceptions
+from aiohttp import ClientTimeout
+from aiohttp_retry import RetryClient, ExponentialRetry
+
 from requests import Session, RequestException, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
@@ -425,10 +428,12 @@ class balancetwo(Plugin):
             fetched_rating_providers.append(mapbased_rating_provider_name)
             async_requests.append(mapbased_fetching)
 
-        results = await asyncio.gather(*async_requests)
+        results = await asyncio.gather(*async_requests, return_exceptions=True)
         print(results)
 
         for rating_provider_name, rating_results in zip(fetched_rating_providers, results):
+            if isinstance(rating_results, BaseException):
+                continue
             self.append_ratings(rating_provider_name, rating_results)
 
     def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None):
@@ -520,13 +525,13 @@ class balancetwo(Plugin):
                     TRUSKILLS.fetch_elos(used_steam_ids, headers={"X-QuakeLive-Map": self.game.map.lower()})
                 )
 
-            results = await asyncio.gather(*async_requests)
+            results = await asyncio.gather(*async_requests, return_exceptions=True)
 
-            truskill = RatingProvider.from_json(results[0])
-            a_elo = RatingProvider.from_json(results[1])
-            b_elo = RatingProvider.from_json(results[2])
+            truskill = RatingProvider.from_json(results[0]) if not isinstance(results[0], Exception) else None
+            a_elo = RatingProvider.from_json(results[1]) if not isinstance(results[1], Exception) else None
+            b_elo = RatingProvider.from_json(results[2]) if not isinstance(results[2], Exception) else None
             map_based_truskill = None
-            if self.game is not None and self.game.map is not None:
+            if self.game is not None and self.game.map is not None and not isinstance(results[3], BaseException):
                 map_based_truskill = RatingProvider.from_json(results[3])
 
             if target_steam_id in aliases:
@@ -639,15 +644,15 @@ class balancetwo(Plugin):
                 formatted_mapname = self.game.map.lower()
                 result += " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}\n"
 
-        formatted_truskills = truskill.format_elos(steam_id)
+        formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
         if formatted_truskills is not None and len(formatted_truskills) > 0:
             result += " " * indent + "  " + f"Truskills: {formatted_truskills}\n"
 
-        formatted_a_elos = a_elo.format_elos(steam_id)
+        formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
             result += " " * indent + "  " + f"Elos: {formatted_a_elos}\n"
 
-        formatted_b_elos = b_elo.format_elos(steam_id)
+        formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
             result += " " * indent + "  " + f"B-Elos: {formatted_b_elos}\n"
 
@@ -945,6 +950,8 @@ class balancetwo(Plugin):
     def find_large_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
         gametype = self.game.type_short
 
+        minimum_suggestion_diff, minimum_suggestion_stddev_diff = self.minimum_suggestion_parameters()
+
         configured_rating_provider_name = self.configured_rating_provider_name()
         if configured_rating_provider_name not in self.ratings:
             self.logger.debug(f"Balancing aborted. No ratings found for {configured_rating_provider_name}.")
@@ -983,7 +990,14 @@ class balancetwo(Plugin):
                                                      rating_provider=configured_rating_provider)
             option2_diff = abs(option2_red_average - option2_blue_average)
 
-            if option1_diff < option2_diff:
+            if option1_diff - option2_diff < minimum_suggestion_diff:
+                if random.choice(range(100)) > 50:
+                    red_steam_ids.append(player1)
+                    blue_steam_ids.append(player2)
+                else:
+                    red_steam_ids.append(player2)
+                    blue_steam_ids.append(player1)
+            elif option1_diff < option2_diff:
                 red_steam_ids.append(player1)
                 blue_steam_ids.append(player2)
             else:
@@ -1601,8 +1615,10 @@ class balancetwo(Plugin):
                         TRUSKILLS.fetch_elos(self.previous_ratings[mapbased_rating_provider_name].rated_steam_ids(),
                                              headers={"X-QuakeLive-Map": self.previous_map}))
 
-            results = await asyncio.gather(*async_requests)
+            results = await asyncio.gather(*async_requests, return_exceptions=True)
             for rating_provider_name, rating_results in zip(rating_providers_fetched, results):
+                if isinstance(rating_results, BaseException):
+                    continue
                 self.append_ratings(rating_provider_name, rating_results)
                 self.rating_diffs[rating_provider_name] = \
                     RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
@@ -2212,6 +2228,7 @@ class balancetwo(Plugin):
 
     def handle_round_start(self, _round_number: int) -> None:
         self.in_countdown = False
+        self.last_new_player_id = None
 
         self.balance_before_round_start()
 
@@ -2240,6 +2257,7 @@ class balancetwo(Plugin):
     def find_player_movements_to_even_teams(self):
         teams = self.teams()
 
+        self.logger.debug(f"{len(teams['red']) = } {len(teams['blue']) = }")
         if len(teams["red"]) == len(teams["blue"]):
             return []
 
@@ -2256,6 +2274,8 @@ class balancetwo(Plugin):
             bigger_team = "blue"
 
         moved_to = other_team(bigger_team)
+
+        self.logger.debug(f"{team_diff = } {amount_players_moved = } {bigger_team = } {moved_to = }")
 
         if self.switch_suggestion is not None:
             suggestion = self.switch_suggestion
@@ -2354,6 +2374,8 @@ FILTERED_OUT_GAMETYPE_RESPONSES = ["steamid"]
 
 
 class SkillRatingProvider:
+    __slots__ = ("name", "url_base", "balance_api", "timeout")
+
     def __init__(self, name, url_base, balance_api, timeout=7):
         self.name = name
         self.url_base = url_base
@@ -2366,11 +2388,15 @@ class SkillRatingProvider:
 
         formatted_steam_ids = "+".join([str(steam_id) for steam_id in steam_ids])
         request_url = f"{self.url_base}{self.balance_api}/{formatted_steam_ids}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(request_url, headers=headers) as result:
-                if result.status != 200:
-                    return None
-                return await result.json()
+        retry_options = ExponentialRetry(attempts=3, factor=0.1,
+                                         statuses={500, 502, 504},
+                                         exceptions={aiohttp.ClientResponseError, aiohttp.ClientPayloadError})
+        retry_client = RetryClient(raise_for_status=False, retry_options=retry_options,
+                                   timeout=ClientTimeout(total=5, connect=3, sock_connect=3, sock_read=5))
+        async with retry_client.get(request_url, headers=headers) as result:
+            if result.status != 200:
+                return None
+            return await result.json()
 
 
 TRUSKILLS = SkillRatingProvider("Truskill", "http://stats.houseofquake.com/", "elo/map_based")
@@ -2379,6 +2405,8 @@ B_ELO = SkillRatingProvider("B-Elo", "http://qlstats.net/", "elo_b", timeout=15)
 
 
 class RatingProvider:
+    __slots__ = ("jsons", )
+
     def __init__(self, json):
         self.jsons = [json]
 
@@ -2537,6 +2565,8 @@ class RatingProvider:
 
 
 class PlayerRating:
+    __slots__ = ("ratings", "time", "local")
+
     def __init__(self, ratings, _time=-1, local=False):
         self.ratings = ratings
         self.time = _time
@@ -2571,6 +2601,8 @@ class PlayerRating:
 
 
 class ConnectThread(threading.Thread):
+    __slots__ = ("rating_provider", "_steam_id", "fetched_result")
+
     def __init__(self, steam_id: SteamId, rating_provider: SkillRatingProvider):
         super().__init__()
         self.rating_provider: SkillRatingProvider = rating_provider
@@ -2596,6 +2628,8 @@ class DiffSuggestionRatingStrategy(SuggestionRatingStrategy):
 
 
 class SuggestionQueue:
+    __slots__ = ("suggestions", "strategy")
+
     def __init__(self, items: list[Suggestion] = None,
                  strategy: SuggestionRatingStrategy = DiffSuggestionRatingStrategy()):
         self.suggestions = items if items is not None else []
@@ -2619,6 +2653,8 @@ class SuggestionQueue:
 
 
 class Suggestion:
+    __slots__ = ("red_player", "blue_player", "avg_diff", "stddev_diff", "_agreed", "auto_switch")
+
     def __init__(self, red_player: Player, blue_player: Player, avg_diff: float, stddev_diff: float = 0):
         self.red_player = red_player
         self.blue_player = blue_player
@@ -2687,6 +2723,8 @@ class Suggestion:
 
 
 class KickThread(threading.Thread):
+    __slots__ = ("steam_id", "kickmsg", "go")
+
     def __init__(self, steam_id: SteamId, kickmsg: str):
         threading.Thread.__init__(self)
         self.steam_id = steam_id
@@ -2750,6 +2788,8 @@ class KickThread(threading.Thread):
 
 
 class PlayerMovedToSpecError(Exception):
+    __slots__ = ("player",)
+
     def __init__(self, player: Player):
         super().__init__()
 
@@ -2760,6 +2800,8 @@ T = TypeVar('T')
 
 
 class RandomIterator:
+    __slots__ = ("seq", "random_seq", "iterator")
+
     def __init__(self, seq: Sequence[T]):
         self.seq = seq
         self.random_seq = random.sample(self.seq, len(self.seq))
