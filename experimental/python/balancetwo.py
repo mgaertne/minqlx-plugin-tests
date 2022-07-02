@@ -540,7 +540,7 @@ class balancetwo(Plugin):
             else:
                 target_player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill,
                                                              target_steam_id)
-            reply_func(f"{target_player_elos}^7")
+            reply_func(f"{target_player_elos}^7\n\n")
 
             alternative_steam_ids = used_steam_ids[:]
             alternative_steam_ids.remove(target_steam_id)
@@ -554,7 +554,7 @@ class balancetwo(Plugin):
                                                           aliases=aliases[steam_id])
                 else:
                     player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id)
-                reply_func(f"{player_elos}^7")
+                reply_func(f"{player_elos}^7\n\n")
 
         asyncio.run(_async_elocheck())
 
@@ -625,7 +625,7 @@ class balancetwo(Plugin):
                            steam_id: SteamId, indent: int = 0, aliases: list[str] = None) -> str:
         display_name = self.resolve_player_name(steam_id)
         formatted_player_name = self.format_player_name(steam_id)
-        result = " " * indent + f"{formatted_player_name}^7\n"
+        result = [" " * indent + f"{formatted_player_name}^7"]
         if aliases is not None:
             displayed_aliases = aliases[:]
             if display_name in displayed_aliases:
@@ -633,30 +633,38 @@ class balancetwo(Plugin):
             if len(displayed_aliases) != 0:
                 formatted_aliases = "^7, ".join(displayed_aliases[:5])
                 if len(displayed_aliases) <= 5:
-                    result += " " * indent + f"Aliases used: {formatted_aliases}^7\n"
+                    result.append(" " * indent + f"Aliases used: {formatted_aliases}^7")
                 else:
-                    result += " " * indent + \
-                              f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)\n"
+                    result.append(" " * indent +
+                                  f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)")
 
         if map_based_truskill is not None:
             formatted_map_based_truskills = map_based_truskill.format_elos(steam_id)
             if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0:
                 formatted_mapname = self.game.map.lower()
-                result += " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}\n"
+                formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
+                for line in  minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+                    result.append(line)
 
         formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
         if formatted_truskills is not None and len(formatted_truskills) > 0:
-            result += " " * indent + "  " + f"Truskills: {formatted_truskills}\n"
+            formatted_line = " " * indent + "  " + f"Truskills: {formatted_truskills}"
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+                result.append(line)
 
         formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
-            result += " " * indent + "  " + f"Elos: {formatted_a_elos}\n"
+            formatted_line = " " * indent + "  " + f"Elos: {formatted_a_elos}"
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+                result.append(line)
 
         formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
-            result += " " * indent + "  " + f"B-Elos: {formatted_b_elos}\n"
+            formatted_line =  " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+                result.append(line)
 
-        return result
+        return "\n".join(result)
 
     def format_player_name(self, steam_id: SteamId) -> str:
         result = ""
@@ -1566,24 +1574,12 @@ class balancetwo(Plugin):
         return minqlx.RET_STOP_ALL
 
     def handle_map_change(self, mapname: str, _factory: str) -> None:
-        async def fetch_ratings_from_newmap(_mapname) -> None:
-            steam_ids = [player.steam_id for player in self.players()]
-            mapbased_rating_provider_name, mapbased_fetching = \
-                self.fetch_mapbased_ratings(steam_ids, mapname=_mapname)
-            if mapbased_rating_provider_name is None:
-                return
-            rating_results = await mapbased_fetching
-            self.append_ratings(mapbased_rating_provider_name, rating_results)
-
         self.vetoed_switches = []
         self.switched_players = []
         self.informed_players = []
         self.previous_ratings = self.ratings
         self.ratings = {}
-        self.fetch_and_diff_ratings()
-
-        asyncio.run(fetch_ratings_from_newmap(mapname.lower()))
-
+        self.fetch_and_diff_ratings(mapname)
         self.clean_up_kickthreads()
 
     @minqlx.thread
@@ -1597,7 +1593,7 @@ class balancetwo(Plugin):
             del self.kickthreads[dead_thread]
 
     @minqlx.thread
-    def fetch_and_diff_ratings(self) -> None:
+    def fetch_and_diff_ratings(self, mapname: str) -> None:
         async def _fetch_and_diff_ratings():
             rating_providers_fetched = []
             async_requests = []
@@ -1623,7 +1619,17 @@ class balancetwo(Plugin):
                 self.rating_diffs[rating_provider_name] = \
                     RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
 
+        async def fetch_ratings_from_newmap(_mapname) -> None:
+            steam_ids = [player.steam_id for player in self.players()]
+            mapbased_rating_provider_name, mapbased_fetching = \
+                self.fetch_mapbased_ratings(steam_ids, mapname=_mapname)
+            if mapbased_rating_provider_name is None:
+                return
+            rating_results = await mapbased_fetching
+            self.append_ratings(mapbased_rating_provider_name, rating_results)
+
         asyncio.run(_fetch_and_diff_ratings())
+        asyncio.run(fetch_ratings_from_newmap(mapname))
 
     def handle_player_connect(self, player: Player) -> Optional[str]:
         @minqlx.thread
@@ -2391,12 +2397,12 @@ class SkillRatingProvider:
         retry_options = ExponentialRetry(attempts=3, factor=0.1,
                                          statuses={500, 502, 504},
                                          exceptions={aiohttp.ClientResponseError, aiohttp.ClientPayloadError})
-        retry_client = RetryClient(raise_for_status=False, retry_options=retry_options,
-                                   timeout=ClientTimeout(total=5, connect=3, sock_connect=3, sock_read=5))
-        async with retry_client.get(request_url, headers=headers) as result:
-            if result.status != 200:
-                return None
-            return await result.json()
+        async with RetryClient(raise_for_status=False, retry_options=retry_options,
+                               timeout=ClientTimeout(total=5, connect=3, sock_connect=3, sock_read=5)) as retry_client:
+            async with retry_client.get(request_url, headers=headers) as result:
+                if result.status != 200:
+                    return None
+                return await result.json()
 
 
 TRUSKILLS = SkillRatingProvider("Truskill", "http://stats.houseofquake.com/", "elo/map_based")
