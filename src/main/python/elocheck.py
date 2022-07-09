@@ -474,7 +474,7 @@ class elocheck(Plugin):
             if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0:
                 formatted_mapname = self.game.map.lower()
                 formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
-                for line in  minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+                for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
                     result.append(line)
 
         formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
@@ -491,7 +491,7 @@ class elocheck(Plugin):
 
         formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
-            formatted_line =  " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
+            formatted_line = " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
             for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
                 result.append(line)
 
