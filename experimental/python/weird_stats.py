@@ -1023,9 +1023,6 @@ def formatted_weapon_fact(stats: list[PlayerStatsEntry], weapon: str, weapon_fac
     return ""
 
 
-interval: float = 0.5
-
-
 # noinspection PyPep8Naming
 class weird_stats(Plugin):
     def __init__(self):
@@ -1033,7 +1030,7 @@ class weird_stats(Plugin):
 
         self.set_cvar_once("qlx_weirdstats_playtime_fraction", "0.75")
 
-        self.stats_play_time_fraction = self.get_cvar("qlx_weirdstats_playtime_fraction", float)
+        self.stats_play_time_fraction: float = self.get_cvar("qlx_weirdstats_playtime_fraction", float)
 
         self.game_start_time: Optional[datetime] = None
         self.join_times: dict[SteamId, datetime] = {}
