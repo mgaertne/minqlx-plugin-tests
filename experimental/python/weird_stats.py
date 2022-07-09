@@ -1,5 +1,6 @@
 import random
 import math
+import time
 
 from typing import NamedTuple, Optional, Callable, Any
 import itertools
@@ -1030,6 +1031,10 @@ class weird_stats(Plugin):
     def __init__(self):
         super().__init__()
 
+        self.set_cvar_once("qlx_weirdstats_playtime_fraction", "0.75")
+
+        self.stats_play_time_fraction = self.get_cvar("qlx_weirdstats_playtime_fraction", float)
+
         self.game_start_time: Optional[datetime] = None
         self.join_times: dict[SteamId, datetime] = {}
         self.play_times: dict[SteamId, float] = {}
@@ -1061,6 +1066,9 @@ class weird_stats(Plugin):
         self.add_hook("stats", self.handle_stats)
 
         self.add_command("speeds", self.cmd_player_speeds)
+
+        self.speed_announcements: list[SteamId] = []
+        self.add_command("myspeed", self.cmd_my_speed, permission=5)
 
     def handle_team_switch(self, player: Player, old_team: str, new_team: str):
         if not player:
@@ -1214,9 +1222,6 @@ class weird_stats(Plugin):
         if player_stats.warmup:
             return
 
-        if player_stats.aborted:
-            return
-
         if player_stats.steam_id not in self.player_stats:
             self.player_stats[player_stats.steam_id] = player_stats
         else:
@@ -1240,7 +1245,7 @@ class weird_stats(Plugin):
             self.msg(msg)
 
         most_environmental_deaths_announcement = \
-            self.environmental_deaths(self.means_of_death, ["void", "acid", "drowning", "squished"])
+            self.environmental_deaths(self.means_of_death, ["void", "lava", "acid", "drowning", "squished"])
         if most_environmental_deaths_announcement is not None and len(most_environmental_deaths_announcement) > 0:
             self.msg(most_environmental_deaths_announcement)
 
@@ -1288,7 +1293,7 @@ class weird_stats(Plugin):
                 continue
             player_distance = convert_units_to_meters(player_units)
 
-            if current_play_times.get(steam_id, 0.0) < 0.75 * longest_join_time:
+            if current_play_times.get(steam_id, 0.0) < self.stats_play_time_fraction * longest_join_time:
                 continue
 
             player_speed = 3.6 * player_distance / player_alive_time
@@ -1357,6 +1362,35 @@ class weird_stats(Plugin):
         announcements = self.player_speeds_announcements()
         for announcement in announcements:
             self.msg(announcement)
+
+    def cmd_my_speed(self, player: Player, _msg: str, _channel: AbstractChannel) -> int:
+        if player.steam_id in self.speed_announcements:
+            self.speed_announcements.remove(player.steam_id)
+            return minqlx.RET_STOP_ALL
+
+        self.announce_player_speeds(player.steam_id)
+        return minqlx.RET_STOP_ALL
+
+    @minqlx.thread
+    def announce_player_speeds(self, steam_id: SteamId) -> None:
+        self.speed_announcements.append(steam_id)
+
+        while steam_id in self.speed_announcements:
+            player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
+            player_distance = convert_units_to_meters(player_units)
+            if player_alive_time > 0:
+                player_speed = 3.6 * player_distance / player_alive_time
+            else:
+                player_speed = 0.0
+
+            player = self.player(steam_id)
+            if player is None:
+                return
+            player.tell(
+                f"Your current speed in round: {format_float(player_speed)} km/h, "
+                f"in round recorded distance: {format_float(player_units)} units, "
+                f"{format_float(player_distance)} meters, {format_float(player_alive_time)} seconds alive")
+            time.sleep(1)
 
     def gather_data_for_speed_calculation(self, steam_id: SteamId) -> tuple[float, float]:
         if steam_id not in self.travelled_distances:
