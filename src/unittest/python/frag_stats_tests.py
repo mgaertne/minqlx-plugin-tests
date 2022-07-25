@@ -86,7 +86,7 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.handle_death(victim, victim, {"MOD": "ROCKET"})
 
-        assert_that(self.plugin.frag_log, not_(contains(victim.steam_id)))
+        assert_that(self.plugin.frag_log, not_(contains_exactly(victim.steam_id)))
 
     def test_handle_death_in_warmup_does_not_record_frag_log_entry(self):
         setup_game_in_warmup()
