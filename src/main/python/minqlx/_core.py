@@ -42,42 +42,48 @@ from ._plugin import Plugin
 # em92: reasons not to support older than 3.5
 # https://docs.python.org/3.5/whatsnew/3.5.html#whatsnew-ordereddict
 # plugins already assume, that they are running on python >= 3.5
-if sys.version_info < (3,5):
+if sys.version_info < (3, 5):
     raise AssertionError("Only python 3.5 and later is supported by minqlx")
 
 # Team number -> string
 TEAMS = collections.OrderedDict(enumerate(("free", "red", "blue", "spectator")))
 
 # Game type number -> string
-GAMETYPES = collections.OrderedDict([(i, gt) for i, gt in enumerate(("Free for All", "Duel", "Race", "Team Deathmatch",
-    "Clan Arena", "Capture the Flag", "One Flag", "", "Harvester", "Freeze Tag", "Domination", "Attack and Defend",
-    "Red Rover")) if gt])
+GAMETYPES = collections.OrderedDict([(i, gt)
+                                     for i, gt in enumerate(("Free for All", "Duel", "Race", "Team Deathmatch",
+                                                             "Clan Arena", "Capture the Flag", "One Flag", "",
+                                                             "Harvester", "Freeze Tag", "Domination",
+                                                             "Attack and Defend", "Red Rover")) if gt])
 
 # Game type number -> short string
-GAMETYPES_SHORT = collections.OrderedDict([(i, gt) for i, gt in enumerate(("ffa", "duel", "race", "tdm", "ca", "ctf",
-    "1f", "", "har", "ft", "dom", "ad", "rr")) if gt])
+GAMETYPES_SHORT = collections.OrderedDict([(i, gt)
+                                           for i, gt in enumerate(("ffa", "duel", "race", "tdm", "ca", "ctf",
+                                                                   "1f", "", "har", "ft", "dom", "ad", "rr")) if gt])
 
 # Connection states.
 CONNECTION_STATES = collections.OrderedDict(enumerate(("free", "zombie", "connected", "primed", "active")))
 
-WEAPONS = collections.OrderedDict([(i, w) for i, w in enumerate(("", "g", "mg", "sg", "gl", "rl", "lg", "rg",
-    "pg", "bfg", "gh", "ng", "pl", "cg", "hmg", "hands")) if w])
+WEAPONS = collections.OrderedDict([(i, w)
+                                   for i, w in enumerate(("", "g", "mg", "sg", "gl", "rl", "lg", "rg",
+                                                          "pg", "bfg", "gh", "ng", "pl", "cg", "hmg", "hands")) if w])
 
-DEFAULT_PLUGINS = ("plugin_manager", "essentials", "motd", "permission", "ban", "silence", "clan", "names", "log", "workshop")
+DEFAULT_PLUGINS = (
+    "plugin_manager", "essentials", "motd", "permission", "ban", "silence", "clan", "names", "log", "workshop"
+)
+
 
 # ====================================================================
 #                               HELPERS
 # ====================================================================
-
 def parse_variables(varstr, ordered=False):
     """
     Parses strings of key-value pairs delimited by "\\" and puts
     them into a dictionary.
 
-    :param varstr: The string with variables.
-    :type varstr: str
-    :param ordered: Whether it should use :class:`collections.OrderedDict` or not.
-    :type ordered: bool
+    :param: varstr: The string with variables.
+    :type: varstr: str
+    :param: ordered: Whether it should use :class:`collections.OrderedDict` or not.
+    :type: ordered: bool
     :returns: dict -- A dictionary with the variables added as key-value pairs.
     """
     if ordered:
@@ -94,11 +100,13 @@ def parse_variables(varstr, ordered=False):
     except IndexError:
         # Log and return incomplete dict.
         logger = minqlx.get_logger()
-        logger.warning("Uneven number of keys and values: {}".format(varstr))
+        logger.warning("Uneven number of keys and values: %s", varstr)
 
     return res
 
+
 main_logger = None
+
 
 def get_logger(plugin: Optional[Plugin] = None):
     """
@@ -106,14 +114,14 @@ def get_logger(plugin: Optional[Plugin] = None):
     and error reporting. It will automatically output to both the server console
     as well as to a file.
 
-    :param plugin: The plugin that is using the logger.
-    :type plugin: minqlx.Plugin
+    :param: plugin: The plugin that is using the logger.
+    :type: plugin: minqlx.Plugin
     :returns: logging.Logger -- The logger in question.
     """
     if plugin:
         return logging.getLogger("minqlx." + str(plugin))
-    else:
-        return logging.getLogger("minqlx")
+    return logging.getLogger("minqlx")
+
 
 def _configure_logger():
     logger = logging.getLogger("minqlx")
@@ -128,8 +136,7 @@ def _configure_logger():
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_fmt)
     logger.addHandler(file_handler)
-    logger.info("============================= minqlx run @ {} ============================="
-        .format(datetime.datetime.now()))
+    logger.info("============================= minqlx run @ %s =============================", datetime.datetime.now())
 
     # Console
     console_fmt = logging.Formatter("[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S")
@@ -138,18 +145,20 @@ def _configure_logger():
     console_handler.setFormatter(console_fmt)
     logger.addHandler(console_handler)
 
+
 def log_exception(plugin=None):
     """
     Logs an exception using :func:`get_logger`. Call this in an except block.
 
-    :param plugin: The plugin that is using the logger.
-    :type plugin: minqlx.Plugin
+    :param: plugin: The plugin that is using the logger.
+    :type: plugin: minqlx.Plugin
     """
     # TODO: Remove plugin arg and make it automatic.
     logger = get_logger(plugin)
     e = traceback.format_exc().rstrip("\n")
     for line in e.split("\n"):
         logger.error(line)
+
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     """A handler for unhandled exceptions."""
@@ -159,14 +168,18 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     for line in e.split("\n"):
         logger.error(line)
 
+
 def threading_excepthook(args):
     handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
 
+
 _init_time = datetime.datetime.now()
+
 
 def uptime():
     """Returns a :class:`datetime.timedelta` instance of the time since initialized."""
     return datetime.datetime.now() - _init_time
+
 
 def owner():
     """Returns the SteamID64 of the owner. This is set in the config."""
@@ -179,11 +192,14 @@ def owner():
         logger = minqlx.get_logger()
         logger.error("Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format.")
 
+
 _stats = None
+
 
 def stats_listener():
     """Returns the :class:`minqlx.StatsListener` instance used to listen for stats."""
     return _stats
+
 
 def set_cvar_once(name, value, flags=0):
     if minqlx.get_cvar(name) is None:
@@ -192,12 +208,14 @@ def set_cvar_once(name, value, flags=0):
 
     return False
 
+
 def set_cvar_limit_once(name, value, minimum, maximum, flags=0):
     if minqlx.get_cvar(name) is None:
         minqlx.set_cvar_limit(name, value, minimum, maximum, flags)
         return True
 
     return False
+
 
 def set_plugins_version(path):
     args_version = shlex.split("git describe --long --tags --dirty --always")
@@ -208,27 +226,28 @@ def set_plugins_version(path):
     del env["LD_PRELOAD"]
     try:
         # Get the version using git describe.
-        p = subprocess.Popen(args_version, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env)
-        p.wait(timeout=1)
-        if p.returncode != 0:
-            setattr(minqlx, "__plugins_version__", "NOT_SET")
-            return
+        with subprocess.Popen(args_version, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env) as p:
+            p.wait(timeout=1)
+            if p.returncode != 0:
+                setattr(minqlx, "__plugins_version__", "NOT_SET")
+                return
 
-        version = p.stdout.read().decode().strip()
+            version = p.stdout.read().decode().strip()
 
         # Get the branch using git rev-parse.
-        p = subprocess.Popen(args_branch, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env)
-        p.wait(timeout=1)
-        if p.returncode != 0:
-            setattr(minqlx, "__plugins_version__", version)
-            return
+        with subprocess.Popen(args_branch, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env) as p:
+            p.wait(timeout=1)
+            if p.returncode != 0:
+                setattr(minqlx, "__plugins_version__", version)
+                return
 
-        branch = p.stdout.read().decode().strip()
+            branch = p.stdout.read().decode().strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
         setattr(minqlx, "__plugins_version__", "NOT_SET")
         return
 
-    setattr(minqlx, "__plugins_version__", "{}-{}".format(version, branch))
+    setattr(minqlx, "__plugins_version__", f"{version}-{branch}")
+
 
 def set_map_subtitles():
     # We save the actual values before setting them so that we can retrieve them in Game.
@@ -239,22 +258,23 @@ def set_map_subtitles():
     cs = minqlx.get_configstring(678)
     if cs:
         cs += " - "
-    minqlx.set_configstring(678, cs + "Running minqlx ^6{}^7 with plugins ^6{}^7."
-        .format(minqlx.__version__, minqlx.__plugins_version__))
+    minqlx.set_configstring(678, cs + f"Running minqlx ^6{minqlx.__version__}^7 "
+                                      f"with plugins ^6{minqlx.__plugins_version__}^7.")
     cs = minqlx.get_configstring(679)
     if cs:
         cs += " - "
     minqlx.set_configstring(679, cs + "Check ^6http://github.com/MinoMino/minqlx^7 for more details.")
 
+
 # ====================================================================
 #                              DECORATORS
 # ====================================================================
-
 def next_frame(func):
     def f(*args, **kwargs):
         minqlx.next_frame_tasks.append((func, args, kwargs))
 
     return f
+
 
 def delay(time: float):
     """Delay a function call a certain amount of time.
@@ -276,18 +296,20 @@ def delay(time: float):
         return f
     return wrap
 
+
 _thread_count = 0
 _thread_name = "minqlxthread"
+
 
 def thread(func, force=False):
     """Starts a thread with the function passed as its target. If a function decorated
     with this is called within a function also decorated, it will **not** create a second
     thread unless told to do so with the *force* keyword.
 
-    :param func: The function to be ran in a thread.
-    :type func: callable
-    :param force: Force it to create a new thread even if already in one created by this decorator.
-    :type force: bool
+    :param: func: The function to be run in a thread.
+    :type: func: callable
+    :param: force: Force it to create a new thread even if already in one created by this decorator.
+    :type: force: bool
     :returns: threading.Thread
 
     """
@@ -296,7 +318,7 @@ def thread(func, force=False):
             func(*args, **kwargs)
         else:
             global _thread_count
-            name = func.__name__ + "-{}-{}".format(str(_thread_count), _thread_name)
+            name = func.__name__ + f"-{str(_thread_count)}-{_thread_name}"
             t = threading.Thread(target=func, name=name, args=args, kwargs=kwargs, daemon=True)
             t.start()
             _thread_count += 1
@@ -305,75 +327,79 @@ def thread(func, force=False):
 
     return f
 
+
 # ====================================================================
 #                       CONFIG AND PLUGIN LOADING
 # ====================================================================
-
 # We need to keep track of module instances for use with importlib.reload.
 _modules = {}
+
 
 class PluginLoadError(Exception):
     pass
 
+
 class PluginUnloadError(Exception):
     pass
+
 
 def load_preset_plugins():
     plugins_temp = []
     for p in minqlx.Plugin.get_cvar("qlx_plugins", list):
         if p == "DEFAULT":
-           plugins_temp += list(DEFAULT_PLUGINS)
+            plugins_temp += list(DEFAULT_PLUGINS)
         else:
-           plugins_temp.append(p)
+            plugins_temp.append(p)
 
     plugins = []
     for p in plugins_temp:
         if p not in plugins:
-           plugins.append(p)
+            plugins.append(p)
 
     plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
     plugins_dir = os.path.basename(plugins_path)
 
     if os.path.isdir(plugins_path):
-        plugins = [p for p in plugins if "{}.{}".format(plugins_dir, p)]
+        plugins = [p for p in plugins if f"{plugins_dir}.{p}"]
         for p in plugins:
             load_plugin(p)
     else:
-        raise(PluginLoadError("Cannot find the plugins directory '{}'."
-            .format(os.path.abspath(plugins_path))))
+        raise PluginLoadError(f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'.")
+
 
 def load_plugin(plugin):
     logger = get_logger(None)
-    logger.info("Loading plugin '{}'...".format(plugin))
+    logger.info("Loading plugin '%s'...", plugin)
     plugins = minqlx.Plugin._loaded_plugins
     plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
     plugins_dir = os.path.basename(plugins_path)
 
     if not os.path.isfile(os.path.join(plugins_path, plugin + ".py")):
         raise PluginLoadError("No such plugin exists.")
-    elif plugin in plugins:
+    if plugin in plugins:
         return reload_plugin(plugin)
     try:
-        module = importlib.import_module("{}.{}".format(plugins_dir, plugin))
+        module = importlib.import_module(f"{plugins_dir}.{plugin}")
         # We add the module regardless of whether it fails or not, otherwise we can't reload later.
         global _modules
         _modules[plugin] = module
 
         if not hasattr(module, plugin):
-            raise(PluginLoadError("The plugin needs to have a class with the exact name as the file, minus the .py."))
+            raise PluginLoadError("The plugin needs to have a class with the exact name as the file, minus the .py.")
 
         plugin_class = getattr(module, plugin)
         if issubclass(plugin_class, minqlx.Plugin):
             plugins[plugin] = plugin_class()
         else:
-            raise(PluginLoadError("Attempted to load a plugin that is not a subclass of 'minqlx.Plugin'."))
+            raise PluginLoadError("Attempted to load a plugin that is not a subclass of 'minqlx.Plugin'.")
     except:
         log_exception(plugin)
         raise
 
+
 def unload_plugin(plugin):
     logger = get_logger(None)
-    logger.info("Unloading plugin '{}'...".format(plugin))
+    logger.info("Unloading plugin '%s'...", plugin)
     plugins = minqlx.Plugin._loaded_plugins
     if plugin in plugins:
         try:
@@ -392,7 +418,8 @@ def unload_plugin(plugin):
             log_exception(plugin)
             raise
     else:
-        raise(PluginUnloadError("Attempted to unload a plugin that is not loaded."))
+        raise PluginUnloadError("Attempted to unload a plugin that is not loaded.")
+
 
 def reload_plugin(plugin):
     try:
@@ -402,12 +429,13 @@ def reload_plugin(plugin):
 
     try:
         global _modules
-        if plugin in _modules: # Unloaded previously?
+        if plugin in _modules:  # Unloaded previously?
             importlib.reload(_modules[plugin])
         load_plugin(plugin)
     except:
         log_exception(plugin)
         raise
+
 
 def initialize_cvars():
     # Core
@@ -417,7 +445,7 @@ def initialize_cvars():
     minqlx.set_cvar_once("qlx_database", "Redis")
     minqlx.set_cvar_once("qlx_commandPrefix", "!")
     minqlx.set_cvar_once("qlx_logs", "2")
-    minqlx.set_cvar_once("qlx_logsSize", str(3*10**6)) # 3 MB
+    minqlx.set_cvar_once("qlx_logsSize", str(3*10**6))  # 3 MB
     # Redis
     minqlx.set_cvar_once("qlx_redisAddress", "127.0.0.1")
     minqlx.set_cvar_once("qlx_redisDatabase", "0")
@@ -428,9 +456,9 @@ def initialize_cvars():
 # ====================================================================
 #                                 MAIN
 # ====================================================================
-
 def initialize():
     minqlx.register_handlers()
+
 
 def late_init():
     """Initialization that needs to be called after QLDS has finished
@@ -466,7 +494,7 @@ def late_init():
     if bool(int(minqlx.get_cvar("zmq_stats_enable"))):
         global _stats
         _stats = minqlx.StatsListener()
-        logger.info("Stats listener started on {}.".format(_stats.address))
+        logger.info("Stats listener started on %s.", _stats.address)
         # Start polling. Not blocking due to decorator magic. Aw yeah.
         _stats.keep_receiving()
 
