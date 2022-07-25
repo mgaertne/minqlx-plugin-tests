@@ -197,22 +197,20 @@ class Plugin:
 
         """
         res = minqlx.get_cvar(name)
-        if not res:
-            return None
         if return_type == str:
             return res
         if return_type == int:
-            return int(res)
+            return int(res) if res else None
         if return_type == float:
-            return float(res)
+            return float(res) if res else None
         if return_type == bool:
-            return bool(int(res))
+            return bool(int(res)) if res else False
         if return_type == list:
-            return [s.strip() for s in res.split(",")]
+            return [s.strip() for s in res.split(",")] if res else []
         if return_type == set:
-            return {s.strip() for s in res.split(",")}
+            return {s.strip() for s in res.split(",")} if res else set()
         if return_type == tuple:
-            return tuple([s.strip() for s in res.split(",")])
+            return ([s.strip() for s in res.split(",")]) if res else ()
 
         raise ValueError(f"Invalid return type: {return_type}")
 
