@@ -9,6 +9,7 @@ ABOVE_GAMES_KEY = "minqlx:players:{}:minelo:abovegames"
 SUPPORTED_GAMETYPES = ("ca", "ctf", "dom", "ft", "tdm", "duel", "ffa")
 
 
+# noinspection PyPep8Naming
 class merciful_elo_limit(Plugin):
     """
     Uses:
@@ -66,6 +67,7 @@ class merciful_elo_limit(Plugin):
         balance_plugin = Plugin._loaded_plugins['balance']
 
         player_ratings = {p.steam_id: gametype for p in players}
+        # noinspection PyUnresolvedReferences
         balance_plugin.add_request(player_ratings, self.callback_ratings, CHAT_CHANNEL)
 
     def handle_round_countdown(self, _round_number):
@@ -109,11 +111,13 @@ class merciful_elo_limit(Plugin):
 
             self.warn_lowelo_player(player)
 
+    # noinspection PyMethodMayBeStatic
     def is_player_in_exception_list(self, player):
         if 'mybalance' not in Plugin._loaded_plugins:
             return False
 
         mybalance_plugin = Plugin._loaded_plugins['mybalance']
+        # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions
 
     def get_value_from_db_or_zero(self, key):
@@ -131,6 +135,7 @@ class merciful_elo_limit(Plugin):
                                 "from the balance plugin")
             return None
         balance_plugin = Plugin._loaded_plugins['balance']
+        # noinspection PyUnresolvedReferences
         ratings = balance_plugin.ratings
 
         gametype = self.game.type_short
@@ -226,6 +231,7 @@ class merciful_elo_limit(Plugin):
                 reply_channel.reply(f"{player.clean_name} (elo: {elo}): "
                                     f"^3{remaining_matches}^7 application matches left")
 
+    # noinspection PyMethodMayBeStatic
     def identify_reply_channel(self, channel):
         if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
                        minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:

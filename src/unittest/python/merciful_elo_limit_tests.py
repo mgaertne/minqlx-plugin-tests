@@ -2,10 +2,11 @@ import unittest
 import time
 import logging
 
-from minqlx_plugin_test import *
+from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, mocked_channel, connected_players, \
+    fake_player, setup_no_game, assert_plugin_sent_to_console, assert_channel_was_replied  # type: ignore
 
-from mockito import mock, when, unstub, verify, patch, spy2, when2
-from mockito.matchers import matches
+from mockito import mock, when, unstub, verify, patch, spy2, when2  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import is_, assert_that, has_item
 
 from redis import Redis
@@ -34,9 +35,9 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.database = Redis
         self.db = mock(Redis)
-        self.plugin._db_instance = self.db
+        self.plugin._db_instance = self.db  # pylint: disable=protected-access
 
-        when(self.db).__getitem__(any).thenReturn("42")
+        when(self.db).__getitem__(any_).thenReturn("42")
 
     def tearDown(self):
         unstub()
@@ -48,16 +49,16 @@ class MercifulEloLimitTests(unittest.TestCase):
         ratings = {}
         for player, elo in player_elos:
             ratings[player.steam_id] = {gametype: {'elo': elo}}
-        self.plugin._loaded_plugins["balance"] = mock({'ratings': ratings})
+        self.plugin._loaded_plugins["balance"] = mock({'ratings': ratings})  # pylint: disable=protected-access
 
     def setup_no_balance_plugin(self):
-        if "balance" in self.plugin._loaded_plugins:
-            del self.plugin._loaded_plugins["balance"]
+        if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
+            del self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
 
     def setup_exception_list(self, players):
         mybalance_plugin = mock(Plugin)
         mybalance_plugin.exceptions = [player.steam_id for player in players]
-        self.plugin._loaded_plugins["mybalance"] = mybalance_plugin
+        self.plugin._loaded_plugins["mybalance"] = mybalance_plugin  # pylint: disable=protected-access
 
     def test_handle_map_change_resets_tracked_player_ids(self):
         connected_players()
@@ -85,7 +86,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_map_change("thunderstruck", "ca")
 
-        verify(self.plugin._loaded_plugins["balance"]).add_request(
+        verify(self.plugin._loaded_plugins["balance"]).add_request(  # pylint: disable=protected-access
             {player1.steam_id: 'ca', player2.steam_id: 'ca'},
             self.plugin.callback_ratings, CHAT_CHANNEL
         )
@@ -99,7 +100,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_player_connect(connecting_player)
 
-        verify(self.plugin._loaded_plugins["balance"]).add_request(
+        verify(self.plugin._loaded_plugins["balance"]).add_request(  # pylint: disable=protected-access
             {connecting_player.steam_id: 'ca'},
             self.plugin.callback_ratings, CHAT_CHANNEL
         )
@@ -110,7 +111,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.fetch_elos_of_players([])
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(any, any, any)
+        verify(self.plugin._loaded_plugins["balance"], times=0)\
+            .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
     def test_fetch_elos_of_players_with_unsupported_gametype(self):
         setup_game_in_progress("unsupported")
@@ -118,7 +120,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.fetch_elos_of_players([])
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(any, any, any)
+        verify(self.plugin._loaded_plugins["balance"], times=0)\
+            .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
     def test_fetch_elos_of_player_with_no_balance_plugin(self):
         mocked_logger = mock(spec=logging.Logger, strict=False)
@@ -140,7 +143,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(1)
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(any, any, any)
+        verify(self.plugin._loaded_plugins["balance"], times=0)\
+            .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
     def test_handle_round_countdown_fetches_elos_of_players_in_teams(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -151,7 +155,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(4)
 
-        verify(self.plugin._loaded_plugins["balance"]).add_request(
+        verify(self.plugin._loaded_plugins["balance"]).add_request(  # pylint: disable=protected-access
             {player1.steam_id: 'ca', player2.steam_id: 'ca'},
             self.plugin.callback_ratings, CHAT_CHANNEL
         )
@@ -166,7 +170,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.callback_ratings([], minqlx.CHAT_CHANNEL)
 
-        verify(self.db, times=0).get(any)
+        verify(self.db, times=0).get(any_)
 
     def test_callback_ratings_with_unsupported_game_type(self):
         setup_game_in_progress("unsupported")
@@ -178,7 +182,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.callback_ratings([], minqlx.CHAT_CHANNEL)
 
-        verify(self.db, times=0).get(any)
+        verify(self.db, times=0).get(any_)
 
     def test_callback_ratings_warns_low_elo_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -189,7 +193,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any).thenReturn("2")
+        when(self.db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -205,7 +209,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any).thenReturn("2")
+        when(self.db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -221,7 +225,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any).thenReturn("2")
+        when(self.db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -238,14 +242,14 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any).thenReturn("2")
+        when(self.db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2, player3], minqlx.CHAT_CHANNEL)
 
         verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 application matches.*"))
-        verify(player3, times=0).center_print(any)
-        verify(player3, times=0).tell(any)
+        verify(player3, times=0).center_print(any_)
+        verify(player3, times=0).tell(any_)
 
     def test_callback_ratings_warns_low_elo_player_when_application_games_not_set(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -256,7 +260,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn(None)
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
@@ -269,17 +273,17 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn("11")
+        when(self.db).get(any_).thenReturn("11")
         spy2(minqlx.COMMANDS.handle_input)
-        when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
+        when2(minqlx.COMMANDS.handle_input, any_, any_, any_).thenReturn(None)
 
         patch(minqlx.next_frame, lambda func: func)
 
-        when(self.db).delete(any).thenReturn(None)
+        when(self.db).delete(any_).thenReturn(None)
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
-        verify(minqlx.COMMANDS).handle_input(any, any, any)
+        verify(minqlx.COMMANDS).handle_input(any_, any_, any_)
         verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
         verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
 
@@ -289,10 +293,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn("3")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(False)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("3")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(False)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -306,10 +310,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.setup_balance_ratings({(player1, 900), (player2, 799), (player3, 600)})
         self.setup_exception_list([player3])
 
-        when(self.db).get(any).thenReturn("3")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(False)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("3")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(False)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -322,10 +326,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn("3")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(False)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("3")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(False)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -337,10 +341,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn("3")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(True)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("3")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(True)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -352,10 +356,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn("3")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(True)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("3")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(True)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -367,10 +371,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn("1")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(True)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("1")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(True)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -382,10 +386,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn("3")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(True)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("3")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(True)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -397,10 +401,10 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any).thenReturn("11")
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(True)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn("11")
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(True)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
@@ -414,15 +418,15 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.plugin.tracked_player_sids.append(player2.steam_id)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any).thenReturn(3)
-        when(self.db).delete(any).thenReturn(None)
-        when(self.db).exists(any).thenReturn(False)
-        when(self.db).incr(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn(3)
+        when(self.db).delete(any_).thenReturn(None)
+        when(self.db).exists(any_).thenReturn(False)
+        when(self.db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db, times=0).delete(any)
-        verify(self.db, times=0).delete(any)
+        verify(self.db, times=0).delete(any_)
+        verify(self.db, times=0).delete(any_)
 
     def test_handle_round_start_with_unsupported_gametype(self):
         setup_game_in_progress("unsupported")
@@ -433,7 +437,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(2)
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(any, any, any)
+        verify(self.plugin._loaded_plugins["balance"], times=0)\
+            .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
     def test_handle_round_start_with_no_balance_plugin(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -492,6 +497,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches(r"Fake Player2 \(elo: 799\):.*7.*application matches "
                                                                 r"left"))
 
+    # noinspection PyMethodMayBeStatic
     def reset_chat_channel(self, original_chat_channel):
         minqlx.CHAT_CHANNEL = original_chat_channel
 
@@ -500,8 +506,8 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player)
         self.setup_balance_ratings({(player, 1400)})
 
-        when(self.db).get(any).thenReturn(None)
+        when(self.db).get(any_).thenReturn(None)
 
         self.plugin.cmd_mercis(player, ["!mercis"], minqlx.CHAT_CHANNEL)
 
-        assert_plugin_sent_to_console(any, times=0)
+        assert_plugin_sent_to_console(any_, times=0)
