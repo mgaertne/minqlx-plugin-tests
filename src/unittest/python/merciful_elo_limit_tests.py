@@ -117,7 +117,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.plugin._loaded_plugins["balance"], times=0).add_request(any, any, any)
 
     def test_fetch_elos_of_player_with_no_balance_plugin(self):
-        mocked_logger = mock(spec=logging.Logger)
+        mocked_logger = mock(spec=logging.Logger, strict=False)
         spy2(minqlx.get_logger)
         when(minqlx).get_logger(self.plugin).thenReturn(mocked_logger)
         self.setup_no_balance_plugin()
@@ -269,7 +269,6 @@ class MercifulEloLimitTests(unittest.TestCase):
         spy2(minqlx.COMMANDS.handle_input)
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
         patch(minqlx.next_frame, lambda func: func)
 
         when(self.db).delete(any).thenReturn(None)
@@ -436,7 +435,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
-        mocked_logger = mock(spec=logging.Logger)
+        mocked_logger = mock(spec=logging.Logger, strict=False)
         spy2(minqlx.get_logger)
         when(minqlx).get_logger(self.plugin).thenReturn(mocked_logger)
         self.setup_no_balance_plugin()
