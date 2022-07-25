@@ -1,9 +1,11 @@
-from minqlx import Plugin, thread, next_frame
 import time
 import random
 import threading
 
+from minqlx import Plugin, thread, next_frame
 
+
+# noinspection PyPep8Naming
 class thirtysecwarn(Plugin):
     """Created by Thomas Jones on 01/09/2016 - thomas@tomtecsolutions.com
 
@@ -35,13 +37,13 @@ ShiN0 somewhen in October 2017
 
         self.warner_thread_name = None
 
-    def handle_game_start(self, game):
+    def handle_game_start(self, _game):
         self.warner_thread_name = None
 
-    def handle_round_end(self, data):
+    def handle_round_end(self, _data):
         self.warner_thread_name = None
 
-    def handle_round_start(self, round_number):
+    def handle_round_start(self, _round_number):
         self.warntimer()
 
     @thread
@@ -67,14 +69,14 @@ ShiN0 somewhen in October 2017
         Plugin.play_sound(self.get_announcer_sound())
 
     def get_announcer_sound(self):
-        qlx_thirtySecondWarnAnnouncer = self.get_cvar("qlx_thirtySecondWarnAnnouncer")
+        qlx_thirty_second_warn_announcer = self.get_cvar("qlx_thirtySecondWarnAnnouncer")
 
-        if qlx_thirtySecondWarnAnnouncer == "random":
+        if qlx_thirty_second_warn_announcer == "random":
             return self.random_announcer()
 
-        if qlx_thirtySecondWarnAnnouncer not in self.announcerMap:
-            qlx_thirtySecondWarnAnnouncer = "standard"
-        return self.announcerMap[qlx_thirtySecondWarnAnnouncer]
+        if qlx_thirty_second_warn_announcer not in self.announcerMap:
+            qlx_thirty_second_warn_announcer = "standard"
+        return self.announcerMap[qlx_thirty_second_warn_announcer]
 
     def random_announcer(self):
         key, sound = random.choice(list(self.announcerMap.items()))

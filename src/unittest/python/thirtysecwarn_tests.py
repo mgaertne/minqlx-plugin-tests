@@ -1,12 +1,17 @@
-from minqlx_plugin_test import *
-
-from mockito import *
-from hamcrest import *
+import random
+import time
 import unittest
 
-from thirtysecwarn import *
+from mockito import unstub, patch, verify  # type: ignore
+from mockito.matchers import any_  # type: ignore
+from hamcrest import assert_that, none, is_
 
-from undecorated import undecorated
+from undecorated import undecorated  # type: ignore
+
+from thirtysecwarn import thirtysecwarn
+
+from minqlx_plugin_test import setup_plugin, setup_cvars, setup_cvar, setup_no_game, assert_plugin_played_sound, \
+    setup_game_in_progress, setup_game_in_warmup  # type: ignore
 
 
 class TestThirtySecondWarnPlugin(unittest.TestCase):
@@ -37,7 +42,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "invalid")
         assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
 
-    def hardcoded_choice(self, seq):
+    def hardcoded_choice(self, _seq):
         return "asdf", "randomvoice"
 
     def test_random(self):
@@ -50,21 +55,21 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
-        assert_plugin_played_sound(any(str), times=0)
+        assert_plugin_played_sound(any_(str), times=0)
 
     def test_plays_no_sound_when_game_is_not_clan_arena(self):
         setup_game_in_progress(game_type="ft")
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
-        assert_plugin_played_sound(any(str), times=0)
+        assert_plugin_played_sound(any_(str), times=0)
 
     def test_plays_no_sound_when_game_not_in_progress(self):
         setup_game_in_warmup()
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
-        assert_plugin_played_sound(any(str), times=0)
+        assert_plugin_played_sound(any_(str), times=0)
 
     def test_plays_no_sound_when_next_round_started(self):
         calling_round_number = 4
@@ -73,7 +78,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
 
-        assert_plugin_played_sound(any(str), times=0)
+        assert_plugin_played_sound(any_(str), times=0)
 
     def test_plays_sound_when_round_still_running(self):
         warner_thread_name = "test_plays_sound_when_round_still_running1"
@@ -82,33 +87,33 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
-        assert_plugin_played_sound(any(str))
+        assert_plugin_played_sound(any_(str))
 
     def test_game_start_initializes_timer_round_number(self):
         self.warner.warner_thread_name = "test_game_start_initializes_timer_round_number1"
 
         self.warner.handle_game_start(None)
 
-        assert_that(self.warner.warner_thread_name, is_(None))
+        assert_that(self.warner.warner_thread_name, none())
 
     def test_round_end_increases_round_number(self):
         self.warner.warner_thread_name = "test_round_end_increases_round_number1"
 
         self.warner.handle_round_end(None)
 
-        assert_that(self.warner.warner_thread_name, is_(None))
+        assert_that(self.warner.warner_thread_name, none())
 
     def test_warntimer_sets_thread_name(self):
         setup_cvar("roundtimelimit", "180")
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _int: None)
 
         undecorated(self.warner.warntimer)(self.warner)
 
-        assert_that(self.warner.warner_thread_name, any(str))
+        assert_that(self.warner.warner_thread_name, any_(str))
 
     def test_warntimer_waits_until_30_seconds_before_roundtimelimit(self):
         setup_cvar("roundtimelimit", "180")
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _int: None)
 
         undecorated(self.warner.warntimer)(self.warner)
 
