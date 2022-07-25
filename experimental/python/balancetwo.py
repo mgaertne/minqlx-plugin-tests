@@ -32,10 +32,10 @@ from requests import Session, RequestException, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
-import minqlx  # type: ignore
+import minqlx
 from minqlx import Plugin, Player, AbstractChannel
 
-from minqlx.database import Redis  # type: ignore
+from minqlx.database import Redis
 
 
 SteamId = int
@@ -232,7 +232,7 @@ class balancetwo(Plugin):
     * !del_exceptiion <name|id|steam_id> (alias !rem_exception) (permission level 3): remove someone from that list of
         exceptions
     """
-    database = Redis  # type: ignore
+    database = Redis
 
     def __init__(self):
         super().__init__()
@@ -361,6 +361,8 @@ class balancetwo(Plugin):
 
     def parse_rating_limit(self, cvar: str) -> dict[str, Any]:
         configured_rating_limits = self.get_cvar(cvar)
+        if configured_rating_limits is None:
+            return {}
         evaluated_rating_limits = literal_eval(configured_rating_limits)
 
         if isinstance(evaluated_rating_limits, int):
@@ -391,6 +393,8 @@ class balancetwo(Plugin):
 
     def parse_suggestion_minimum(self, cvar: str) -> dict[int, Any]:
         configured_suggestion_minimum = self.get_cvar(cvar)
+        if configured_suggestion_minimum is None:
+            return {}
         evaluated_suggestion_minimum = literal_eval(configured_suggestion_minimum)
 
         if isinstance(evaluated_suggestion_minimum, int):
@@ -437,10 +441,10 @@ class balancetwo(Plugin):
             self.append_ratings(rating_provider_name, rating_results)
 
     def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None):
-        if mapname is None and (self.game is None or self.game.map is None):
-            return None, None
-
         if mapname is None:
+            if self.game is None or self.game.map is None:
+                return None, None
+
             mapname = self.game.map.lower()
 
         rating_provider_name = f"{mapname} {TRUSKILLS.name}"
@@ -469,7 +473,7 @@ class balancetwo(Plugin):
             return minqlx.RET_USAGE
 
         if len(msg) == 1:
-            target = player.steam_id
+            target = str(player.steam_id)
         else:
             target = msg[1]
 
@@ -578,6 +582,9 @@ class balancetwo(Plugin):
         return identify_reply_channel(channel).reply
 
     def used_steam_ids_for(self, steam_id: SteamId) -> list[int]:
+        if self.db is None:
+            return []
+
         if not self.db.exists(PLAYER_BASE.format(steam_id) + ":ips"):
             return [steam_id]
 
@@ -638,7 +645,7 @@ class balancetwo(Plugin):
                     result.append(" " * indent +
                                   f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)")
 
-        if map_based_truskill is not None:
+        if map_based_truskill is not None and self.game is not None:
             formatted_map_based_truskills = map_based_truskill.format_elos(steam_id)
             if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0:
                 formatted_mapname = self.game.map.lower()
@@ -678,6 +685,9 @@ class balancetwo(Plugin):
         return result
 
     def resolve_player_name(self, steam_id: SteamId) -> str:
+        if not self.db:
+            return "unknown"
+
         player = self.player(steam_id)
         if player is not None:
             return remove_trailing_color_code(player.name)
@@ -704,7 +714,7 @@ class balancetwo(Plugin):
             try:
                 target_steam_id = int(target)
 
-                if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                if self.db is None or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
                     player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
                     return
             except ValueError:
@@ -744,6 +754,9 @@ class balancetwo(Plugin):
         return f"{formatted_player_name}^7\nAliases used: {formatted_aliseses}"
 
     def cmd_ratings(self, _player: Player, _msg: str, channel: AbstractChannel) -> None:
+        if self.game is None:
+            return
+
         teams = self.teams()
         gametype = self.game.type_short
 
@@ -792,6 +805,9 @@ class balancetwo(Plugin):
 
     def cmd_switch_elo_changes_notifications(self, player: Player, _msg: str, _channel: AbstractChannel) \
             -> Optional[int]:
+        if self.db is None:
+            return minqlx.RET_NONE
+
         flag = self.wants_to_be_informed(player.steam_id)
         self.db.set_flag(player, "balancetwo:rating_changes", not flag)
 
@@ -808,9 +824,15 @@ class balancetwo(Plugin):
         return minqlx.RET_STOP_ALL
 
     def wants_to_be_informed(self, steam_id: SteamId) -> bool:
+        if self.db is None:
+            return False
+
         return self.db.get_flag(steam_id, "balancetwo:rating_changes", default=False)
 
     def cmd_balance(self, player: Player, _msg: str, _channel: AbstractChannel) -> Optional[int]:
+        if self.game is None:
+            return minqlx.RET_NONE
+
         gt = self.game.type_short
         if gt not in SUPPORTED_GAMETYPES:
             player.tell("This game mode is not supported by the balance plugin.")
@@ -847,10 +869,12 @@ class balancetwo(Plugin):
         team1 = self.dominant_team_for_steam_ids(team1_steam_ids)
         team2 = other_team(team1)
 
-        team1_to_move_steam_ids = [steam_id for steam_id in team1_steam_ids
-                                   if self.player(steam_id) is not None and self.player(steam_id).team != team1]
-        team2_to_move_steam_ids = [steam_id for steam_id in team2_steam_ids
-                                   if self.player(steam_id) is not None and self.player(steam_id).team != team2]
+        team1_to_move_steam_ids = [player.steam_id for player in
+                                   [self.player(steam_id) for steam_id in team1_steam_ids]
+                                   if player is not None and player.team != team1]
+        team2_to_move_steam_ids = [player.steam_id for player in
+                                   [self.player(steam_id) for steam_id in team2_steam_ids]
+                                   if player is not None and player.team != team2]
 
         if len(team1_to_move_steam_ids) == 0 and len(team2_to_move_steam_ids) == 0:
             channel.reply("Teams are good! Nothing to balance.")
@@ -908,6 +932,9 @@ class balancetwo(Plugin):
         return self.find_large_balanced_teams(steam_ids)
 
     def find_non_recent_small_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
+        if self.game is None:
+            return [], []
+
         teams = self.teams()
 
         gt = self.game.type_short
@@ -956,6 +983,9 @@ class balancetwo(Plugin):
         return red_team, blue_team
 
     def find_large_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
+        if self.game is None:
+            return [], []
+
         gametype = self.game.type_short
 
         minimum_suggestion_diff, minimum_suggestion_stddev_diff = self.minimum_suggestion_parameters()
@@ -1033,6 +1063,9 @@ class balancetwo(Plugin):
         return red_steam_ids, blue_steam_ids
 
     def report_teams(self, red_team: list[SteamId], blue_team: list[SteamId], channel: AbstractChannel) -> None:
+        if self.game is None:
+            return
+
         gt = self.game.type_short
 
         configured_rating_provider_name = self.configured_rating_provider_name()
@@ -1147,6 +1180,9 @@ class balancetwo(Plugin):
         return minqlx.RET_NONE
 
     def cmd_teams(self, player: Player, _msg: str, channel: AbstractChannel) -> Optional[int]:
+        if self.game is None:
+            return minqlx.RET_NONE
+
         gametype = self.game.type_short
         if gametype not in SUPPORTED_GAMETYPES:
             player.tell("This game mode is not supported by the balance plugin.")
@@ -1278,7 +1314,11 @@ class balancetwo(Plugin):
         return switches
 
     def handle_suggestions_collected(self, possible_switches: list[Suggestion], channel: AbstractChannel):
-        rating_strategy = self.rating_strategy(self.get_cvar("qlx_balancetwo_ratingStrategy", str))
+        configured_rating_strategy = self.get_cvar("qlx_balancetwo_ratingStrategy")
+        if configured_rating_strategy is None:
+            return
+
+        rating_strategy = self.rating_strategy(configured_rating_strategy)
         switch_suggestion_queue = SuggestionQueue(possible_switches, rating_strategy)
 
         if switch_suggestion_queue and len(switch_suggestion_queue) > 0:
@@ -1324,6 +1364,9 @@ class balancetwo(Plugin):
         self.switch_suggestion = None
 
     def cmd_agree(self, player: Player, _msg: str, _channel: AbstractChannel):
+        if self.game is None:
+            return
+
         if self.auto_switch:
             return
 
@@ -1499,12 +1542,12 @@ class balancetwo(Plugin):
             if target_players is None or len(target_players) == 0:
                 if not msg[1].isdecimal():
                     player.tell(f"Sorry, but no players matched your tokens: {msg[1]}.")
-                    return minqlx.RET_STOP_ALL
+                    return minqlx.RET_NONE
 
                 target_steam_id = int(msg[1])
-                if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                if self.db is None or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
                     player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
-                    return minqlx.RET_STOP_ALL
+                    return minqlx.RET_NONE
                 target_name = str(target_steam_id)
 
             elif len(target_players) > 1:
@@ -1515,21 +1558,24 @@ class balancetwo(Plugin):
                     out += " " * 2
                     out += f"{p.id}^6:^7 {p.name}\n"
                 player.tell(out[:-1])
-                return minqlx.RET_STOP_ALL
+                return minqlx.RET_NONE
 
             else:
                 target_player = target_players.pop()
                 target_steam_id = target_player.steam_id
                 target_name = msg[2] if len(msg) == 3 else target_player.name
 
+        if self.db is None:
+            return minqlx.RET_NONE
+
         current_exception = self.db.get_flag(target_steam_id, "balancetwo:ratinglimit_exception", default=False)
         if current_exception:
             player.tell(f"^6Psst: ^7This ID is already in the exception list under name ^6{target_name}^7!")
-            return minqlx.RET_STOP_ALL
+            return minqlx.RET_NONE
 
         self.db.set_flag(target_steam_id, "balancetwo:ratinglimit_exception", value=True)
         player.tell(f"^6Psst: ^2Succesfully ^7added ^6{target_name} ^7to the exception list.")
-        return minqlx.RET_STOP_ALL
+        return minqlx.RET_NONE
 
     def cmd_del_exception(self, player: Player, msg: str, _channel: AbstractChannel) -> Optional[int]:
         if len(msg) != 2:
@@ -1543,12 +1589,12 @@ class balancetwo(Plugin):
             if target_players is None or len(target_players) == 0:
                 if not msg[1].isdecimal():
                     player.tell(f"Sorry, but no players matched your tokens: {msg[1]}.")
-                    return minqlx.RET_STOP_ALL
+                    return minqlx.RET_NONE
 
                 target_steam_id = int(msg[1])
-                if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                if self.db is None or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
                     player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
-                    return minqlx.RET_STOP_ALL
+                    return minqlx.RET_NONE
 
             elif len(target_players) > 1:
                 amount_matched_players = len(target_players)
@@ -1564,14 +1610,17 @@ class balancetwo(Plugin):
                 target_player = target_players.pop()
                 target_steam_id = target_player.steam_id
 
+        if self.db is None:
+            return minqlx.RET_NONE
+
         current_exception = self.db.get_flag(target_steam_id, "balancetwo:ratinglimit_exception", default=False)
         if not current_exception:
             player.tell(f"^6{msg[1]} was not found in the exception list...")
-            return minqlx.RET_STOP_ALL
+            return minqlx.RET_NONE
 
         self.db.set_flag(target_steam_id, "balancetwo:ratinglimit_exception", value=False)
         player.tell(f"^6Player {msg[1]} found and removed!")
-        return minqlx.RET_STOP_ALL
+        return minqlx.RET_NONE
 
     def handle_map_change(self, mapname: str, _factory: str) -> None:
         self.vetoed_switches = []
@@ -1652,7 +1701,10 @@ class balancetwo(Plugin):
         return None
 
     def check_player_ratings(self, steam_id: SteamId) -> Optional[str]:
-        if self.db.get_flag(steam_id, "balancetwo:ratinglimit_exception", default=False):
+        if self.db is None or self.db.get_flag(steam_id, "balancetwo:ratinglimit_exception", default=False):
+            return None
+
+        if self.game is None:
             return None
 
         gametype = self.game.type_short
@@ -1778,6 +1830,9 @@ class balancetwo(Plugin):
         self.jointimes[steam_id] = current_time
 
     def schedule_kick_for_players_outside_rating_limits(self, steam_ids: list[SteamId]) -> None:
+        if self.game is None:
+            return
+
         if not self.ratingLimit_kick:
             return
 
@@ -1835,7 +1890,7 @@ class balancetwo(Plugin):
         if steam_id in self.exceptions:
             return True
 
-        if self.db.get_flag(steam_id, "balancetwo:ratinglimit_exception", default=False):
+        if self.db is not None and self.db.get_flag(steam_id, "balancetwo:ratinglimit_exception", default=False):
             return True
 
         return False
@@ -1952,6 +2007,9 @@ class balancetwo(Plugin):
         return minqlx.RET_STOP_ALL
 
     def is_player_within_configured_rating_limit(self, steam_id: SteamId) -> bool:
+        if self.game is None:
+            return True
+
         gametype = self.game.type_short
         for limited_rating_provider, min_games in self.ratingLimit_minGames.items():
             if limited_rating_provider not in self.ratings:
@@ -1986,6 +2044,9 @@ class balancetwo(Plugin):
         return True
 
     def is_player_above_lower_rating_limit(self, steam_id: SteamId) -> bool:
+        if self.game is None:
+            return True
+
         gametype = self.game.type_short
 
         for limited_rating_provider, ratingLimit_min in self.ratingLimit_min.items():
@@ -2189,6 +2250,9 @@ class balancetwo(Plugin):
         self.msg(f"{message}{' and '.join(move_announcements)}")
 
     def identify_player_to_move(self) -> Optional[Player]:
+        if self.game is None:
+            return None
+
         teams = self.teams()
 
         if len(teams["blue"]) > len(teams["red"]):
@@ -2240,6 +2304,9 @@ class balancetwo(Plugin):
 
     @minqlx.thread
     def balance_before_round_start(self) -> None:
+        if self.game is None:
+            return
+
         # noinspection PyUnusedLocal
         countdown = self.get_cvar('g_roundWarmupDelay', int)
         if self.game.type_short == "ft":
@@ -2342,6 +2409,9 @@ class balancetwo(Plugin):
 
     @minqlx.thread
     def record_team_stats(self, gametype: str) -> None:
+        if self.game is None:
+            return
+
         teams = self.teams()
 
         if len(teams["red"] + teams["blue"]) == 2:
@@ -2355,7 +2425,11 @@ class balancetwo(Plugin):
             self.team_stats(teams["blue"], gametype)
         ]
 
-        elostats_filename = os.path.join(self.get_cvar("fs_homepath"), "elostats.txt")
+        homepath = self.get_cvar("fs_homepath")
+        if homepath is None:
+            return
+
+        elostats_filename = os.path.join(homepath, "elostats.txt")
         with open(elostats_filename, "a", encoding="utf-8") as elostats_file:
             elostats_file.write(f"{stats}\n")
 
@@ -2750,9 +2824,9 @@ class KickThread(threading.Thread):
 
     def try_mute(self) -> None:
         @minqlx.next_frame
-        def execute() -> None:
+        def execute(_player: Player) -> None:
             try:
-                player.mute()
+                _player.mute()
             except ValueError:
                 pass
 
@@ -2764,13 +2838,13 @@ class KickThread(threading.Thread):
         if not self.go:
             return
 
-        execute()
+        execute(player)
 
     def try_kick(self) -> None:
         @minqlx.next_frame
-        def execute() -> None:
+        def execute(_player: Player) -> None:
             try:
-                player.kick(f"^1GOT KICKED!^7 {self.kickmsg}")
+                _player.kick(f"^1GOT KICKED!^7 {self.kickmsg}")
             except ValueError:
                 pass
 
@@ -2782,7 +2856,7 @@ class KickThread(threading.Thread):
         if not self.go:
             return
 
-        execute()
+        execute(player)
 
     def run(self) -> None:
         self.try_mute()
