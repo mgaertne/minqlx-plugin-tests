@@ -19,22 +19,25 @@
 
 # Since this isn't the actual module, we define it here and export
 # it later so that it can be accessed with minqlx.__doc__ by Sphinx.
+from typing import Optional
 
-import minqlx
-import minqlx.database
 import collections
 import subprocess
 import threading
 import traceback
 import importlib
 import datetime
+import os
 import os.path
 import logging
 import shlex
 import sys
-import os
 
 from logging.handlers import RotatingFileHandler
+
+import minqlx
+import minqlx.database
+from ._plugin import Plugin
 
 # em92: reasons not to support older than 3.5
 # https://docs.python.org/3.5/whatsnew/3.5.html#whatsnew-ordereddict
@@ -97,7 +100,7 @@ def parse_variables(varstr, ordered=False):
 
 main_logger = None
 
-def get_logger(plugin=None):
+def get_logger(plugin: Optional[Plugin] = None):
     """
     Provides a logger that should be used by your plugin for debugging, info
     and error reporting. It will automatically output to both the server console
