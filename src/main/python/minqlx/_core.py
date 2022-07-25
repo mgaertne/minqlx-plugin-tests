@@ -256,7 +256,7 @@ def next_frame(func):
 
     return f
 
-def delay(time):
+def delay(time: float):
     """Delay a function call a certain amount of time.
 
     .. note::
@@ -264,10 +264,10 @@ def delay(time):
         expires, but unless some plugin is for some reason blocking, then
         you can expect it to be called practically as soon as it expires.
 
-    :param func: The function to be called.
-    :type func: callable
-    :param time: The number of seconds before the function should be called.
-    :type time: int
+    :param: func: The function to be called.
+    :type: func: callable
+    :param: time: The number of seconds before the function should be called.
+    :type: time: float
 
     """
     def wrap(func):
