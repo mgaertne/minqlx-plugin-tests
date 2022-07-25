@@ -107,6 +107,8 @@ class TopicUpdater(Cog):
             game = minqlx.Game()
             topic = game_status_information(game)
             self.update_topics_on_relay_and_triggered_channels(topic)
+        except minqlx.NonexistentGameError:
+            pass
         finally:
             threading.Timer(self.discord_topic_update_interval, self._topic_updater).start()
 
