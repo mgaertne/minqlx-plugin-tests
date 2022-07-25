@@ -1,15 +1,19 @@
+import unittest
+import time
+import logging
+
 from minqlx_plugin_test import *
 
-import logging
-import unittest
-
-from mockito import *
-from mockito.matchers import *
-from hamcrest import *
+from mockito import mock, when, unstub, verify, patch, spy2, when2
+from mockito.matchers import matches
+from hamcrest import is_, assert_that, has_item
 
 from redis import Redis
 
-from merciful_elo_limit import *
+import minqlx
+from minqlx import Plugin, CHAT_CHANNEL
+
+from merciful_elo_limit import merciful_elo_limit
 
 
 class MercifulEloLimitTests(unittest.TestCase):
@@ -184,7 +188,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _: None)
         when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
@@ -200,7 +204,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _: None)
         when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
@@ -216,7 +220,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _: None)
         when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
@@ -233,7 +237,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _: None)
         when(self.db).get(any).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2, player3], minqlx.CHAT_CHANNEL)
@@ -251,7 +255,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
-        patch(time.sleep, lambda int: None)
+        patch(time.sleep, lambda _: None)
         when(self.db).get(any).thenReturn(None)
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
@@ -276,8 +280,8 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         verify(minqlx.COMMANDS).handle_input(any, any, any)
-        verify(self.db).delete("minqlx:players:{}:minelo:abovegames".format(player2.steam_id))
-        verify(self.db).delete("minqlx:players:{}:minelo:freegames".format(player2.steam_id))
+        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
+        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
 
     def test_handle_round_start_increases_application_games_for_untracked_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -292,7 +296,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr("minqlx:players:{}:minelo:freegames".format(player2.steam_id))
+        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:freegames")
 
     def test_handle_round_start_makes_exception_for_player_in_exception_list(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -309,8 +313,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr("minqlx:players:{}:minelo:freegames".format(player2.steam_id))
-        verify(self.db, times=0).incr("minqlx:players:{}:minelo:freegames".format(player3.steam_id))
+        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:freegames")
+        verify(self.db, times=0).incr(f"minqlx:players:{player3.steam_id}:minelo:freegames")
 
     def test_handle_round_start_starts_tracking_for_low_elo_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -340,7 +344,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).delete("minqlx:players:{}:minelo:abovegames".format(player2.steam_id))
+        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
     def test_handle_round_start_increases_above_games_for_application_games_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -355,7 +359,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr("minqlx:players:{}:minelo:abovegames".format(player2.steam_id))
+        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
     def test_handle_round_start_increases_above_games_for_application_games_player_with_no_aobve_games_set(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -370,7 +374,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr("minqlx:players:{}:minelo:abovegames".format(player2.steam_id))
+        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
     def test_handle_round_start_starts_tracking_of_above_elo_players_for_application_games_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -400,8 +404,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).delete("minqlx:players:{}:minelo:freegames".format(player2.steam_id))
-        verify(self.db).delete("minqlx:players:{}:minelo:abovegames".format(player2.steam_id))
+        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
+        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
     def test_handle_round_start_skips_already_tracked_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -452,18 +456,18 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player, player1, player2, player3)
         self.setup_balance_ratings({(player, 1400), (player1, 801), (player2, 799), (player3, 900)})
 
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player1.steam_id)).thenReturn("2")
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player2.steam_id)).thenReturn("3")
-        when(self.db).get("minqlx:players:{}:minelo:abovegames".format(player1.steam_id)).thenReturn("6")
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player.steam_id)).thenReturn(None)
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player3.steam_id)).thenReturn(None)
+        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:freegames").thenReturn("2")
+        when(self.db).get(f"minqlx:players:{player2.steam_id}:minelo:freegames").thenReturn("3")
+        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:abovegames").thenReturn("6")
+        when(self.db).get(f"minqlx:players:{player.steam_id}:minelo:freegames").thenReturn(None)
+        when(self.db).get(f"minqlx:players:{player3.steam_id}:minelo:freegames").thenReturn(None)
 
         self.plugin.cmd_mercis(player, ["!mercis"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Fake Player1 \(elo: 801\):.*8.*application matches "
-                                                               "left,.*6.*matches above.*"))
-        assert_channel_was_replied(self.reply_channel, matches("Fake Player2 \(elo: 799\):.*7.*application matches "
-                                                               "left"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Fake Player1 \(elo: 801\):.*8.*application matches "
+                                                               r"left,.*6.*matches above.*"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Fake Player2 \(elo: 799\):.*7.*application matches "
+                                                               r"left"))
 
     def test_cmd_mercis_replies_to_main_cbannel_instead_of_team_chat(self):
         self.addCleanup(self.reset_chat_channel, minqlx.CHAT_CHANNEL)
@@ -475,18 +479,18 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player, player1, player2, player3)
         self.setup_balance_ratings({(player, 1400), (player1, 801), (player2, 799), (player3, 900)})
 
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player1.steam_id)).thenReturn("2")
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player2.steam_id)).thenReturn("3")
-        when(self.db).get("minqlx:players:{}:minelo:abovegames".format(player1.steam_id)).thenReturn("6")
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player.steam_id)).thenReturn(None)
-        when(self.db).get("minqlx:players:{}:minelo:freegames".format(player3.steam_id)).thenReturn(None)
+        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:freegames").thenReturn("2")
+        when(self.db).get(f"minqlx:players:{player2.steam_id}:minelo:freegames").thenReturn("3")
+        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:abovegames").thenReturn("6")
+        when(self.db).get(f"minqlx:players:{player.steam_id}:minelo:freegames").thenReturn(None)
+        when(self.db).get(f"minqlx:players:{player3.steam_id}:minelo:freegames").thenReturn(None)
 
         self.plugin.cmd_mercis(player, ["!mercis"], minqlx.BLUE_TEAM_CHAT_CHANNEL)
 
-        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches("Fake Player1 \(elo: 801\):.*8.*application matches "
-                                                                "left,.*6.*matches above.*"))
-        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches("Fake Player2 \(elo: 799\):.*7.*application matches "
-                                                                "left"))
+        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches(r"Fake Player1 \(elo: 801\):.*8.*application matches "
+                                                                r"left,.*6.*matches above.*"))
+        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches(r"Fake Player2 \(elo: 799\):.*7.*application matches "
+                                                                r"left"))
 
     def reset_chat_channel(self, original_chat_channel):
         minqlx.CHAT_CHANNEL = original_chat_channel
