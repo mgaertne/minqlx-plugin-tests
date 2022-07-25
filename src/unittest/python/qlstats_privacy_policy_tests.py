@@ -328,7 +328,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.plugin.handle_player_disconnect(player, "quit")
 
-        assert_that(self.plugin.exceptions, not_(contains(player.steam_id)))
+        assert_that(self.plugin.exceptions, not_(contains_exactly(player.steam_id)))
 
     def test_handle_player_disconnect_that_has_no_exception(self):
         player = fake_player(123, "Test Player")
