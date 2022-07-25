@@ -450,7 +450,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord: Optional[Bot] = None
 
         self.discord_bot_token: str = Plugin.get_cvar("qlx_discordBotToken")
-        self.discord_application_id: str = Plugin.get_cvar("qlx_discordApplicationId", int)
+        self.discord_application_id: str = Plugin.get_cvar("qlx_discordApplicationId", str)
         self.discord_relay_channel_ids: set[int] = \
             SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
         self.discord_relay_team_chat_channel_ids: set[int] = SimpleAsyncDiscord.int_set(
