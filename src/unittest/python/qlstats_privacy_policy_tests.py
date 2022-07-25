@@ -1,17 +1,22 @@
-from minqlx_plugin_test import *
-
 import unittest
-from mockito import *
-from mockito.matchers import *
-from hamcrest import *
+from mockito import unstub, mock, spy2, spy, verify, patch, when  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
+from hamcrest import assert_that, is_, not_, contains_exactly
 
-from undecorated import undecorated
+from undecorated import undecorated  # type: ignore
 
-from qlstats_privacy_policy import *
-
+import requests
 from requests import Response
 
+import minqlx
+from qlstats_privacy_policy import qlstats_privacy_policy, ConnectThread
+from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, fake_player, \
+    assert_plugin_sent_to_console, setup_no_game, connected_players, assert_player_was_told, \
+    assert_player_received_center_print, assert_player_was_put_on, mocked_channel, assert_channel_was_replied
+# type: ignore
 
+
+# noinspection PyPep8Naming
 class qlstats_privacy_policy_tests(unittest.TestCase):
 
     def setUp(self):
@@ -29,12 +34,15 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def tearDown(self):
         unstub()
 
+    # noinspection PyMethodMayBeStatic
     def setup_balance_playerprivacy(self, player_privacy):
         player_info = {}
         for player, privacy in player_privacy:
             player_info[player.steam_id] = {"privacy": privacy}
-        minqlx.Plugin._loaded_plugins["balance"] = mock({'player_info': player_info})
+        minqlx.Plugin._loaded_plugins["balance"] = \
+            mock({'player_info': player_info})  # pylint: disable=protected-access
 
+    # noinspection PyMethodMayBeStatic
     def qlstats_response(self, status_code=200):
         spy2(minqlx.console_command)
         response = mock(Response)
@@ -42,6 +50,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         response.text = ""
         return response
 
+    # noinspection PyMethodMayBeStatic
     def setup_qlstats_response(self, response):
         patch(requests.get, lambda _: response)
         spy(requests.get)
@@ -63,7 +72,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_plugin_sent_to_console(any, times=0)
 
     def test_handle_player_connect_no_balance_plugin(self):
-        minqlx.Plugin._loaded_plugins.pop("balance")
+        minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
         connecting_player = fake_player(123, "Connecting Player")
 
         self.plugin.handle_player_connect(connecting_player)
@@ -71,7 +80,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_that(self.plugin.plugin_enabled, is_(False))
 
     def test_handle_player_connect_wrong_version_of_balance_plugin(self):
-        minqlx.Plugin._loaded_plugins["balance"] = mock(strict=True)
+        minqlx.Plugin._loaded_plugins["balance"] = mock(strict=True)  # pylint: disable=protected-access
         connecting_player = fake_player(123, "Connecting Player")
 
         self.plugin.handle_player_connect(connecting_player)
@@ -135,7 +144,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.plugin.handle_player_connect(connecting_player)
 
-        verify(requests).get("http://qlstats.net/belo/{}".format(connecting_player.steam_id))
+        verify(requests).get(f"http://qlstats.net/belo/{connecting_player.steam_id}")
 
     def test_handle_player_connect_logs_error_if_result_status_not_ok(self):
         result = self.qlstats_response(status_code=500)
@@ -254,7 +263,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         returned = self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(returned, is_(None))
+        assert_that(returned, is_(minqlx.RET_NONE))
 
     def test_callback_connect_players_plugin_disabled(self):
         self.plugin.plugin_enabled = False
@@ -266,7 +275,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def test_callback_connect_players_not_kicked(self):
         self.plugin.callback_connect([123], None)
 
-        assert_plugin_sent_to_console(any, times=0)
+        assert_plugin_sent_to_console(any_, times=0)
 
     def test_callback_connect_player_has_exception(self):
         self.plugin.kick_players = True
@@ -275,11 +284,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         self.plugin.exceptions.add(not_kicked_player.steam_id)
         self.setup_balance_playerprivacy([(not_kicked_player, "private")])
         self.plugin.delayed_kick = mock()
-        when(self.plugin).delayed_kick(any, any(str)).thenReturn(None)
+        when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
         self.plugin.callback_connect([not_kicked_player.steam_id], None)
 
-        verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any)
+        verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any_)
 
     def test_callback_connect_players_privacy_info_not_yet_available(self):
         self.plugin.kick_players = True
@@ -287,11 +296,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         connected_players(not_kicked_player)
         self.setup_balance_playerprivacy({})
         self.plugin.delayed_kick = mock()
-        when(self.plugin).delayed_kick(any, any(str)).thenReturn(None)
+        when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
         self.plugin.callback_connect([not_kicked_player.steam_id], None)
 
-        verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any)
+        verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any_)
 
     def test_callback_connect_player_gets_kicked_for_wrong_privacy_settings(self):
         self.plugin.kick_players = True
@@ -299,11 +308,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         connected_players(kicked_player)
         self.setup_balance_playerprivacy([(kicked_player, "private")])
         self.plugin.delayed_kick = mock()
-        when(self.plugin).delayed_kick(any, any(str)).thenReturn(None)
+        when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
         self.plugin.callback_connect([kicked_player.steam_id], None)
 
-        verify(self.plugin).delayed_kick(kicked_player.steam_id, any)
+        verify(self.plugin).delayed_kick(kicked_player.steam_id, any_)
 
     def test_callback_connect_player_does_not_get_kicked_for_privacy_settings(self):
         self.plugin.kick_players = True
@@ -311,7 +320,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         connected_players(not_kicked_player)
         self.setup_balance_playerprivacy([(not_kicked_player, "public")])
         self.plugin.delayed_kick = mock()
-        when(self.plugin).delayed_kick(any, any(str)).thenReturn(None)
+        when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
         self.plugin.callback_connect([not_kicked_player.steam_id], None)
 
@@ -347,7 +356,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_that(player.steam_id not in self.plugin.join_attempts, is_(True))
 
     def test_handle_team_switch_attempt_no_balance_plugin(self):
-        minqlx.Plugin._loaded_plugins.pop("balance")
+        minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
         switching_player = fake_player(123, "Joining Player")
         connected_players(switching_player)
 
@@ -362,7 +371,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_handle_team_switch_attempt_no_game_running(self):
         setup_no_game()
@@ -372,7 +381,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_handle_team_switch_attempt_player_has_exception_to_join(self):
         switching_player = fake_player(123, "Joining Player")
@@ -381,7 +390,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_handle_team_switch_attempt_player_has_no_ratings(self):
         switching_player = fake_player(123, "Joining Player")
@@ -395,12 +404,13 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "any")
 
         assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
-        assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
+        assert_player_received_center_print(specced_player, matches(r"\^3Join not allowed.*"))
         assert_player_was_told(specced_player, matches(".*Open qlstats.net.*"))
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_that(specced_player.steam_id in self.plugin.join_attempts, is_(True))
@@ -408,26 +418,28 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_with_unlimited_join_attempts(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
         self.plugin.max_num_join_attempts = -1
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "any")
 
         assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
-        assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
-        assert_player_was_told(specced_player, matches(".*Open qlstats\.net.*"))
+        assert_player_received_center_print(specced_player, matches(r"\^3Join not allowed.*"))
+        assert_player_was_told(specced_player, matches(r".*Open qlstats\.net.*"))
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
         assert_that(specced_player.steam_id not in self.plugin.join_attempts, is_(True))
 
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_moved_to_spec(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         self.plugin.handle_team_switch_attempt(specced_player, "red", "blue")
 
         assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
-        assert_player_received_center_print(specced_player, matches("\^3Join not allowed.*"))
+        assert_player_received_center_print(specced_player, matches(r"\^3Join not allowed.*"))
         assert_player_was_told(specced_player, matches(".*Open qlstats.net.*"))
         assert_player_was_put_on(specced_player, "spectator")
 
@@ -435,17 +447,19 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         kicked_player = fake_player(123, "Test Player")
         connected_players(kicked_player)
         self.plugin.join_attempts[kicked_player.steam_id] = 0
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {kicked_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(kicked_player, "spec", "blue")
 
         assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        verify(kicked_player).kick(any())
+        verify(kicked_player).kick(any_())
 
     def test_handle_team_switch_attempt_player_join_attempts_are_decremented(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         self.plugin.join_attempts[specced_player.steam_id] = 3
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
@@ -456,20 +470,22 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
     def test_handle_team_switch_attempt_player_with_correct_privacy_settings(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "public"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_handle_team_switch_attempt_player_moved_to_spec_is_fine(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
+        # noinspection PyUnresolvedReferences
         self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "red", "spectator")
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_cmd_policy_exception_for_player_too_short(self):
         admin_player = fake_player(123, "Admin Player")
@@ -514,7 +530,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_that(self.plugin.plugin_enabled, is_(False))
 
     def test_cmd_switch_plugin_with_no_balance_plugin(self):
-        minqlx.Plugin._loaded_plugins.pop("balance")
+        minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
         self.plugin.plugin_enabled = False
         reply_channel = mocked_channel()
         connected_players()
@@ -572,11 +588,11 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         connected_players(kicked_player)
         self.setup_balance_playerprivacy([(kicked_player, "private")])
         self.plugin.delayed_kick = mock()
-        when(self.plugin).delayed_kick(any, any(str)).thenReturn(None)
+        when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
         self.plugin.cmd_switch_plugin(None, ["!policy"], reply_channel)
 
-        verify(self.plugin).delayed_kick(kicked_player.steam_id, any)
+        verify(self.plugin).delayed_kick(kicked_player.steam_id, any_)
 
     def test_cmd_switch_plugin_enabled(self):
         self.plugin.plugin_enabled = True

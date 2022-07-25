@@ -1,24 +1,25 @@
+import threading
+import requests
+
 import minqlx
 
-import requests
-import threading
-
-"""
-Plugin that restricts playing on the server to certain QLStats.net privacy settings.
-
-Uses:
-- qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
-- qlx_qlstatsPrivacyWhitelist (default: "public, private, untracked")
-    List of allowed privacy settings on this server. Take out any value from the default expansive list.
-- qlx_qlstatsPrivacyJoinAttempts (default: 5), amount of join attempts before the player gets kicked,
-    if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
-"""
 
 COLORED_QLSTATS_INSTRUCTIONS = "Error: Open qlstats.net, click Login/Sign-up, set privacy settings to ^6{}^7, " \
                                "click save and reconnect!"
 
 
+# noinspection PyPep8Naming
 class qlstats_privacy_policy(minqlx.Plugin):
+    """
+    Plugin that restricts playing on the server to certain QLStats.net privacy settings.
+
+    Uses:
+    - qlx_qlstatsPrivacyKick (default: 0), set to 1 to kick any clients with unallowed privacy settings upon connect.
+    - qlx_qlstatsPrivacyWhitelist (default: "public, private, untracked")
+        List of allowed privacy settings on this server. Take out any value from the default expansive list.
+    - qlx_qlstatsPrivacyJoinAttempts (default: 5), amount of join attempts before the player gets kicked,
+        if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
+    """
 
     def __init__(self):
         super().__init__()
@@ -33,7 +34,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.max_num_join_attempts = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int)
 
         self.exceptions = set()
-        self.join_attempts = dict()
+        self.join_attempts = {}
 
         # Collection of threads looking up elo of players {steam_id: thread }
         self.connectthreads = {}
@@ -66,20 +67,21 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
     def handle_player_connect(self, player):
         if not self.plugin_enabled:
-            return
+            return minqlx.RET_NONE
 
         if not self.game:
-            return
+            return minqlx.RET_NONE
 
         if not self.check_for_correct_balance_plugin():
             self.disable_policy_check(minqlx.CHAT_CHANNEL)
-            return
+            return minqlx.RET_NONE
 
-        b = minqlx.Plugin._loaded_plugins['balance']
+        b = minqlx.Plugin._loaded_plugins['balance']   # pylint: disable=protected-access
+        # noinspection PyUnresolvedReferences
         b.add_request({player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
 
         if not self.get_cvar("qlx_qlstatsPrivacyBlock", bool):
-            return
+            return minqlx.RET_NONE
 
         if player.steam_id not in self.connectthreads:
             ct = ConnectThread(player.steam_id, self.get_cvar("qlx_balanceApi"))
@@ -94,7 +96,8 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         # Check if thread is ready or not
         try:
-            res = ct._result
+            # noinspection PyProtectedMember
+            res = ct._result  # pylint: disable=protected-access
             if not res:
                 return "Fetching your qlstats settings..."
 
@@ -115,16 +118,19 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if js["playerinfo"][str(player.steam_id)]["privacy"] not in self.allowed_privacy:
                 return minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
 
-        except Exception as e:
-            minqlx.console_command("echo QLStatsPrivacyError: {}".format(e))
+        except Exception as e:  # pylint: disable=broad-except
+            minqlx.console_command(f"echo QLStatsPrivacyError: {e}")
 
-    def callback_connect(self, players, channel):
+        return minqlx.RET_NONE
+
+    def callback_connect(self, players, _channel):
         if not self.plugin_enabled:
             return
 
         if not self.kick_players:
             return
 
+        # noinspection PyUnresolvedReferences
         player_info = self.plugins["balance"].player_info
 
         for sid in players:
@@ -144,7 +150,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
     def delayed_kick(self, sid, reason):
         self.kick(sid, reason)
 
-    def handle_player_disconnect(self, player, reason):
+    def handle_player_disconnect(self, player, _reason):
         if player.steam_id in self.exceptions:
             self.exceptions.remove(player.steam_id)
 
@@ -153,19 +159,20 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
     def handle_team_switch_attempt(self, player, old, new):
         if not self.plugin_enabled:
-            return
+            return minqlx.RET_NONE
 
         if not self.game:
-            return
+            return minqlx.RET_NONE
 
         if player.steam_id in self.exceptions:
-            return
+            return minqlx.RET_NONE
 
         if not self.check_for_correct_balance_plugin():
             self.disable_policy_check(minqlx.CHAT_CHANNEL)
-            return
+            return minqlx.RET_NONE
 
         if new in ["red", "blue", "any"]:
+            # noinspection PyUnresolvedReferences
             player_info = self.plugins["balance"].player_info
             if player.steam_id not in player_info:
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
@@ -180,19 +187,17 @@ class qlstats_privacy_policy(minqlx.Plugin):
                     if self.join_attempts[player.steam_id] < 0:
                         player.kick(minqlx.Plugin.clean_text(self.colored_qlstats_instructions()))
                         return minqlx.RET_STOP_ALL
-                    self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings. "
-                             "{} join attempts before automatically kicking you."
-                             .format(player.name, player_info[player.steam_id]["privacy"].lower(),
-                                     self.join_attempts[player.steam_id]))
-                    player.tell("Not allowed to join due to ^6{}1^7 QLStats.net data. "
-                                "{} join attempts before automatically kicking you."
-                                .format(player_info[player.steam_id]["privacy"].lower(),
-                                        self.join_attempts[player.steam_id]))
+                    self.msg(f"{player.name}^7 not allowed to join due to "
+                             f"{player_info[player.steam_id]['privacy'].lower()} QLStats.net privacy settings. "
+                             f"{self.join_attempts[player.steam_id]} join attempts before automatically kicking you.")
+                    player.tell(f"Not allowed to join due to ^6{player_info[player.steam_id]['privacy'].lower()}^7 "
+                                f"QLStats.net data. {self.join_attempts[player.steam_id]} join attempts before "
+                                f"automatically kicking you.")
                 else:
-                    self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings. "
-                             .format(player.name, player_info[player.steam_id]["privacy"].lower()))
-                    player.tell("Not allowed to join due to ^6{}1^7 QLStats.net data. "
-                                .format(player_info[player.steam_id]["privacy"].lower()))
+                    self.msg(f"{player.name}^7 not allowed to join due to "
+                             f"{player_info[player.steam_id]['privacy'].lower()} QLStats.net privacy settings. ")
+                    player.tell(f"Not allowed to join due to ^6{player_info[player.steam_id]['privacy'].lower()}^7 "
+                                f"QLStats.net data. ")
 
                 player.center_print("^3Join not allowed. See instructions in console!")
                 player.tell(self.colored_qlstats_instructions())
@@ -201,6 +206,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
                     return minqlx.RET_STOP_ALL
 
                 player.put("spectator")
+        return minqlx.RET_NONE
 
     def cmd_policy_exception(self, player, msg, channel):
         if len(msg) != 2:
@@ -211,21 +217,21 @@ class qlstats_privacy_policy(minqlx.Plugin):
         except_player = self.find_player(msg[1], speccing_players)
 
         if except_player is None or len(except_player) == 0:
-            player.tell("^7Could not find player identified by ^1{}^7.".format(msg[1]))
-            return
+            player.tell(f"^7Could not find player identified by ^1{msg[1]}^7.")
+            return minqlx.RET_NONE
 
         if len(except_player) > 1:
-            player.tell("^7More than one matching spectator found: {}"
-                        .format("^7, ".join([player.name for player in except_player])))
+            player_names = "^7, ".join([player.name for player in except_player])
+            player.tell(f"^7More than one matching spectator found: {player_names}")
             player.tell("^7Please be more specific which one to put on the exception list!")
-            return
+            return minqlx.RET_NONE
 
-        channel.reply("^7An admin has allowed ^2{}^7 to temporarily join despite missing or "
-                      "inadequate qlstats privacy information."
-                      .format(except_player[0].clean_name))
+        channel.reply(f"^7An admin has allowed ^2{except_player[0].clean_name}^7 to temporarily join "
+                      f"despite missing or inadequate qlstats privacy information.")
         self.exceptions.add(except_player[0].steam_id)
+        return minqlx.RET_NONE
 
-    def cmd_switch_plugin(self, player, msg, channel):
+    def cmd_switch_plugin(self, _player, msg, channel):
         if len(msg) > 2:
             return minqlx.RET_USAGE
 
@@ -233,14 +239,16 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if msg[1] != "status":
                 return minqlx.RET_USAGE
 
-            channel.reply("^7QLStats policy check is {}".format("enabled" if self.plugin_enabled else "disabled"))
-            return
+            enabled_or_disabled = "enabled" if self.plugin_enabled else "disabled"
+            channel.reply(f"^7QLStats policy check is {enabled_or_disabled}")
+            return minqlx.RET_NONE
 
         if not self.plugin_enabled:
             self.enable_policy_check(channel)
-            return
+            return minqlx.RET_NONE
 
         self.disable_policy_check(channel)
+        return minqlx.RET_NONE
 
     def disable_policy_check(self, channel):
         self.plugin_enabled = False
@@ -259,6 +267,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
             return
 
         teams = self.teams()
+        # noinspection PyUnresolvedReferences
         player_info = self.plugins["balance"].player_info
 
         for player in teams["red"] + teams["blue"]:
@@ -268,11 +277,11 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 continue
 
             if player_info[player.steam_id]["privacy"] not in self.allowed_privacy:
-                self.msg("{}^7 not allowed to join due to {} QLStats.net privacy settings."
-                         .format(player.name, player_info[player.steam_id]["privacy"].lower()))
+                self.msg(f"{player.name}^7 not allowed to join due to "
+                         f"{player_info[player.steam_id]['privacy'].lower()} QLStats.net privacy settings.")
                 player.center_print("^3Join not allowed. See instructions in console!")
-                player.tell("Not allowed to join due to ^6{}1 7 QLStats.net data."
-                            .format(player_info[player.steam_id]["privacy"].lower()))
+                player.tell(f"Not allowed to join due to ^6{player_info[player.steam_id]['privacy'].lower()}^7 "
+                            f"QLStats.net data.")
                 player.tell(self.colored_qlstats_instructions())
                 player.put("spectator")
 
@@ -285,11 +294,11 @@ class qlstats_privacy_policy(minqlx.Plugin):
 class ConnectThread(threading.Thread):
 
     def __init__(self, steam_id, balance_api):
-        super(ConnectThread, self).__init__()
+        super().__init__()
         self._balance_api = balance_api
         self._steam_id = steam_id
         self._result = None
 
     def run(self):
-        url = "http://qlstats.net/{elo}/{}".format(self._steam_id, elo=self._balance_api)
+        url = f"http://qlstats.net/{self._balance_api}/{self._steam_id}"
         self._result = requests.get(url)
