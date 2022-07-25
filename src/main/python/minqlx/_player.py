@@ -16,22 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 
-import minqlx
 import re
 
+import minqlx
+
 _DUMMY_USERINFO = ("ui_singlePlayerActive\\0\\cg_autoAction\\1\\cg_autoHop\\0"
-    "\\cg_predictItems\\1\\model\\bitterman/sport_blue\\headmodel\\crash/red"
-    "\\handicap\\100\\cl_anonymous\\0\\color1\\4\\color2\\23\\sex\\male"
-    "\\teamtask\\0\\rate\\25000\\country\\NO")
+                   "\\cg_predictItems\\1\\model\\bitterman/sport_blue\\headmodel\\crash/red"
+                   "\\handicap\\100\\cl_anonymous\\0\\color1\\4\\color2\\23\\sex\\male"
+                   "\\teamtask\\0\\rate\\25000\\country\\NO")
+
 
 class NonexistentPlayerError(Exception):
     """An exception that is raised when a player that disconnected is being used
     as if the player were still present.
 
     """
-    pass
 
-class Player():
+
+class Player:
     """A class that represents a player on the server. As opposed to minqlbot,
     attributes are all the values from when the class was instantiated. This
     means for instance if a player is on the blue team when you check, but
@@ -41,6 +43,8 @@ class Player():
     :exc:`minqlx.NonexistentPlayerError` exception.
 
     """
+    __slots__ = ("_valid", "_id", "_info", "_userinfo", "_steam_id", "_name")
+
     def __init__(self, client_id, info=None):
         self._valid = True
 
@@ -52,13 +56,12 @@ class Player():
             self._id = client_id
             self._info = minqlx.player_info(client_id)
             if not self._info:
-                self._invalidate("Tried to initialize a Player instance of nonexistant player {}."
-                    .format(client_id))
+                self._invalidate(f"Tried to initialize a Player instance of nonexistant player {client_id}.")
 
         self._userinfo = None
         self._steam_id = self._info.steam_id
 
-        # When a player connects, a the name field in the client struct has yet to be initialized,
+        # When a player connects, the name field in the client struct has yet to be initialized,
         # so we fall back to the userinfo and try parse it ourselves to get the name if needed.
         if self._info.name:
             self._name = self._info.name
@@ -66,16 +69,14 @@ class Player():
             self._userinfo = minqlx.parse_variables(self._info.userinfo, ordered=True)
             if "name" in self._userinfo:
                 self._name = self._userinfo["name"]
-            else: # No name at all. Weird userinfo during connection perhaps?
+            else:  # No name at all. Weird userinfo during connection perhaps?
                 self._name = ""
 
     def __repr__(self):
         if not self._valid:
-            return "{}(INVALID:'{}':{})".format(self.__class__.__name__,
-                self.clean_name, self.steam_id)
+            return f"{self.__class__.__name__}(INVALID:'{self.clean_name}':{self.steam_id})"
 
-        return "{}({}:'{}':{})".format(self.__class__.__name__, self._id,
-            self.clean_name, self.steam_id)
+        return f"{self.__class__.__name__}({self._id}:'{self.clean_name}':{self.steam_id})"
 
     def __str__(self):
         return self.name
@@ -89,8 +90,8 @@ class Player():
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.steam_id == other.steam_id
-        else:
-            return self.steam_id == other
+
+        return self.steam_id == other
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -134,8 +135,8 @@ class Player():
 
     @cvars.setter
     def cvars(self, new_cvars):
-        new = "".join(["\\{}\\{}".format(key, new_cvars[key]) for key in new_cvars])
-        minqlx.client_command(self.id, "userinfo \"{}\"".format(new))
+        new = "".join([f"\\{key}\\{new_cvars[key]}" for key in new_cvars])
+        minqlx.client_command(self.id, f"userinfo \"{new}\"")
 
     @property
     def steam_id(self):
@@ -149,8 +150,7 @@ class Player():
     def ip(self):
         if "ip" in self:
             return self["ip"].split(":")[0]
-        else:
-            return ""
+        return ""
 
     @property
     def clan(self):
@@ -168,7 +168,7 @@ class Player():
         cs = minqlx.parse_variables(minqlx.get_configstring(index), ordered=True)
         cs["xcn"] = tag
         cs["cn"] = tag
-        new_cs = "".join(["\\{}\\{}".format(key, cs[key]) for key in cs])
+        new_cs = "".join([f"\\{key}\\{cs[key]}" for key in cs])
         minqlx.set_configstring(index, new_cs)
 
     @property
@@ -184,14 +184,14 @@ class Player():
     @property
     def clean_name(self):
         """Removes color tags from the name."""
-        return re.sub(r"\^[0-9]", "", self.name)
+        return re.sub(r"\^\d", "", self.name)
 
     @property
     def qport(self):
         if "qport" in self:
             return int(self["qport"])
-        else:
-            return -1
+
+        return -1
 
     @property
     def team(self):
@@ -296,16 +296,15 @@ class Player():
 
     @property
     def privileges(self):
-        if self._info.privileges == minqlx.PRIV_NONE:
-            return None
-        elif self._info.privileges == minqlx.PRIV_MOD:
+        if self._info.privileges == minqlx.PRIV_MOD:
             return "mod"
-        elif self._info.privileges == minqlx.PRIV_ADMIN:
+        if self._info.privileges == minqlx.PRIV_ADMIN:
             return "admin"
-        elif self._info.privileges == minqlx.PRIV_ROOT:
+        if self._info.privileges == minqlx.PRIV_ROOT:
             return "root"
-        elif self._info.privileges == minqlx.PRIV_BANNED:
+        if self._info.privileges == minqlx.PRIV_BANNED:
             return "banned"
+        return None
 
     @privileges.setter
     def privileges(self, value):
@@ -396,12 +395,12 @@ class Player():
         hands = weaps.hands if "hands" not in kwargs else kwargs["hands"]
 
         return minqlx.set_weapons(self.id,
-            minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)))
+                                  minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)))
 
     def weapon(self, new_weapon=None):
         if new_weapon is None:
             return self.state.weapon
-        elif new_weapon in minqlx.WEAPONS:
+        if new_weapon in minqlx.WEAPONS:
             pass
         elif new_weapon in minqlx.WEAPONS.values():
             new_weapon = tuple(minqlx.WEAPONS.values()).index(new_weapon)
@@ -434,7 +433,7 @@ class Player():
         hands = a.hands if "hands" not in kwargs else kwargs["hands"]
 
         return minqlx.set_ammo(self.id,
-            minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)))
+                               minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)))
 
     def powerups(self, reset=False, **kwargs):
         if reset:
@@ -453,7 +452,7 @@ class Player():
         invul = pu.invulnerability if "invulnerability" not in kwargs else round(kwargs["invulnerability"]*1000)
 
         return minqlx.set_powerups(self.id,
-            minqlx.Powerups((quad, bs, haste, invis, regen, invul)))
+                                   minqlx.Powerups((quad, bs, haste, invis, regen, invul)))
 
     @property
     def holdable(self):
@@ -551,22 +550,14 @@ class Player():
 
     @score.setter
     def score(self, value):
-        return minqlx.set_score(self.id, value)
-
-    @property
-    def air_control(self):
-        return self.state.air_control
-
-    @air_control.setter
-    def air_control(self, value):
-        minqlx.set_air_control(self.id, value)
+        minqlx.set_score(self.id, value)
 
     @property
     def channel(self):
         return minqlx.TellChannel(self)
 
     def center_print(self, msg):
-        minqlx.send_server_command(self.id, "cp \"{}\"".format(msg))
+        minqlx.send_server_command(self.id, f"cp \"{msg}\"")
 
     def tell(self, msg, **kwargs):
         return minqlx.Plugin.tell(msg, self, **kwargs)
@@ -617,10 +608,11 @@ class Player():
     def all_players(cls):
         return [cls(i, info=info) for i, info in enumerate(minqlx.players_info()) if info]
 
+
 class AbstractDummyPlayer(Player):
     def __init__(self, name="DummyPlayer"):
         info = minqlx.PlayerInfo((-1, name, minqlx.CS_CONNECTED,
-            _DUMMY_USERINFO, -1, minqlx.TEAM_SPECTATOR, minqlx.PRIV_NONE))
+                                  _DUMMY_USERINFO, -1, minqlx.TEAM_SPECTATOR, minqlx.PRIV_NONE))
         super().__init__(-1, info=info)
 
     @property
@@ -638,8 +630,9 @@ class AbstractDummyPlayer(Player):
     def channel(self):
         raise NotImplementedError("channel property needs to be implemented.")
 
-    def tell(self, msg):
+    def tell(self, msg, **kwargs):
         raise NotImplementedError("tell() needs to be implemented.")
+
 
 class RconDummyPlayer(AbstractDummyPlayer):
     def __init__(self):
@@ -653,5 +646,5 @@ class RconDummyPlayer(AbstractDummyPlayer):
     def channel(self):
         return minqlx.CONSOLE_CHANNEL
 
-    def tell(self, msg):
+    def tell(self, msg, **kwargs):
         self.channel.reply(msg)

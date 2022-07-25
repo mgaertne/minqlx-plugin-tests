@@ -235,7 +235,7 @@ class AbstractChannel:
     def name(self):
         return self._name
 
-    def reply(self, msg):
+    def reply(self, msg, **kwargs):
         raise NotImplementedError()
 
     def split_long_lines(self, msg, limit=100, delimiter=" "):

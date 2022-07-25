@@ -15,9 +15,12 @@
 
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
+from logging import Logger
+from typing import Any, Optional
 
-import minqlx
 import redis
+import minqlx
+
 
 # ====================================================================
 #                          AbstractDatabase
@@ -34,10 +37,10 @@ class AbstractDatabase:
         self.__class__._counter -= 1
 
     @property
-    def logger(self):
+    def logger(self) -> Logger:
         return minqlx.get_logger(self.plugin)
 
-    def set_permission(self, player):
+    def set_permission(self, player, level: int) -> None:
         """Abstract method. Should set the permission of a player.
 
         :raises: NotImplementedError
@@ -45,7 +48,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def get_permission(self, player):
+    def get_permission(self, player) -> int:
         """Abstract method. Should return the permission of a player.
 
         :returns: int
@@ -54,7 +57,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def has_permission(self, player, level=5):
+    def has_permission(self, player, level: int = 5) -> bool:
         """Abstract method. Should return whether or not a player has more than or equal
         to a certain permission level. Should only take a value of 0 to 5, where 0 is
         always True.
@@ -65,7 +68,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def set_flag(self, player, flag, value=True):
+    def set_flag(self, player, flag: str, value: bool = True) -> None:
         """Abstract method. Should set specified player flag to value.
 
         :raises: NotImplementedError
@@ -73,11 +76,11 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def clear_flag(self, player, flag):
+    def clear_flag(self, player, flag: str) -> None:
         """Should clear specified player flag."""
         return self.set_flag(player, flag, False)
 
-    def get_flag(self, player, flag, default=False):
+    def get_flag(self, player, flag: str, default: bool = False) -> bool:
         """Abstract method. Should return specified player flag
 
         :returns: bool
@@ -86,7 +89,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def connect(self):
+    def connect(self) -> Any:
         """Abstract method. Should return a connection to the database. Exactly what a
         "connection" obviously depends on the database, so the specifics will be up
         to the implementation.
@@ -98,7 +101,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def close(self):
+    def close(self) -> None:
         """Abstract method. If the database has a connection state, this method should
         close the connection.
 
@@ -107,68 +110,67 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
+
 # ====================================================================
 #                               Redis
 # ====================================================================
-
 class Redis(AbstractDatabase):
     """A subclass of :class:`minqlx.AbstractDatabase` providing support for Redis."""
 
     # We only use the instance-level ones if we override the URI from the config.
-    _conn = None
-    _pool = None
-    _pass = ""
+    _conn: Optional[redis.Redis] = None
+    _pool: Optional[redis.ConnectionPool] = None
+    _pass: str = ""
 
-    def __del__(self):
+    def __del__(self) -> None:
         super().__del__()
         self.close()
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         return self.r.exists(key)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         res = self.r.get(key)
         if res is None:
-            raise KeyError("The key '{}' is not present in the database.".format(key))
-        else:
-            return res
+            raise KeyError(f"The key '{key}' is not present in the database.")
+        return res
 
-    def __setitem__(self, key, item):
+    def __setitem__(self, key: str, item: Any) -> None:
         res = self.r.set(key, item)
         if res is False:
             raise RuntimeError("The database assignment failed.")
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         res = self.r.delete(key)
         if res == 0:
-            raise KeyError("The key '{}' is not present in the database.".format(key))
+            raise KeyError(f"The key '{key}' is not present in the database.")
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: Any) -> Any:
         return getattr(self.r, attr)
 
     @property
-    def r(self):
+    def r(self) -> Any:
         return self.connect()
 
-    def set_permission(self, player, level):
+    def set_permission(self, player, level: int) -> None:
         """Sets the permission of a player.
 
-        :param player: The player in question.
-        :type player: minqlx.Player
+        :param: player: The player in question.
+        :type: player: minqlx.Player
 
         """
         if isinstance(player, minqlx.Player):
-            key = "minqlx:players:{}:permission".format(player.steam_id)
+            key = f"minqlx:players:{player.steam_id}:permission"
         else:
-            key = "minqlx:players:{}:permission".format(player)
+            key = f"minqlx:players:{player}:permission"
 
         self[key] = level
 
-    def get_permission(self, player):
+    def get_permission(self, player) -> int:
         """Gets the permission of a player.
 
-        :param player: The player in question.
-        :type player: minqlx.Player, int
+        :param: player: The player in question.
+        :type: player: minqlx.Player, int
         :returns: int
 
         """
@@ -185,7 +187,7 @@ class Redis(AbstractDatabase):
         if steam_id == minqlx.owner():
             return 5
 
-        key = "minqlx:players:{}:permission".format(steam_id)
+        key = f"minqlx:players:{steam_id}:permission"
         try:
             perm = self[key]
         except KeyError:
@@ -193,58 +195,59 @@ class Redis(AbstractDatabase):
 
         return int(perm)
 
-    def has_permission(self, player, level=5):
+    def has_permission(self, player, level: int = 5) -> bool:
         """Checks if the player has higher than or equal to *level*.
 
-        :param player: The player in question.
-        :type player: minqlx.Player
-        :param level: The permission level to check for.
-        :type level: int
+        :param: player: The player in question.
+        :type: player: minqlx.Player
+        :param: level: The permission level to check for.
+        :type: level: int
         :returns: bool
 
         """
         return self.get_permission(player) >= level
 
-    def set_flag(self, player, flag, value=True):
+    def set_flag(self, player, flag: str, value: bool = True) -> None:
         """Sets specified player flag
 
-        :param player: The player in question.
-        :type player: minqlx.Player
-        :param flag: The flag to set.
-        :type flag: string
-        :param value: (optional, default=True) Value to set
-        :type value: bool
+        :param: player: The player in question.
+        :type: player: minqlx.Player
+        :param: flag: The flag to set.
+        :type: flag: string
+        :param: value: (optional, default=True) Value to set
+        :type: value: bool
 
         """
         if isinstance(player, minqlx.Player):
-            key = "minqlx:players:{0}:flags:{1}".format(player.steam_id, flag)
+            key = f"minqlx:players:{player.steam_id}:flags:{flag}"
         else:
-            key = "minqlx:players:{0}:flags:{1}".format(player, flag)
+            key = f"minqlx:players:{player}:flags:{flag}"
 
         self[key] = 1 if value else 0
 
-    def get_flag(self, player, flag, default=False):
+    def get_flag(self, player, flag: str, default: bool = False) -> bool:
         """Clears the specified player flag
 
-        :param player: The player in question.
-        :type player: minqlx.Player
-        :param flag: The flag to get
-        :type flag: string
-        :param default: (optional, default=False) The value to return if the flag is unknown
-        :type default: bool
+        :param: player: The player in question.
+        :type: player: minqlx.Player
+        :param: flag: The flag to get
+        :type: flag: string
+        :param: default: (optional, default=False) The value to return if the flag is unknown
+        :type: default: bool
 
         """
         if isinstance(player, minqlx.Player):
-            key = "minqlx:players:{0}:flags:{1}".format(player.steam_id, flag)
+            key = f"minqlx:players:{player.steam_id}:flags:{flag}"
         else:
-            key = "minqlx:players:{0}:flags:{1}".format(player, flag)
+            key = f"minqlx:players:{player}:flags:{flag}"
 
         try:
             return bool(int(self[key]))
         except KeyError:
             return default
 
-    def connect(self, host=None, database=0, unix_socket=False, password=None):
+    def connect(self, host: Optional[str] = None, database: int = 0, unix_socket: bool = False,
+                password: Optional[str] = None) -> Optional[redis.Redis]:
         """Returns a connection to a Redis database. If *host* is None, it will
         fall back to the settings in the config and ignore the rest of the arguments.
         It will also share the connection across any plugins using the default
@@ -252,52 +255,66 @@ class Redis(AbstractDatabase):
         that is not shared at all. Subsequent calls to this will return the connection
         initialized the first call unless it has been closed.
 
-        :param host: The host name. If no port is specified, it will use 6379. Ex.: ``localhost:1234``.
-        :type host: str
-        :param database: The database number that should be used.
-        :type database: int
-        :param unix_socket: Whether or not *host* should be interpreted as a unix socket path.
-        :type unix_socket: bool
+        :param: host: The host name. If no port is specified, it will use 6379. Ex.: ``localhost:1234``.
+        :type: host: str
+        :param: database: The database number that should be used.
+        :type: database: int
+        :param: unix_socket: Whether or not *host* should be interpreted as a unix socket path.
+        :type: unix_socket: bool
         :raises: RuntimeError
 
         """
-        if not host and not self._conn: # Resort to default settings in config?
+        if not host and not self._conn:  # Resort to default settings in config?
             if not Redis._conn:
                 cvar_host = minqlx.get_cvar("qlx_redisAddress")
-                cvar_db = int(minqlx.get_cvar("qlx_redisDatabase"))
-                cvar_unixsocket = bool(int(minqlx.get_cvar("qlx_redisUnixSocket")))
-                Redis._pass = minqlx.get_cvar("qlx_redisPassword")
+                if cvar_host is None:
+                    raise ValueError("cvar qlx_redisAddress misconfigured")
+                redis_db_cvar = minqlx.get_cvar("qlx_redisDatabase")
+                if redis_db_cvar is None:
+                    raise ValueError("cvar qlx_redisDatabase misconfigured.")
+                cvar_db = int(redis_db_cvar)
+                unix_socket_cvar = minqlx.get_cvar("qlx_redisUnixSocket")
+                if unix_socket_cvar is None:
+                    raise ValueError("cvar qlx_redisUnixSocket misconfigured")
+                cvar_unixsocket = bool(int(unix_socket_cvar))
+                password_cvar = minqlx.get_cvar("qlx_redisPassword")
+                if password_cvar is None:
+                    raise ValueError("cvar qlx_redisPassword misconfigured")
+                Redis._pass = password_cvar
                 if cvar_unixsocket:
-                    Redis._conn = redis.StrictRedis(unix_socket_path=cvar_host,
-                        db=cvar_db, password=Redis._pass, decode_responses=True)
+                    Redis._conn = redis.StrictRedis(unix_socket_path=cvar_host, db=cvar_db, password=Redis._pass,
+                                                    decode_responses=True)
                 else:
                     split_host = cvar_host.split(":")
                     if len(split_host) > 1:
                         port = int(split_host[1])
                     else:
-                        port = 6379 # Default port.
-                    Redis._pool = redis.ConnectionPool(host=split_host[0],
-                        port=port, db=cvar_db, password=Redis._pass, decode_responses=True)
+                        port = 6379  # Default port.
+                    Redis._pool = redis.ConnectionPool(host=split_host[0], port=port, db=cvar_db,
+                                                       password=Redis._pass, decode_responses=True)
                     Redis._conn = redis.StrictRedis(connection_pool=Redis._pool, decode_responses=True)
                     # TODO: Why does self._conn get set when doing Redis._conn?
                     self._conn = None
             return Redis._conn
-        elif not self._conn:
+        if not self._conn:
+            if host is None:
+                raise ValueError("wrong host")
             split_host = host.split(":")
             if len(split_host) > 1:
                 port = int(split_host[1])
             else:
-                port = 6379 # Default port.
+                port = 6379  # Default port.
 
             if unix_socket:
-                self._conn = redis.StrictRedis(unix_socket_path=host, db=database, password=password, decode_responses=True)
+                self._conn = redis.StrictRedis(unix_socket_path=host, db=database, password=password,
+                                               decode_responses=True)
             else:
-                self._pool = redis.ConnectionPool(host=split_host[0], port=port, db=database, password=password, decode_responses=True)
+                self._pool = redis.ConnectionPool(host=split_host[0], port=port, db=database, password=password,
+                                                  decode_responses=True)
                 self._conn = redis.StrictRedis(connection_pool=self._pool, decode_responses=True)
         return self._conn
 
-
-    def close(self):
+    def close(self) -> None:
         """Close the Redis connection if the config was overridden. Otherwise only do so
         if this is the last plugin using the default connection.
 
