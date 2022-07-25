@@ -46,26 +46,60 @@ if sys.version_info < (3, 5):
     raise AssertionError("Only python 3.5 and later is supported by minqlx")
 
 # Team number -> string
-TEAMS = collections.OrderedDict(enumerate(("free", "red", "blue", "spectator")))
+TEAMS = {0: 'free', 1: 'red', 2: 'blue', 3: 'spectator'}
 
 # Game type number -> string
-GAMETYPES = collections.OrderedDict([(i, gt)
-                                     for i, gt in enumerate(("Free for All", "Duel", "Race", "Team Deathmatch",
-                                                             "Clan Arena", "Capture the Flag", "One Flag", "",
-                                                             "Harvester", "Freeze Tag", "Domination",
-                                                             "Attack and Defend", "Red Rover")) if gt])
+GAMETYPES = {
+    0: 'Free for All',
+    1: 'Duel',
+    2: 'Race',
+    3: 'Team Deathmatch',
+    4: 'Clan Arena',
+    5: 'Capture the Flag',
+    6: 'One Flag',
+    8: 'Harvester',
+    9: 'Freeze Tag',
+    10: 'Domination',
+    11: 'Attack and Defend',
+    12: 'Red Rover'
+}
 
 # Game type number -> short string
-GAMETYPES_SHORT = collections.OrderedDict([(i, gt)
-                                           for i, gt in enumerate(("ffa", "duel", "race", "tdm", "ca", "ctf",
-                                                                   "1f", "", "har", "ft", "dom", "ad", "rr")) if gt])
+GAMETYPES_SHORT = {
+    0: 'ffa',
+    1: 'duel',
+    2: 'race',
+    3: 'tdm',
+    4: 'ca',
+    5: 'ctf',
+    6: '1f',
+    8: 'har',
+    9: 'ft',
+    10: 'dom',
+    11: 'ad',
+    12: 'rr'
+}
 
 # Connection states.
-CONNECTION_STATES = collections.OrderedDict(enumerate(("free", "zombie", "connected", "primed", "active")))
+CONNECTION_STATES = {0: 'free', 1: 'zombie', 2: 'connected', 3: 'primed', 4: 'active'}
 
-WEAPONS = collections.OrderedDict([(i, w)
-                                   for i, w in enumerate(("", "g", "mg", "sg", "gl", "rl", "lg", "rg",
-                                                          "pg", "bfg", "gh", "ng", "pl", "cg", "hmg", "hands")) if w])
+WEAPONS = {
+    1: 'g',
+    2: 'mg',
+    3: 'sg',
+    4: 'gl',
+    5: 'rl',
+    6: 'lg',
+    7: 'rg',
+    8: 'pg',
+    9: 'bfg',
+    10: 'gh',
+    11: 'ng',
+    12: 'pl',
+    13: 'cg',
+    14: 'hmg',
+    15: 'hands'
+}
 
 DEFAULT_PLUGINS = (
     "plugin_manager", "essentials", "motd", "permission", "ban", "silence", "clan", "names", "log", "workshop"
@@ -93,10 +127,10 @@ def parse_variables(varstr, ordered=False):
     if not varstr.strip():
         return res
 
-    vars = varstr.lstrip("\\").split("\\")
+    _vars = varstr.lstrip("\\").split("\\")
     try:
-        for i in range(0, len(vars), 2):
-            res[vars[i]] = vars[i + 1]
+        for i in range(0, len(_vars), 2):
+            res[_vars[i]] = _vars[i + 1]
     except IndexError:
         # Log and return incomplete dict.
         logger = minqlx.get_logger()
@@ -183,12 +217,13 @@ def uptime():
 
 def owner():
     """Returns the SteamID64 of the owner. This is set in the config."""
+    # noinspection PyBroadException
     try:
         sid = int(minqlx.get_cvar("qlx_owner"))
         if sid == -1:
             raise RuntimeError
         return sid
-    except:
+    except:  # pylint: disable=bare-except
         logger = minqlx.get_logger()
         logger.error("Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format.")
 
@@ -259,7 +294,7 @@ def set_map_subtitles():
     if cs:
         cs += " - "
     minqlx.set_configstring(678, cs + f"Running minqlx ^6{minqlx.__version__}^7 "
-                                      f"with plugins ^6{minqlx.__plugins_version__}^7.")
+                                      f"with plugins ^6{getattr(minqlx, '__plugins_version__', 'NOT_SET')}^7.")
     cs = minqlx.get_configstring(679)
     if cs:
         cs += " - "
@@ -370,18 +405,19 @@ def load_preset_plugins():
 def load_plugin(plugin):
     logger = get_logger(None)
     logger.info("Loading plugin '%s'...", plugin)
-    plugins = minqlx.Plugin._loaded_plugins
+    # noinspection PyProtectedMember
+    plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
     plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
     plugins_dir = os.path.basename(plugins_path)
 
     if not os.path.isfile(os.path.join(plugins_path, plugin + ".py")):
         raise PluginLoadError("No such plugin exists.")
     if plugin in plugins:
-        return reload_plugin(plugin)
+        reload_plugin(plugin)
+        return
     try:
         module = importlib.import_module(f"{plugins_dir}.{plugin}")
         # We add the module regardless of whether it fails or not, otherwise we can't reload later.
-        global _modules
         _modules[plugin] = module
 
         if not hasattr(module, plugin):
@@ -400,7 +436,8 @@ def load_plugin(plugin):
 def unload_plugin(plugin):
     logger = get_logger(None)
     logger.info("Unloading plugin '%s'...", plugin)
-    plugins = minqlx.Plugin._loaded_plugins
+    # noinspection PyProtectedMember
+    plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
     if plugin in plugins:
         try:
             minqlx.EVENT_DISPATCHERS["unload"].dispatch(plugin)
@@ -428,7 +465,6 @@ def reload_plugin(plugin):
         pass
 
     try:
-        global _modules
         if plugin in _modules:  # Unloaded previously?
             importlib.reload(_modules[plugin])
         load_plugin(plugin)
