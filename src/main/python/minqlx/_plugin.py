@@ -23,7 +23,6 @@ from typing import List, Dict, Optional, Callable, Tuple, Iterable, Type, Union,
 
 import minqlx
 from minqlx.database import Redis
-from ._player import Player
 
 
 class Plugin:
@@ -130,9 +129,9 @@ class Plugin:
         self._hooks.remove((event, handler, priority))
 
     def add_command(self, name: Union[str, Tuple[str, ...]], handler: Callable, permission: int = 0,
-                    channels: minqlx.AbstractChannel = None, exclude_channels: Iterable[minqlx.AbstractChannel] = (),
-                    priority: int = minqlx.PRI_NORMAL, client_cmd_pass: bool = False, client_cmd_perm: int = 5,
-                    prefix: bool = True, usage: str = ""):
+                    channels: Optional[Iterable[minqlx.AbstractChannel]] = None,
+                    exclude_channels: Iterable[minqlx.AbstractChannel] = (), priority: int = minqlx.PRI_NORMAL,
+                    client_cmd_pass: bool = False, client_cmd_perm: int = 5, prefix: bool = True, usage: str = ""):
         if not hasattr(self, "_commands"):
             self._commands = []
 
@@ -301,13 +300,13 @@ class Plugin:
         return minqlx.set_cvar_limit_once(name, value, minimum, maximum, flags)
 
     @classmethod
-    def players(cls) -> List[Player]:
+    def players(cls) -> List[minqlx.Player]:
         """Get a list of all the players on the server."""
         return minqlx.Player.all_players()
 
     @classmethod
-    def player(cls, name: Union[str, int, Player], player_list: List[Player] = None) \
-            -> Optional[Player]:
+    def player(cls, name: Union[str, int, minqlx.Player], player_list: List[minqlx.Player] = None) \
+            -> Optional[minqlx.Player]:
         """Get a Player instance from the name, client ID,
         or Steam ID. Assumes [0, 64) to be a client ID
         and [64, inf) to be a Steam ID.
@@ -364,7 +363,7 @@ class Plugin:
         return minqlx.re_color_tag.sub("", text)
 
     @classmethod
-    def colored_name(cls, name: Union[str, Player], player_list: Optional[List[Player]] = None) \
+    def colored_name(cls, name: Union[str, minqlx.Player], player_list: Optional[List[minqlx.Player]] = None) \
             -> Optional[str]:
         """Get the colored name of a decolored name."""
         if isinstance(name, minqlx.Player):
@@ -383,7 +382,7 @@ class Plugin:
         return None
 
     @classmethod
-    def client_id(cls, name: Union[str, int, Player], player_list: Optional[List[Player]] = None) \
+    def client_id(cls, name: Union[str, int, minqlx.Player], player_list: Optional[List[minqlx.Player]] = None) \
             -> Optional[int]:
         """Get a player's client id from the name, client ID,
         Player instance, or Steam ID. Assumes [0, 64) to be
@@ -415,7 +414,7 @@ class Plugin:
         return None
 
     @classmethod
-    def find_player(cls, name: str, player_list: Optional[List[Player]] = None) -> List[Player]:
+    def find_player(cls, name: str, player_list: Optional[List[minqlx.Player]] = None) -> List[minqlx.Player]:
         """Find a player based on part of a players name.
 
         :param: name: A part of someone's name.
@@ -439,14 +438,14 @@ class Plugin:
         return res
 
     @classmethod
-    def teams(cls, player_list: Optional[List[Player]] = None) -> Dict[str, List[Player]]:
+    def teams(cls, player_list: Optional[List[minqlx.Player]] = None) -> Dict[str, List[minqlx.Player]]:
         """Get a dictionary with the teams as keys and players as values."""
         if not player_list:
             players = cls.players()
         else:
             players = player_list
 
-        res: Dict[str, List[Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
+        res: Dict[str, List[minqlx.Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
 
         for p in players:
             res[p.team].append(p)
@@ -454,7 +453,7 @@ class Plugin:
         return res
 
     @classmethod
-    def center_print(cls, msg: str, recipient: Optional[Union[str, int, Player]] = None) -> None:
+    def center_print(cls, msg: str, recipient: Optional[Union[str, int, minqlx.Player]] = None) -> None:
         client_id: Optional[int] = None
         if recipient:
             client_id = cls.client_id(recipient)
@@ -462,7 +461,7 @@ class Plugin:
         minqlx.send_server_command(client_id, f"cp \"{msg}\"")
 
     @classmethod
-    def tell(cls, msg: str, recipient: Union[str, int, Player], **kwargs) -> None:
+    def tell(cls, msg: str, recipient: Union[str, int, minqlx.Player], **kwargs) -> None:
         """Send a tell (private message) to someone.
 
         :param: msg: The message to be sent.
@@ -509,7 +508,7 @@ class Plugin:
         minqlx.Game().teamsize = size
 
     @classmethod
-    def kick(cls, player: Union[str, int, Player], reason: str = "") -> None:
+    def kick(cls, player: Union[str, int, minqlx.Player], reason: str = "") -> None:
         cid = cls.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -536,7 +535,7 @@ class Plugin:
             minqlx.console_command(f"map {new_map} {factory}")
 
     @classmethod
-    def switch(cls, player: Player, other_player: Player) -> None:
+    def switch(cls, player: minqlx.Player, other_player: minqlx.Player) -> None:
         p1 = cls.player(player)
         p2 = cls.player(other_player)
 
@@ -555,7 +554,7 @@ class Plugin:
         cls.put(p2, t1)
 
     @classmethod
-    def play_sound(cls, sound_path: str, player: Player = None) -> bool:
+    def play_sound(cls, sound_path: str, player: minqlx.Player = None) -> bool:
         if not sound_path or "music/" in sound_path.lower():
             return False
 
@@ -566,7 +565,7 @@ class Plugin:
         return True
 
     @classmethod
-    def play_music(cls, music_path: str, player: Optional[Player] = None) -> bool:
+    def play_music(cls, music_path: str, player: Optional[minqlx.Player] = None) -> bool:
         if not music_path or "sound/" in music_path.lower():
             return False
 
@@ -577,15 +576,15 @@ class Plugin:
         return True
 
     @classmethod
-    def stop_sound(cls, player: Optional[Player] = None) -> None:
+    def stop_sound(cls, player: Optional[minqlx.Player] = None) -> None:
         minqlx.send_server_command(player.id if player else None, "clearSounds")
 
     @classmethod
-    def stop_music(cls, player: Optional[Player] = None) -> None:
+    def stop_music(cls, player: Optional[minqlx.Player] = None) -> None:
         minqlx.send_server_command(player.id if player else None, "stopMusic")
 
     @classmethod
-    def slap(cls, player: Union[str, int, Player], damage: int = 0) -> None:
+    def slap(cls, player: Union[str, int, minqlx.Player], damage: int = 0) -> None:
         cid = cls.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -593,7 +592,7 @@ class Plugin:
         minqlx.console_command(f"slap {cid} {damage}")
 
     @classmethod
-    def slay(cls, player: Union[str, int, Player]) -> None:
+    def slay(cls, player: Union[str, int, minqlx.Player]) -> None:
         cid = cls.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -633,28 +632,28 @@ class Plugin:
         minqlx.Game.unlock(team)
 
     @classmethod
-    def put(cls, player: Player, team: str) -> None:
+    def put(cls, player: minqlx.Player, team: str) -> None:
         minqlx.Game.put(player, team)
 
     @classmethod
-    def mute(cls, player: Player) -> None:
+    def mute(cls, player: minqlx.Player) -> None:
         minqlx.Game.mute(player)
 
     @classmethod
-    def unmute(cls, player: Player) -> None:
+    def unmute(cls, player: minqlx.Player) -> None:
         minqlx.Game.unmute(player)
 
     @classmethod
-    def tempban(cls, player: Player) -> None:
+    def tempban(cls, player: minqlx.Player) -> None:
         # TODO: Add an optional reason to tempban.
         minqlx.Game.tempban(player)
 
     @classmethod
-    def ban(cls, player: Player) -> None:
+    def ban(cls, player: minqlx.Player) -> None:
         minqlx.Game.ban(player)
 
     @classmethod
-    def unban(cls, player: Player) -> None:
+    def unban(cls, player: minqlx.Player) -> None:
         minqlx.Game.unban(player)
 
     @classmethod
@@ -662,15 +661,15 @@ class Plugin:
         minqlx.Game.opsay(msg)
 
     @classmethod
-    def addadmin(cls, player: Player) -> None:
+    def addadmin(cls, player: minqlx.Player) -> None:
         minqlx.Game.addadmin(player)
 
     @classmethod
-    def addmod(cls, player: Player) -> None:
+    def addmod(cls, player: minqlx.Player) -> None:
         minqlx.Game.addmod(player)
 
     @classmethod
-    def demote(cls, player: Player) -> None:
+    def demote(cls, player: minqlx.Player) -> None:
         minqlx.Game.demote(player)
 
     @classmethod
@@ -678,7 +677,7 @@ class Plugin:
         minqlx.Game.abort()
 
     @classmethod
-    def addscore(cls, player: Player, score: int) -> None:
+    def addscore(cls, player: minqlx.Player, score: int) -> None:
         minqlx.Game.addscore(player, score)
 
     @classmethod
