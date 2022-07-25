@@ -44,8 +44,6 @@ class AbstractChannel:
     like "webinterface", and then implement a __repr__() to return something like "webinterface user1".
 
     """
-    __slots__ = ("_name",)
-
     def __init__(self, name: str):
         self._name: str = name
 
@@ -190,9 +188,6 @@ class SpectatorChatChannel(ChatChannel):
 
 class TellChannel(ChatChannel):
     """A channel for private in-game messages."""
-
-    __slots__ = ("recipient",)
-
     def __init__(self, player: Union[str, int, minqlx.Player]):
         super().__init__(name="tell", fmt="print \"{}\n\"\n")
         self.recipient: Union[str, int, minqlx.Player] = player
@@ -215,9 +210,6 @@ class ConsoleChannel(AbstractChannel):
 
 class ClientCommandChannel(AbstractChannel):
     """Wraps a TellChannel, but with its own name."""
-
-    __slots__ = ("recipient", "tell_channel")
-
     def __init__(self, player: Union[str, int, minqlx.Player]):
         super().__init__("client_command")
         self.recipient: Union[str, int, minqlx.Player] = player
@@ -244,10 +236,6 @@ class Command:
     action should be taken.
 
     """
-
-    __slots__ = ("plugin", "name", "handler", "permission", "channels", "exclude_channels", "client_cmd_pass",
-                 "client_cmd_perm", "prefix", "usage")
-
     def __init__(self, plugin: minqlx.Plugin, name: Union[str, List[str], Tuple[str, ...]], handler: Callable,
                  permission: int, channels: Optional[Iterable[AbstractChannel]],
                  exclude_channels: Optional[Iterable[AbstractChannel]], client_cmd_pass: bool, client_cmd_perm: int,

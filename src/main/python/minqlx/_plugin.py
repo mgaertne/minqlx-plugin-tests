@@ -52,8 +52,6 @@ class Plugin:
     # The database driver class the plugin should use.
     database: Optional[Type[Redis]] = None
 
-    __slots__ = ("_hooks", "_commands", "_db_instance")
-
     def __init__(self):
         self._hooks: List[Tuple[str, Callable, int]] = []
         self._commands: List[minqlx.Command] = []
