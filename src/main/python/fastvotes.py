@@ -3,6 +3,7 @@ import minqlx
 from minqlx import Plugin
 
 
+# noinspection PyPep8Naming
 class fastvotes(minqlx.Plugin):
     """
     This plugin modifies the default vote pass or fail behavior with customizeable logic.
@@ -35,22 +36,23 @@ class fastvotes(minqlx.Plugin):
 
         self.track_vote = False
 
+    # noinspection PyMethodMayBeStatic
     def resolve_strategy_for_fastvote(self, strategy):
         if strategy.lower() == "threshold":
             return ThresholdFastVoteStrategy()
         if strategy.lower() == "participation":
             return ParticipationFastVoteStrategy()
 
-        raise ValueError("qlx_fastvoteStrategy set to an unknown value: {}".format(strategy))
+        raise ValueError(f"qlx_fastvoteStrategy set to an unknown value: {strategy}")
 
-    def handle_vote(self, player, vote, args):
+    def handle_vote(self, _player, vote, _args):
         if vote.lower() in self.fastvote_types:
             self.track_vote = True
 
-    def handle_vote_ended(self, votes, vote, args, passed):
+    def handle_vote_ended(self, _votes, _vote, _args, _passed):
         self.track_vote = False
 
-    def process_vote(self, player, yes):
+    def process_vote(self, _player, yes):
         if not self.track_vote:
             return
 

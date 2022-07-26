@@ -1,12 +1,13 @@
-from minqlx_plugin_test import *
-
 import unittest
 
-from mockito import *
-from mockito.matchers import *
-from hamcrest import *
+from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, connected_players  # type: ignore
 
-from fastvotes import *
+from mockito import spy2, unstub, when2, verify  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
+from hamcrest import assert_that, instance_of, is_
+
+from minqlx import Plugin
+from fastvotes import fastvotes, ThresholdFastVoteStrategy, ParticipationFastVoteStrategy
 
 
 class FastVotesTests(unittest.TestCase):
@@ -28,10 +29,12 @@ class FastVotesTests(unittest.TestCase):
     def tearDown(self):
         unstub()
 
+    # noinspection PyMethodMayBeStatic
     def setup_vote_in_progress(self):
         spy2(Plugin.is_vote_active)
         when2(Plugin.is_vote_active).thenReturn(True)
 
+    # noinspection PyMethodMayBeStatic
     def current_vote_count_is(self, number_yes, number_no):
         when2(Plugin.current_vote_count).thenReturn((number_yes, number_no))
 
@@ -87,7 +90,7 @@ class FastVotesTests(unittest.TestCase):
         self.plugin.process_vote(fake_player(123, "Any Player"), True)
 
         assert_that(self.plugin.track_vote, is_(False))
-        verify(Plugin, times=0).force_vote(any)
+        verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_player_votes_on_an_untracked_vote(self):
         self.setup_vote_in_progress()
@@ -97,7 +100,7 @@ class FastVotesTests(unittest.TestCase):
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
         assert_that(self.plugin.track_vote, is_(False))
-        verify(Plugin, times=0).force_vote(any)
+        verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_current_vote_count_not_available(self):
         self.setup_vote_in_progress()
@@ -107,7 +110,7 @@ class FastVotesTests(unittest.TestCase):
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
         assert_that(self.plugin.track_vote, is_(True))
-        verify(Plugin, times=0).force_vote(any)
+        verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_threshold_player_votes_yes_total_vote_count_does_not_meet_threshold(self):
         self.setup_vote_in_progress()
@@ -117,7 +120,7 @@ class FastVotesTests(unittest.TestCase):
         self.plugin.process_vote(fake_player(123, "Any Player"), True)
 
         assert_that(self.plugin.track_vote, is_(True))
-        verify(Plugin, times=0).force_vote(any)
+        verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_threshold_player_votes_yes_and_hits_vote_threshold(self):
         self.setup_vote_in_progress()
@@ -137,7 +140,7 @@ class FastVotesTests(unittest.TestCase):
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
         assert_that(self.plugin.track_vote, is_(True))
-        verify(Plugin, times=0).force_vote(any)
+        verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_threshold_player_votes_no_and_hits_vote_threshold(self):
         self.setup_vote_in_progress()
