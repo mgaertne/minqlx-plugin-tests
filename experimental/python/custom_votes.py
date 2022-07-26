@@ -1,17 +1,19 @@
 import minqlx
 
 
+# noinspection PyPep8Naming
 class custom_votes(minqlx.Plugin):
     def __init__(self):
+        super().__init__()
         self.add_hook("vote_called", self.handle_vote_called)
 
     def handle_vote_called(self, caller, vote, args):
         if not self.get_cvar("g_allowSpecVote", bool) and caller.team == "spectator":
             caller.tell("You are not allowed to call a vote as spectator.")
-            return
+            return minqlx.RET_NONE
 
         if minqlx.Plugin.is_vote_active():
-            return
+            return minqlx.RET_NONE
 
         if vote.lower() == "thrufloors":
             if args.lower() == "off":
@@ -19,14 +21,13 @@ class custom_votes(minqlx.Plugin):
                 minqlx.client_command(caller.id, "vote yes")
                 self.msg(f"{caller.name}^7 called a vote.")
                 return minqlx.RET_STOP_ALL
-            elif args.lower() == "on":
+            if args.lower() == "on":
                 minqlx.callvote("g_forceDmgThroughSurface 1", "Turn on damage through floors?")
                 minqlx.client_command(caller.id, "vote yes")
                 self.msg(f"{caller.name}^7 called a vote.")
                 return minqlx.RET_STOP_ALL
-            else:
-                caller.tell("^2/cv thrufloors [on/off]^7 is the usage for this callvote command.")
-                return minqlx.RET_STOP_ALL
+            caller.tell("^2/cv thrufloors [on/off]^7 is the usage for this callvote command.")
+            return minqlx.RET_STOP_ALL
 
         if vote.lower() == "spec":
             target_player = self.find_target_player_or_list_alternatives(caller, args)
@@ -59,9 +60,10 @@ class custom_votes(minqlx.Plugin):
                 minqlx.callvote("qlx !allready", "Ready all players?")
                 minqlx.client_command(caller.id, "vote yes")
                 return minqlx.RET_STOP_ALL
-            else:
-                caller.tell("The game is already in progress.")
-                return minqlx.RET_STOP_ALL
+            caller.tell("The game is already in progress.")
+            return minqlx.RET_STOP_ALL
+
+        return minqlx.RET_NONE
 
     def find_target_player_or_list_alternatives(self, player, target):
         # Tell a player which players matched

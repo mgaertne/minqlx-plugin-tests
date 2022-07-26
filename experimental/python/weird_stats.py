@@ -1271,12 +1271,12 @@ class weird_stats(Plugin):
         if self.game and self.game.state == "in_progress":
             current_datetime = datetime.now()
             teams = self.teams()
-            for player in teams["red"] + teams["blue"]:
-                if player.steam_id not in self.join_times:
+            for _player in teams["red"] + teams["blue"]:
+                if _player.steam_id not in self.join_times:
                     continue
-                current_play_times[player.steam_id] = \
-                    current_play_times.get(player.steam_id, 0.0) + \
-                    (current_datetime - self.join_times[player.steam_id]).total_seconds()
+                current_play_times[_player.steam_id] = \
+                    current_play_times.get(_player.steam_id, 0.0) + \
+                    (current_datetime - self.join_times[_player.steam_id]).total_seconds()
 
         if len(current_play_times) == 0:
             return []

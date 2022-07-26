@@ -81,7 +81,8 @@ class spec_rotation(minqlx.Plugin):
         for autospec_plugin in ["balancetwo", "mybalance"]:
             if autospec_plugin in self.plugins:
                 plugin = minqlx.Plugin._loaded_plugins[autospec_plugin]  # pylint: disable=protected-access
-                if plugin.last_action == "ignore":
+                # noinspection PyUnresolvedReferences
+                if plugin.last_action == "ignore":  # type: ignore
                     return False
 
         return True
@@ -224,7 +225,7 @@ class spec_rotation(minqlx.Plugin):
         if len(teams["red"]) == len(teams["blue"]):
             return
 
-        for player in teams("red") + teams("blue"):
+        for player in teams["red"] + teams["blue"]:
             self.spec_rotation.append(player.steam_id)
 
     def handle_game_start(self, _data: dict) -> None:
@@ -267,7 +268,7 @@ class spec_rotation(minqlx.Plugin):
     def find_games_here(self, player: Player) -> int:
         completed_key = f"minqlx:players:{player.steam_id}:games_completed"
 
-        if not self.db.exists(completed_key):
+        if self.db is None or not self.db.exists(completed_key):
             return 0
 
         return int(self.db[completed_key])
@@ -323,6 +324,9 @@ class spec_rotation(minqlx.Plugin):
 
         next_steam_id = self.spec_rotation.pop(0)
         next_player = self.player(next_steam_id)
+
+        if spec_player is None:
+            return
 
         if next_player is None:
             return

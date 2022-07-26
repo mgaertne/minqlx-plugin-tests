@@ -39,11 +39,11 @@ class SubscriberCog(Cog):
         self.installed_maps: list[str] = []
         # noinspection PyProtectedMember
         if "maps_manager" in Plugin._loaded_plugins:
-            # noinspection PyProtectedMember
+            # noinspection PyProtectedMember,PyUnresolvedReferences
             self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps
             # noinspection PyProtectedMember
         elif "maps" in Plugin._loaded_plugins:
-            # noinspection PyProtectedMember
+            # noinspection PyProtectedMember,PyUnresolvedReferences
             self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps
 
         self.formatted_installed_maps: dict[str, str] = {mapname: mapname for mapname in self.installed_maps}

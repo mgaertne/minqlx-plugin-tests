@@ -1,13 +1,15 @@
-import minqlx
 import time
 import random
 from datetime import datetime
-import redis
 import math
+import redis
+
+import minqlx
 
 LAST_STANDING_LOG = "minqlx:players:{}:last_standings"
 
 
+# noinspection PyPep8Naming
 class showdown(minqlx.Plugin):
     def __init__(self):
         super().__init__()
@@ -48,7 +50,7 @@ class showdown(minqlx.Plugin):
 
         self.showdown_votes = None
 
-    def handle_switch(self, player, _old, _new):
+    def handle_switch(self, _player, _old, _new):
         if _old not in ["blue", "red"] and _new not in ["spectator", "free"]:
             return
 
@@ -166,6 +168,7 @@ class showdown(minqlx.Plugin):
 
         return True
 
+    # noinspection PyMethodMayBeStatic
     def alive_players(self, players):
         return [player for player in players if player.is_alive]
 
@@ -226,6 +229,7 @@ class showdown(minqlx.Plugin):
 
         return self.max_opp < len(alive_b + alive_r)
 
+    # noinspection PyMethodMayBeStatic
     def should_skip_automatic_showdown_this_round(self, alive_r, alive_b):
         total_living_players = len(alive_b + alive_r)
         if total_living_players == 5:
@@ -348,6 +352,7 @@ class showdown(minqlx.Plugin):
         else:
             self.blink(([f"{opponents_left} {other_team}s left!"] + [""]) * 6)
 
+    # noinspection PyMethodMayBeStatic
     def other_team(self, team):
         if team == "red":
             return "blue"
@@ -357,14 +362,14 @@ class showdown(minqlx.Plugin):
 
         return None
 
-    def handle_death(self, victim, killer, data):
+    def handle_death(self, _victim, _killer, _data):
         self.detect()
 
-    def handle_round_start(self, round_number):
+    def handle_round_start(self, _round_number):
         self.between_rounds = False
 
     @minqlx.delay(3)
-    def handle_round_end(self, data):
+    def handle_round_end(self, _data):
         self.between_rounds = True
 
         self.showdown_skipped_this_round = False
@@ -380,6 +385,7 @@ class showdown(minqlx.Plugin):
             timestamp = datetime.now().timestamp()
             base_key = LAST_STANDING_LOG.format(self.last_standing_steam_id)
             last_standing_time = int(time.time() - self.last_standing_time)
+            # noinspection PyUnresolvedReferences
             if redis.VERSION[0] == 2:
                 self.db.zadd(base_key, last_standing_time, timestamp)
             else:
@@ -396,7 +402,7 @@ class showdown(minqlx.Plugin):
             self.stop_sound()
         self.music_started = False
 
-    def cmd_showdown(self, player, msg, channel):
+    def cmd_showdown(self, player, msg, _channel):
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -513,6 +519,7 @@ class showdown(minqlx.Plugin):
         self.activate_showdown(alive_r, alive_b, showdown_weapon=random_weapon)
         self.showdown_votes = None
 
+    # noinspection PyMethodMayBeStatic
     def showdown_vote_text_for(self, voted_showdown):
         if voted_showdown == "hurry":
             return "^5hurry up^7"
@@ -538,6 +545,7 @@ class showdown(minqlx.Plugin):
             self.weapon_showdown()
 
 
+# noinspection PyPep8Naming
 class random_iterator:
     def __init__(self, seq):
         self.seq = seq

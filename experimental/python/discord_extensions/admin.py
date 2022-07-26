@@ -44,7 +44,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
 
         await self.message.edit(embed=self.embed)
 
-    def tell(self, msg: str) -> None:
+    def tell(self, msg: str, **_kwargs) -> None:
         """
         overwrites the ```player.tell``` function to relay messages to discord
 
@@ -54,7 +54,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
             self.expand_original_reply(content=Plugin.clean_text(msg)),
             loop=self.loop)
 
-    def reply(self, msg: str) -> None:
+    def reply(self, msg: str, **_kwargs) -> None:
         """
         overwrites the ```channel.reply``` function to relay messages to discord
 
