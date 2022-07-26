@@ -1,13 +1,17 @@
-from minqlx_plugin_test import *
-
 import unittest
-from mockito import *
-from mockito.matchers import *
-from hamcrest import *
 
-from undecorated import undecorated
+from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, connected_players, fake_player, \
+    setup_no_game, assert_player_was_told, setup_game_in_warmup, assert_plugin_center_printed, \
+    assert_plugin_sent_to_console, assert_player_was_put_on, assert_game_addteamscore, mocked_channel  # type: ignore
 
-from duelarena import *
+from mockito import spy2, unstub, verify  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
+from hamcrest import assert_that, is_, has_items, not_, empty, has_item
+
+from undecorated import undecorated  # type: ignore
+
+import minqlx
+from duelarena import duelarena, DUELARENA_JOIN_MSG, DuelArenaGame
 
 
 class DuelArenaTests(unittest.TestCase):
@@ -45,7 +49,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-        assert_player_was_told(loaded_player, any, times=0)
+        assert_player_was_told(loaded_player, any_, times=0)
 
     def deactivate_duelarena(self):
         self.plugin.duelarena_game.duelmode = False
@@ -60,7 +64,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-        assert_player_was_told(loaded_player, any, times=0)
+        assert_player_was_told(loaded_player, any_, times=0)
 
     def setup_duelarena_players(self, *players):
         for player in players:
@@ -72,7 +76,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-        assert_player_was_told(loaded_player, any(str), times=0)
+        assert_player_was_told(loaded_player, any_(str), times=0)
 
     def test_when_second_player_was_loaded(self):
         red_player = fake_player(1, "Red Player", "red")
@@ -83,7 +87,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-        assert_player_was_told(loaded_player, any, times=0)
+        assert_player_was_told(loaded_player, any_, times=0)
 
     def test_when_third_player_was_loaded(self):
         red_player = fake_player(1, "Red Player", "red")
@@ -111,7 +115,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-        assert_player_was_told(loaded_player, any, times=0)
+        assert_player_was_told(loaded_player, any_, times=0)
 
     def queue_up_players(self, *players):
         for player in players:
@@ -144,7 +148,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
-        assert_player_was_told(loaded_player, any, times=0)
+        assert_player_was_told(loaded_player, any_, times=0)
 
     def test_when_sixth_player_was_loaded(self):
         red_player = fake_player(1, "Red Player", "red")
@@ -171,7 +175,7 @@ class DuelArenaTests(unittest.TestCase):
 
         return_code = self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_when_first_player_tries_to_join_any_team_she_gets_added_to_playerset(self):
         switching_player = fake_player(1, "Switching Player")
@@ -266,7 +270,7 @@ class DuelArenaTests(unittest.TestCase):
 
         self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
-        assert_that(self.plugin.duelarena_game.player_spec, is_(list()))
+        assert_that(self.plugin.duelarena_game.player_spec, is_([]))
 
     def test_when_game_in_warmup_announcement_is_shown(self):
         setup_game_in_warmup()
@@ -457,8 +461,8 @@ class DuelArenaTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(42)
 
-        assert_plugin_center_printed(any(str), times=0)
-        assert_plugin_sent_to_console(any(str), times=0)
+        assert_plugin_center_printed(any_(str), times=0)
+        assert_plugin_sent_to_console(any_(str), times=0)
 
     def test_handle_round_countdown_announces_matching_parties(self):
         red_player = fake_player(1, "Red Player", "red")
@@ -483,8 +487,8 @@ class DuelArenaTests(unittest.TestCase):
 
         self.plugin.handle_round_countdown(3)
 
-        assert_plugin_center_printed(any(str), times=0)
-        assert_plugin_sent_to_console(any(str), times=0)
+        assert_plugin_center_printed(any_(str), times=0)
+        assert_plugin_sent_to_console(any_(str), times=0)
 
     def test_handle_round_end_with_no_game(self):
         setup_no_game()
@@ -588,7 +592,7 @@ class DuelArenaTests(unittest.TestCase):
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, "spectator")
-        assert_player_was_put_on(blue_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, any_(str), times=0)
         assert_player_was_put_on(spec_player, "red")
 
     def test_handle_round_end_players_already_on_opposing_teams(self):
@@ -603,7 +607,7 @@ class DuelArenaTests(unittest.TestCase):
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(blue_player, "spectator")
-        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(spec_player, "red")
 
     def test_handle_round_end_both_players_on_red(self):
@@ -617,7 +621,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
-        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, "blue")
 
     def test_handle_round_end_just_red_player_on_blue_team(self):
@@ -631,7 +635,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
-        assert_player_was_put_on(red_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, "red")
 
     def test_handle_round_end_just_blue_player_on_blue_team_red_on_spec(self):
@@ -646,7 +650,7 @@ class DuelArenaTests(unittest.TestCase):
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, "red")
-        assert_player_was_put_on(blue_player, any(str), times=0)
+        assert_player_was_put_on(blue_player, any_(str), times=0)
 
     def test_handle_round_end_just_blue_player_on_red_team_red_on_spec(self):
         red_player = fake_player(1, "Red Player", "spectator")
@@ -661,7 +665,7 @@ class DuelArenaTests(unittest.TestCase):
 
         assert_player_was_put_on(red_player, "red")
         assert_player_was_put_on(blue_player, "spectator")
-        assert_player_was_put_on(spec_player, any(str), times=0)
+        assert_player_was_put_on(spec_player, any_(str), times=0)
 
     def test_handle_round_end_both_players_on_spec(self):
         red_player = fake_player(1, "Red Player", "spectator")
@@ -1200,8 +1204,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.announce_activation()
 
-        assert_plugin_center_printed(any(str), times=0)
-        assert_plugin_sent_to_console(any(str), times=0)
+        assert_plugin_center_printed(any_(str), times=0)
+        assert_plugin_sent_to_console(any_(str), times=0)
 
     def test_announce_activation_announces_activation_of_duelarena(self):
         setup_game_in_progress()
@@ -1332,8 +1336,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.announce_deactivation()
 
-        assert_plugin_center_printed(any(str), times=0)
-        assert_plugin_sent_to_console(any(str), times=0)
+        assert_plugin_center_printed(any_(str), times=0)
+        assert_plugin_sent_to_console(any_(str), times=0)
 
     def test_announce_deactivation_announces_duelarena_deactivation(self):
         self.duelarena_game.announce_deactivation()
@@ -1435,8 +1439,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_game_addteamscore("red", -2)
         assert_game_addteamscore("blue", 1)
-        assert_player_was_put_on(player1, any(str), times=0)
-        assert_player_was_put_on(player2, any(str), times=0)
+        assert_player_was_put_on(player1, any_(str), times=0)
+        assert_player_was_put_on(player2, any_(str), times=0)
 
     def test_put_active_players_on_the_right_teams_both_on_opposing_teams(self):
         setup_game_in_progress(red_score=6, blue_score=1)
@@ -1449,8 +1453,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_game_addteamscore("red", -4)
         assert_game_addteamscore("blue", 3)
-        assert_player_was_put_on(player1, any(str), times=0)
-        assert_player_was_put_on(player2, any(str), times=0)
+        assert_player_was_put_on(player1, any_(str), times=0)
+        assert_player_was_put_on(player2, any_(str), times=0)
 
     def test_put_active_players_on_the_right_teams_red_in_red_blue_in_spec(self):
         setup_game_in_progress(red_score=6, blue_score=1)
@@ -1463,7 +1467,7 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_game_addteamscore("red", -2)
         assert_game_addteamscore("blue", 1)
-        assert_player_was_put_on(player1, any(str), times=0)
+        assert_player_was_put_on(player1, any_(str), times=0)
         assert_that(self.duelarena_game.player_blue, is_(player2.steam_id))
         assert_player_was_put_on(player2, "blue")
 
@@ -1478,7 +1482,7 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_game_addteamscore("red", -4)
         assert_game_addteamscore("blue", 3)
-        assert_player_was_put_on(player1, any(str), times=0)
+        assert_player_was_put_on(player1, any_(str), times=0)
         assert_that(self.duelarena_game.player_red, is_(player2.steam_id))
         assert_player_was_put_on(player2, "red")
 
@@ -1495,7 +1499,7 @@ class DuelArenaGameTests(unittest.TestCase):
         assert_game_addteamscore("blue", 1)
         assert_player_was_put_on(player1, "red")
         assert_that(self.duelarena_game.player_red, is_(player1.steam_id))
-        assert_player_was_put_on(player2, any(str), times=0)
+        assert_player_was_put_on(player2, any_(str), times=0)
 
     def test_put_active_players_on_the_right_teams_blue_in_red_red_in_spec(self):
         setup_game_in_progress(red_score=6, blue_score=1)
@@ -1510,7 +1514,7 @@ class DuelArenaGameTests(unittest.TestCase):
         assert_game_addteamscore("blue", 3)
         assert_player_was_put_on(player1, "blue")
         assert_that(self.duelarena_game.player_blue, is_(player1.steam_id))
-        assert_player_was_put_on(player2, any(str), times=0)
+        assert_player_was_put_on(player2, any_(str), times=0)
 
     def test_put_active_players_on_the_right_teams_both_players_in_spec(self):
         setup_game_in_progress(red_score=6, blue_score=1)
@@ -1567,8 +1571,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_player_was_put_on(extra_player, "spectator")
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
-        assert_player_was_put_on(red_player, any(str), times=0)
-        assert_player_was_put_on(blue_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
+        assert_player_was_put_on(blue_player, any_(str), times=0)
 
     def test_ensure_duelarena_player_with_one_enqueued_player_in_red(self):
         self.duelarena_game.duelmode = True
@@ -1584,8 +1588,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_player_was_put_on(extra_player, "spectator")
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
-        assert_player_was_put_on(red_player, any(str), times=0)
-        assert_player_was_put_on(blue_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
+        assert_player_was_put_on(blue_player, any_(str), times=0)
 
     def test_ensure_duelarena_player_with_one_extra_player_in_blue(self):
         self.duelarena_game.duelmode = True
@@ -1600,8 +1604,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_player_was_put_on(extra_player, "spectator")
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
-        assert_player_was_put_on(red_player, any(str), times=0)
-        assert_player_was_put_on(blue_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
+        assert_player_was_put_on(blue_player, any_(str), times=0)
 
     def test_ensure_duelarena_player_with_one_enqueued_player_in_blue(self):
         self.duelarena_game.duelmode = True
@@ -1617,5 +1621,5 @@ class DuelArenaGameTests(unittest.TestCase):
 
         assert_player_was_put_on(extra_player, "spectator")
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
-        assert_player_was_put_on(red_player, any(str), times=0)
-        assert_player_was_put_on(blue_player, any(str), times=0)
+        assert_player_was_put_on(red_player, any_(str), times=0)
+        assert_player_was_put_on(blue_player, any_(str), times=0)

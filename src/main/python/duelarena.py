@@ -1,8 +1,8 @@
-import minqlx
-from minqlx import Plugin
-
 import time
 from operator import itemgetter
+
+import minqlx
+from minqlx import Plugin
 
 MIN_ACTIVE_PLAYERS = 3  # min players for duelarena
 MAX_ACTIVE_PLAYERS = 4  # max players for duelarena
@@ -11,6 +11,7 @@ DUELARENA_JOIN_CMD = ("join", "j")
 DUELARENA_JOIN_MSG = "You joined ^6DuelArena^7 mode, and you will automatically rotate with round loser."
 
 
+# noinspection PyPep8Naming
 class duelarena(minqlx.Plugin):
 
     def __init__(self):
@@ -36,7 +37,7 @@ class duelarena(minqlx.Plugin):
         for _p in teams["red"] + teams["blue"]:
             self.duelarena_game.add_player(_p.steam_id)
 
-    def handle_map_change(self, mapname, factory):
+    def handle_map_change(self, _smapname, _factory):
         self.duelarena_game.reset()
 
     @minqlx.delay(3)
@@ -49,8 +50,8 @@ class duelarena(minqlx.Plugin):
             return
 
         if len(self.duelarena_game.playerset) + 1 == MIN_ACTIVE_PLAYERS:
-            player.tell("{}, join to activate DuelArena! Round winner stays in, loser rotates with spectator.".format(
-                player.name))
+            player.tell(f"{player.name}, join to activate DuelArena! Round winner stays in, loser rotates with "
+                        f"spectator.")
 
         if self.game.state != "in_progress":
             return
@@ -59,12 +60,12 @@ class duelarena(minqlx.Plugin):
             return
 
         player.tell(
-            "{}^7, type !{} to join Duel Arena or press join button to force switch to Clan Arena!".format(
-                player.name, DUELARENA_JOIN_CMD.__getitem__(0)))
+            f"{player.name}^7, type !{DUELARENA_JOIN_CMD.__getitem__(0)} to join Duel Arena or press join button to "
+            f"force switch to Clan Arena!")
 
-    def handle_team_switch_event(self, player, old, new):
+    def handle_team_switch_event(self, player, _old, new):
         if not self.game:
-            return
+            return minqlx.RET_NONE
 
         if new in ['red', 'blue', 'any'] and not self.duelarena_game.is_player(player.steam_id):
             self.duelarena_game.add_player(player.steam_id)
@@ -79,28 +80,29 @@ class duelarena(minqlx.Plugin):
 
         if self.game.state == "warmup":
             if not self.duelarena_game.should_be_activated():
-                return
+                return minqlx.RET_NONE
 
             Plugin.center_print("Ready up for ^6DuelArena^7!")
             Plugin.msg("Ready up for ^6DuelArena^7!")
-            return
+            return minqlx.RET_NONE
 
         if not self.duelarena_game.is_activated():
-            return
+            return minqlx.RET_NONE
 
         if player.steam_id == self.duelarena_game.player_red:
             self.duelarena_game.player_red = None
-            return
+            return minqlx.RET_NONE
 
         if player.steam_id == self.duelarena_game.player_blue:
             self.duelarena_game.player_blue = None
-            return
+            return minqlx.RET_NONE
 
         if new in ['red', 'blue', 'any']:
             player.tell(DUELARENA_JOIN_MSG)
             return minqlx.RET_STOP_ALL
+        return minqlx.RET_NONE
 
-    def handle_player_disconnect(self, player, reason):
+    def handle_player_disconnect(self, player, _reason):
         self.duelarena_game.remove_player(player.steam_id)
 
     @minqlx.delay(3)
@@ -116,7 +118,7 @@ class duelarena(minqlx.Plugin):
             self.duelarena_game.activate()
         self.duelarena_game.init_duel()
 
-    def handle_round_countdown(self, round_number):
+    def handle_round_countdown(self, _round_number):
         self.duelarena_game.announce_next_round()
         self.ensure_duel_players()
 
@@ -182,7 +184,7 @@ class duelarena(minqlx.Plugin):
         self.duelarena_game.record_scores(data["TSCORE0"], data["TSCORE1"])
         self.duelarena_game.print_results()
 
-    def cmd_join(self, player, msg, channel):
+    def cmd_join(self, player, _msg, _channel):
         if not self.duelarena_game.is_activated():
             return
 
@@ -191,7 +193,7 @@ class duelarena(minqlx.Plugin):
 
         self.duelarena_game.add_player(player.steam_id)
         player.tell("You successfully joined the DuelArena queue. Prepare for your duel!")
-        Plugin.msg("^7{} joined DuelArena!".format(player.clean_name))
+        Plugin.msg(f"^7{player.clean_name} joined DuelArena!")
 
 
 class DuelArenaGame:
@@ -299,8 +301,8 @@ class DuelArenaGame:
         if not self.game:
             return
         Plugin.msg(
-            "DuelArena activated! Round winner stays in, loser rotates with spectator. Hit {} rounds first to win!"
-            .format(self.game.roundlimit))
+            f"DuelArena activated! Round winner stays in, loser rotates with spectator. Hit {self.game.roundlimit} "
+            f"rounds first to win!")
         Plugin.center_print("DuelArena activated!")
 
     def should_be_activated(self):
@@ -511,10 +513,10 @@ class DuelArenaGame:
         self.queue.insert(0, loser.steam_id)
         self.player_spec.append(loser.steam_id)
         loser.put("spectator")
-        loser.tell("{}, you've been put back to DuelArena queue. Prepare for your next duel!".format(loser.name))
+        loser.tell(f"{loser.name}, you've been put back to DuelArena queue. Prepare for your next duel!")
 
     def insert_next_player(self, team):
-        loser_team_score = getattr(self.game, "{}_score".format(team))
+        loser_team_score = getattr(self.game, f"{team}_score")
         next_sid = self.next_player_sid()
 
         if next_sid is None:
@@ -528,7 +530,7 @@ class DuelArenaGame:
             self.deactivate()
             return
 
-        setattr(self, "player_{}".format(team), next_sid)
+        setattr(self, f"player_{team}", next_sid)
         next_player.put(team)
         self.game.addteamscore(team, self.scores[next_player.steam_id] - loser_team_score)
 
@@ -538,8 +540,8 @@ class DuelArenaGame:
 
         teams = Plugin.teams()
         if teams["red"] and teams["blue"]:
-            Plugin.center_print("{} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
-            Plugin.msg("DuelArena: {} ^2vs^7 {}".format(teams["red"][-1].name, teams["blue"][-1].name))
+            Plugin.center_print(f"{teams['red'][-1].name} ^2vs^7 {teams['blue'][-1].name}")
+            Plugin.msg(f"DuelArena: {teams['red'][-1].name} ^2vs^7 {teams['blue'][-1].name}")
 
     def should_print_and_reset_scores(self):
         return self.print_reset_scores
@@ -560,7 +562,7 @@ class DuelArenaGame:
             prev_score = pscore[1]
             player = Plugin.player(pscore[0])
             if player and len(player.name) != 0:
-                Plugin.msg("Place ^3{}.^7 {} ^7(Wins:^2{}^7)".format(place, player.name, pscore[1]))
+                Plugin.msg(f"Place ^3{place}.^7 {player.name} ^7(Wins:^2{pscore[1]}^7)")
 
     def reset_duelarena_scores(self):
         self.scores = {}
