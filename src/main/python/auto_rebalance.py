@@ -17,6 +17,7 @@ DEFAULT_RATING = 1500
 SUPPORTED_GAMETYPES = ("ca", "ctf", "dom", "ft", "tdm", "duel", "ffa")
 
 
+# noinspection PyPep8Naming
 class auto_rebalance(minqlx.Plugin):
     """
     Auto rebalance plugin for minqlx
@@ -54,19 +55,19 @@ class auto_rebalance(minqlx.Plugin):
             self.add_hook(event, self.handle_reset_winning_teams)
         self.winning_teams = []
 
-        self.plugin_version = "{} Version: {}".format(self.name, "v0.1.1")
+        self.plugin_version = f"{self.name} Version: v0.1.1"
         self.logger.info(self.plugin_version)
 
     def handle_team_switch_attempt(self, player, old, new):
         """
         Handles the case where a player switches from spectators to "red", "blue", or "any" team, and
-        the resulting teams would be sub-optimal balanced.
+        the resulting teams would be suboptimal balanced.
 
-        :param player: the player that attempted the switch
-        :param old: the old team of the switching player
-        :param new: the new team that swicthting player would be put onto
+        :param: player: the player that attempted the switch
+        :param: old: the old team of the switching player
+        :param: new: the new team that swicthting player would be put onto
 
-        :return minqlx.RET_NONE if the team switch should be allowed or minqlx.RET_STOP_EVENT if the switch should not
+        :return: minqlx.RET_NONE if the team switch should be allowed or minqlx.RET_STOP_EVENT if the switch should not
         be allowed, and we put the player on a better-suited team.
         """
         if not self.game:
@@ -117,14 +118,14 @@ class auto_rebalance(minqlx.Plugin):
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
-            last_new_player.tell("{}, you have been moved to {} to maintain team balance."
-                                 .format(last_new_player.clean_name, self.format_team(other_than_last_players_team)))
+            last_new_player.tell(f"{last_new_player.clean_name}, you have been moved to "
+                                 f"{self.format_team(other_than_last_players_team)} to maintain team balance.")
             last_new_player.put(other_than_last_players_team)
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
             if new not in ["any"]:
-                player.tell("{}, you have been moved to {} to maintain team balance."
-                            .format(player.clean_name, self.format_team(last_new_player.team)))
+                player.tell(f"{player.clean_name}, you have been moved to {self.format_team(last_new_player.team)} "
+                            f"to maintain team balance.")
             player.put(last_new_player.team)
             return minqlx.RET_STOP_ALL
 
@@ -134,37 +135,39 @@ class auto_rebalance(minqlx.Plugin):
 
         return minqlx.RET_NONE
 
+    # noinspection PyMethodMayBeStatic
     def other_team(self, team):
         """
         Calculates the other playing team based upon the provided team string.
 
-        :param team: the team the other playing team should be determined for
+        :param: team: the team the other playing team should be determined for
 
-        :return the other playing team based upon the provided team string
+        :return: the other playing team based upon the provided team string
         """
         if team == "red":
             return "blue"
         return "red"
 
+    # noinspection PyMethodMayBeStatic
     def format_team(self, team):
         if team == "red":
             return "^1red^7"
         if team == "blue":
             return "^4blue^7"
 
-        return "^3{}^7".format(team)
+        return f"^3{team}^7"
 
     def calculate_player_average_difference(self, gametype, team1, team2):
         """
         calculates the difference between the team averages of the two provided teams for the given gametype
 
-        the result will be absolute, i.e. always be greater then or equal to 0
+        the result will be absolute, i.e. always be greater than or equal to 0
 
-        :param gametype: the gametype to calculate the teams' averages for
-        :param team1: the first team to calculate the team averages for
-        :param team2: the second team to calculate the team averages for
+        :param: gametype: the gametype to calculate the teams' averages for
+        :param: team1: the first team to calculate the team averages for
+        :param: team2: the second team to calculate the team averages for
 
-        :return the absolute difference between the two team's averages
+        :return: the absolute difference between the two team's averages
         """
         team1_avg = self.team_average(gametype, team1)
         team2_avg = self.team_average(gametype, team2)
@@ -174,14 +177,15 @@ class auto_rebalance(minqlx.Plugin):
         """
         Calculates the average rating of a team.
 
-        :param gametype: the gametype to determine the ratings for
-        :param team: the list of players the average should be calculated for
+        :param: gametype: the gametype to determine the ratings for
+        :param: team: the list of players the average should be calculated for
 
-        :return the average rating for the given team and gametype
+        :return: the average rating for the given team and gametype
         """
         if not team or len(team) == 0:
             return 0
 
+        # noinspection PyUnresolvedReferences
         ratings = self.plugins["balance"].ratings
 
         average = 0
@@ -194,7 +198,7 @@ class auto_rebalance(minqlx.Plugin):
 
         return average
 
-    def handle_round_start(self, roundnumber):
+    def handle_round_start(self, _roundnumber):
         """
         Remembers the steam ids of all players at round startup
         """
@@ -205,7 +209,7 @@ class auto_rebalance(minqlx.Plugin):
         """
         Triggered when a round has ended
 
-        :param data: the round end data with the round number and which team won
+        :param: data: the round end data with the round number and which team won
         """
         if not self.game:
             return minqlx.RET_NONE
@@ -232,16 +236,18 @@ class auto_rebalance(minqlx.Plugin):
         if len(teams["red"]) != len(teams["blue"]):
             return minqlx.RET_NONE
 
-        if 'balance' in minqlx.Plugin._loaded_plugins:
-            b = Plugin._loaded_plugins['balance']
-            players = dict([(p.steam_id, gametype) for p in teams["red"] + teams["blue"]])
+        if 'balance' in minqlx.Plugin._loaded_plugins:  # pylint: disable=protected-access
+            b = Plugin._loaded_plugins['balance']  # pylint: disable=protected-access
+            players = {p.steam_id: gametype for p in teams["red"] + teams["blue"]}
+            # noinspection PyUnresolvedReferences
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)
+        return minqlx.RET_NONE
 
     def team_is_on_a_winning_streak(self, team):
         """
         checks whether the given team is on a winning streak by comparing the last teams that won
 
-        :param team: the team to check for a winning streak
+        :param: team: the team to check for a winning streak
         :return True if the team is on a winning streak or False if not
         """
         return self.winning_teams[-self.winning_streak_suggestion_threshold:] == \
@@ -254,7 +260,7 @@ class auto_rebalance(minqlx.Plugin):
             self.score_diff_suggestion_threshold + self.num_announcements or \
             self.winning_teams[-maximum_announcements:] == maximum_announcements * [winning_team]
 
-    def handle_reset_winning_teams(self, *args, **kwargs):
+    def handle_reset_winning_teams(self, *_args, **_kwargs):
         """
         resets the winning teams list
         """

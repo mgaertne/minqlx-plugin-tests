@@ -1,14 +1,17 @@
-from minqlx_plugin_test import *
-
 import unittest
 
-from mockito import *
-from mockito.matchers import *
-from hamcrest import *
+from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, connected_players, setup_no_game, \
+    fake_player, setup_game_in_warmup, assert_plugin_sent_to_console, assert_player_was_put_on  # type: ignore
 
-from undecorated import undecorated
+from mockito import unstub, mock, verify  # type: ignore
+from mockito.matchers import matches  # type: ignore
+from hamcrest import assert_that, is_, none
 
-from auto_rebalance import *
+from undecorated import undecorated  # type: ignore
+
+import minqlx
+from minqlx import Plugin
+from auto_rebalance import auto_rebalance
 
 
 class AutoRebalanceTests(unittest.TestCase):
@@ -32,11 +35,11 @@ class AutoRebalanceTests(unittest.TestCase):
         ratings = {}
         for player, elo in player_elos:
             ratings[player.steam_id] = {gametype: {'elo': elo}}
-        self.plugin._loaded_plugins["balance"] = mock({'ratings': ratings})
+        self.plugin._loaded_plugins["balance"] = mock({'ratings': ratings})  # pylint: disable=protected-access
 
     def setup_no_balance_plugin(self):
-        if "balance" in self.plugin._loaded_plugins:
-            del self.plugin._loaded_plugins["balance"]
+        if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
+            del self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
 
     def test_handle_team_switch_attempt_no_game_running(self):
         setup_no_game()
@@ -179,7 +182,7 @@ class AutoRebalanceTests(unittest.TestCase):
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, is_(minqlx.RET_NONE))
-        assert_that(self.plugin.last_new_player_id, is_(None))
+        assert_that(self.plugin.last_new_player_id, none())
 
     def test_handle_team_switch_attempt_fourth_player_joins_teams_already_balanced(self):
         red_player = fake_player(123, "Red Player", "red")
@@ -305,7 +308,7 @@ class AutoRebalanceTests(unittest.TestCase):
     def test_handle_round_end_teams_callback_called(self):
         mocked_balance_plugin = mock()
         mocked_balance_plugin.callback_teams = lambda: None
-        Plugin._loaded_plugins["balance"] = mocked_balance_plugin
+        Plugin._loaded_plugins["balance"] = mocked_balance_plugin  # pylint: disable=protected-access
         setup_game_in_progress(game_type="ca", roundlimit=8, red_score=5, blue_score=1)
 
         red_player1 = fake_player(123, "Red Player1", "red")
@@ -317,7 +320,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        players = dict([(p.steam_id, "ca") for p in [red_player1, red_player2, blue_player1, blue_player2]])
+        players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
     def test_handle_round_end_no_balance_plugin(self):
@@ -333,7 +336,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        assert_that(return_code, is_(None))
+        assert_that(return_code, is_(minqlx.RET_NONE))
 
     def test_handle_round_end_winner_is_tracked_for_winning_streak(self):
         setup_game_in_progress(game_type="ca", roundlimit=8, red_score=3, blue_score=1)
@@ -353,7 +356,7 @@ class AutoRebalanceTests(unittest.TestCase):
     def test_handle_round_end_winning_streak_triggers_teams_callback(self):
         mocked_balance_plugin = mock()
         mocked_balance_plugin.callback_teams = lambda: None
-        Plugin._loaded_plugins["balance"] = mocked_balance_plugin
+        Plugin._loaded_plugins["balance"] = mocked_balance_plugin  # pylint: disable=protected-access
         setup_game_in_progress(game_type="ca", roundlimit=8, red_score=3, blue_score=1)
 
         red_player1 = fake_player(123, "Red Player1", "red")
@@ -366,13 +369,13 @@ class AutoRebalanceTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        players = dict([(p.steam_id, "ca") for p in [red_player1, red_player2, blue_player1, blue_player2]])
+        players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
     def test_handle_round_end_winning_streak_triggers_teams_callback_already_called_multiple_times(self):
         mocked_balance_plugin = mock()
         mocked_balance_plugin.callback_teams = lambda: None
-        Plugin._loaded_plugins["balance"] = mocked_balance_plugin
+        Plugin._loaded_plugins["balance"] = mocked_balance_plugin  # pylint: disable=protected-access
         setup_game_in_progress(game_type="ca", roundlimit=8, red_score=4, blue_score=3)
 
         red_player1 = fake_player(123, "Red Player1", "red")
@@ -385,7 +388,7 @@ class AutoRebalanceTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        players = dict([(p.steam_id, "ca") for p in [red_player1, red_player2, blue_player1, blue_player2]])
+        players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin, times=0).add_request(players,
                                                            mocked_balance_plugin.callback_teams,
                                                            minqlx.CHAT_CHANNEL)
