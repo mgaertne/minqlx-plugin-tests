@@ -11,7 +11,7 @@ class fastvotes(minqlx.Plugin):
     Uses:
     * qlx_fastvoteTypes (default: "map, kick") Vote types this plugin will care about.
     * qlx_fastvoteStrategy (default: "threshold") The strategy used to process faster pass/fail votes.
-    Currently available options: threshold, participation
+    Currently, available options: threshold, participation
 
     For the threshold strategy, you may set/modify these additional cvars:
     * qlx_fastvoteThresholdFastPassDiff (default: 6) passes the callvote at this yes-no difference
