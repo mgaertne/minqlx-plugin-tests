@@ -1,14 +1,15 @@
+from typing import Optional
+
 import minqlx
 from minqlx import Game, NonexistentGameError
 
-from mockito import *
+from mockito import when2, mock, verify  # type: ignore
 
-"""Functions for setting up the state of the game currently active on the server.
-"""
+# Functions for setting up the state of the game currently active on the server.
 
 
 def setup_no_game():
-    """Setup the server with no game running currently.
+    """Set up the server with no game running currently.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
@@ -16,17 +17,18 @@ def setup_no_game():
     when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
 
 
-def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, roundlimit=8, maxclients=16):
-    """Setup the server with a game currently in warmup mode.
+def setup_game_in_warmup(game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
+                         roundlimit: int = 8, maxclients: int = 16) -> None:
+    """Set up the server with a game currently in warmup mode.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
 
-    :param game_type: the game_type currently being played (default: "ca")
-    :param mapname: the map the game is currently running on (default: "campgrounds")
-    :param map_title: the long title of the the map (default: None)
-    :param roundlimit: (default: 8)
-    :param maxclients: (default: 16)
+    :param: game_type: the game_type currently being played (default: "ca")
+    :param: mapname: the map the game is currently running on (default: "campgrounds")
+    :param: map_title: the long title of the map (default: None)
+    :param: roundlimit: (default: 8)
+    :param: maxclients: (default: 16)
     """
     mock_game = mock(spec=Game, strict=False)
     when2(minqlx.Game).thenReturn(mock_game)
@@ -38,9 +40,9 @@ def setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title=None, 
     mock_game.maxclients = maxclients
 
 
-def setup_game_in_progress(game_type="ca", mapname="campgrounds", map_title=None,
-                           roundlimit=8, red_score=0, blue_score=0, maxclients=16):
-    """Setup the server with a game currently in progress. You may specify the game_type, roundlimit, and score for
+def setup_game_in_progress(game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
+                           roundlimit: int = 8, red_score: int = 0, blue_score: int = 0, maxclients: int = 16) -> None:
+    """Set up the server with a game currently in progress. You may specify the game_type, roundlimit, and score for
     the red and blue teams with the optional parameters.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
@@ -48,8 +50,8 @@ def setup_game_in_progress(game_type="ca", mapname="campgrounds", map_title=None
 
     :param game_type: the game_type currently being played (default: "ca")
     :param mapname: the map the game is currently running on (default: "campgrounds")
-    :param map_title: the long title of the the map (default: None)
-    :param roundlimit: the currently setup roundlimit for the game (default: 8)
+    :param map_title: the long title of the map (default: None)
+    :param roundlimit: the current setup roundlimit for the game (default: 8)
     :param red_score: the current score of the red team (default: 0)
     :param blue_score: the current score of the blue team (default: 0)
     :param maxclients: (default: 16)
@@ -66,7 +68,7 @@ def setup_game_in_progress(game_type="ca", mapname="campgrounds", map_title=None
     mock_game.maxclients = maxclients
 
 
-def assert_game_addteamscore(team, score, times=1):
+def assert_game_addteamscore(team: str, score: int, _times: int = 1) -> None:
     """Verify that the score of the team was manipulated by the given amount.
 
     **The test needs to be set up via :func:`.setUp_game_in_warmup()` or :func:`.setup_game_in_progress()`
@@ -75,8 +77,8 @@ def assert_game_addteamscore(team, score, times=1):
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
 
-    :param team: the team for which the team score should have been manipualted
-    :param score: the amount that should have been added to the team's score. This may be negative or a matcher.
-    :param times: the amount of times the function addteamscore should have been called. (default: 1)
+    :param: team: the team for which the team score should have been manipualted
+    :param: score: the amount that should have been added to the team's score. This may be negative or a matcher.
+    :param: times: the amount of times the function addteamscore should have been called. (default: 1)
     """
-    verify(minqlx.Game(), times=times).addteamscore(team, score)
+    verify(minqlx.Game(), times=_times).addteamscore(team, score)

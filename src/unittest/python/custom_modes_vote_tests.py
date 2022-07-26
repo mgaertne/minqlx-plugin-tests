@@ -1,6 +1,6 @@
 import unittest
 
-from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, assert_plugin_sent_to_console  # type: ignore
+from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, assert_plugin_sent_to_console
 
 from mockito import spy2, unstub, verify  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
@@ -51,7 +51,7 @@ class CustomModesVoteTests(unittest.TestCase):
         verify(minqlx, times=0).console_command(any_)
 
     def test_handle_vote_called_for_pql(self):
-        voting_player = fake_player(123, "Voting Player", id=3)
+        voting_player = fake_player(123, "Voting Player", _id=3)
 
         return_code = self.plugin.handle_vote_called(voting_player, "mode", "pql")
 
@@ -61,7 +61,7 @@ class CustomModesVoteTests(unittest.TestCase):
         assert_plugin_sent_to_console(matches(r".*called a vote\."))
 
     def test_handle_vote_called_for_unavailable_mode(self):
-        voting_player = fake_player(123, "Voting Player", id=3)
+        voting_player = fake_player(123, "Voting Player", _id=3)
 
         return_code = self.plugin.handle_vote_called(voting_player, "mode", "unavailable")
 
@@ -71,7 +71,7 @@ class CustomModesVoteTests(unittest.TestCase):
         assert_plugin_sent_to_console(any_, times=0)
 
     def test_handle_vote_called_for_already_running_mode(self):
-        voting_player = fake_player(123, "Voting Player", id=3)
+        voting_player = fake_player(123, "Voting Player", _id=3)
 
         return_code = self.plugin.handle_vote_called(voting_player, "mode", "vql")
 
@@ -81,7 +81,7 @@ class CustomModesVoteTests(unittest.TestCase):
         assert_plugin_sent_to_console(any_, times=0)
 
     def test_handle_vote_called_for_not_for_mode_change(self):
-        voting_player = fake_player(123, "Voting Player", id=3)
+        voting_player = fake_player(123, "Voting Player", _id=3)
 
         return_code = self.plugin.handle_vote_called(voting_player, "map", "campgrounds ca")
 

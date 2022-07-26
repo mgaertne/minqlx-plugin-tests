@@ -3,7 +3,7 @@ import time
 import logging
 
 from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, mocked_channel, connected_players, \
-    fake_player, setup_no_game, assert_plugin_sent_to_console, assert_channel_was_replied  # type: ignore
+    fake_player, setup_no_game, assert_plugin_sent_to_console, assert_channel_was_replied
 
 from mockito import mock, when, unstub, verify, patch, spy2, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore

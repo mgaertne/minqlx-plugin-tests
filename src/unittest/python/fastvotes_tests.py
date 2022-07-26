@@ -1,6 +1,6 @@
 import unittest
 
-from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, connected_players  # type: ignore
+from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, connected_players
 
 from mockito import spy2, unstub, when2, verify  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore

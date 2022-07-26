@@ -2,7 +2,7 @@ import unittest
 
 from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, connected_players, fake_player, \
     setup_no_game, assert_player_was_told, setup_game_in_warmup, assert_plugin_center_printed, \
-    assert_plugin_sent_to_console, assert_player_was_put_on, assert_game_addteamscore, mocked_channel  # type: ignore
+    assert_plugin_sent_to_console, assert_player_was_put_on, assert_game_addteamscore, mocked_channel
 
 from mockito import spy2, unstub, verify  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore

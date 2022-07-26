@@ -1,7 +1,7 @@
 import unittest
 
 from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, connected_players, setup_no_game, \
-    fake_player, setup_game_in_warmup, assert_plugin_sent_to_console, assert_player_was_put_on  # type: ignore
+    fake_player, setup_game_in_warmup, assert_plugin_sent_to_console, assert_player_was_put_on
 
 from mockito import unstub, mock, verify  # type: ignore
 from mockito.matchers import matches  # type: ignore

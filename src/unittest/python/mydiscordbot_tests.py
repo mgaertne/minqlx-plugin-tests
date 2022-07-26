@@ -13,9 +13,9 @@ from undecorated import undecorated  # type: ignore
 # noinspection PyPackageRequirements
 import discord
 # noinspection PyPackageRequirements
-from discord import ChannelType, User, Message, TextChannel, Status  # type: ignore
+from discord import ChannelType, User, Message, TextChannel, Status
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot  # type: ignore
+from discord.ext.commands import Bot
 
 import minqlx
 from mydiscordbot import mydiscordbot, MinqlxHelpCommand, SimpleAsyncDiscord

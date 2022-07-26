@@ -11,7 +11,7 @@ from undecorated import undecorated  # type: ignore
 from thirtysecwarn import thirtysecwarn
 
 from minqlx_plugin_test import setup_plugin, setup_cvars, setup_cvar, setup_no_game, assert_plugin_played_sound, \
-    setup_game_in_progress, setup_game_in_warmup  # type: ignore
+    setup_game_in_progress, setup_game_in_warmup
 
 
 class TestThirtySecondWarnPlugin(unittest.TestCase):
@@ -42,6 +42,7 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "invalid")
         assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
 
+    # noinspection PyMethodMayBeStatic
     def hardcoded_choice(self, _seq):
         return "asdf", "randomvoice"
 

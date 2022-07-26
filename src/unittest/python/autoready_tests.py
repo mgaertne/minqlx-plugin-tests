@@ -9,11 +9,11 @@ from mockito import mock, when, unstub, verify, any_, spy2, when2  # type: ignor
 from hamcrest import assert_that, is_, not_
 
 from minqlx_plugin_test import setup_cvars, setup_plugin, fake_player, connected_players, setup_game_in_warmup, \
-    setup_no_game, setup_game_in_progress, assert_plugin_center_printed, assert_plugin_played_sound  # type: ignore
+    setup_no_game, setup_game_in_progress, assert_plugin_center_printed, assert_plugin_played_sound
 
 from minqlx import Plugin
 
-import autoready  # type: ignore
+import autoready
 from autoready import CountdownThread, RandomIterator
 
 

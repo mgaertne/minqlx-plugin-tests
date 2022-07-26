@@ -39,7 +39,7 @@ class frag_stats(minqlx.Plugin):
     def handle_game_countdown(self) -> None:
         self.frag_log = []
 
-    def handle_death(self, victim: minqlx.Player, killer: minqlx.Player, data) -> None:
+    def handle_death(self, victim: minqlx.Player, killer: Optional[minqlx.Player], data) -> None:
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -88,7 +88,7 @@ class frag_stats(minqlx.Plugin):
 
         return means_of_death.lower()
 
-    def cmd_mapsoulz(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
+    def cmd_mapsoulz(self, player: minqlx.Player, msg: List[str], channel: minqlx.AbstractChannel) -> None:
         if len(msg) == 1:
             fragger_name, fragger_identifier = self.identify_target(player, player)
         else:
@@ -136,7 +136,7 @@ class frag_stats(minqlx.Plugin):
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
         return Counter(resolved_fragged_log)
 
-    def cmd_mapreaperz(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
+    def cmd_mapreaperz(self, player: minqlx.Player, msg: List[str], channel: minqlx.AbstractChannel) -> None:
         if len(msg) == 1:
             fragged_name, fragged_identifier = self.identify_target(player, player)
         else:
@@ -220,7 +220,7 @@ class frag_stats(minqlx.Plugin):
         # By now there can only be one person left
         return target_players.pop()
 
-    def cmd_soulz(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
+    def cmd_soulz(self, player: minqlx.Player, msg: List[str], channel: minqlx.AbstractChannel) -> None:
         if len(msg) == 1:
             fragger_name, fragger_identifier = self.identify_target(player, player)
         else:
@@ -249,7 +249,7 @@ class frag_stats(minqlx.Plugin):
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
         return Counter(resolved_fragged_log)
 
-    def cmd_reaperz(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
+    def cmd_reaperz(self, player: minqlx.Player, msg: List[str], channel: minqlx.AbstractChannel) -> None:
         if len(msg) == 1:
             fragged_name, fragged_identifier = self.identify_target(player, player)
         else:

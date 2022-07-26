@@ -13,7 +13,6 @@ from qlstats_privacy_policy import qlstats_privacy_policy, ConnectThread
 from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, fake_player, \
     assert_plugin_sent_to_console, setup_no_game, connected_players, assert_player_was_told, \
     assert_player_received_center_print, assert_player_was_put_on, mocked_channel, assert_channel_was_replied
-# type: ignore
 
 
 # noinspection PyPep8Naming
