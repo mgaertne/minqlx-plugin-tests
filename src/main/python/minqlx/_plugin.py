@@ -65,7 +65,7 @@ class Plugin:
         """The database instance."""
         if not self.database:
             raise RuntimeError(f"Plugin '{self.name}' does not have a database driver.")
-        if self._db_instance is None:
+        if not hasattr(self, "_db_instance") or self._db_instance is None:
             self._db_instance = self.database(self)
 
         return self._db_instance
