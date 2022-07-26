@@ -1,14 +1,16 @@
-from minqlx_plugin_test import *
+import unittest
+
+from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, mocked_channel, setup_game_in_progress, \
+    connected_players, setup_game_in_warmup, assert_channel_was_replied, assert_player_was_told  # type: ignore
 
 from redis import Redis, StrictRedis
 
-import unittest
+from mockito import mock, when, unstub, verify  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
+from hamcrest import assert_that, is_, not_, contains_inanyorder, contains_exactly
 
-from mockito import *
-from mockito.matchers import *
-from hamcrest import *
-
-from frag_stats import *
+import minqlx
+from frag_stats import frag_stats
 
 
 class FragStatsTests(unittest.TestCase):
@@ -25,11 +27,11 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.database = Redis
         self.db = mock(StrictRedis)
-        self.plugin._db_instance = self.db
+        self.plugin._db_instance = self.db  # pylint: disable=protected-access
 
-        when(self.db).zincrby(any, any, any).thenReturn(None)
-        when(self.db).zincrby(any, any, any).thenReturn(None)
-        when(self.db).set(any, any).thenReturn(None)
+        when(self.db).zincrby(any_, any_, any_).thenReturn(None)
+        when(self.db).zincrby(any_, any_, any_).thenReturn(None)
+        when(self.db).set(any_, any_).thenReturn(None)
 
     def tearDown(self):
         unstub()
@@ -39,7 +41,7 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.handle_player_disconnect(player, "quit")
 
-        verify(self.db).set("minqlx:players:{}:last_used_name".format(player.steam_id),
+        verify(self.db).set(f"minqlx:players:{player.steam_id}:last_used_name",
                             player.name)
 
     def test_handle_game_countdown_clears_frag_log(self):
@@ -67,7 +69,7 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        verify(self.db).zincrby("minqlx:players:{}:soulz".format(killer.steam_id), 1, victim.steam_id)
+        verify(self.db).zincrby(f"minqlx:players:{killer.steam_id}:soulz", 1, victim.steam_id)
 
     def test_handle_death_records_reaper_in_db(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -77,7 +79,7 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, killer.steam_id)
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, killer.steam_id)
 
     def test_handle_death_on_own_death_does_nothing(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -110,7 +112,7 @@ class FragStatsTests(unittest.TestCase):
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))
         verify(self.db).zincrby("minqlx:players:lava:soulz", 1, victim.steam_id)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "lava")
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "lava")
 
     def test_handle_death_by_hurt_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -122,7 +124,7 @@ class FragStatsTests(unittest.TestCase):
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))
         verify(self.db).zincrby("minqlx:players:void:soulz", 1, victim.steam_id)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "void")
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "void")
 
     def test_handle_death_by_slime_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -134,7 +136,7 @@ class FragStatsTests(unittest.TestCase):
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))
         verify(self.db).zincrby("minqlx:players:acid:soulz", 1, victim.steam_id)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "acid")
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "acid")
 
     def test_handle_death_by_water_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -146,7 +148,7 @@ class FragStatsTests(unittest.TestCase):
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))
         verify(self.db).zincrby("minqlx:players:drowning:soulz", 1, victim.steam_id)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "drowning")
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "drowning")
 
     def test_handle_death_by_crush_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -158,7 +160,7 @@ class FragStatsTests(unittest.TestCase):
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))
         verify(self.db).zincrby("minqlx:players:squished:soulz", 1, victim.steam_id)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "squished")
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "squished")
 
     def test_handle_death_by_unknown_records_frag_log_entry(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -170,7 +172,7 @@ class FragStatsTests(unittest.TestCase):
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))
         verify(self.db).zincrby("minqlx:players:unknown:soulz", 1, victim.steam_id)
-        verify(self.db).zincrby("minqlx:players:{}:reaperz".format(victim.steam_id), 1, "unknown")
+        verify(self.db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "unknown")
 
     def test_handle_death_by_team_switch_is_not_recorded(self):
         victim = fake_player(123, "Fragged Player", team="red")
@@ -203,14 +205,14 @@ class FragStatsTests(unittest.TestCase):
             (player.steam_id, disconnected_killed2.steam_id),
             (player.steam_id, disconnected_killed2.steam_id)
         ]
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)) \
+        when(self.db).exists(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name").thenReturn(True)
+        when(self.db).get(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name") \
             .thenReturn(disconnected_killed2.name)
 
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Top 10 reaped soulz for Issuing Player.*: "
-                                                               "Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Top 10 reaped soulz for Issuing Player.*: "
+                                                               r"Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
 
     def test_cmd_mapsoulz_returns_top10(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -245,8 +247,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for Issuing Player.*: "
-                                           "Killed4.* \(8\), Killed3.* \(5\), Killed2.* \(3\), Killed1.* \(2\)"))
+                                   matches(r"Top 10 reaped soulz for Issuing Player.*: "
+                                           r"Killed4.* \(8\), Killed3.* \(5\), Killed2.* \(3\), Killed1.* \(2\)"))
 
     def test_cmd_mapsoulz_for_another_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -267,8 +269,8 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "Fragging"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Top 10 reaped soulz for Fragging Player.*: "
-                                                               "Killed2.* \(2\), Killed3.* \(1\)"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Top 10 reaped soulz for Fragging Player.*: "
+                                                               r"Killed2.* \(2\), Killed3.* \(1\)"))
 
     def test_cmd_mapsoulz_for_another_disconnected_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -287,14 +289,14 @@ class FragStatsTests(unittest.TestCase):
             (fragging_player.steam_id, killed3.steam_id)
         ]
 
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)) \
+        when(self.db).exists(f"minqlx:players:{fragging_player.steam_id}:last_used_name").thenReturn(True)
+        when(self.db).get(f"minqlx:players:{fragging_player.steam_id}:last_used_name") \
             .thenReturn(fragging_player.name)
 
-        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "{}".format(fragging_player.steam_id)], self.reply_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", f"{fragging_player.steam_id}"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Top 10 reaped soulz for Fragging Player.*: "
-                                                               "Killed2.* \(2\), Killed3.* \(1\)"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Top 10 reaped soulz for Fragging Player.*: "
+                                                               r"Killed2.* \(2\), Killed3.* \(1\)"))
 
     def test_cmd_mapsoulz_for_another_nonexisting_disconnected_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -313,11 +315,11 @@ class FragStatsTests(unittest.TestCase):
             (fragging_player.steam_id, killed3.steam_id)
         ]
 
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)).thenReturn(False)
+        when(self.db).exists(f"minqlx:players:{fragging_player.steam_id}:last_used_name").thenReturn(False)
 
-        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "{}".format(fragging_player.steam_id)], self.reply_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", f"{fragging_player.steam_id}"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, any, times=0)
+        assert_channel_was_replied(self.reply_channel, any_, times=0)
 
     def test_cmd_mapsoulz_for_another_non_existent_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -336,7 +338,7 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "lava"], self.reply_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
-        assert_channel_was_replied(self.reply_channel, any, times=0)
+        assert_channel_was_replied(self.reply_channel, any_, times=0)
 
     def test_cmd_mapsoulz_for_more_than_one_matching_other_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -368,8 +370,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!lava"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for lava.*: "
-                                           "Fragged Player.* \(2\)"))
+                                   matches(r"Top 10 reaped soulz for lava.*: "
+                                           r"Fragged Player.* \(2\)"))
 
     def test_cmd_mapsoulz_for_void_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -392,8 +394,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!void"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for void.*: "
-                                           "Issuing Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for void.*: "
+                                           r"Issuing Player.* \(1\)"))
 
     def test_cmd_mapsoulz_for_drowning_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -416,8 +418,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!drowning"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for drowning.*: "
-                                           "Issuing Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for drowning.*: "
+                                           r"Issuing Player.* \(1\)"))
 
     def test_cmd_mapsoulz_for_acid_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -440,8 +442,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!acid"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for acid.*: "
-                                           "Fragged Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for acid.*: "
+                                           r"Fragged Player.* \(1\)"))
 
     def test_cmd_mapsoulz_for_unknown_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -464,8 +466,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!unknown"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for unknown.*: "
-                                           "Fragged Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for unknown.*: "
+                                           r"Fragged Player.* \(1\)"))
 
     def test_cmd_mapreaperz_with_no_fragger(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -509,8 +511,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapreaperz(player, ["!mapreaperz"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Issuing Player.*'s soul: "
-                                           "Killer4.* \(7\), Killer3.* \(5\), Killer2.* \(3\), Killer1.* \(2\)"))
+                                   matches(r"Top 10 reaperz of Issuing Player.*'s soul: "
+                                           r"Killer4.* \(7\), Killer3.* \(5\), Killer2.* \(3\), Killer1.* \(2\)"))
 
     def test_cmd_mapreaperz_for_another_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -532,8 +534,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapreaperz(player, ["!mapreaperz", "Fragged"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Fragged Player.*'s soul: "
-                                           "Killer2.* \(2\), Killer3.* \(1\)"))
+                                   matches(r"Top 10 reaperz of Fragged Player.*'s soul: "
+                                           r"Killer2.* \(2\), Killer3.* \(1\)"))
 
     def test_cmd_mapreaperz_for_another_non_existent_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -574,8 +576,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_mapreaperz(player, ["!mapreaperz", "Fragged"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Fragged Player.*'s soul: "
-                                           "lava.* \(2\), void.* \(1\)"))
+                                   matches(r"Top 10 reaperz of Fragged Player.*'s soul: "
+                                           r"lava.* \(2\), void.* \(1\)"))
 
     def test_cmd_mapreaperz_with_a_disconnected_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -589,23 +591,23 @@ class FragStatsTests(unittest.TestCase):
             (disconnected_killed2.steam_id, player.steam_id),
             (disconnected_killed2.steam_id, player.steam_id)
         ]
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)) \
+        when(self.db).exists(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name").thenReturn(True)
+        when(self.db).get(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name") \
             .thenReturn(disconnected_killed2.name)
 
         self.plugin.cmd_mapreaperz(player, ["!mapreaperz"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Issuing Player.*'s soul: "
-                                           "Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
+                                   matches(r"Top 10 reaperz of Issuing Player.*'s soul: "
+                                           r"Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
 
     def test_cmd_soulz_with_no_frags(self):
         player = fake_player(123, "Issuing Player", team="red")
 
         connected_players(player)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn(list())
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:soulz",
+                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([])
 
         self.plugin.cmd_soulz(player, ["!soulz"], self.reply_channel)
 
@@ -618,20 +620,20 @@ class FragStatsTests(unittest.TestCase):
         disconnected_killed2 = fake_player(5, "Disconnected Killed2", team="blue")
         connected_players(player, killed1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killed1.steam_id, 1),
                 (disconnected_killed2.steam_id, 2)
             ])
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killed2.steam_id)) \
+        when(self.db).exists(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name").thenReturn(True)
+        when(self.db).get(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name") \
             .thenReturn(disconnected_killed2.name)
 
         self.plugin.cmd_soulz(player, ["!soulz"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Top 10 reaped soulz for Issuing Player.*: "
-                                                               "Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Top 10 reaped soulz for Issuing Player.*: "
+                                                               r"Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
 
     def test_cmd_soulz_returns_top10(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -642,7 +644,7 @@ class FragStatsTests(unittest.TestCase):
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killed1.steam_id, 2),
@@ -654,8 +656,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for Issuing Player.*: "
-                                           "Killed4.* \(8\), Killed3.* \(5\), Killed2.* \(3\), Killed1.* \(2\)"))
+                                   matches(r"Top 10 reaped soulz for Issuing Player.*: "
+                                           r"Killed4.* \(8\), Killed3.* \(5\), Killed2.* \(3\), Killed1.* \(2\)"))
 
     def test_cmd_soulz_for_another_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -667,7 +669,7 @@ class FragStatsTests(unittest.TestCase):
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, fragging_player, killed1, killed2, killed3, killed4)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(fragging_player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{fragging_player.steam_id}:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killed2.steam_id, 2),
@@ -676,8 +678,8 @@ class FragStatsTests(unittest.TestCase):
 
         self.plugin.cmd_soulz(player, ["!soulz", "Fragging"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Top 10 reaped soulz for Fragging Player.*: "
-                                                               "Killed2.* \(2\), Killed3.* \(1\)"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Top 10 reaped soulz for Fragging Player.*: "
+                                                               r"Killed2.* \(2\), Killed3.* \(1\)"))
 
     def test_cmd_soulz_for_another_disconnected_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -689,20 +691,20 @@ class FragStatsTests(unittest.TestCase):
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(fragging_player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{fragging_player.steam_id}:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killed2.steam_id, 2),
                 (killed3.steam_id, 1)
             ])
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)) \
+        when(self.db).exists(f"minqlx:players:{fragging_player.steam_id}:last_used_name").thenReturn(True)
+        when(self.db).get(f"minqlx:players:{fragging_player.steam_id}:last_used_name") \
             .thenReturn(fragging_player.name)
 
-        self.plugin.cmd_soulz(player, ["!soulz", "{}".format(fragging_player.steam_id)], self.reply_channel)
+        self.plugin.cmd_soulz(player, ["!soulz", f"{fragging_player.steam_id}"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches("Top 10 reaped soulz for Fragging Player.*: "
-                                                               "Killed2.* \(2\), Killed3.* \(1\)"))
+        assert_channel_was_replied(self.reply_channel, matches(r"Top 10 reaped soulz for Fragging Player.*: "
+                                                               r"Killed2.* \(2\), Killed3.* \(1\)"))
 
     def test_cmd_soulz_for_another_nonexisting_disconnected_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -714,11 +716,11 @@ class FragStatsTests(unittest.TestCase):
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(fragging_player.steam_id)).thenReturn(False)
+        when(self.db).exists(f"minqlx:players:{fragging_player.steam_id}:last_used_name").thenReturn(False)
 
-        self.plugin.cmd_soulz(player, ["!soulz", "{}".format(fragging_player.steam_id)], self.reply_channel)
+        self.plugin.cmd_soulz(player, ["!soulz", f"{fragging_player.steam_id}"], self.reply_channel)
 
-        assert_channel_was_replied(self.reply_channel, any, times=0)
+        assert_channel_was_replied(self.reply_channel, any_, times=0)
 
     def test_cmd_soulz_for_another_non_existent_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -737,7 +739,7 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz", "lava"], self.reply_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
-        assert_channel_was_replied(self.reply_channel, any, times=0)
+        assert_channel_was_replied(self.reply_channel, any_, times=0)
 
     def test_cmd_soulz_for_more_than_one_matching_other_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -759,7 +761,7 @@ class FragStatsTests(unittest.TestCase):
         killer1 = fake_player(4, "Killer1", team="blue")
         connected_players(player, fragged_player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("lava"),
+        when(self.db).zrevrangebyscore("minqlx:players:lava:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (fragged_player.steam_id, 2)
@@ -768,8 +770,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz", "!lava"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for lava.*: "
-                                           "Fragged Player.* \(2\)"))
+                                   matches(r"Top 10 reaped soulz for lava.*: "
+                                           r"Fragged Player.* \(2\)"))
 
     def test_cmd_soulz_for_void_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -778,7 +780,7 @@ class FragStatsTests(unittest.TestCase):
         killer1 = fake_player(4, "Killer1", team="blue")
         connected_players(player, fragged_player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("void"),
+        when(self.db).zrevrangebyscore("minqlx:players:void:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (player.steam_id, 1)
@@ -787,8 +789,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz", "!void"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for void.*: "
-                                           "Issuing Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for void.*: "
+                                           r"Issuing Player.* \(1\)"))
 
     def test_cmd_soulz_for_drowning_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -797,7 +799,7 @@ class FragStatsTests(unittest.TestCase):
         killer1 = fake_player(4, "Killer1", team="blue")
         connected_players(player, fragged_player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("drowning"),
+        when(self.db).zrevrangebyscore("minqlx:players:drowning:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (player.steam_id, 1)
@@ -806,8 +808,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz", "!drowning"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for drowning.*: "
-                                           "Issuing Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for drowning.*: "
+                                           r"Issuing Player.* \(1\)"))
 
     def test_cmd_soulz_for_acid_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -816,7 +818,7 @@ class FragStatsTests(unittest.TestCase):
         killer1 = fake_player(4, "Killer1", team="blue")
         connected_players(player, fragged_player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("acid"),
+        when(self.db).zrevrangebyscore("minqlx:players:acid:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (fragged_player.steam_id, 1)
@@ -825,8 +827,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz", "!acid"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for acid.*: "
-                                           "Fragged Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for acid.*: "
+                                           r"Fragged Player.* \(1\)"))
 
     def test_cmd_soulz_for_unknown_deaths(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -835,7 +837,7 @@ class FragStatsTests(unittest.TestCase):
         killer1 = fake_player(4, "Killer1", team="blue")
         connected_players(player, fragged_player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format("unknown"),
+        when(self.db).zrevrangebyscore("minqlx:players:unknown:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (fragged_player.steam_id, 1)
@@ -844,16 +846,16 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz", "!unknown"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaped soulz for unknown.*: "
-                                           "Fragged Player.* \(1\)"))
+                                   matches(r"Top 10 reaped soulz for unknown.*: "
+                                           r"Fragged Player.* \(1\)"))
 
     def test_cmd_reaperz_with_no_fragger(self):
         player = fake_player(123, "Issuing Player", team="red")
 
         connected_players(player)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(player.steam_id),
-                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn(list())
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:reaperz",
+                                       "+INF", "-INF", start=0, num=10, withscores=True).thenReturn([])
 
         self.plugin.cmd_reaperz(player, ["!reaperz"], self.reply_channel)
 
@@ -869,7 +871,7 @@ class FragStatsTests(unittest.TestCase):
         killer4 = fake_player(7, "Killer4", team="blue")
         connected_players(player, killer1, killer2, killer3, killer4)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:reaperz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killer1.steam_id, 2),
@@ -881,8 +883,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_reaperz(player, ["!reaperz"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Issuing Player.*'s soul: "
-                                           "Killer4.* \(7\), Killer3.* \(5\), Killer2.* \(3\), Killer1.* \(2\)"))
+                                   matches(r"Top 10 reaperz of Issuing Player.*'s soul: "
+                                           r"Killer4.* \(7\), Killer3.* \(5\), Killer2.* \(3\), Killer1.* \(2\)"))
 
     def test_cmd_reaperz_for_another_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -894,7 +896,7 @@ class FragStatsTests(unittest.TestCase):
         killer4 = fake_player(7, "Killer4", team="blue")
         connected_players(player, fragged_player, killer1, killer2, killer3, killer4)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(fragged_player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{fragged_player.steam_id}:reaperz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killer2.steam_id, 2),
@@ -904,8 +906,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_reaperz(player, ["!reaperz", "Fragged"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Fragged Player.*'s soul: "
-                                           "Killer2.* \(2\), Killer3.* \(1\)"))
+                                   matches(r"Top 10 reaperz of Fragged Player.*'s soul: "
+                                           r"Killer2.* \(2\), Killer3.* \(1\)"))
 
     def test_cmd_reaperz_for_another_non_existent_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -936,7 +938,7 @@ class FragStatsTests(unittest.TestCase):
         killer1 = fake_player(4, "Killer1", team="blue")
         connected_players(player, fragged_player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(fragged_player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{fragged_player.steam_id}:reaperz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 ("lava", 2),
@@ -946,8 +948,8 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_reaperz(player, ["!reaperz", "Fragged"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Fragged Player.*'s soul: "
-                                           "lava.* \(2\), void.* \(1\)"))
+                                   matches(r"Top 10 reaperz of Fragged Player.*'s soul: "
+                                           r"lava.* \(2\), void.* \(1\)"))
 
     def test_cmd_reaperz_with_a_disconnected_player(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -956,21 +958,21 @@ class FragStatsTests(unittest.TestCase):
         disconnected_killer2 = fake_player(5, "Disconnected Killed2", team="blue")
         connected_players(player, killer1)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:reaperz".format(player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:reaperz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (disconnected_killer2.steam_id, 2),
                 (killer1.steam_id, 1)
             ])
-        when(self.db).exists("minqlx:players:{}:last_used_name".format(disconnected_killer2.steam_id)).thenReturn(True)
-        when(self.db).get("minqlx:players:{}:last_used_name".format(disconnected_killer2.steam_id)) \
+        when(self.db).exists(f"minqlx:players:{disconnected_killer2.steam_id}:last_used_name").thenReturn(True)
+        when(self.db).get(f"minqlx:players:{disconnected_killer2.steam_id}:last_used_name") \
             .thenReturn(disconnected_killer2.name)
 
         self.plugin.cmd_reaperz(player, ["!mapreaperz"], self.reply_channel)
 
         assert_channel_was_replied(self.reply_channel,
-                                   matches("Top 10 reaperz of Issuing Player.*'s soul: "
-                                           "Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
+                                   matches(r"Top 10 reaperz of Issuing Player.*'s soul: "
+                                           r"Disconnected Killed2.* \(2\), Killed1.* \(1\)"))
 
     def test_cmd_soulz_in_team_chat_channel(self):
         player = fake_player(123, "Issuing Player", team="red")
@@ -982,7 +984,7 @@ class FragStatsTests(unittest.TestCase):
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        when(self.db).zrevrangebyscore("minqlx:players:{}:soulz".format(player.steam_id),
+        when(self.db).zrevrangebyscore(f"minqlx:players:{player.steam_id}:soulz",
                                        "+INF", "-INF", start=0, num=10, withscores=True)\
             .thenReturn([
                 (killed1.steam_id, 2),
@@ -994,5 +996,5 @@ class FragStatsTests(unittest.TestCase):
         self.plugin.cmd_soulz(player, ["!soulz"], minqlx.RED_TEAM_CHAT_CHANNEL)
 
         assert_channel_was_replied(minqlx.CHAT_CHANNEL,
-                                   matches("Top 10 reaped soulz for Issuing Player.*: "
-                                           "Killed4.* \(8\), Killed3.* \(5\), Killed2.* \(3\), Killed1.* \(2\)"))
+                                   matches(r"Top 10 reaped soulz for Issuing Player.*: "
+                                           r"Killed4.* \(8\), Killed3.* \(5\), Killed2.* \(3\), Killed1.* \(2\)"))
