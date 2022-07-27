@@ -16,7 +16,7 @@ use_plugin("python.flake8")
 
 use_plugin("python.pycharm")
 
-default_task = ["install_dependencies", "analyze", "run_unit_tests", "coverage"]
+default_task = ["analyze", "coverage"]
 
 version = "0.0.1"
 authors = (Author("Markus 'ShiN0' Gaertner"),)
