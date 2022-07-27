@@ -14,12 +14,9 @@ use_plugin("python.coverage")
 use_plugin("python.pylint")
 use_plugin("python.flake8")
 
-use_plugin("python.sphinx")
-
 use_plugin("python.pycharm")
-use_plugin("python.pydev")
 
-default_task = ["install_dependencies", "analyze", "run_unit_tests"]
+default_task = ["install_dependencies", "analyze", "run_unit_tests", "coverage"]
 
 version = "0.0.1"
 authors = (Author("Markus 'ShiN0' Gaertner"),)
@@ -34,11 +31,11 @@ def initialize(project):
 
     project.set_property("coverage_break_build", False)
     project.set_property("coverage_exceptions",
-                         ["__init__/__init__.py", "minqlx.__init__.py", "minqlx._commands", "minqlx._core",
-                          "minqlx._events", "minqlx._game", "minqlx._handlers", "minqlx._minqlx", "minqlx._player",
-                          "minqlx._plugin", "minqlx._zmq", "minqlx.database"])
+                         ["minqlx._commands", "minqlx._core", "minqlx._events", "minqlx._game", "minqlx._handlers",
+                          "minqlx._minqlx", "minqlx._player", "minqlx._plugin", "minqlx._zmq", "minqlx.database"])
 
     project.set_property("pylint_options", ["--rcfile=./.pylintrc"])
+
     project.set_property("flake8_include_test_sources", True)
     project.set_property("flake8_ignore", "E226,E402,E722,F401,F403,F405,W504")
     project.set_property("flake8_max_line_length", "120")
