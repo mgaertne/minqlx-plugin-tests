@@ -1,5 +1,4 @@
 # encoding: utf-8
-from collections import namedtuple
 from typing import Union, Optional, Callable, List
 
 __version__ = 'NOT_SET'

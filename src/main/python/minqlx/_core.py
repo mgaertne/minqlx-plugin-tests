@@ -19,7 +19,8 @@
 
 # Since this isn't the actual module, we define it here and export
 # it later so that it can be accessed with minqlx.__doc__ by Sphinx.
-from typing import Optional
+from types import TracebackType, ModuleType
+from typing import Optional, Dict, Any, Union, Type, Callable
 
 import collections
 import subprocess
@@ -109,7 +110,7 @@ DEFAULT_PLUGINS = (
 # ====================================================================
 #                               HELPERS
 # ====================================================================
-def parse_variables(varstr, ordered=False):
+def parse_variables(varstr: str, ordered: bool = False) -> Dict[Any, Any]:
     """
     Parses strings of key-value pairs delimited by "\\" and puts
     them into a dictionary.
@@ -120,6 +121,7 @@ def parse_variables(varstr, ordered=False):
     :type: ordered: bool
     :returns: dict -- A dictionary with the variables added as key-value pairs.
     """
+    res: Dict[Any, Any]
     if ordered:
         res = collections.OrderedDict()
     else:
@@ -139,10 +141,7 @@ def parse_variables(varstr, ordered=False):
     return res
 
 
-main_logger = None
-
-
-def get_logger(plugin: Optional[Plugin] = None):
+def get_logger(plugin: Optional[Union[Plugin, str]] = None) -> logging.Logger:
     """
     Provides a logger that should be used by your plugin for debugging, info
     and error reporting. It will automatically output to both the server console
@@ -157,20 +156,9 @@ def get_logger(plugin: Optional[Plugin] = None):
     return logging.getLogger("minqlx")
 
 
-def _configure_logger():
+def _configure_logger() -> None:
     logger = logging.getLogger("minqlx")
     logger.setLevel(logging.DEBUG)
-
-    # File
-    file_path = os.path.join(minqlx.get_cvar("fs_homepath"), "minqlx.log")
-    maxlogs = minqlx.Plugin.get_cvar("qlx_logs", int)
-    maxlogsize = minqlx.Plugin.get_cvar("qlx_logsSize", int)
-    file_fmt = logging.Formatter("(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s", "%H:%M:%S")
-    file_handler = RotatingFileHandler(file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(file_fmt)
-    logger.addHandler(file_handler)
-    logger.info("============================= minqlx run @ %s =============================", datetime.datetime.now())
 
     # Console
     console_fmt = logging.Formatter("[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S")
@@ -179,8 +167,26 @@ def _configure_logger():
     console_handler.setFormatter(console_fmt)
     logger.addHandler(console_handler)
 
+    # File
+    homepath_cvar = minqlx.get_cvar("fs_homepath")
+    if homepath_cvar is None:
+        return
+    file_path = os.path.join(homepath_cvar, "minqlx.log")
+    maxlogs = minqlx.Plugin.get_cvar("qlx_logs", int)
+    if maxlogs is None:
+        return
+    maxlogsize = minqlx.Plugin.get_cvar("qlx_logsSize", int)
+    if maxlogsize is None:
+        return
+    file_fmt = logging.Formatter("(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s", "%H:%M:%S")
+    file_handler = RotatingFileHandler(file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(file_fmt)
+    logger.addHandler(file_handler)
+    logger.info("============================= minqlx run @ %s =============================", datetime.datetime.now())
 
-def log_exception(plugin=None):
+
+def log_exception(plugin: Optional[Union[Plugin, str]] = None) -> None:
     """
     Logs an exception using :func:`get_logger`. Call this in an except block.
 
@@ -194,7 +200,8 @@ def log_exception(plugin=None):
         logger.error(line)
 
 
-def handle_exception(exc_type, exc_value, exc_traceback):
+def handle_exception(exc_type: Type[BaseException], exc_value: BaseException, exc_traceback: Optional[TracebackType]) \
+        -> None:
     """A handler for unhandled exceptions."""
     # TODO: If exception was raised within a plugin, detect it and pass to log_exception()
     logger = get_logger(None)
@@ -203,29 +210,33 @@ def handle_exception(exc_type, exc_value, exc_traceback):
         logger.error(line)
 
 
-def threading_excepthook(args):
+def threading_excepthook(args) -> None:
     handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
 
 
-_init_time = datetime.datetime.now()
+_init_time: datetime.datetime = datetime.datetime.now()
 
 
-def uptime():
+def uptime() -> datetime.timedelta:
     """Returns a :class:`datetime.timedelta` instance of the time since initialized."""
     return datetime.datetime.now() - _init_time
 
 
-def owner():
+def owner() -> Optional[int]:  # pylint: disable=inconsistent-return-statements
     """Returns the SteamID64 of the owner. This is set in the config."""
     # noinspection PyBroadException
     try:
-        sid = int(minqlx.get_cvar("qlx_owner"))
+        owner_cvar = minqlx.get_cvar("qlx_owner")
+        if owner_cvar is None:
+            raise RuntimeError
+        sid = int(owner_cvar)
         if sid == -1:
             raise RuntimeError
         return sid
     except:  # pylint: disable=bare-except
         logger = minqlx.get_logger()
         logger.error("Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format.")
+    return None
 
 
 _stats = None
@@ -236,7 +247,7 @@ def stats_listener():
     return _stats
 
 
-def set_cvar_once(name, value, flags=0):
+def set_cvar_once(name: str, value: str, flags: int = 0) -> bool:
     if minqlx.get_cvar(name) is None:
         minqlx.set_cvar(name, value, flags)
         return True
@@ -244,7 +255,8 @@ def set_cvar_once(name, value, flags=0):
     return False
 
 
-def set_cvar_limit_once(name, value, minimum, maximum, flags=0):
+def set_cvar_limit_once(name: str, value: Union[int, float], minimum: Union[int, float], maximum: Union[int, float],
+                        flags: int = 0) -> bool:
     if minqlx.get_cvar(name) is None:
         minqlx.set_cvar_limit(name, value, minimum, maximum, flags)
         return True
@@ -252,7 +264,7 @@ def set_cvar_limit_once(name, value, minimum, maximum, flags=0):
     return False
 
 
-def set_plugins_version(path):
+def set_plugins_version(path: str) -> None:
     args_version = shlex.split("git describe --long --tags --dirty --always")
     args_branch = shlex.split("git rev-parse --abbrev-ref HEAD")
 
@@ -267,7 +279,8 @@ def set_plugins_version(path):
                 setattr(minqlx, "__plugins_version__", "NOT_SET")
                 return
 
-            version = p.stdout.read().decode().strip()
+            if p.stdout:
+                version = p.stdout.read().decode().strip()
 
         # Get the branch using git rev-parse.
         with subprocess.Popen(args_branch, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env) as p:
@@ -276,7 +289,8 @@ def set_plugins_version(path):
                 setattr(minqlx, "__plugins_version__", version)
                 return
 
-            branch = p.stdout.read().decode().strip()
+            if p.stdout:
+                branch = p.stdout.read().decode().strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
         setattr(minqlx, "__plugins_version__", "NOT_SET")
         return
@@ -284,7 +298,7 @@ def set_plugins_version(path):
     setattr(minqlx, "__plugins_version__", f"{version}-{branch}")
 
 
-def set_map_subtitles():
+def set_map_subtitles() -> None:
     # We save the actual values before setting them so that we can retrieve them in Game.
     setattr(minqlx, "_map_title", minqlx.get_configstring(3))
     setattr(minqlx, "_map_subtitle1", minqlx.get_configstring(678))
@@ -304,7 +318,7 @@ def set_map_subtitles():
 # ====================================================================
 #                              DECORATORS
 # ====================================================================
-def next_frame(func):
+def next_frame(func: Callable):
     def f(*args, **kwargs):
         minqlx.next_frame_tasks.append((func, args, kwargs))
 
@@ -332,11 +346,11 @@ def delay(time: float):
     return wrap
 
 
-_thread_count = 0
-_thread_name = "minqlxthread"
+_thread_count: int = 0
+_thread_name: str = "minqlxthread"
 
 
-def thread(func, force=False):
+def thread(func: Callable, force: bool = False):
     """Starts a thread with the function passed as its target. If a function decorated
     with this is called within a function also decorated, it will **not** create a second
     thread unless told to do so with the *force* keyword.
@@ -348,11 +362,11 @@ def thread(func, force=False):
     :returns: threading.Thread
 
     """
-    def f(*args, **kwargs):
+    def f(*args, **kwargs):  # pylint: disable=inconsistent-return-statements
         if not force and threading.current_thread().name.endswith(_thread_name):
             func(*args, **kwargs)
         else:
-            global _thread_count
+            global _thread_count  # pylint: disable=global-statement
             name = func.__name__ + f"-{str(_thread_count)}-{_thread_name}"
             t = threading.Thread(target=func, name=name, args=args, kwargs=kwargs, daemon=True)
             t.start()
@@ -367,7 +381,7 @@ def thread(func, force=False):
 #                       CONFIG AND PLUGIN LOADING
 # ====================================================================
 # We need to keep track of module instances for use with importlib.reload.
-_modules = {}
+_modules: Dict[str, ModuleType] = {}
 
 
 class PluginLoadError(Exception):
@@ -378,9 +392,12 @@ class PluginUnloadError(Exception):
     pass
 
 
-def load_preset_plugins():
+def load_preset_plugins() -> None:
     plugins_temp = []
-    for p in minqlx.Plugin.get_cvar("qlx_plugins", list):
+    plugins_cvar = minqlx.Plugin.get_cvar("qlx_plugins", list)
+    if plugins_cvar is None:
+        return
+    for p in plugins_cvar:
         if p == "DEFAULT":
             plugins_temp += list(DEFAULT_PLUGINS)
         else:
@@ -391,7 +408,11 @@ def load_preset_plugins():
         if p not in plugins:
             plugins.append(p)
 
-    plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
+    plugins_path_cvar = minqlx.get_cvar("qlx_pluginsPath")
+    if plugins_path_cvar is None:
+        raise PluginLoadError("cvar qlx_pluginsPath misconfigured")
+
+    plugins_path = os.path.abspath(plugins_path_cvar)
     plugins_dir = os.path.basename(plugins_path)
 
     if os.path.isdir(plugins_path):
@@ -402,12 +423,16 @@ def load_preset_plugins():
         raise PluginLoadError(f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'.")
 
 
-def load_plugin(plugin):
+def load_plugin(plugin: str) -> None:
     logger = get_logger(None)
     logger.info("Loading plugin '%s'...", plugin)
     # noinspection PyProtectedMember
     plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
-    plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
+    plugins_path_cvar = minqlx.get_cvar("qlx_pluginsPath")
+    if plugins_path_cvar is None:
+        raise PluginLoadError("cvar qlx_pluginsPath misconfigured")
+
+    plugins_path = os.path.abspath(plugins_path_cvar)
     plugins_dir = os.path.basename(plugins_path)
 
     if not os.path.isfile(os.path.join(plugins_path, plugin + ".py")):
@@ -433,11 +458,11 @@ def load_plugin(plugin):
         raise
 
 
-def unload_plugin(plugin):
+def unload_plugin(plugin: str) -> None:
     logger = get_logger(None)
     logger.info("Unloading plugin '%s'...", plugin)
     # noinspection PyProtectedMember
-    plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
+    plugins: Dict[str, Plugin] = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
     if plugin in plugins:
         try:
             minqlx.EVENT_DISPATCHERS["unload"].dispatch(plugin)
@@ -458,7 +483,7 @@ def unload_plugin(plugin):
         raise PluginUnloadError("Attempted to unload a plugin that is not loaded.")
 
 
-def reload_plugin(plugin):
+def reload_plugin(plugin: str) -> None:
     try:
         unload_plugin(plugin)
     except PluginUnloadError:
@@ -473,7 +498,7 @@ def reload_plugin(plugin):
         raise
 
 
-def initialize_cvars():
+def initialize_cvars() -> None:
     # Core
     minqlx.set_cvar_once("qlx_owner", "-1")
     minqlx.set_cvar_once("qlx_plugins", ", ".join(DEFAULT_PLUGINS))
@@ -492,11 +517,11 @@ def initialize_cvars():
 # ====================================================================
 #                                 MAIN
 # ====================================================================
-def initialize():
+def initialize() -> None:
     minqlx.register_handlers()
 
 
-def late_init():
+def late_init() -> None:
     """Initialization that needs to be called after QLDS has finished
     its own initialization.
 
@@ -505,12 +530,18 @@ def late_init():
 
     # Set the default database plugins should use.
     # TODO: Make Plugin.database setting generic.
-    if minqlx.get_cvar("qlx_database").lower() == "redis":
+    database_cvar = minqlx.get_cvar("qlx_database")
+    if database_cvar is not None and database_cvar.lower() == "redis":
         minqlx.Plugin.database = minqlx.database.Redis
 
     # Get the plugins path and set minqlx.__plugins_version__.
-    plugins_path = os.path.abspath(minqlx.get_cvar("qlx_pluginsPath"))
-    set_plugins_version(plugins_path)
+    plugins_path_cvar = minqlx.get_cvar("qlx_pluginsPath")
+    if plugins_path_cvar is not None:
+        plugins_path = os.path.abspath(plugins_path_cvar)
+        set_plugins_version(plugins_path)
+
+        # Add the plugins path to PATH so that we can load plugins later.
+        sys.path.append(os.path.dirname(plugins_path))
 
     # Initialize the logger now that we have fs_basepath.
     _configure_logger()
@@ -521,14 +552,12 @@ def late_init():
     if sys.version_info >= (3, 8):
         threading.excepthook = threading_excepthook
 
-    # Add the plugins path to PATH so that we can load plugins later.
-    sys.path.append(os.path.dirname(plugins_path))
-
     logger.info("Loading preset plugins...")
     load_preset_plugins()
 
-    if bool(int(minqlx.get_cvar("zmq_stats_enable"))):
-        global _stats
+    stats_enable_cvar = minqlx.get_cvar("zmq_stats_enable")
+    if stats_enable_cvar is not None and bool(int(stats_enable_cvar)):
+        global _stats  # pylint: disable=global-statement
         _stats = minqlx.StatsListener()
         logger.info("Stats listener started on %s.", _stats.address)
         # Start polling. Not blocking due to decorator magic. Aw yeah.

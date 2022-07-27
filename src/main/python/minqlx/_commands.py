@@ -72,6 +72,7 @@ class AbstractChannel:
     def reply(self, msg: str, limit: int = 100, delimiter: str = " ") -> None:
         raise NotImplementedError()
 
+    # noinspection PyMethodMayBeStatic
     def split_long_lines(self, msg: str, limit: int = 100, delimiter: str = " ") -> List[str]:
         res = []
 

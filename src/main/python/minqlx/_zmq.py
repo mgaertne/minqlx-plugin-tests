@@ -61,6 +61,7 @@ class StatsListener:
         to reconnect and continue.
 
         """
+        # noinspection PyBroadException
         try:
             if self.done:
                 return
@@ -116,7 +117,7 @@ class StatsListener:
 
         except zmq.error.Again:
             pass
-        except BaseException:
+        except Exception:  # pylint: disable=broad-except
             minqlx.log_exception()
             # Reconnect, just in case. GC will clean up for us.
             self.__init__()  # type: ignore
