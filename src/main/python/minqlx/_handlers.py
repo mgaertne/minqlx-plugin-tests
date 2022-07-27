@@ -19,6 +19,8 @@
 import collections
 import sched
 import re
+from re import Pattern
+from typing import Optional
 
 import minqlx
 
@@ -26,20 +28,21 @@ import minqlx
 #                        REGULAR EXPRESSIONS
 # ====================================================================
 
-_re_say = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
-_re_say_team = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
-_re_callvote = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$", flags=re.IGNORECASE)
-_re_vote = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
-_re_team = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
-_re_vote_ended = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
-_re_userinfo = re.compile(r"^userinfo \"(?P<vars>.+)\"$")
+_re_say: Pattern[str] = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
+_re_say_team: Pattern[str] = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
+_re_callvote: Pattern[str] = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$",
+                                        flags=re.IGNORECASE)
+_re_vote: Pattern[str] = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
+_re_team: Pattern[str] = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
+_re_vote_ended: Pattern[str] = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
+_re_userinfo: Pattern[str] = re.compile(r"^userinfo \"(?P<vars>.+)\"$")
 
 
 # ====================================================================
 #                         LOW-LEVEL HANDLERS
 #        These are all called by the C code, not within Python.
 # ====================================================================
-def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
+def handle_rcon(cmd: str):  # pylint: disable=inconsistent-return-statements
     """Console commands that are to be processed as regular pyminqlx
     commands as if the owner executes it. This allows the owner to
     interact with the Python part of minqlx without having to connect.
@@ -53,7 +56,7 @@ def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
         return True
 
 
-def handle_client_command(client_id, cmd):
+def handle_client_command(client_id: int, cmd: str):
     """Client commands are commands such as "say", "say_team", "scores",
     "disconnect" and so on. This function parses those and passes it
     on to the event dispatcher.
@@ -168,7 +171,7 @@ def handle_client_command(client_id, cmd):
         return True
 
 
-def handle_server_command(client_id, cmd):
+def handle_server_command(client_id: int, cmd: str):
     # noinspection PyBroadException
     try:
         # Dispatch the "server_command" event before further processing.
@@ -200,7 +203,7 @@ def handle_server_command(client_id, cmd):
 # weird behavior if you were to use threading. This list will act as a task queue.
 # Tasks can be added by simply adding the @minqlx.next_frame decorator to functions.
 frame_tasks = sched.scheduler()
-next_frame_tasks = collections.deque()
+next_frame_tasks: collections.deque = collections.deque()
 
 
 def handle_frame():
@@ -236,12 +239,12 @@ def handle_frame():
         pass
 
 
-_zmq_warning_issued = False
-_first_game = True
-_ad_round_number = 0
+_zmq_warning_issued: bool = False
+_first_game: bool = True
+_ad_round_number: int = 0
 
 
-def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statements
+def handle_new_game(is_restart: bool):  # pylint: disable=inconsistent-return-statements
     # This is called early in the launch process, so it's a good place to initialize
     # minqlx stuff that needs QLDS to be initialized.
     global _first_game  # pylint: disable=global-statement
@@ -251,7 +254,8 @@ def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statemen
 
         # A good place to warn the owner if ZMQ stats are disabled.
         global _zmq_warning_issued  # pylint: disable=global-statement
-        if not bool(int(minqlx.get_cvar("zmq_stats_enable"))) and not _zmq_warning_issued:
+        stats_enabled_cvar = minqlx.get_cvar("zmq_stats_enable")
+        if (stats_enabled_cvar is None or not bool(int(stats_enabled_cvar))) and not _zmq_warning_issued:
             logger = minqlx.get_logger()
             logger.warning("Some events will not work because ZMQ stats is not enabled. "
                            "Launch the server with \"zmq_stats_enable 1\"")
@@ -277,7 +281,7 @@ def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statemen
         return True
 
 
-def handle_set_configstring(index, value):  # pylint: disable=inconsistent-return-statements
+def handle_set_configstring(index: int, value: str):  # pylint: disable=inconsistent-return-statements
     """Called whenever the server tries to set a configstring. Can return
     False to stop the event.
 
@@ -356,7 +360,7 @@ def handle_set_configstring(index, value):  # pylint: disable=inconsistent-retur
         return True
 
 
-def handle_player_connect(client_id, _is_bot):
+def handle_player_connect(client_id: int, _is_bot: bool):
     """This will be called whenever a player tries to connect. If the dispatcher
     returns False, it will not allow the player to connect and instead show them
     a message explaining why. The default message is "You are banned from this
@@ -377,7 +381,7 @@ def handle_player_connect(client_id, _is_bot):
         return True
 
 
-def handle_player_loaded(client_id):
+def handle_player_loaded(client_id: int):
     """This will be called whenever a player has connected and finished loading,
     meaning it'll go off a bit later than the usual "X connected" messages.
     This will not trigger on bots.
@@ -395,11 +399,13 @@ def handle_player_loaded(client_id):
         return True
 
 
-def handle_player_disconnect(client_id, reason):
+def handle_player_disconnect(client_id: int, reason: Optional[str]):
     """This will be called whenever a player disconnects.
 
     :param: client_id: The client identifier.
     :type: client_id: int
+    :param: reason: The reason for the disconnect
+    :type: reason: str
 
     """
     # noinspection PyBroadException
@@ -411,7 +417,7 @@ def handle_player_disconnect(client_id, reason):
         return True
 
 
-def handle_player_spawn(client_id):
+def handle_player_spawn(client_id: int):
     """Called when a player spawns. Note that a spectator going in free spectate mode
     makes the client spawn, so you'll want to check for that if you only want "actual"
     spawns.
@@ -426,7 +432,7 @@ def handle_player_spawn(client_id):
         return True
 
 
-def handle_kamikaze_use(client_id):
+def handle_kamikaze_use(client_id: int):
     """This will be called whenever player uses kamikaze item.
 
     :param: client_id: The client identifier.
@@ -442,7 +448,7 @@ def handle_kamikaze_use(client_id):
         return True
 
 
-def handle_kamikaze_explode(client_id, is_used_on_demand):
+def handle_kamikaze_explode(client_id: int, is_used_on_demand: bool):
     """This will be called whenever kamikaze explodes.
 
     :param: client_id: The client identifier.
@@ -461,13 +467,13 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
         return True
 
 
-def handle_console_print(text):  # pylint: disable=inconsistent-return-statements
+def handle_console_print(text: Optional[str]):  # pylint: disable=inconsistent-return-statements
     """Called whenever the server prints something to the console and when rcon is used."""
+    if not text:
+        return
+
     # noinspection PyBroadException
     try:
-        if not text:
-            return
-
         # Log console output. Removes the need to have stdout logs in addition to minqlx.log.
         minqlx.get_logger().debug(text.rstrip("\n"))
 
@@ -488,11 +494,11 @@ def handle_console_print(text):  # pylint: disable=inconsistent-return-statement
         return True
 
 
-_print_redirection = None
-_print_buffer = ""
+_print_redirection: Optional[minqlx.AbstractChannel] = None
+_print_buffer: str = ""
 
 
-def redirect_print(channel):
+def redirect_print(channel: minqlx.AbstractChannel):
     """Redirects print output to a channel. Useful for commands that execute console commands
     and want to redirect the output to the channel instead of letting it go to the console.
 
@@ -528,7 +534,7 @@ def redirect_print(channel):
     return PrintRedirector(channel)
 
 
-def register_handlers():
+def register_handlers() -> None:
     minqlx.register_handler("rcon", handle_rcon)
     minqlx.register_handler("client_command", handle_client_command)
     minqlx.register_handler("server_command", handle_server_command)
