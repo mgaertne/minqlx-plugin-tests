@@ -16,10 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 
-import minqlx
 import collections
 import sched
 import re
+
+import minqlx
 
 # ====================================================================
 #                        REGULAR EXPRESSIONS
@@ -33,41 +34,44 @@ _re_team = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
 _re_vote_ended = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
 _re_userinfo = re.compile(r"^userinfo \"(?P<vars>.+)\"$")
 
+
 # ====================================================================
 #                         LOW-LEVEL HANDLERS
 #        These are all called by the C code, not within Python.
 # ====================================================================
-
-def handle_rcon(cmd):
+def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
     """Console commands that are to be processed as regular pyminqlx
     commands as if the owner executes it. This allows the owner to
     interact with the Python part of minqlx without having to connect.
 
     """
+    # noinspection PyBroadException
     try:
         minqlx.COMMANDS.handle_input(minqlx.RconDummyPlayer(), cmd, minqlx.CONSOLE_CHANNEL)
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 def handle_client_command(client_id, cmd):
     """Client commands are commands such as "say", "say_team", "scores",
     "disconnect" and so on. This function parses those and passes it
     on to the event dispatcher.
 
-    :param client_id: The client identifier.
-    :type client_id: int
-    :param cmd: The command being ran by the client.
-    :type cmd: str
+    :param: client_id: The client identifier.
+    :type: client_id: int
+    :param: cmd: The command being run by the client.
+    :type: cmd: str
 
     """
+    # noinspection PyBroadException
     try:
         # Dispatch the "client_command" event before further processing.
         player = minqlx.Player(client_id)
         retval = minqlx.EVENT_DISPATCHERS["client_command"].dispatch(player, cmd)
         if retval is False:
             return False
-        elif isinstance(retval, str):
+        if isinstance(retval, str):
             # Allow plugins to modify the command before passing it on.
             cmd = retval
 
@@ -82,7 +86,7 @@ def handle_client_command(client_id, cmd):
         res = _re_say_team.match(cmd)
         if res:
             msg = res.group("msg").replace("\"", "")
-            if player.team == "free": # I haven't tried this, but I don't think it's even possible.
+            if player.team == "free":  # I haven't tried this, but I don't think it's even possible.
                 channel = minqlx.FREE_CHAT_CHANNEL
             elif player.team == "red":
                 channel = minqlx.RED_TEAM_CHAT_CHANNEL
@@ -107,10 +111,10 @@ def handle_client_command(client_id, cmd):
         res = _re_vote.match(cmd)
         if res and minqlx.Plugin.is_vote_active():
             arg = res.group("arg").lower()
-            if arg == "y" or arg == "1":
+            if arg in ["y", "1"]:
                 if minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, True) is False:
                     return False
-            elif arg == "n" or arg == "2":
+            elif arg in ["n", "2"]:
                 if minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, False) is False:
                     return False
             return cmd
@@ -122,7 +126,7 @@ def handle_client_command(client_id, cmd):
             if arg == player.team[0]:
                 # Don't trigger if player is joining the same team.
                 return cmd
-            elif arg == "f":
+            if arg == "f":
                 target_team = "free"
             elif arg == "r":
                 target_team = "red"
@@ -152,17 +156,20 @@ def handle_client_command(client_id, cmd):
                 ret = minqlx.EVENT_DISPATCHERS["userinfo"].dispatch(player, changed)
                 if ret is False:
                     return False
-                elif isinstance(ret, dict):
+                if isinstance(ret, dict):
                     for key in ret:
                         new_info[key] = ret[key]
-                    cmd = "userinfo \"{}\"".format("".join(["\\{}\\{}".format(key, new_info[key]) for key in new_info]))
+                    formatted_key_values = "".join([f"\\{key}\\{value}" for key, value in new_info.items()])
+                    cmd = f"userinfo \"{formatted_key_values}\""
 
         return cmd
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
 
+
 def handle_server_command(client_id, cmd):
+    # noinspection PyBroadException
     try:
         # Dispatch the "server_command" event before further processing.
         try:
@@ -173,7 +180,7 @@ def handle_server_command(client_id, cmd):
         retval = minqlx.EVENT_DISPATCHERS["server_command"].dispatch(player, cmd)
         if retval is False:
             return False
-        elif isinstance(retval, str):
+        if isinstance(retval, str):
             cmd = retval
 
         res = _re_vote_ended.match(cmd)
@@ -184,15 +191,17 @@ def handle_server_command(client_id, cmd):
                 minqlx.EVENT_DISPATCHERS["vote_ended"].dispatch(False)
 
         return cmd
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 # Executing tasks right before a frame, by the main thread, will often be desirable to avoid
 # weird behavior if you were to use threading. This list will act as a task queue.
 # Tasks can be added by simply adding the @minqlx.next_frame decorator to functions.
 frame_tasks = sched.scheduler()
 next_frame_tasks = collections.deque()
+
 
 def handle_frame():
     """This will be called every frame. To allow threads to call stuff from the
@@ -205,15 +214,17 @@ def handle_frame():
         # This will run all tasks that are currently scheduled.
         # If one of the tasks throw an exception, it'll log it
         # and continue execution of the next tasks if any.
+        # noinspection PyBroadException
         try:
             frame_tasks.run(blocking=False)
             break
-        except:
+        except:  # pylint: disable=bare-except
             minqlx.log_exception()
             continue
+    # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["frame"].dispatch()
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
 
@@ -229,51 +240,56 @@ _zmq_warning_issued = False
 _first_game = True
 _ad_round_number = 0
 
-def handle_new_game(is_restart):
+
+def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statements
     # This is called early in the launch process, so it's a good place to initialize
     # minqlx stuff that needs QLDS to be initialized.
-    global _first_game
+    global _first_game  # pylint: disable=global-statement
     if _first_game:
         minqlx.late_init()
         _first_game = False
 
         # A good place to warn the owner if ZMQ stats are disabled.
-        global _zmq_warning_issued
+        global _zmq_warning_issued  # pylint: disable=global-statement
         if not bool(int(minqlx.get_cvar("zmq_stats_enable"))) and not _zmq_warning_issued:
             logger = minqlx.get_logger()
             logger.warning("Some events will not work because ZMQ stats is not enabled. "
-                "Launch the server with \"zmq_stats_enable 1\"")
+                           "Launch the server with \"zmq_stats_enable 1\"")
             _zmq_warning_issued = True
 
     minqlx.set_map_subtitles()
 
     if not is_restart:
+        # noinspection PyBroadException
         try:
             minqlx.EVENT_DISPATCHERS["map"].dispatch(
                 minqlx.get_cvar("mapname"),
                 minqlx.get_cvar("g_factory"))
-        except:
+        except:  # pylint: disable=bare-except
             minqlx.log_exception()
             return True
 
+    # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["new_game"].dispatch()
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
 
-def handle_set_configstring(index, value):
+
+def handle_set_configstring(index, value):  # pylint: disable=inconsistent-return-statements
     """Called whenever the server tries to set a configstring. Can return
     False to stop the event.
 
     """
-    global _ad_round_number
+    global _ad_round_number  # pylint: disable=global-statement
 
+    # noinspection PyBroadException
     try:
         res = minqlx.EVENT_DISPATCHERS["set_configstring"].dispatch(index, value)
         if res is False:
             return False
-        elif isinstance(res, str):
+        if isinstance(res, str):
             value = res
 
         # VOTES
@@ -284,7 +300,7 @@ def handle_set_configstring(index, value):
             minqlx.EVENT_DISPATCHERS["vote_started"].dispatch(vote, args)
             return
         # GAME STATE CHANGES
-        elif index == 0:
+        if index == 0:
             old_cs = minqlx.parse_variables(minqlx.get_configstring(index))
             if not old_cs:
                 return
@@ -300,14 +316,14 @@ def handle_set_configstring(index, value):
                     minqlx.EVENT_DISPATCHERS["game_countdown"].dispatch()
                 elif old_state == "COUNT_DOWN" and new_state == "IN_PROGRESS":
                     pass
-                    #minqlx.EVENT_DISPATCHERS["game_start"].dispatch()
+                    # minqlx.EVENT_DISPATCHERS["game_start"].dispatch()
                 elif old_state == "IN_PROGRESS" and new_state == "PRE_GAME":
                     pass
                 elif old_state == "COUNT_DOWN" and new_state == "PRE_GAME":
                     pass
                 else:
                     logger = minqlx.get_logger()
-                    logger.warning("UNKNOWN GAME STATES: {} - {}".format(old_state, new_state))
+                    logger.warning(f"UNKNOWN GAME STATES: {old_state} - {new_state}")
         # ROUND COUNTDOWN AND START
         elif index == 661:
             cvars = minqlx.parse_variables(value)
@@ -330,63 +346,70 @@ def handle_set_configstring(index, value):
                 if round_number and "time" in cvars:
                     minqlx.EVENT_DISPATCHERS["round_countdown"].dispatch(round_number)
                     return
-                elif round_number:
+                if round_number:
                     minqlx.EVENT_DISPATCHERS["round_start"].dispatch(round_number)
                     return
 
         return res
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
 
-def handle_player_connect(client_id, is_bot):
+
+def handle_player_connect(client_id, _is_bot):
     """This will be called whenever a player tries to connect. If the dispatcher
     returns False, it will not allow the player to connect and instead show them
     a message explaining why. The default message is "You are banned from this
     server.", but it can be set with :func:`minqlx.set_ban_message`.
 
-    :param client_id: The client identifier.
-    :type client_id: int
-    :param is_bot: Whether or not the player is a bot.
-    :type is_bot: bool
+    :param: client_id: The client identifier.
+    :type: client_id: int
+    :param: _is_bot: Whether or not the player is a bot.
+    :type: _is_bot: bool
 
     """
+    # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_connect"].dispatch(player)
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 def handle_player_loaded(client_id):
     """This will be called whenever a player has connected and finished loading,
     meaning it'll go off a bit later than the usual "X connected" messages.
     This will not trigger on bots.
 
-    :param client_id: The client identifier.
-    :type client_id: int
+    :param: client_id: The client identifier.
+    :type: client_id: int
 
     """
+    # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_loaded"].dispatch(player)
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 def handle_player_disconnect(client_id, reason):
     """This will be called whenever a player disconnects.
 
-    :param client_id: The client identifier.
-    :type client_id: int
+    :param: client_id: The client identifier.
+    :type: client_id: int
 
     """
+    # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_disconnect"].dispatch(player, reason)
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 def handle_player_spawn(client_id):
     """Called when a player spawns. Note that a spectator going in free spectate mode
@@ -394,46 +417,53 @@ def handle_player_spawn(client_id):
     spawns.
 
     """
+    # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_spawn"].dispatch(player)
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 def handle_kamikaze_use(client_id):
     """This will be called whenever player uses kamikaze item.
 
-    :param client_id: The client identifier.
-    :type client_id: int
+    :param: client_id: The client identifier.
+    :type: client_id: int
 
     """
+    # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["kamikaze_use"].dispatch(player)
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
+
 
 def handle_kamikaze_explode(client_id, is_used_on_demand):
     """This will be called whenever kamikaze explodes.
 
-    :param client_id: The client identifier.
-    :type client_id: int
-    :param is_used_on_demand: Non-zero if kamikaze is used on demand.
-    :type is_used_on_demand: int
+    :param: client_id: The client identifier.
+    :type: client_id: int
+    :param: is_used_on_demand: Non-zero if kamikaze is used on demand.
+    :type: is_used_on_demand: int
 
 
     """
+    # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
-        return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(player, True if is_used_on_demand else False)
-    except:
+        return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(player, bool(is_used_on_demand))
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
 
-def handle_console_print(text):
+
+def handle_console_print(text):  # pylint: disable=inconsistent-return-statements
     """Called whenever the server prints something to the console and when rcon is used."""
+    # noinspection PyBroadException
     try:
         if not text:
             return
@@ -446,19 +476,21 @@ def handle_console_print(text):
             return False
 
         if _print_redirection:
-            global _print_buffer
-            _print_buffer += text
+            global _print_buffer  # pylint: disable=global-statement
+            _print_buffer += text  # pylint: disable=undefined-variable
 
         if isinstance(res, str):
             return res
 
         return text
-    except:
+    except:  # pylint: disable=bare-except
         minqlx.log_exception()
         return True
 
+
 _print_redirection = None
 _print_buffer = ""
+
 
 def redirect_print(channel):
     """Redirects print output to a channel. Useful for commands that execute console commands
@@ -473,27 +505,28 @@ def redirect_print(channel):
 
     """
     class PrintRedirector:
-        def __init__(self, channel):
-            if not isinstance(channel, minqlx.AbstractChannel):
+        def __init__(self, _channel):
+            if not isinstance(_channel, minqlx.AbstractChannel):
                 raise ValueError("The redirection channel must be an instance of minqlx.AbstractChannel.")
 
-            self.channel = channel
+            self.channel = _channel
 
         def __enter__(self):
-            global _print_redirection
+            global _print_redirection  # pylint: disable=global-statement
             _print_redirection = self.channel
 
         def __exit__(self, exc_type, exc_val, exc_tb):
-            global _print_redirection
+            global _print_redirection  # pylint: disable=global-statement
             self.flush()
             _print_redirection = None
 
         def flush(self):
-            global _print_buffer
+            global _print_buffer  # pylint: disable=global-statement
             self.channel.reply(_print_buffer)
             _print_buffer = ""
 
     return PrintRedirector(channel)
+
 
 def register_handlers():
     minqlx.register_handler("rcon", handle_rcon)
