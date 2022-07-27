@@ -25,7 +25,7 @@ version = "0.0.1"
 authors = (Author("Markus 'ShiN0' Gaertner"),)
 url = "https://github.com/mgaertne/minqlx-plugin-tests"
 
-requires_python = ">2.7,>3.4,<3.8"
+requires_python = ">2.7,>3.8"
 
 
 @init
@@ -38,5 +38,7 @@ def initialize(project):
                           "minqlx._events", "minqlx._game", "minqlx._handlers", "minqlx._minqlx", "minqlx._player",
                           "minqlx._plugin", "minqlx._zmq", "minqlx.database"])
 
+    project.set_property("pylint_options", ["--rcfile=./.pylintrc"])
     project.set_property("flake8_include_test_sources", True)
-    project.set_property("flake8_ignore", "F403,F405")
+    project.set_property("flake8_ignore", "E226,E402,E722,F401,F403,F405,W504")
+    project.set_property("flake8_max_line_length", "120")

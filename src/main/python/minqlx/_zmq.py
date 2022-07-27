@@ -120,7 +120,7 @@ class StatsListener:
         except Exception:  # pylint: disable=broad-except
             minqlx.log_exception()
             # Reconnect, just in case. GC will clean up for us.
-            self.__init__()  # type: ignore
+            self.__init__()  # type: ignore  # pylint: disable=unnecessary-dunder-call
 
         self.keep_receiving()
 
