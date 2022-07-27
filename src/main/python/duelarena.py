@@ -60,7 +60,7 @@ class duelarena(minqlx.Plugin):
             return
 
         player.tell(
-            f"{player.name}^7, type !{DUELARENA_JOIN_CMD.__getitem__(0)} to join Duel Arena or press join button to "
+            f"{player.name}^7, type !{DUELARENA_JOIN_CMD[0]} to join Duel Arena or press join button to "
             f"force switch to Clan Arena!")
 
     def handle_team_switch_event(self, player, _old, new):
