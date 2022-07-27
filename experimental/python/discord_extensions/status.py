@@ -1,4 +1,7 @@
 # noinspection PyPackageRequirements
+from typing import Optional
+
+# noinspection PyPackageRequirements
 import discord
 # noinspection PyPackageRequirements
 from discord import app_commands, Interaction
@@ -65,11 +68,13 @@ def player_data() -> str:
         _player_data += f"\n**R:** {team_data(teams['red'])}"
     if len(teams['blue']) > 0:
         _player_data += f"\n**B:** {team_data(teams['blue'])}"
-
+    show_specs: bool = Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool)
+    if show_specs and len(teams["spectator"]) > 0:
+        _player_data += f"\n**S:** {team_data(teams['spectator'])}"
     return _player_data
 
 
-def team_data(player_list: list[minqlx.Player], limit: int = None) -> str:
+def team_data(player_list: list[minqlx.Player], limit: Optional[int] = None) -> str:
     """
     generates a sorted output of the team's player by their score
 
@@ -126,6 +131,8 @@ class Status(Cog):
     Uses:
     * qlx_discordTriggerStatus (default: "status") Trigger for having the bot send the current status of the game
     server.
+    * qlx_discord_ext_status_show_spectators (default: "0") Whether or not !status will also show the currently
+    connected spectator players
     * qlx_discordRelayChannelIds (default: "") Comma separated list of channel ids for full relay.
     * qlx_discordTriggeredChannelIds (default: "") Comma separated list of channel ids for triggered relay.
     * qlx_discordTriggeredChatMessagePrefix (default: "") Prefix any triggered message from QL with this text portion.
@@ -135,6 +142,7 @@ class Status(Cog):
         self.bot = bot
 
         Plugin.set_cvar_once("qlx_discordTriggerStatus", "status")
+        Plugin.set_cvar_once("qlx_discord_ext_status_show_spectators", "0")
         Plugin.set_cvar_once("qlx_discordTriggeredChatMessagePrefix", "")
         Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
