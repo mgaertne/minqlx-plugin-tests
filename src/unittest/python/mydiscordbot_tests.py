@@ -529,6 +529,9 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord_client.user.name = "Bot Name"
         self.discord_client.user.id = 24680
 
+        self.setup_discord_members()
+        self.setup_discord_channels()
+
         self.discord_client.loop = asyncio.new_event_loop()
 
     def setup_discord_library(self):

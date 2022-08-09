@@ -1,12 +1,13 @@
 import asyncio
 import time
 import threading
-from typing import Optional
+from typing import Optional, Union, Dict, List
 
-import schedule
+import schedule  # type: ignore
 
 # noinspection PyPackageRequirements
-from discord import app_commands, Member, Activity, ActivityType, Interaction, Color, Embed, User
+from discord import app_commands, Member, Activity, ActivityType, Interaction, Color, Embed, User, Game, \
+    CustomActivity, Streaming, Spotify
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Cog, GroupCog
 
@@ -32,29 +33,29 @@ class SubscriberCog(Cog):
         self.bot: Bot = bot
         self.db: Redis = db
 
-        self.long_map_names_lookup: dict[str, str] = {}
+        self.long_map_names_lookup: Dict[str, str] = {}
         if self.db.exists(LONG_MAP_NAMES_KEY):
             self.long_map_names_lookup = self.db.hgetall(LONG_MAP_NAMES_KEY)
 
-        self.installed_maps: list[str] = []
+        self.installed_maps: List[str] = []
         # noinspection PyProtectedMember
         if "maps_manager" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps
+            self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps  # type: ignore
             # noinspection PyProtectedMember
         elif "maps" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps
+            self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps  # type: ignore
 
-        self.formatted_installed_maps: dict[str, str] = {mapname: mapname for mapname in self.installed_maps}
+        self.formatted_installed_maps: Dict[str, str] = {mapname: mapname for mapname in self.installed_maps}
         for mapname, long_map_name in self.long_map_names_lookup.items():
             if mapname in self.installed_maps and long_map_name.lower() != mapname.lower():
                 self.formatted_installed_maps[mapname] = f"{long_map_name} ({mapname})"
 
-        self.known_players: dict[int, str] = self.gather_known_players()
+        self.known_players: Dict[int, str] = self.gather_known_players()
 
         self.last_notified_map: Optional[str] = None
-        self.notified_steam_ids: list[int] = []
+        self.notified_steam_ids: List[int] = []
 
         if not self.bot.intents.presences:
             self.subscribe_group.remove_command("member")
@@ -63,7 +64,7 @@ class SubscriberCog(Cog):
 
         super().__init__()
 
-    def gather_known_players(self) -> dict[int, str]:
+    def gather_known_players(self) -> Dict[int, str]:
         returned = {}
         for key in self.db.keys(LAST_USED_NAME_KEY.format("*")):
             prefix = LAST_USED_NAME_KEY.rsplit("{", maxsplit=1)[0]
@@ -87,12 +88,12 @@ class SubscriberCog(Cog):
         stripped_mapname = mapname.strip(" ")
         if stripped_mapname == "":
             reply_embed.description = "No mapname provided."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         if stripped_mapname not in self.installed_maps:
             reply_embed.description = f"Map `{stripped_mapname}` is not installed."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         db_return_value = self.db.sadd(DISCORD_MAP_SUBSCRIPTION_KEY.format(interaction.user.id), stripped_mapname)
@@ -104,15 +105,15 @@ class SubscriberCog(Cog):
             immediate_reply_message = f"You have been subscribed to map changes for map " \
                                       f"`{self.formatted_installed_maps[stripped_mapname]}`."
         reply_embed.description = immediate_reply_message
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
         formatted_maps = "`, `".join([self.format_mapname(mapname) for mapname in subscribed_maps])
         reply_embed.description = f"{immediate_reply_message}\n" \
                                   f"You are currently subscribed to map changes for: `{formatted_maps}`"
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
-    def subscribed_maps_of(self, user_id: int) -> list[str]:
+    def subscribed_maps_of(self, user_id: int) -> List[str]:
         return self.db.smembers(DISCORD_MAP_SUBSCRIPTION_KEY.format(user_id))
 
     def format_mapname(self, mapname: str) -> str:
@@ -147,13 +148,13 @@ class SubscriberCog(Cog):
         stripped_player_name = player.strip(" ")
         if stripped_player_name == "":
             reply_embed.description = "No player name provided."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         matching_players = self.find_matching_players(stripped_player_name)
         if len(matching_players) == 0:
             reply_embed.description = f"No player matching player name `{stripped_player_name}` found."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         if len(matching_players) > 1:
@@ -162,7 +163,7 @@ class SubscriberCog(Cog):
             reply_embed.description = f"More than one player matching your player name found. " \
                                       f"Players matching `{stripped_player_name}` are:\n" \
                                       f"`{formatted_player_names}`"
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         matching_steam_id = int(matching_players[0])
@@ -175,16 +176,16 @@ class SubscriberCog(Cog):
         else:
             immediate_reply_message = f"You have been subscribed to player `{last_used_name}`."
         reply_embed.description = immediate_reply_message
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_players = self.subscribed_players_of(interaction.user.id)
         formatted_players = "`, `".join(
             [self.formatted_last_used_name(subscribed_steam_id) for subscribed_steam_id in subscribed_players])
         reply_embed.description = f"{immediate_reply_message}\n" \
                                   f"You are currently subscribed to the following players: `{formatted_players}`"
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
-    def find_matching_players(self, player: str) -> list[int]:
+    def find_matching_players(self, player: str) -> List[int]:
         if player.isdigit() and int(player) in self.known_players:
             return [int(player)]
 
@@ -200,13 +201,13 @@ class SubscriberCog(Cog):
             return str(steam_id)
         return Plugin.clean_text(self.db.get(LAST_USED_NAME_KEY.format(steam_id))).replace("`", r"\`")
 
-    def subscribed_players_of(self, user_id: int) -> list[int]:
+    def subscribed_players_of(self, user_id: int) -> List[int]:
         player_subscriptions = self.db.smembers(DISCORD_PLAYER_SUBSCRIPTION_KEY.format(user_id))
         return [int(player_steam_id) for player_steam_id in player_subscriptions]
 
     @subscribe_player.autocomplete(name="player")
     async def subscribe_player_autocomplete(self, interaction: Interaction, current: str) \
-            -> list[app_commands.Choice[str]]:
+            -> List[app_commands.Choice[str]]:
         subscribed_players = self.subscribed_players_of(interaction.user.id)
         filtered_candidates = [candidate_steam_id for candidate_steam_id in self.find_matching_players(current)
                                if candidate_steam_id not in subscribed_players]
@@ -230,15 +231,15 @@ class SubscriberCog(Cog):
         else:
             immediate_reply_message = f"You have been subscribed to Quake Live activities of {member.mention}."
         reply_embed.description = immediate_reply_message
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_users = self.subscribed_users_of(interaction.user.id)
         formatted_users = ", ".join([user.mention for user in subscribed_users])
         reply_embed.description = f"{immediate_reply_message}\n" \
                                   f"You are currently subscribed to Quake Live activities of: {formatted_users}"
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
-    def subscribed_users_of(self, user_id: int) -> list[User]:
+    def subscribed_users_of(self, user_id: int) -> List[User]:
         subscribed_users = []
         for discord_str_id in self.db.smembers(DISCORD_MEMBER_SUBSCRIPTION_KEY.format(user_id)):
             discord_id = int(discord_str_id)
@@ -258,7 +259,7 @@ class SubscriberCog(Cog):
         stripped_mapname = mapname.strip(" ")
         if stripped_mapname == "":
             reply_embed.description = "No mapname provided."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         db_return_value = self.db.srem(DISCORD_MAP_SUBSCRIPTION_KEY.format(interaction.user.id), stripped_mapname)
@@ -270,22 +271,22 @@ class SubscriberCog(Cog):
             immediate_reply_message = f"You have been unsubscribed from map changes for map " \
                                       f"`{self.format_mapname(stripped_mapname)}`. "
         reply_embed.description = immediate_reply_message
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
 
         if len(subscribed_maps) == 0:
             reply_embed.description = f"{immediate_reply_message}\nYou are no longer subscribed to any map changes."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         formatted_maps = "`, `".join([self.format_mapname(mapname) for mapname in subscribed_maps])
         reply_embed.description = f"{immediate_reply_message}\nYou are still subscribed to `{formatted_maps}`"
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
     @unsubscribe_map.autocomplete("mapname")
     async def unsubscribe_map_autocomplete(self, interaction: Interaction, current: str) \
-            -> list[app_commands.Choice[str]]:
+            -> List[app_commands.Choice[str]]:
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
         candidates = [mapname for mapname in subscribed_maps
                       if current.lower() in self.format_mapname(mapname).lower()]
@@ -304,13 +305,13 @@ class SubscriberCog(Cog):
         stripped_player_name = player.strip(" ")
         if stripped_player_name == "":
             reply_embed.description = "No player name provided."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         matching_players = self.find_matching_players(stripped_player_name)
         if len(matching_players) == 0:
             reply_embed.description = f"No player matching player name `{stripped_player_name}` found."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         if len(matching_players) > 1:
@@ -319,7 +320,7 @@ class SubscriberCog(Cog):
             reply_embed.description = f"More than one player matching your player name found. " \
                                       f"Players matching `{stripped_player_name}` are:\n" \
                                       f"`{formatted_player_names}`"
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         matching_steam_id = int(matching_players[0])
@@ -332,7 +333,7 @@ class SubscriberCog(Cog):
         else:
             immediate_reply_message = f"You have been unsubscribed from player `{last_used_name}`. "
         reply_embed.description = immediate_reply_message
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_players = self.subscribed_players_of(interaction.user.id)
         formatted_players = "`, `".join(
@@ -340,16 +341,16 @@ class SubscriberCog(Cog):
 
         if len(subscribed_players) == 0:
             reply_embed.description = f"{immediate_reply_message}\nYou are no longer subscribed to any players."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         reply_embed.description = f"{immediate_reply_message}\n" \
                                   f"You are currently subscribed to the following players: `{formatted_players}`"
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
     @unsubscribe_player.autocomplete("player")
     async def unsubscribe_player_autocomplete(self, interaction: Interaction, current: str) \
-            -> list[app_commands.Choice[str]]:
+            -> List[app_commands.Choice[str]]:
         subscribed_players = self.subscribed_players_of(interaction.user.id)
 
         candidates = [steam_id for steam_id in subscribed_players
@@ -374,20 +375,20 @@ class SubscriberCog(Cog):
         else:
             immediate_reply_message = f"You have been unsubscribed from Quake Live activities of {member.mention}."
         reply_embed.description = immediate_reply_message
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_users = self.subscribed_users_of(interaction.user.id)
 
         if len(subscribed_users) == 0:
             reply_embed.description = f"{immediate_reply_message}\n" \
                                       f"You are no longer subscribed to Quake Live activities of anyone."
-            await interaction.edit_original_message(embed=reply_embed)
+            await interaction.edit_original_response(embed=reply_embed)
             return
 
         formatted_users = ", ".join([user.mention for user in subscribed_users])
         reply_embed.description = f"{immediate_reply_message}\n" \
                                   f"You are still subscribed to Quake Live activities of {formatted_users}"
-        await interaction.edit_original_message(embed=reply_embed)
+        await interaction.edit_original_response(embed=reply_embed)
 
     async def notify_map_change(self, mapname: str) -> None:
         notifications = []
@@ -443,7 +444,8 @@ class SubscriberCog(Cog):
         await asyncio.gather(*notification_actions)
 
     # noinspection PyMethodMayBeStatic
-    def find_relevant_activity(self, member: Member) -> Optional[Activity]:
+    def find_relevant_activity(self, member: Member) \
+            -> Optional[Union[Activity, Game, CustomActivity, Streaming, Spotify]]:
         for activity in member.activities:
             if activity.type != ActivityType.playing:
                 continue

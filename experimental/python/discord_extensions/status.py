@@ -1,5 +1,5 @@
 # noinspection PyPackageRequirements
-from typing import Optional
+from typing import Optional, Set, List
 
 # noinspection PyPackageRequirements
 import discord
@@ -68,13 +68,13 @@ def player_data() -> str:
         _player_data += f"\n**R:** {team_data(teams['red'])}"
     if len(teams['blue']) > 0:
         _player_data += f"\n**B:** {team_data(teams['blue'])}"
-    show_specs: bool = Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool)
+    show_specs: bool = Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool) or False
     if show_specs and len(teams["spectator"]) > 0:
         _player_data += f"\n**S:** {team_data(teams['spectator'])}"
     return _player_data
 
 
-def team_data(player_list: list[minqlx.Player], limit: Optional[int] = None) -> str:
+def team_data(player_list: List[minqlx.Player], limit: Optional[int] = None) -> str:
     """
     generates a sorted output of the team's player by their score
 
@@ -114,8 +114,11 @@ def game_status_with_teams() -> str:
            f"with **{num_players}/{max_players}** players. {player_data()}"
 
 
-def int_set(string_set: set[str]) -> set[int]:
-    returned = set()
+def int_set(string_set: Optional[Set[str]]) -> Set[int]:
+    returned: Set[int] = set()
+
+    if string_set is None:
+        return returned
 
     for item in string_set:
         if item == '':
@@ -147,11 +150,12 @@ class Status(Cog):
         Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
 
-        self.discord_trigger_status: str = Plugin.get_cvar("qlx_discordTriggerStatus")
-        self.discord_triggered_channel_message_prefix: str = Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix")
-        self.discord_relay_channel_ids: set[int] = \
+        self.discord_trigger_status: str = Plugin.get_cvar("qlx_discordTriggerStatus") or "status"
+        self.discord_triggered_channel_message_prefix: str = \
+            Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
+        self.discord_relay_channel_ids: Set[int] = \
             int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
-        self.discord_triggered_channel_ids: set[int] = int_set(
+        self.discord_triggered_channel_ids: Set[int] = int_set(
             Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
 
         self.bot.add_command(Command(self.trigger_status, name=self.discord_trigger_status,
@@ -161,9 +165,10 @@ class Status(Cog):
                                      help="display current game status information"))
 
         # noinspection PyTypeChecker
-        slash_status_command = app_commands.Command(name=self.discord_trigger_status,
-                                                    description="display current game status information",
-                                                    callback=self.slash_trigger_status, parent=None, nsfw=False)
+        slash_status_command: app_commands.Command = \
+            app_commands.Command(name=self.discord_trigger_status,
+                                 description="display current game status information",
+                                 callback=self.slash_trigger_status, parent=None, nsfw=False)
         slash_status_command.guild_only = True
         self.bot.tree.add_command(slash_status_command)
 

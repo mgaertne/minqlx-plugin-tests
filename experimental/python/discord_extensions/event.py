@@ -12,16 +12,22 @@ from discord.ext.commands import Bot
 
 from minqlx import Plugin
 
-import schedule
+import schedule  # type: ignore
 
 
 async def create_and_start_event(bot: Bot):
     event_name = Plugin.get_cvar("qlx_discord_ext_event_name")
+    if event_name is None:
+        return
+
     for scheduled_event in bot.guilds[0].scheduled_events:
         if event_name in scheduled_event.name and scheduled_event.status == EventStatus.active:
             return
 
     event_location = Plugin.get_cvar("qlx_discord_ext_event_location")
+    if event_location is None:
+        return
+
     start_date = utcnow() + timedelta(seconds=1)
     end_date = utcnow() + timedelta(hours=8)
     await bot.guilds[0].create_scheduled_event(
@@ -34,6 +40,9 @@ async def create_and_start_event(bot: Bot):
 
 async def end_event(bot: Bot):
     event_name = Plugin.get_cvar("qlx_discord_ext_event_name")
+    if event_name is None:
+        return
+
     end_events = []
     for scheduled_event in bot.guilds[0].scheduled_events:
         if event_name in scheduled_event.name and scheduled_event.status == EventStatus.active:

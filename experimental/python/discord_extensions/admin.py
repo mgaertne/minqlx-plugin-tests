@@ -3,6 +3,9 @@ from asyncio import AbstractEventLoop
 import threading
 
 # noinspection PyPackageRequirements
+from typing import Optional, Set, Dict
+
+# noinspection PyPackageRequirements
 import discord.utils
 # noinspection PyPackageRequirements
 from discord import app_commands, Embed, Color, ChannelType, Interaction, Message, User
@@ -29,7 +32,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         return f"{str(self)} {self.user.display_name}"
 
     @property
-    def steam_id(self) -> int:
+    def steam_id(self) -> Optional[int]:
         return minqlx.owner()
 
     @property
@@ -54,7 +57,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
             self.expand_original_reply(content=Plugin.clean_text(msg)),
             loop=self.loop)
 
-    def reply(self, msg: str, **_kwargs) -> None:
+    def reply(self, msg: str, _limit: int = 100, _delimiter: str = " ") -> None:
         """
         overwrites the ```channel.reply``` function to relay messages to discord
 
@@ -82,12 +85,12 @@ class AdminCog(Cog):
 
         self.bot = bot
 
-        self.authed_discord_ids: set[int] = set()
-        self.auth_attempts: dict[int: int] = {}
+        self.authed_discord_ids: Set[int] = set()
+        self.auth_attempts: Dict[int, int] = {}
 
-        self.discord_admin_password: str = Plugin.get_cvar("qlx_discordAdminPassword")
-        self.discord_auth_command: str = Plugin.get_cvar("qlx_discordAuthCommand")
-        self.discord_exec_prefix: str = Plugin.get_cvar("qlx_discordExecPrefix")
+        self.discord_admin_password: str = Plugin.get_cvar("qlx_discordAdminPassword") or ""
+        self.discord_auth_command: str = Plugin.get_cvar("qlx_discordAuthCommand") or ""
+        self.discord_exec_prefix: str = Plugin.get_cvar("qlx_discordExecPrefix") or ""
 
         self.bot.add_command(Command(self.auth, name=self.discord_auth_command,
                                      checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
@@ -200,12 +203,14 @@ class AdminCog(Cog):
     async def slash_qlx(self, interaction: Interaction, command: str):
         if interaction.user.id not in self.authed_discord_ids:
             await interaction.response.send_message(content="Sorry, you are not authed with the bot",
-                                                    ephemeral=interaction.channel.guild is not None)
+                                                    ephemeral=interaction.channel is not None and
+                                                            interaction.channel.guild is not None)
             return
 
         await interaction.response.send_message(content=f"executing command `{command}`",
-                                                ephemeral=interaction.channel.guild is not None)
-        message = await interaction.original_message()
+                                                ephemeral=interaction.channel is not None and
+                                                        interaction.channel.guild is not None)
+        message = await interaction.original_response()
         self.execute_qlx_command(interaction.user, message, command)
 
 

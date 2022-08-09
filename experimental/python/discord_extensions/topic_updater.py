@@ -1,7 +1,7 @@
 import threading
 import asyncio
 from ast import literal_eval
-from typing import Optional
+from typing import Optional, Set, Dict
 
 # noinspection PyPackageRequirements
 from discord import TextChannel
@@ -55,8 +55,11 @@ def game_status_information(game: minqlx.Game) -> str:
            f"with **{num_players}/{max_players}** players. "
 
 
-def int_set(string_set: set[str]) -> set[int]:
-    returned = set()
+def int_set(string_set: Optional[Set[str]]) -> Set[int]:
+    returned: Set[int] = set()
+
+    if string_set is None:
+        return returned
 
     for item in string_set:
         if item == '':
@@ -86,16 +89,16 @@ class TopicUpdater(Cog):
         Plugin.set_cvar_once("qlx_discordUpdateTopicInterval", "305")
         Plugin.set_cvar_once("qlx_discordKeptTopicSuffixes", "{}")
 
-        self.discord_relay_channel_ids: set[int] = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
-        self.discord_triggered_channel_ids: set[int] = int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
+        self.discord_relay_channel_ids: Set[int] = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+        self.discord_triggered_channel_ids: Set[int] = int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
 
         self.discord_update_triggered_channels_topic: bool = \
-            Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool)
-        self.discord_topic_update_interval: int = Plugin.get_cvar("qlx_discordUpdateTopicInterval", int)
-        self.discord_keep_topic_suffix_channel_ids: set[int] = \
+            Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool) or True
+        self.discord_topic_update_interval: int = Plugin.get_cvar("qlx_discordUpdateTopicInterval", int) or 305
+        self.discord_keep_topic_suffix_channel_ids: Set[int] = \
             int_set(Plugin.get_cvar("qlx_discordKeepTopicSuffixChannelIds", set))
-        self.discord_kept_topic_suffixes: dict[int, str] = \
-            literal_eval(Plugin.get_cvar("qlx_discordKeptTopicSuffixes", str))
+        self.discord_kept_topic_suffixes: Dict[int, str] = \
+            literal_eval(Plugin.get_cvar("qlx_discordKeptTopicSuffixes", str) or "{}")
 
         super().__init__()
 
@@ -132,7 +135,7 @@ class TopicUpdater(Cog):
         self.update_topic_on_channels_and_keep_channel_suffix(
             topic_channel_ids & self.discord_keep_topic_suffix_channel_ids, topic)
 
-    def set_topic_on_discord_channels(self, channel_ids: set[int], topic: str) -> None:
+    def set_topic_on_discord_channels(self, channel_ids: Set[int], topic: str) -> None:
         """
         Set the topic on a set of channel_ids on discord provided.
 
@@ -145,7 +148,7 @@ class TopicUpdater(Cog):
 
         # set the topic in its own thread to avoid blocking of the server
         for channel_id in channel_ids:
-            channel: Optional[TextChannel] = self.bot.get_channel(channel_id)
+            channel: Optional[TextChannel] = self.bot.get_channel(channel_id)  # type: ignore
 
             if channel is None:
                 continue
@@ -158,7 +161,7 @@ class TopicUpdater(Cog):
 
         return not self.bot.is_closed() and self.bot.is_ready()
 
-    def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids: set[int], topic: str) -> None:
+    def update_topic_on_channels_and_keep_channel_suffix(self, channel_ids: Set[int], topic: str) -> None:
         """
         Updates the topic on the given channels and keeps the topic suffix intact on the configured channels
 
@@ -196,7 +199,7 @@ class TopicUpdater(Cog):
 
         :return: the topic of the channel
         """
-        channel = self.bot.get_channel(channel_id)
+        channel: Optional[TextChannel] = self.bot.get_channel(channel_id)  # type: ignore
 
         if channel is None:
             return None
