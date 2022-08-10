@@ -93,6 +93,7 @@ class EventDispatcher:
                             return True
                         if res == minqlx.RET_STOP_EVENT:
                             self.return_value = False
+                            continue
                         if res == minqlx.RET_STOP_ALL:
                             return False
                         # Got an unknown return value.
