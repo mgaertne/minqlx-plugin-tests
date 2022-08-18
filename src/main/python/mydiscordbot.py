@@ -35,7 +35,7 @@ from discord.ext.commands import Bot, Command, DefaultHelpCommand, Context  # ty
 # noinspection PyPackageRequirements
 import discord.ext.tasks  # type: ignore
 
-plugin_version = "v2.0.0alpha"
+plugin_version = "v2.0.0"
 
 
 # noinspection PyPep8Naming
