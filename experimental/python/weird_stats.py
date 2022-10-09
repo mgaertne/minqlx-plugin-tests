@@ -2,11 +2,15 @@ import random
 import math
 import time
 
-from typing import NamedTuple, Optional, Callable, Any
+from typing import NamedTuple, Optional, Callable, Any, Union, List, Tuple
 import itertools
+from operator import itemgetter
+
 import statistics
 
 from datetime import datetime, timedelta
+
+import redis
 
 import minqlx
 from minqlx import Plugin, Player, AbstractChannel
@@ -1023,14 +1027,24 @@ def formatted_weapon_fact(stats: list[PlayerStatsEntry], weapon: str, weapon_fac
     return ""
 
 
+LAST_USED_NAME_KEY: str = "minqlx:players:{}:last_used_name"
+PLAYER_TOP_SPEEDS: str = "minqlx:players:{}:topspeed"
+MAP_TOP_SPEEDS: str = "minqlx:maps:{}:topspeed"
+MAP_SPEED_LOG: str = "minqlx:maps:{}:speedlog"
+
+
 # noinspection PyPep8Naming
 class weird_stats(Plugin):
     def __init__(self):
         super().__init__()
 
         self.set_cvar_once("qlx_weirdstats_playtime_fraction", "0.75")
+        self.set_cvar_once("qlx_weirdstats_topdisplay", "3")
 
         self.stats_play_time_fraction: float = self.get_cvar("qlx_weirdstats_playtime_fraction", float)
+        self.stats_top_display: int = self.get_cvar("qlx_weirdstats_topdisplay", int)
+        if self.stats_top_display < 0:
+            self.stats_top_display = 666
 
         self.game_start_time: Optional[datetime] = None
         self.join_times: dict[SteamId, datetime] = {}
@@ -1064,6 +1078,10 @@ class weird_stats(Plugin):
 
         self.add_command("speeds", self.cmd_player_speeds)
 
+        self.add_command("topspeeds", self.cmd_player_top_speeds, usage="[NAME]")
+        self.add_command("maptopspeeds", self.cmd_map_top_speeds, usage="[NAME]")
+        self.add_command(("fastestmaps", "slowestmaps"), self.cmd_fastest_maps)
+
         self.speed_announcements: list[SteamId] = []
         self.add_command("myspeed", self.cmd_my_speed, permission=5)
 
@@ -1082,7 +1100,6 @@ class weird_stats(Plugin):
                 self.play_times[player.steam_id] = \
                     (datetime.now() - self.join_times[player.steam_id]).total_seconds() + \
                     self.play_times.get(player.steam_id, 0.0)
-                del self.join_times[player.steam_id]
             return
 
         if new_team not in ["red", "blue"]:
@@ -1271,12 +1288,12 @@ class weird_stats(Plugin):
         if self.game and self.game.state == "in_progress":
             current_datetime = datetime.now()
             teams = self.teams()
-            for _player in teams["red"] + teams["blue"]:
-                if _player.steam_id not in self.join_times:
+            for player in teams["red"] + teams["blue"]:
+                if player.steam_id not in self.join_times:
                     continue
-                current_play_times[_player.steam_id] = \
-                    current_play_times.get(_player.steam_id, 0.0) + \
-                    (current_datetime - self.join_times[_player.steam_id]).total_seconds()
+                current_play_times[player.steam_id] = \
+                    current_play_times.get(player.steam_id, 0.0) + \
+                    (current_datetime - self.join_times[player.steam_id]).total_seconds()
 
         if len(current_play_times) == 0:
             return []
@@ -1300,15 +1317,23 @@ class weird_stats(Plugin):
         if len(player_speeds) == 0:
             return []
 
+        if not self.game:
+            return []
+
+        self.record_speeds(self.game.map.lower(), player_speeds)
+
         grouped_speeds = itertools.groupby(
             sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
             key=player_speeds.get)
 
         average_speed = statistics.mean(player_speeds.values())
-        returned = [f"  ^5Player speeds^7 (avg: ^5{format_float(average_speed)} km/h^7)"]
+        returned = [f"  ^5Top {self.stats_top_display} player speeds^7 (avg: ^5{format_float(average_speed)} km/h^7)"]
 
         counter = 1
         for speed, steam_ids in grouped_speeds:
+            if counter > self.stats_top_display:
+                break
+
             prefix = f"^5{counter:2}^7."
 
             if speed is None:
@@ -1316,13 +1341,14 @@ class weird_stats(Plugin):
 
             for steam_id in steam_ids:
                 counter += 1
-                player = self.player(steam_id)
-                if player is not None:
-                    _, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
-                    dmg_per_second = player.stats.damage_dealt / player_alive_time
-                    returned.append(
-                        f"  {prefix} {player.name}^7 (^5{format_float(speed)} km/h^7, "
-                        f"^5{format_float(dmg_per_second)} dmg/sec.^7)")
+                player2 = self.player(steam_id)
+                if player2 is None:
+                    continue
+                _, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
+                dmg_per_second = player2.stats.damage_dealt / player_alive_time
+                returned.append(
+                    f"  {prefix} {player2.name}^7 (^5{format_float(speed)} km/h^7, "
+                    f"^5{format_float(dmg_per_second)} dmg/sec.^7)")
 
                 prefix = "   "
 
@@ -1355,10 +1381,259 @@ class weird_stats(Plugin):
         return f"  ^5Most environmental deaths^7: {formatted_names} " \
                f"(^5{filtered_means_of_death[most_environmental_deaths]}^7)"
 
+    @minqlx.thread
+    def record_speeds(self, mapname: str, speeds: dict[SteamId, float]) -> None:
+        if self.db is None:
+            return
+
+        top_map_speeds = self.map_speed_log(mapname)
+        top_map_speeds_dict = dict(top_map_speeds)
+
+        for steam_id, speed in speeds.items():
+            self.record_personal_speed(mapname, steam_id, speed)
+            if top_map_speeds_dict.get(steam_id, -1.0) < speed:
+                if redis.VERSION[0] == 2:
+                    self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
+                    self.db.zadd(MAP_TOP_SPEEDS.format(mapname), speed, steam_id)
+                else:
+                    self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
+                    self.db.zadd(PLAYER_TOP_SPEEDS.format(mapname), {steam_id: speed})
+            self.db.rpush(MAP_SPEED_LOG.format(mapname), speed)
+
+    def record_personal_speed(self, mapname: str, steam_id: SteamId, speed: float) -> None:
+        if self.db is None:
+            return
+
+        if speed == 0:
+            return
+
+        previous_top_speeds = self.db_get_top_speed_for_player(steam_id)
+
+        previous_map_player_top_speeds = [topspeed for _mapname, topspeed in previous_top_speeds if mapname == _mapname]
+        previous_map_player_top_speeds.sort(reverse=True)
+
+        if len(previous_map_player_top_speeds) > 0 and previous_map_player_top_speeds[0] >= speed:
+            return
+
+        if redis.VERSION[0] == 2:
+            self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
+        else:
+            self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
+
     def cmd_player_speeds(self, _player: Player, _msg: str, _channel: AbstractChannel) -> None:
         announcements = self.player_speeds_announcements()
         for announcement in announcements:
             self.msg(announcement)
+
+    def cmd_player_top_speeds(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
+        reply_channel = self.identify_reply_channel(channel)
+
+        if len(msg) == 1:
+            topspeed_name, topspeed_steam_id = self.identify_target(player, player)
+        else:
+            topspeed_name, topspeed_steam_id = self.identify_target(player, msg[1])
+            if topspeed_name is None and topspeed_steam_id is None:
+                return
+
+        self.collect_and_report_player_top_speeds(reply_channel, topspeed_steam_id)
+
+    @staticmethod
+    def identify_reply_channel(channel: minqlx.AbstractChannel) -> minqlx.AbstractChannel:
+        if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
+                       minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
+            return minqlx.CHAT_CHANNEL
+
+        return channel
+
+    def identify_target(self, player: minqlx.Player, target: Union[str, int, minqlx.Player]):
+        if isinstance(target, minqlx.Player):
+            return target.name, target.steam_id
+
+        try:
+            steam_id = int(target)
+            if self.db is not None and self.db.exists(LAST_USED_NAME_KEY.format(steam_id)):
+                return self.resolve_player_name(steam_id), steam_id
+        except ValueError:
+            pass
+
+        _player = self.find_target_player_or_list_alternatives(player, target)
+        if _player is None:
+            return None, None
+
+        return _player.name, _player.steam_id
+
+    def find_target_player_or_list_alternatives(self, player: minqlx.Player, target: Union[str, int]) \
+            -> Optional[minqlx.Player]:
+        def find_players(query: str) -> List[minqlx.Player]:
+            players = []
+            for p in self.find_player(query):
+                if p not in players:
+                    players.append(p)
+            return players
+
+        # Tell a player which players matched
+        def list_alternatives(players: List[minqlx.Player], indent: int = 2) -> None:
+            amount_alternatives = len(players)
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
+            out = ""
+            for p in players:
+                out += " " * indent
+                out += f"{p.id}^6:^7 {p.name}\n"
+            player.tell(out[:-1])
+
+        # Get the list of matching players on name
+        target_players = find_players(str(target))
+
+        # even if we get only 1 person, we need to check if the input was meant as an ID
+        # if we also get an ID we should return with ambiguity
+
+        try:
+            i = int(target)
+            target_player = self.player(i)
+            if not (0 <= i < 64) or not target_player:
+                raise ValueError
+            # Add the found ID if the player was not already found
+            if target_player not in target_players:
+                target_players.append(target_player)
+        except ValueError:
+            pass
+
+        # If there were absolutely no matches
+        if not target_players:
+            player.tell(f"Sorry, but no players matched your tokens: {target}.")
+            return None
+
+        # If there were more than 1 matches
+        if len(target_players) > 1:
+            list_alternatives(target_players)
+            return None
+
+        # By now there can only be one person left
+        return target_players.pop()
+
+    def resolve_player_name(self, item: Union[int, str]):
+        if isinstance(item, str):
+            if not item.isdigit():
+                return item
+
+        steam_id = int(item)
+
+        player = self.player(steam_id)
+
+        if player is not None:
+            return player.name
+
+        if self.db is not None and self.db.exists(LAST_USED_NAME_KEY.format(steam_id)):
+            return self.db.get(LAST_USED_NAME_KEY.format(steam_id))
+
+        return item
+
+    @minqlx.thread
+    def collect_and_report_player_top_speeds(self, channel: minqlx.AbstractChannel, steam_id: int) -> None:
+        player_name = self.resolve_player_name(steam_id)
+        top_speeds = self.db_get_top_speed_for_player(steam_id)
+        if len(top_speeds) < 1:
+            channel.reply(
+                f"^7Player ^2{player_name}^7 has no entries in the TopSpeeds database table.")
+            return
+
+        reply = ""
+        for mapname, speed in top_speeds:
+            reply += f"[^5{mapname}^7-^3{speed:.2f} km/h^7] "
+
+        channel.reply(
+            f"^7Player ^2{player_name}^7's recorded top speeds: {reply}")
+
+    def db_get_top_speed_for_player(self, steam_id: int) -> List[Tuple[str, float]]:
+        if self.db is None:
+            return []
+
+        player_top_speeds = \
+            self.db.zrevrangebyscore(PLAYER_TOP_SPEEDS.format(steam_id), "+INF", "-INF", withscores=True)
+        interim_player_top_speeds = [(mapname, float(speed)) for mapname, speed in player_top_speeds]
+
+        if len(player_top_speeds) == 0:
+            return []
+
+        interim_player_top_speeds.sort(key=lambda map_speed: map_speed[1], reverse=True)
+
+        return interim_player_top_speeds[0:9]
+
+    def cmd_map_top_speeds(self, _player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
+        reply_channel = self.identify_reply_channel(channel)
+
+        if len(msg) == 1:
+            if not self.game:
+                return
+            mapname = self.game.map.lower()
+        else:
+            mapname = msg[1]
+        self.collect_and_report_map_top_speeds(reply_channel, mapname)
+
+    @minqlx.thread
+    def collect_and_report_map_top_speeds(self, channel: minqlx.AbstractChannel, mapname: str) -> None:
+        map_speed_statistics = self.map_speed_log(mapname)
+
+        if len(map_speed_statistics) == 0:
+            channel.reply(f"^7No records found for map ^6{mapname}^7.")
+            return
+
+        formatted_speeds = "^7] [".join([
+                f"{self.resolve_player_name(steam_id)}-^5{speed:.2f} km/h" for steam_id, speed in
+                map_speed_statistics[0:10]])
+        channel.reply(f"^7All-time top 10 speeds for ^6{mapname}^7: ")
+        channel.reply(f"^7[{formatted_speeds}^7].")
+
+    def cmd_fastest_maps(self, _player: minqlx.Player, _msg: str, channel: minqlx.AbstractChannel) -> None:
+        reply_channel = self.identify_reply_channel(channel)
+
+        self.collect_and_report_fastest_maps(reply_channel)
+
+    @minqlx.thread
+    def collect_and_report_fastest_maps(self, channel: minqlx.AbstractChannel) -> None:
+        if self.db is None:
+            return
+
+        all_avg_speeds: dict[str, float] = {}
+        for map_speed_key in self.db.keys(MAP_SPEED_LOG.format("*")):
+            mapname = \
+                map_speed_key[
+                    len(MAP_SPEED_LOG.split('{', maxsplit=1)[0]):-len(MAP_SPEED_LOG.split('}', maxsplit=1)[1])
+                ]
+            raw_map_speeds = self.db.lrange(MAP_SPEED_LOG.format(mapname), 0, -1)
+            if len(raw_map_speeds) == 0:
+                continue
+
+            map_speeds = [float(speed) for speed in raw_map_speeds]
+            all_avg_speeds[mapname] = statistics.mean(map_speeds)
+
+        if len(all_avg_speeds) == 0:
+            channel.reply("^7No records yet. Please play more matches!")
+            return
+
+        sorted_mapnames = sorted(all_avg_speeds, key=all_avg_speeds.get, reverse=True)  # type:ignore
+        formatted_speeds = "^7] [".join([
+                f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
+                for mapname in sorted_mapnames[0:10]])
+        channel.reply("Top 10 fastest maps by average player speed:")
+        channel.reply(f"^7[{formatted_speeds}^7].")
+
+        sorted_mapnames.reverse()
+        formatted_speeds = "^7] [".join([
+                f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
+                for mapname in sorted_mapnames[0:10]])
+        channel.reply("Top 10 slowest maps by average player speed:")
+        channel.reply(f"^7[{formatted_speeds}^7].")
+
+    def map_speed_log(self, mapname: str) -> List[Tuple[int, float]]:
+        if self.db is None:
+            return []
+
+        map_damages = self.db.zrevrangebyscore(MAP_TOP_SPEEDS.format(mapname), "+INF", "-INF", withscores=True)
+        interim_map_speeds = [(int(entry), float(value)) for entry, value in map_damages]
+        interim_map_speeds.sort(key=itemgetter(1), reverse=True)
+
+        return interim_map_speeds
 
     def cmd_my_speed(self, player: Player, _msg: str, _channel: AbstractChannel) -> int:
         if player.steam_id in self.speed_announcements:

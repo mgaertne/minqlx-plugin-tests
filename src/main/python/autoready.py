@@ -8,8 +8,7 @@ from threading import RLock, Thread
 
 from typing import Optional, Callable, Iterator, Sequence, TypeVar
 
-from minqlx import Plugin, Player  # type: ignore
-
+from minqlx import Plugin, Player
 
 THIRTY_SECOND_WARNINGS = [
     "sound/vo/30_second_warning.ogg",
@@ -97,7 +96,7 @@ class autoready(Plugin):
             30: partial(warning_blink, announcer_sound=next(self.announcer)),
             11: blink,
             10: shuffle_double_blink,
-            6: double_blink,
+            9: double_blink,
             1: wear_off_double_blink,
             0: allready
         }
@@ -175,6 +174,9 @@ class CountdownThread(Thread):
         remaining_function(remaining)
 
         sleep_delay = self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        if sleep_delay < timedelta(seconds=0.0):
+            return
+
         time.sleep(sleep_delay.total_seconds())
 
     def _determine_now(self) -> datetime:
