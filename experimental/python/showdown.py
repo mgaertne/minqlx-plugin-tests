@@ -271,6 +271,13 @@ class showdown(minqlx.Plugin):
                    callback=self.start_showdown)
         self.play_sound("sound/world/turksquish22.wav")
 
+        if random.random() < 0.25:
+            if amount_alive_red == 1:
+                alive_r[0].holdable = "kamikaze"
+
+            if amount_alive_blue == 1:
+                alive_b[0].holdable = "kamikaze"
+
         if not self.vote_showdown and self.min_opp > 0:
             restore_opponents = self.min_opp + 1
             self.msg(
