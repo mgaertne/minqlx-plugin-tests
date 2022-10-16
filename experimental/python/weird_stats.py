@@ -1057,6 +1057,7 @@ class weird_stats(Plugin):
         self.means_of_death: dict[SteamId, dict[str, int]] = {}
 
         self.round_start_datetime: Optional[datetime] = None
+        self.fastest_death: tuple[SteamId, float] = -1, -1
         self.alive_times: dict[SteamId, float] = {}
         self.previous_positions: dict[SteamId, Position] = {}
         self.travelled_distances: dict[SteamId, float] = {}
@@ -1151,6 +1152,7 @@ class weird_stats(Plugin):
         self.player_stats = {}
         self.previous_positions = {}
         self.travelled_distances = {}
+        self.fastest_death = -1, -1
 
     @minqlx.delay(3)
     def handle_game_start(self, _data) -> None:
@@ -1195,6 +1197,8 @@ class weird_stats(Plugin):
 
         player_alive_timedelta: timedelta = datetime.now() - self.round_start_datetime
         player_alive_time: float = player_alive_timedelta.total_seconds()
+        if self.fastest_death == (-1, -1) or self.fastest_death[1] > player_alive_time:
+            self.fastest_death = victim.steam_id, player_alive_time
         self.alive_times[victim.steam_id] = self.alive_times.get(victim.steam_id, 0.0) + player_alive_time
 
     def handle_round_end(self, _data: dict) -> None:
@@ -1258,6 +1262,9 @@ class weird_stats(Plugin):
         for msg in self.player_speeds_announcements():
             self.msg(msg)
 
+        quickest_death_announcement = self.quickest_deaths()
+        if quickest_death_announcement is not None and len(quickest_death_announcement) > 0:
+            self.msg(quickest_death_announcement)
         most_environmental_deaths_announcement = \
             self.environmental_deaths(self.means_of_death, ["void", "lava", "acid", "drowning", "squished"])
         if most_environmental_deaths_announcement is not None and len(most_environmental_deaths_announcement) > 0:
@@ -1331,8 +1338,8 @@ class weird_stats(Plugin):
 
         counter = 1
         for speed, steam_ids in grouped_speeds:
-            if counter > self.stats_top_display:
-                break
+            if len(returned) > self.stats_top_display:
+                return returned
 
             prefix = f"^5{counter:2}^7."
 
@@ -1353,6 +1360,21 @@ class weird_stats(Plugin):
                 prefix = "   "
 
         return returned
+
+    def quickest_deaths(self) -> str:
+        steam_id, alive_time = self.fastest_death
+
+        if steam_id == -1:
+            return ""
+
+        alive_time_delta = timedelta(seconds=alive_time)
+        player = self.player(steam_id)
+        if player is None:
+            quickest_death_name = str(steam_id)
+        else:
+            quickest_death_name = player.name
+
+        return f"  ^5Quickest death^7: {quickest_death_name} (^5{alive_time_delta.total_seconds():.02f} seconds^7)"
 
     def environmental_deaths(self, means_of_death: dict[SteamId, dict[str, int]], means_of_death_filter: list[str]) \
             -> str:
@@ -1611,18 +1633,23 @@ class weird_stats(Plugin):
             channel.reply("^7No records yet. Please play more matches!")
             return
 
+        if not self.game or self.game.state != "warmup":
+            upper_limit = 10
+        else:
+            upper_limit = 30
+
         sorted_mapnames = sorted(all_avg_speeds, key=all_avg_speeds.get, reverse=True)  # type:ignore
         formatted_speeds = "^7] [".join([
                 f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
-                for mapname in sorted_mapnames[0:10]])
-        channel.reply("Top 10 fastest maps by average player speed:")
+                for mapname in sorted_mapnames[0:upper_limit]])
+        channel.reply(f"Top {upper_limit} fastest maps by average player speed:")
         channel.reply(f"^7[{formatted_speeds}^7].")
 
         sorted_mapnames.reverse()
         formatted_speeds = "^7] [".join([
                 f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
-                for mapname in sorted_mapnames[0:10]])
-        channel.reply("Top 10 slowest maps by average player speed:")
+                for mapname in sorted_mapnames[0:upper_limit]])
+        channel.reply(f"Top {upper_limit} slowest maps by average player speed:")
         channel.reply(f"^7[{formatted_speeds}^7].")
 
     def map_speed_log(self, mapname: str) -> List[Tuple[int, float]]:
