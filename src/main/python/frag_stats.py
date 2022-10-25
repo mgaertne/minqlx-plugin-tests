@@ -62,12 +62,12 @@ class frag_stats(minqlx.Plugin):
             return
 
         # noinspection PyUnresolvedReferences
-        if redis.VERSION[0] == 2:  # type: ignore
-            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim_sid, 1)
-            self.db.zincrby(REAPERZ_KEY.format(victim_sid), recorded_killer, 1)
-        else:
+        if redis.VERSION >= (3, ):
             self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), 1, victim_sid)
             self.db.zincrby(REAPERZ_KEY.format(victim_sid), 1, recorded_killer)
+        else:
+            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim_sid, 1)
+            self.db.zincrby(REAPERZ_KEY.format(victim_sid), recorded_killer, 1)
 
     # noinspection PyMethodMayBeStatic
     def determine_killer(self, killer: Optional[minqlx.Player], means_of_death: str) -> Union[int, str]:

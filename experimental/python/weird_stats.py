@@ -1414,12 +1414,13 @@ class weird_stats(Plugin):
         for steam_id, speed in speeds.items():
             self.record_personal_speed(mapname, steam_id, speed)
             if top_map_speeds_dict.get(steam_id, -1.0) < speed:
-                if redis.VERSION[0] == 2:
-                    self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
-                    self.db.zadd(MAP_TOP_SPEEDS.format(mapname), speed, steam_id)
-                else:
+                # noinspection PyUnresolvedReferences
+                if redis.VERSION >= (3, ):
                     self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
                     self.db.zadd(PLAYER_TOP_SPEEDS.format(mapname), {steam_id: speed})
+                else:
+                    self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
+                    self.db.zadd(MAP_TOP_SPEEDS.format(mapname), speed, steam_id)
             self.db.rpush(MAP_SPEED_LOG.format(mapname), speed)
 
     def record_personal_speed(self, mapname: str, steam_id: SteamId, speed: float) -> None:
@@ -1437,10 +1438,11 @@ class weird_stats(Plugin):
         if len(previous_map_player_top_speeds) > 0 and previous_map_player_top_speeds[0] >= speed:
             return
 
-        if redis.VERSION[0] == 2:
-            self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
-        else:
+        # noinspection PyUnresolvedReferences
+        if redis.VERSION >= (3, ):
             self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
+        else:
+            self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
 
     def cmd_player_speeds(self, _player: Player, _msg: str, _channel: AbstractChannel) -> None:
         announcements = self.player_speeds_announcements()
