@@ -71,6 +71,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_plugin_sent_to_console(any, times=0)
 
     def test_handle_player_connect_no_balance_plugin(self):
+        minqlx.CHAT_CHANNEL = mocked_channel()
         minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
         connecting_player = fake_player(123, "Connecting Player")
 
@@ -79,6 +80,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_that(self.plugin.plugin_enabled, is_(False))
 
     def test_handle_player_connect_wrong_version_of_balance_plugin(self):
+        minqlx.CHAT_CHANNEL = mocked_channel()
         minqlx.Plugin._loaded_plugins["balance"] = mock(strict=True)  # pylint: disable=protected-access
         connecting_player = fake_player(123, "Connecting Player")
 
@@ -355,6 +357,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         assert_that(player.steam_id not in self.plugin.join_attempts, is_(True))
 
     def test_handle_team_switch_attempt_no_balance_plugin(self):
+        minqlx.CHAT_CHANNEL = mocked_channel()
         minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
         switching_player = fake_player(123, "Joining Player")
         connected_players(switching_player)
@@ -490,7 +493,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         admin_player = fake_player(123, "Admin Player")
         connected_players(admin_player)
 
-        return_code = self.plugin.cmd_policy_exception(admin_player, ["!except"], minqlx.CHAT_CHANNEL)
+        return_code = self.plugin.cmd_policy_exception(admin_player, ["!except"], mocked_channel())
 
         assert_that(return_code, is_(minqlx.RET_USAGE))
 
@@ -499,7 +502,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         exception_player = fake_player(456, "Excepted Player")
         connected_players(admin_player, exception_player)
 
-        self.plugin.cmd_policy_exception(admin_player, ["!except", "except"], minqlx.CHAT_CHANNEL)
+        self.plugin.cmd_policy_exception(admin_player, ["!except", "except"], mocked_channel())
 
         assert_that(self.plugin.exceptions, is_({exception_player.steam_id}))
 
@@ -507,7 +510,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         admin_player = fake_player(123, "Admin Player")
         connected_players(admin_player)
 
-        self.plugin.cmd_policy_exception(admin_player, ["!except", "except"], minqlx.CHAT_CHANNEL)
+        self.plugin.cmd_policy_exception(admin_player, ["!except", "except"], mocked_channel())
 
         assert_player_was_told(admin_player, matches(".*Could not find player.*"))
 
@@ -516,7 +519,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
         exception_player = fake_player(456, "Excepted Player")
         connected_players(admin_player, exception_player)
 
-        self.plugin.cmd_policy_exception(admin_player, ["!except", "player"], minqlx.CHAT_CHANNEL)
+        self.plugin.cmd_policy_exception(admin_player, ["!except", "player"], mocked_channel())
 
         assert_player_was_told(admin_player, matches(".*More than one matching spectator found.*"))
 
