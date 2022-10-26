@@ -1,6 +1,5 @@
 import random
 import math
-import time
 
 from typing import NamedTuple, Optional, Callable, Any, Union, List, Tuple
 import itertools
@@ -1040,11 +1039,15 @@ class weird_stats(Plugin):
 
         self.set_cvar_once("qlx_weirdstats_playtime_fraction", "0.75")
         self.set_cvar_once("qlx_weirdstats_topdisplay", "3")
+        self.set_cvar_once("qlx_weirdstats_fastestmaps_display_ingame", "10")
+        self.set_cvar_once("qlx_weirdstats_fastestmaps_display_warmup", "30")
 
         self.stats_play_time_fraction: float = self.get_cvar("qlx_weirdstats_playtime_fraction", float)
         self.stats_top_display: int = self.get_cvar("qlx_weirdstats_topdisplay", int)
         if self.stats_top_display < 0:
             self.stats_top_display = 666
+        self.fastestmaps_display_ingame: int = self.get_cvar("qlx_weirdstats_fastestmaps_display_ingame", int)
+        self.fastestmaps_display_warmup: int = self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int)
 
         self.game_start_time: Optional[datetime] = None
         self.join_times: dict[SteamId, datetime] = {}
@@ -1082,9 +1085,6 @@ class weird_stats(Plugin):
         self.add_command("topspeeds", self.cmd_player_top_speeds, usage="[NAME]")
         self.add_command("maptopspeeds", self.cmd_map_top_speeds, usage="[NAME]")
         self.add_command(("fastestmaps", "slowestmaps"), self.cmd_fastest_maps)
-
-        self.speed_announcements: list[SteamId] = []
-        self.add_command("myspeed", self.cmd_my_speed, permission=5)
 
     def handle_team_switch(self, player: Player, old_team: str, new_team: str):
         if not player:
@@ -1259,8 +1259,12 @@ class weird_stats(Plugin):
 
         self.match_end_announced = True
 
-        for msg in self.player_speeds_announcements():
-            self.msg(msg)
+        announcements = self.player_speeds_announcements(top_entries=self.stats_top_display,
+                                                         match_end_announcements=True)
+        if len(announcements) > 0:
+            self.msg(f"  ^5Top {self.stats_top_display} player speeds^7 {announcements[0]}")
+            for msg in announcements[1:]:
+                self.msg(msg)
 
         quickest_death_announcement = self.quickest_deaths()
         if quickest_death_announcement is not None and len(quickest_death_announcement) > 0:
@@ -1287,7 +1291,7 @@ class weird_stats(Plugin):
 
         return True
 
-    def player_speeds_announcements(self) -> list[str]:
+    def player_speeds_announcements(self, *, top_entries: int = -1, match_end_announcements: bool = False) -> list[str]:
         if len(self.travelled_distances) == 0 or len(self.alive_times) == 0:
             return []
 
@@ -1295,12 +1299,12 @@ class weird_stats(Plugin):
         if self.game and self.game.state == "in_progress":
             current_datetime = datetime.now()
             teams = self.teams()
-            for player in teams["red"] + teams["blue"]:
-                if player.steam_id not in self.join_times:
+            for _player in teams["red"] + teams["blue"]:
+                if _player.steam_id not in self.join_times:
                     continue
-                current_play_times[player.steam_id] = \
-                    current_play_times.get(player.steam_id, 0.0) + \
-                    (current_datetime - self.join_times[player.steam_id]).total_seconds()
+                current_play_times[_player.steam_id] = \
+                    current_play_times.get(_player.steam_id, 0.0) + \
+                    (current_datetime - self.join_times[_player.steam_id]).total_seconds()
 
         if len(current_play_times) == 0:
             return []
@@ -1308,10 +1312,12 @@ class weird_stats(Plugin):
         longest_join_time = max(current_play_times.values())
 
         player_speeds: dict[SteamId, float] = {}
+        alive_times: dict[SteamId, float] = {}
         for steam_id, alive_time in self.alive_times.items():
             player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
             if player_alive_time == 0.0:
                 continue
+            alive_times[steam_id] = player_alive_time
             player_distance = convert_units_to_meters(player_units)
 
             if current_play_times.get(steam_id, 0.0) < self.stats_play_time_fraction * longest_join_time:
@@ -1327,18 +1333,19 @@ class weird_stats(Plugin):
         if not self.game:
             return []
 
-        self.record_speeds(self.game.map.lower(), player_speeds)
+        if match_end_announcements:
+            self.record_speeds(self.game.map.lower(), player_speeds)
 
         grouped_speeds = itertools.groupby(
             sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
             key=player_speeds.get)
 
         average_speed = statistics.mean(player_speeds.values())
-        returned = [f"  ^5Top {self.stats_top_display} player speeds^7 (avg: ^5{format_float(average_speed)} km/h^7)"]
+        returned = [f"(avg: ^5{format_float(average_speed)} km/h^7)"]
 
         counter = 1
         for speed, steam_ids in grouped_speeds:
-            if len(returned) > self.stats_top_display:
+            if 0 < top_entries < len(returned):
                 return returned
 
             prefix = f"^5{counter:2}^7."
@@ -1348,13 +1355,18 @@ class weird_stats(Plugin):
 
             for steam_id in steam_ids:
                 counter += 1
-                player2 = self.player(steam_id)
-                if player2 is None:
+                player = self.player(steam_id)
+                if player is None:
                     continue
-                _, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
-                dmg_per_second = player2.stats.damage_dealt / player_alive_time
+                if match_end_announcements:
+                    dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_times[steam_id]
+                elif steam_id in self.player_stats:
+                    dmg_per_second = (player.stats.damage_dealt + self.player_stats[steam_id].damage.dealt) \
+                                     / alive_times[steam_id]
+                else:
+                    dmg_per_second = player.stats.damage_dealt / alive_times[steam_id]
                 returned.append(
-                    f"  {prefix} {player2.name}^7 (^5{format_float(speed)} km/h^7, "
+                    f"  {prefix} {player.name}^7 (^5{format_float(speed)} km/h^7, "
                     f"^5{format_float(dmg_per_second)} dmg/sec.^7)")
 
                 prefix = "   "
@@ -1445,8 +1457,12 @@ class weird_stats(Plugin):
             self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
 
     def cmd_player_speeds(self, _player: Player, _msg: str, _channel: AbstractChannel) -> None:
-        announcements = self.player_speeds_announcements()
-        for announcement in announcements:
+        announcements = self.player_speeds_announcements(top_entries=self.stats_top_display)
+        if len(announcements) == 0:
+            return
+
+        self.msg(f"  ^5Top {self.stats_top_display} player speeds^7 {announcements[0]}")
+        for announcement in announcements[1:]:
             self.msg(announcement)
 
     def cmd_player_top_speeds(self, player: minqlx.Player, msg: str, channel: minqlx.AbstractChannel) -> None:
@@ -1510,7 +1526,6 @@ class weird_stats(Plugin):
 
         # even if we get only 1 person, we need to check if the input was meant as an ID
         # if we also get an ID we should return with ambiguity
-
         try:
             i = int(target)
             target_player = self.player(i)
@@ -1636,9 +1651,9 @@ class weird_stats(Plugin):
             return
 
         if not self.game or self.game.state != "warmup":
-            upper_limit = 10
+            upper_limit = self.fastestmaps_display_ingame
         else:
-            upper_limit = 30
+            upper_limit = self.fastestmaps_display_warmup
 
         sorted_mapnames = sorted(all_avg_speeds, key=all_avg_speeds.get, reverse=True)  # type:ignore
         formatted_speeds = "^7] [".join([
@@ -1663,35 +1678,6 @@ class weird_stats(Plugin):
         interim_map_speeds.sort(key=itemgetter(1), reverse=True)
 
         return interim_map_speeds
-
-    def cmd_my_speed(self, player: Player, _msg: str, _channel: AbstractChannel) -> int:
-        if player.steam_id in self.speed_announcements:
-            self.speed_announcements.remove(player.steam_id)
-            return minqlx.RET_STOP_ALL
-
-        self.announce_player_speeds(player.steam_id)
-        return minqlx.RET_STOP_ALL
-
-    @minqlx.thread
-    def announce_player_speeds(self, steam_id: SteamId) -> None:
-        self.speed_announcements.append(steam_id)
-
-        while steam_id in self.speed_announcements:
-            player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
-            player_distance = convert_units_to_meters(player_units)
-            if player_alive_time > 0:
-                player_speed = 3.6 * player_distance / player_alive_time
-            else:
-                player_speed = 0.0
-
-            player = self.player(steam_id)
-            if player is None:
-                return
-            player.tell(
-                f"Your current speed in round: {format_float(player_speed)} km/h, "
-                f"in round recorded distance: {format_float(player_units)} units, "
-                f"{format_float(player_distance)} meters, {format_float(player_alive_time)} seconds alive")
-            time.sleep(1)
 
     def gather_data_for_speed_calculation(self, steam_id: SteamId) -> tuple[float, float]:
         if steam_id not in self.travelled_distances:
