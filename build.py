@@ -16,8 +16,6 @@ use_plugin("python.flake8")
 
 use_plugin("python.pycharm")
 
-use_plugin('pypi:pybuilder_anybadge')
-
 default_task = ["install_dependencies", "analyze"]
 
 version = "0.0.1"
@@ -44,5 +42,3 @@ def initialize(project):
     project.set_property("flake8_include_test_sources", True)
     project.set_property("flake8_ignore", "E226,E402,E722,F401,F403,F405,W504")
     project.set_property("flake8_max_line_length", "120")
-
-    project.set_property("anybadge_exclude", "complexity,vulnerabilities,coverage")
