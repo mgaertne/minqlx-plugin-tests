@@ -1,5 +1,5 @@
 # minqlx-plugin-tests
-![Tests](https://github.com/mgaertne/minqlx-plugin-tests/actions/workflows/tests.yml/badge.svg)
+![Tests](https://github.com/mgaertne/minqlx-plugin-tests/actions/workflows/tests.yml/badge.svg) ![python](https://raw.githubusercontent.com/mgaertne/minqlx-plugin-tests/main/docs/images/python.svg)
 
 Test support functions for unit testing [minqlx-plugins](https://github.com/MinoMino/minqlx-plugins).
 
