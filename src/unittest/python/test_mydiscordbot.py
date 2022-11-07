@@ -415,7 +415,7 @@ def mocked_channel(_id=666, name="channel-name", channel_type=ChannelType.text, 
 
     channel.id = _id
     channel.name = name
-    channel._type = channel_type.__str__()  # pylint: disable=W0212
+    channel._type = str(channel_type)  # pylint: disable=W0212
     channel.type = channel_type
     channel.topic = topic
     channel.mention = f"<#{channel.id}>"
