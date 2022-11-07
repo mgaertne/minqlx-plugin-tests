@@ -1,4 +1,3 @@
-[![python](https://img.shields.io/badge/python-3.11-teal)](https://www.python.org/downloads/)
 # minqlx-plugin-tests
 ![python](https://img.shields.io/badge/python-3.9%7C3.10%7C3.11-blue.svg)
 
