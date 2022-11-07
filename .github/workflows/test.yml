@@ -1,0 +1,27 @@
+name: Tests
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.6', '3.7', '3.8', '3.9']
+
+    steps:
+      - shell: bash
+        if: |
+          contains(env.DEPLOY_OSES, runner.os) &&
+          contains(env.DEPLOY_PYTHONS, matrix.python-version) &&
+          contains(env.DEPLOY_BRANCHES, github.ref)
+        run: |
+          echo "PYB_EXTRA_ARGS=analyze" >> $GITHUB_ENV
+      - uses: pybuilder/build@master
+        with:
+          python-version: ${{ matrix.python-version }}
+          pyb-extra-args: ${{ env.PYB_EXTRA_ARGS }}
+          pyb-version: ">=0.13.0.dev0"

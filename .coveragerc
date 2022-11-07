@@ -1,0 +1,2 @@
+[report]
+omit = src/main/python/minqlx/*

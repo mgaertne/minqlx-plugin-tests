@@ -8,8 +8,11 @@ from pybuilder.core import init, use_plugin, Author
 use_plugin("python.core")
 use_plugin("python.install_dependencies")
 
-use_plugin("python.unittest")
-use_plugin("python.coverage")
+use_plugin('pypi:pybuilder_pytest')
+use_plugin('pypi:pybuilder_pytest_coverage')
+
+#use_plugin("python.unittest")
+#use_plugin("python.coverage")
 
 use_plugin("python.pylint")
 use_plugin("python.flake8")
@@ -27,12 +30,14 @@ requires_python = ">2.7,>3.8"
 
 @init
 def initialize(project):
-    project.build_depends_on_requirements('requirements.txt')
+    project.depends_on_requirements('requirements.txt')
+    project.build_depends_on_requirements('requirements-dev.txt')
 
-    project.set_property("coverage_break_build", False)
-    project.set_property("coverage_exceptions",
-                         ["minqlx._commands", "minqlx._core", "minqlx._events", "minqlx._game", "minqlx._handlers",
-                          "minqlx._minqlx", "minqlx._player", "minqlx._plugin", "minqlx._zmq", "minqlx.database"])
+    project.set_property("dir_source_pytest_python", "src/unittest/python")
+    project.set_property("pytest_extra_args", ["--cov-config=.coveragerc"])
+
+    project.set_property("pytest_coverage_html", True)
+    project.set_property("pytest_coverage_break_build_threshold", 0)
 
     project.set_property("pylint_options", ["--rcfile=./.pylintrc"])
 
