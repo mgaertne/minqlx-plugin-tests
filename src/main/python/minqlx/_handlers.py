@@ -31,7 +31,7 @@ import minqlx
 _re_say: Pattern = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
 _re_say_team: Pattern = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
 _re_callvote: Pattern = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$",
-                                        flags=re.IGNORECASE)
+                                   flags=re.IGNORECASE)
 _re_vote: Pattern = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
 _re_team: Pattern = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
 _re_vote_ended: Pattern = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")

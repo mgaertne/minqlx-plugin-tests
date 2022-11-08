@@ -109,6 +109,7 @@ class Player:
 
         if not self._info or self._steam_id != self._info.steam_id:
             self._invalidate()
+            return
 
         if self._info.name:
             self._name = self._info.name

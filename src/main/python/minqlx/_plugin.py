@@ -303,7 +303,7 @@ class Plugin:
         return minqlx.Player.all_players()
 
     @classmethod
-    def player(cls, name: Union[str, int, minqlx.Player], player_list: List[minqlx.Player] = None) \
+    def player(cls, name: Union[str, int, minqlx.Player], player_list: Optional[List[minqlx.Player]] = None) \
             -> Optional[minqlx.Player]:
         """Get a Player instance from the name, client ID,
         or Steam ID. Assumes [0, 64) to be a client ID
@@ -526,7 +526,7 @@ class Plugin:
         pass
 
     @classmethod
-    def change_map(cls, new_map: str, factory: str = None) -> None:
+    def change_map(cls, new_map: str, factory: Optional[str] = None) -> None:
         if not factory:
             minqlx.Game().map = new_map
         else:
@@ -552,7 +552,7 @@ class Plugin:
         cls.put(p2, t1)
 
     @classmethod
-    def play_sound(cls, sound_path: str, player: minqlx.Player = None) -> bool:
+    def play_sound(cls, sound_path: str, player: Optional[minqlx.Player] = None) -> bool:
         if not sound_path or "music/" in sound_path.lower():
             return False
 

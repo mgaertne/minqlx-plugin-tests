@@ -1,2 +1,3 @@
 [mypy]
 mypy_path = $MYPY_CONFIG_FILE_DIR/src/main/python,$MYPY_CONFIG_FILE_DIR/src/unittest/python
+check_untyped_defs = True

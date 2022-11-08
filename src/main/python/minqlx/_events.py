@@ -82,8 +82,8 @@ class EventDispatcher:
         plugins = self.plugins.copy()
         self.return_value = True
         for i in range(5):
-            for plugin in plugins:
-                for handler in plugins[plugin][i]:
+            for plugin_name, plugin in plugins.items():
+                for handler in plugin[i]:
                     # noinspection PyBroadException
                     try:
                         res = handler(*self.args, **self.kwargs)
@@ -101,7 +101,7 @@ class EventDispatcher:
                         if return_handler is not None:
                             return return_handler
                     except:  # pylint: disable=bare-except
-                        minqlx.log_exception(plugin)
+                        minqlx.log_exception(plugin_name)
                         continue
 
         return self.return_value
