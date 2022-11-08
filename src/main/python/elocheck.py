@@ -8,7 +8,7 @@ You are free to modify this plugin to your own one.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Tuple, Dict, List
 
 import aiohttp
 from aiohttp import ClientTimeout
@@ -33,7 +33,7 @@ IPS_BASE = "minqlx:ips"
 def requests_retry_session(
         retries: int = 3,
         backoff_factor: float = 0.1,
-        status_forcelist: tuple[int, int, int] = (500, 502, 504),
+        status_forcelist: Tuple[int, int, int] = (500, 502, 504),
         session: Session = None,
 ) -> Session:
     session = session or Session()
@@ -112,12 +112,12 @@ class elocheck(Plugin):
 
         self.previous_map: Optional[str] = None
         self.previous_gametype: Optional[str] = None
-        self.previous_ratings: dict[str, RatingProvider] = {}
-        self.ratings: dict[str, RatingProvider] = {}
-        self.rating_diffs: dict[str, dict[SteamId, Any]] = {}
+        self.previous_ratings: Dict[str, RatingProvider] = {}
+        self.ratings: Dict[str, RatingProvider] = {}
+        self.rating_diffs: Dict[str, Dict[SteamId, Any]] = {}
         self.fetch_elos_from_all_players()
 
-        self.informed_players: list[SteamId] = []
+        self.informed_players: List[SteamId] = []
 
     @minqlx.thread
     def fetch_elos_from_all_players(self):
@@ -125,7 +125,7 @@ class elocheck(Plugin):
             self.fetch_ratings([player.steam_id for player in self.players()])
         )
 
-    async def fetch_ratings(self, steam_ids: list[SteamId], mapname: str = None) -> None:
+    async def fetch_ratings(self, steam_ids: List[SteamId], mapname: str = None) -> None:
         async_requests = []
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
@@ -150,7 +150,7 @@ class elocheck(Plugin):
                 continue
             self.append_ratings(rating_provider_name, rating_results)
 
-    def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None):
+    def fetch_mapbased_ratings(self, steam_ids: List[SteamId], mapname: str = None):
         if mapname is None and (self.game is None or self.game.map is None):
             return None, None
 
@@ -168,7 +168,7 @@ class elocheck(Plugin):
 
         return rating_provider_name, TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
 
-    def append_ratings(self, rating_provider_name: str, json_result: dict[str, Any]) -> None:
+    def append_ratings(self, rating_provider_name: str, json_result: Dict[str, Any]) -> None:
         if json_result is None:
             return
 
@@ -389,7 +389,7 @@ class elocheck(Plugin):
 
         asyncio.run(_async_elocheck())
 
-    def find_target_player(self, target: str) -> list[Player]:
+    def find_target_player(self, target: str) -> List[Player]:
         try:
             steam_id = int(target)
 
@@ -408,7 +408,7 @@ class elocheck(Plugin):
             return player.tell
         return identify_reply_channel(channel).reply
 
-    def used_steam_ids_for(self, steam_id: SteamId) -> list[int]:
+    def used_steam_ids_for(self, steam_id: SteamId) -> List[int]:
         if not self.db.exists(PLAYER_BASE.format(steam_id) + ":ips"):
             return [steam_id]
 
@@ -423,7 +423,7 @@ class elocheck(Plugin):
 
         return [int(_steam_id) for _steam_id in used_steam_ids]
 
-    def fetch_aliases(self, steam_ids: list[SteamId]) -> dict[SteamId, list[str]]:
+    def fetch_aliases(self, steam_ids: List[SteamId]) -> Dict[SteamId, List[str]]:
         formatted_steam_ids = "+".join([str(steam_id) for steam_id in steam_ids])
         url_template = f"{A_ELO.url_base}aliases/{formatted_steam_ids}.json"
 
@@ -437,7 +437,7 @@ class elocheck(Plugin):
             return {}
         js = result.json()
 
-        aliases: dict[SteamId, list[str]] = {}
+        aliases: Dict[SteamId, List[str]] = {}
         for steam_id in steam_ids:
             if str(steam_id) not in js:
                 continue
@@ -453,7 +453,7 @@ class elocheck(Plugin):
 
     def format_player_elos(self, a_elo: RatingProvider, b_elo: RatingProvider,
                            truskill: RatingProvider, map_based_truskill: Optional[RatingProvider],
-                           steam_id: SteamId, indent: int = 0, aliases: list[str] = None) -> str:
+                           steam_id: SteamId, indent: int = 0, aliases: List[str] = None) -> str:
         display_name = self.resolve_player_name(steam_id)
         formatted_player_name = self.format_player_name(steam_id)
         result = [" " * indent + f"{formatted_player_name}^7"]
@@ -569,7 +569,7 @@ class elocheck(Plugin):
         formatted_aliases = self.format_player_aliases(target_steam_id, aliases[target_steam_id])
         reply_func(f"{formatted_aliases}^7")
 
-    def format_player_aliases(self, steam_id: SteamId, aliases: list[str]) -> str:
+    def format_player_aliases(self, steam_id: SteamId, aliases: List[str]) -> str:
         formatted_player_name = self.format_player_name(steam_id)
         formatted_aliseses = "^7, ".join(aliases)
         return f"{formatted_player_name}^7\nAliases used: {formatted_aliseses}"
@@ -604,7 +604,7 @@ class SkillRatingProvider:
         self.balance_api: str = balance_api
         self.timeout: int = timeout
 
-    async def fetch_elos(self, steam_ids: list[SteamId], *, headers: Optional[dict[str, str]] = None):
+    async def fetch_elos(self, steam_ids: List[SteamId], *, headers: Optional[Dict[str, str]] = None):
         if len(steam_ids) == 0:
             return None
 
@@ -745,7 +745,7 @@ class RatingProvider:
 
         return gametype_data["games"]
 
-    def rated_gametypes_for(self, steam_id: SteamId) -> list[str]:
+    def rated_gametypes_for(self, steam_id: SteamId) -> List[str]:
         player_data = self[steam_id]
 
         if player_data is None:
@@ -764,8 +764,8 @@ class RatingProvider:
 
         return player_data.privacy
 
-    def rated_steam_ids(self) -> list[SteamId]:
-        returned: list[SteamId] = []
+    def rated_steam_ids(self) -> List[SteamId]:
+        returned: List[SteamId] = []
         for json_rating in self.jsons:
             if "playerinfo" not in json_rating:
                 continue

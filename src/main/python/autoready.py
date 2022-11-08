@@ -6,7 +6,7 @@ import time
 
 from threading import RLock, Thread
 
-from typing import Optional, Callable, Iterator, Sequence, TypeVar
+from typing import Optional, Callable, Iterator, Sequence, TypeVar, Dict
 
 from minqlx import Plugin, Player
 
@@ -89,7 +89,7 @@ class autoready(Plugin):
         self.timer = CountdownThread(self.current_timer, timed_actions=self.timed_actions())
         self.timer.start()
 
-    def timed_actions(self) -> dict[int, Callable[[int], None]]:
+    def timed_actions(self) -> Dict[int, Callable[[int], None]]:
         return {
             self.timer_visible: lambda _: None,
             31: display_countdown,
@@ -125,13 +125,13 @@ class autoready(Plugin):
 
 
 class CountdownThread(Thread):
-    def __init__(self, duration: int, *, timed_actions: dict[int, Callable[[int], None]]):
+    def __init__(self, duration: int, *, timed_actions: Dict[int, Callable[[int], None]]):
         super().__init__()
         self.duration: int = duration
         self._target_time: Optional[datetime] = None
         self._remaining: int = -1
         self._lock: RLock = RLock()
-        self.timed_actions: dict[int, Callable[[int], None]] = {
+        self.timed_actions: Dict[int, Callable[[int], None]] = {
             duration: timed_actions[duration] for duration in sorted(timed_actions.keys(), reverse=True)
         }
         self._now: Optional[datetime] = None
