@@ -49,7 +49,7 @@ class custom_modes_vote(minqlx.Plugin):
         self.add_command("mode", self.cmd_switch_mode, permission=5,
                          usage=f"!mode [{'|'.join(self.available_modes())}]")
 
-        self.mode = self.default_mode
+        self.mode = self.default_mode or ""
 
     # noinspection PyMethodMayBeStatic
     def available_modes(self):

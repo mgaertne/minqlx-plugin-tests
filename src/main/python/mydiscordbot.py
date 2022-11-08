@@ -86,7 +86,7 @@ class mydiscordbot(minqlx.Plugin):
     minqlx_discord.log in the homepath)
     * qlx_discord_extensions (default: "") discord extensions to load after initializing
     """
-    def __init__(self, discord_client: SimpleAsyncDiscord = None):
+    def __init__(self, discord_client: Optional[SimpleAsyncDiscord] = None):
         super().__init__()
 
         # maybe initialize plugin cvars
@@ -209,7 +209,7 @@ class mydiscordbot(minqlx.Plugin):
         return player_data
 
     @staticmethod
-    def team_data(player_list: List[minqlx.Player], limit: int = None) -> str:
+    def team_data(player_list: List[minqlx.Player], limit: Optional[int] = None) -> str:
         """
         generates a sorted output of the team's player by their score
 
@@ -735,7 +735,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
         self.send_to_discord_channels(self.discord_relay_team_chat_channel_ids, content)
 
-    def replace_user_mentions(self, message: str, player: minqlx.Player = None) -> str:
+    def replace_user_mentions(self, message: str, player: Optional[minqlx.Player] = None) -> str:
         """
         replaces a mentioned discord user (indicated by @user-hint with a real mention)
 
@@ -766,7 +766,7 @@ class SimpleAsyncDiscord(threading.Thread):
         return returned_message
 
     @staticmethod
-    def find_user_that_matches(match: str, member_list: List[discord.Member], player: minqlx.Player = None) \
+    def find_user_that_matches(match: str, member_list: List[discord.Member], player: Optional[minqlx.Player] = None) \
             -> Optional[discord.Member]:
         """
         find a user that matches the given match
@@ -805,7 +805,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
         return None
 
-    def replace_channel_mentions(self, message: str, player: minqlx.Player = None) -> str:
+    def replace_channel_mentions(self, message: str, player: Optional[minqlx.Player] = None) -> str:
         """
         replaces a mentioned discord channel (indicated by #channel-hint with a real mention)
 
@@ -839,7 +839,7 @@ class SimpleAsyncDiscord(threading.Thread):
                                   channel_list: List[Union[discord.VoiceChannel, discord.StageChannel,
                                                            discord.ForumChannel, discord.TextChannel,
                                                            discord.CategoryChannel, Any]],
-                                  player: minqlx.Player = None) \
+                                  player: Optional[minqlx.Player] = None) \
             -> Optional[Union[discord.VoiceChannel, discord.StageChannel, discord.ForumChannel, discord.TextChannel,
                               discord.CategoryChannel, Any]]:
         """

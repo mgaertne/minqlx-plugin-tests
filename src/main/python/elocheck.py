@@ -34,7 +34,7 @@ def requests_retry_session(
         retries: int = 3,
         backoff_factor: float = 0.1,
         status_forcelist: Tuple[int, int, int] = (500, 502, 504),
-        session: Session = None,
+        session: Optional[Session] = None,
 ) -> Session:
     session = session or Session()
     retry = Retry(
@@ -125,7 +125,7 @@ class elocheck(Plugin):
             self.fetch_ratings([player.steam_id for player in self.players()])
         )
 
-    async def fetch_ratings(self, steam_ids: List[SteamId], mapname: str = None) -> None:
+    async def fetch_ratings(self, steam_ids: List[SteamId], mapname: Optional[str] = None) -> None:
         async_requests = []
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
@@ -150,7 +150,7 @@ class elocheck(Plugin):
                 continue
             self.append_ratings(rating_provider_name, rating_results)
 
-    def fetch_mapbased_ratings(self, steam_ids: List[SteamId], mapname: str = None):
+    def fetch_mapbased_ratings(self, steam_ids: List[SteamId], mapname: Optional[str] = None):
         if mapname is None and (self.game is None or self.game.map is None):
             return None, None
 
@@ -453,7 +453,7 @@ class elocheck(Plugin):
 
     def format_player_elos(self, a_elo: RatingProvider, b_elo: RatingProvider,
                            truskill: RatingProvider, map_based_truskill: Optional[RatingProvider],
-                           steam_id: SteamId, indent: int = 0, aliases: List[str] = None) -> str:
+                           steam_id: SteamId, indent: int = 0, aliases: Optional[List[str]] = None) -> str:
         display_name = self.resolve_player_name(steam_id)
         formatted_player_name = self.format_player_name(steam_id)
         result = [" " * indent + f"{formatted_player_name}^7"]
