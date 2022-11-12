@@ -1042,12 +1042,14 @@ class weird_stats(Plugin):
         self.set_cvar_once("qlx_weirdstats_fastestmaps_display_ingame", "10")
         self.set_cvar_once("qlx_weirdstats_fastestmaps_display_warmup", "30")
 
-        self.stats_play_time_fraction: float = self.get_cvar("qlx_weirdstats_playtime_fraction", float)
-        self.stats_top_display: int = self.get_cvar("qlx_weirdstats_topdisplay", int)
+        self.stats_play_time_fraction: float = self.get_cvar("qlx_weirdstats_playtime_fraction", float)  # type: ignore
+        self.stats_top_display: int = self.get_cvar("qlx_weirdstats_topdisplay", int)  # type: ignore
         if self.stats_top_display < 0:
             self.stats_top_display = 666
-        self.fastestmaps_display_ingame: int = self.get_cvar("qlx_weirdstats_fastestmaps_display_ingame", int)
-        self.fastestmaps_display_warmup: int = self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int)
+        self.fastestmaps_display_ingame: int = \
+            self.get_cvar("qlx_weirdstats_fastestmaps_display_ingame", int)  # type: ignore
+        self.fastestmaps_display_warmup: int = \
+            self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int)  # type: ignore
 
         self.game_start_time: Optional[datetime] = None
         self.join_times: dict[SteamId, datetime] = {}
