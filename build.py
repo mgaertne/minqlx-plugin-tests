@@ -16,17 +16,17 @@ use_plugin("python.flake8")
 
 use_plugin("python.pycharm")
 
-default_task = ["install_dependencies", "analyze"]
-
-version = "0.0.1"
-authors = (Author("Markus 'ShiN0' Gaertner"),)
-url = "https://github.com/mgaertne/minqlx-plugin-tests"
-
-requires_python = ">2.7,>3.8"
-
 
 @init
 def initialize(project):
+    project.version = "0.0.1"
+    project.authors = (Author("Markus 'ShiN0' Gaertner"),)
+    project.url = "https://github.com/mgaertne/minqlx-plugin-tests"
+
+    project.default_task = ["install_dependencies", "analyze"]
+
+    project.requires_python = ">2.7,>=3.8"
+
     project.depends_on_requirements('requirements.txt')
     project.build_depends_on_requirements('requirements-dev.txt')
 
