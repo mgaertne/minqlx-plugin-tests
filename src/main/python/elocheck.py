@@ -8,7 +8,7 @@ You are free to modify this plugin to your own one.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional, Any, Callable, Tuple, Dict, List
+from typing import Optional, Any, Callable, Tuple, Dict, List, Union
 
 import aiohttp
 from aiohttp import ClientTimeout
@@ -90,16 +90,17 @@ class elocheck(Plugin):
         self.set_cvar_once("qlx_elocheckReplyChannel", "public")
         self.set_cvar_once("qlx_elocheckShowSteamids", "0")
 
-        self.reply_channel: str = self.get_cvar("qlx_elocheckReplyChannel")
+        self.reply_channel: str = self.get_cvar("qlx_elocheckReplyChannel") or "public"
         if self.reply_channel != "private":
             self.reply_channel = "public"
-        self.show_steam_ids: bool = self.get_cvar("qlx_elocheckShowSteamids", bool)
+        self.show_steam_ids: bool = self.get_cvar("qlx_elocheckShowSteamids", bool) or False
 
+        elocheck_permission_level = self.get_cvar("qlx_elocheckPermission", int) or 0
         self.add_command("elocheck", self.cmd_elocheck,
-                         permission=self.get_cvar("qlx_elocheckPermission", int),
+                         permission=elocheck_permission_level,
                          usage="[player or steam_id]")
         self.add_command("aliases", self.cmd_aliases,
-                         permission=self.get_cvar("qlx_elocheckPermission", int),
+                         permission=elocheck_permission_level,
                          usage="[player or steam_id]")
         self.add_command("eloupdates", self.cmd_switch_elo_changes_notifications, usage="<0/1>")
 
@@ -108,7 +109,7 @@ class elocheck(Plugin):
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("game_end", self.handle_game_end)
 
-        self.balance_api: str = self.get_cvar("qlx_balanceApi")
+        self.balance_api: str = self.get_cvar("qlx_balanceApi") or "elo"
 
         self.previous_map: Optional[str] = None
         self.previous_gametype: Optional[str] = None
@@ -130,7 +131,7 @@ class elocheck(Plugin):
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
             missing_steam_ids = steam_ids
-            if rating_provider in self.ratings:
+            if rating_provider.name in self.ratings:
                 rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
                 missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
 
@@ -151,10 +152,9 @@ class elocheck(Plugin):
             self.append_ratings(rating_provider_name, rating_results)
 
     def fetch_mapbased_ratings(self, steam_ids: List[SteamId], mapname: Optional[str] = None):
-        if mapname is None and (self.game is None or self.game.map is None):
-            return None, None
-
         if mapname is None:
+            if self.game is None or self.game.map is None:
+                return None, None
             mapname = self.game.map.lower()
 
         rating_provider_name = f"{mapname} {TRUSKILLS.name}"
@@ -286,6 +286,9 @@ class elocheck(Plugin):
         return None
 
     def wants_to_be_informed(self, steam_id):
+        if self.db is None:
+            return False
+
         return self.db.get_flag(steam_id, "elocheck:rating_changes", default=False)
 
     def handle_game_end(self, data):
@@ -318,7 +321,7 @@ class elocheck(Plugin):
                 try:
                     target_steam_id = int(target)
 
-                    if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                    if not self.db or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
                         player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
                         return
                 except ValueError:
@@ -409,7 +412,7 @@ class elocheck(Plugin):
         return identify_reply_channel(channel).reply
 
     def used_steam_ids_for(self, steam_id: SteamId) -> List[int]:
-        if not self.db.exists(PLAYER_BASE.format(steam_id) + ":ips"):
+        if not self.db or not self.db.exists(PLAYER_BASE.format(steam_id) + ":ips"):
             return [steam_id]
 
         ips = self.db.smembers(PLAYER_BASE.format(steam_id) + ":ips")
@@ -451,8 +454,8 @@ class elocheck(Plugin):
                     cleaned_aliases.append(self.clean_text(entry))
         return aliases
 
-    def format_player_elos(self, a_elo: RatingProvider, b_elo: RatingProvider,
-                           truskill: RatingProvider, map_based_truskill: Optional[RatingProvider],
+    def format_player_elos(self, a_elo: Optional[RatingProvider], b_elo: Optional[RatingProvider],
+                           truskill: Optional[RatingProvider], map_based_truskill: Optional[RatingProvider],
                            steam_id: SteamId, indent: int = 0, aliases: Optional[List[str]] = None) -> str:
         display_name = self.resolve_player_name(steam_id)
         formatted_player_name = self.format_player_name(steam_id)
@@ -513,7 +516,7 @@ class elocheck(Plugin):
         if player is not None:
             return remove_trailing_color_code(player.name)
 
-        if self.db.exists(PLAYER_BASE.format(steam_id) + ":last_used_name"):
+        if self.db and self.db.exists(PLAYER_BASE.format(steam_id) + ":last_used_name"):
             return remove_trailing_color_code(self.db[PLAYER_BASE.format(steam_id) + ":last_used_name"])
 
         return "unknown"
@@ -535,7 +538,7 @@ class elocheck(Plugin):
             try:
                 target_steam_id = int(target)
 
-                if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                if not self.db or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
                     player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
                     return
             except ValueError:
@@ -576,6 +579,8 @@ class elocheck(Plugin):
 
     def cmd_switch_elo_changes_notifications(self, player: Player, _msg: str, _channel: AbstractChannel) \
             -> Optional[int]:
+        if not self.db:
+            return minqlx.RET_STOP_ALL
         flag = self.wants_to_be_informed(player.steam_id)
         self.db.set_flag(player, "elocheck:rating_changes", not flag)
 
@@ -726,7 +731,7 @@ class RatingProvider:
 
         return player_data[gametype]
 
-    def rating_for(self, steam_id: SteamId, gametype: str) -> Optional[int | float]:
+    def rating_for(self, steam_id: SteamId, gametype: str) -> Optional[Union[int, float]]:
         gametype_data = self.gametype_data_for(steam_id, gametype)
         if gametype_data is None:
             return None
