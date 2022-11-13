@@ -20,7 +20,7 @@ from ast import literal_eval
 from collections import Counter
 
 from operator import itemgetter
-from typing import Callable, Any, Optional, Iterator, Sequence, TypeVar
+from typing import Callable, Any, Optional, Iterator, Sequence, TypeVar, List, Dict, Tuple, Set
 
 from datetime import datetime, timedelta
 
@@ -49,8 +49,8 @@ SUPPORTED_GAMETYPES = ("ad", "ca", "ctf", "dom", "ft", "tdm")
 def requests_retry_session(
         retries: int = 3,
         backoff_factor: float = 0.1,
-        status_forcelist: tuple[int, int, int] = (500, 502, 504),
-        session: Session = None,
+        status_forcelist: Tuple[int, int, int] = (500, 502, 504),
+        session: Optional[Session] = None,
 ) -> Session:
     session = session or Session()
     retry = Retry(
@@ -96,7 +96,7 @@ def format_team(team: str) -> str:
     return f"^3{team}^7"
 
 
-def report_ratings_for_team(channel: AbstractChannel, team: list[Player], gametype: str,
+def report_ratings_for_team(channel: AbstractChannel, team: List[Player], gametype: str,
                             primary_rating_provider: RatingProvider, secondary_rating_provider: RatingProvider, *,
                             _primary_rating_prefix: str = "", _secondary_rating_prefix: str = "") -> None:
     if team is None or len(team) <= 0:
@@ -263,68 +263,70 @@ class balancetwo(Plugin):
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, private, untracked")
         self.set_cvar_once("qlx_qlstatsPrivacyJoinAttempts", "5")
 
-        self.rating_system: str = self.get_cvar("qlx_balancetwo_ratingSystem")
+        self.rating_system: str = self.get_cvar("qlx_balancetwo_ratingSystem") or "mapbased-truskills"
 
-        self.ratingLimit_kick: bool = self.get_cvar("qlx_balancetwo_ratingLimit_kick", bool)
+        self.ratingLimit_kick: bool = self.get_cvar("qlx_balancetwo_ratingLimit_kick", bool) or False
 
-        self.ratingLimit_min: dict[str, Any] = self.parse_rating_limit("qlx_balancetwo_ratingLimit_min")
-        self.ratingLimit_max: dict[str, Any] = self.parse_rating_limit("qlx_balancetwo_ratingLimit_max")
-        self.ratingLimit_minGames: dict[str, Any] = self.parse_rating_limit("qlx_balancetwo_ratingLimit_minGames")
+        self.ratingLimit_min: Dict[str, Any] = self.parse_rating_limit("qlx_balancetwo_ratingLimit_min")
+        self.ratingLimit_max: Dict[str, Any] = self.parse_rating_limit("qlx_balancetwo_ratingLimit_max")
+        self.ratingLimit_minGames: Dict[str, Any] = self.parse_rating_limit("qlx_balancetwo_ratingLimit_minGames")
 
-        self.minimum_suggestion_diff: dict[int, Any] = \
+        self.minimum_suggestion_diff: Dict[int, Any] = \
             self.parse_suggestion_minimum("qlx_balancetwo_minimumSuggestionDiff")
-        self.minimum_suggestion_stddev_diff: dict[int, Any] = \
+        self.minimum_suggestion_stddev_diff: Dict[int, Any] = \
             self.parse_suggestion_minimum("qlx_balancetwo_minimumStddevDiff")
 
-        self.last_action: str = self.get_cvar("qlx_balancetwo_lastAction")
+        self.last_action: str = self.get_cvar("qlx_balancetwo_lastAction") or "spec"
 
-        self.auto_switch: bool = self.get_cvar("qlx_balancetwo_autoSwitch", bool)
-        self.repeat_vetoed_switches: bool = self.get_cvar("qlx_balancetwo_repeatvetoedsuggestions", bool)
-        self.unique_player_switches: bool = self.get_cvar("qlx_balancetwo_uniquePlayerSwitches", bool)
-        self.auto_rebalance: bool = self.get_cvar("qlx_balancetwo_autoRebalance", bool)
+        self.auto_switch: bool = self.get_cvar("qlx_balancetwo_autoSwitch", bool) or False
+        self.repeat_vetoed_switches: bool = self.get_cvar("qlx_balancetwo_repeatvetoedsuggestions", bool) or False
+        self.unique_player_switches: bool = self.get_cvar("qlx_balancetwo_uniquePlayerSwitches", bool) or False
+        self.auto_rebalance: bool = self.get_cvar("qlx_balancetwo_autoRebalance", bool) or True
 
-        self.reply_channel: str = self.get_cvar("qlx_balancetwo_elocheckReplyChannel")
+        self.reply_channel: str = self.get_cvar("qlx_balancetwo_elocheckReplyChannel") or "public"
         if self.reply_channel != "private":
             self.reply_channel = "public"
-        self.show_steam_ids: bool = self.get_cvar("qlx_balancetwo_elocheckShowSteamids", bool)
+        self.show_steam_ids: bool = self.get_cvar("qlx_balancetwo_elocheckShowSteamids", bool) or False
 
-        self.allowed_privacy: list[str] = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list)
-        self.max_num_join_attempts: int = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int)
+        self.allowed_privacy: List[str] = \
+            self.get_cvar("qlx_qlstatsPrivacyWhitelist", list) or ["public", "private", "untracked"]
+        self.max_num_join_attempts: int = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int) or 5
 
-        self.connectthreads: dict[str, ConnectThread] = {}
-        self.kickthreads: dict[SteamId, KickThread] = {}
-        self.exceptions: set[SteamId] = set()
+        self.connectthreads: Dict[str, ConnectThread] = {}
+        self.kickthreads: Dict[SteamId, KickThread] = {}
+        self.exceptions: Set[SteamId] = set()
 
-        self.jointimes: dict[SteamId, datetime] = {}
+        self.jointimes: Dict[SteamId, datetime] = {}
         self.last_new_player_id: Optional[SteamId] = None
-        self.previous_teams: tuple[list[SteamId], list[SteamId]] = ([], [])
+        self.previous_teams: Tuple[List[SteamId], List[SteamId]] = ([], [])
 
         self.previous_map: Optional[str] = None
         self.previous_gametype: Optional[str] = None
-        self.previous_ratings: dict[str, RatingProvider] = {}
+        self.previous_ratings: Dict[str, RatingProvider] = {}
 
-        self.ratings: dict[str, RatingProvider] = {}
-        self.rating_diffs: dict[str, dict[SteamId, Any]] = {}
+        self.ratings: Dict[str, RatingProvider] = {}
+        self.rating_diffs: Dict[str, Dict[SteamId, Any]] = {}
 
-        self.informed_players: list[SteamId] = []
+        self.informed_players: List[SteamId] = []
 
-        self.vetoed_switches: list[Suggestion] = []
-        self.switched_players: list[SteamId] = []
+        self.vetoed_switches: List[Suggestion] = []
+        self.switched_players: List[SteamId] = []
         self.switch_suggestion: Optional[Suggestion] = None
         self.in_countdown: bool = False
 
-        self.twovstwo_steam_ids: list[SteamId] = []
-        self.twovstwo_combinations: list[tuple[SteamId, SteamId]] = []
-        self.twovstwo_iter: Iterator[tuple[SteamId, SteamId]] = RandomIterator(self.twovstwo_combinations)
+        self.twovstwo_steam_ids: List[SteamId] = []
+        self.twovstwo_combinations: List[Tuple[SteamId, SteamId]] = []
+        self.twovstwo_iter: Iterator[Tuple[SteamId, SteamId]] = RandomIterator(self.twovstwo_combinations)
 
         self.privacy_checks_enabled: bool = True
-        self.join_attempts: dict[SteamId, int] = {}
+        self.join_attempts: Dict[SteamId, int] = {}
 
+        elocheck_premission = self.get_cvar("qlx_balancetwo_elocheckPermission", int) or 0
         self.add_command(("elocheck", "getrating", "getelo", "elo"), self.cmd_elocheck,
-                         permission=self.get_cvar("qlx_balancetwo_elocheckPermission", int),
+                         permission=elocheck_premission,
                          usage="<player or steam_id>")
         self.add_command("aliases", self.cmd_aliases,
-                         permission=self.get_cvar("qlx_balancetwo_elocheckPermission", int),
+                         permission=elocheck_premission,
                          usage="[player or steam_id]")
         self.add_command(("ratings", "elos", "selo"), self.cmd_ratings)
 
@@ -359,7 +361,7 @@ class balancetwo(Plugin):
 
         self.fetch_elos_from_all_players()
 
-    def parse_rating_limit(self, cvar: str) -> dict[str, Any]:
+    def parse_rating_limit(self, cvar: str) -> Dict[str, Any]:
         configured_rating_limits = self.get_cvar(cvar)
         if configured_rating_limits is None:
             return {}
@@ -391,7 +393,7 @@ class balancetwo(Plugin):
                           f"No rating limits will be used!")
         return {}
 
-    def parse_suggestion_minimum(self, cvar: str) -> dict[int, Any]:
+    def parse_suggestion_minimum(self, cvar: str) -> Dict[int, Any]:
         configured_suggestion_minimum = self.get_cvar(cvar)
         if configured_suggestion_minimum is None:
             return {}
@@ -414,12 +416,12 @@ class balancetwo(Plugin):
     def fetch_elos_from_all_players(self) -> None:
         asyncio.run(self.fetch_ratings([player.steam_id for player in self.players()]))
 
-    async def fetch_ratings(self, steam_ids: list[SteamId], mapname: str = None) -> None:
+    async def fetch_ratings(self, steam_ids: List[SteamId], mapname: Optional[str] = None) -> None:
         async_requests = []
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
             missing_steam_ids = steam_ids
-            if rating_provider in self.ratings:
+            if rating_provider.name in self.ratings:
                 rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
                 missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
 
@@ -440,7 +442,7 @@ class balancetwo(Plugin):
                 continue
             self.append_ratings(rating_provider_name, rating_results)
 
-    def fetch_mapbased_ratings(self, steam_ids: list[SteamId], mapname: str = None):
+    def fetch_mapbased_ratings(self, steam_ids: List[SteamId], mapname: Optional[str] = None):
         if mapname is None:
             if self.game is None or self.game.map is None:
                 return None, None
@@ -458,7 +460,7 @@ class balancetwo(Plugin):
 
         return rating_provider_name, TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
 
-    def append_ratings(self, rating_provider_name: str, json_result: dict[str, Any]) -> None:
+    def append_ratings(self, rating_provider_name: str, json_result: Dict[str, Any]) -> None:
         if json_result is None:
             return
 
@@ -491,7 +493,7 @@ class balancetwo(Plugin):
                 try:
                     target_steam_id = int(target)
 
-                    if not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                    if not self.db or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
                         player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
                         return
                 except ValueError:
@@ -562,7 +564,7 @@ class balancetwo(Plugin):
 
         asyncio.run(_async_elocheck())
 
-    def find_target_player(self, target: str) -> list[Player]:
+    def find_target_player(self, target: str) -> List[Player]:
         try:
             steam_id = int(target)
 
@@ -581,7 +583,7 @@ class balancetwo(Plugin):
             return player.tell
         return identify_reply_channel(channel).reply
 
-    def used_steam_ids_for(self, steam_id: SteamId) -> list[int]:
+    def used_steam_ids_for(self, steam_id: SteamId) -> List[int]:
         if self.db is None:
             return []
 
@@ -599,7 +601,7 @@ class balancetwo(Plugin):
 
         return [int(_steam_id) for _steam_id in used_steam_ids]
 
-    def fetch_aliases(self, steam_ids: list[SteamId]) -> dict[SteamId, list[str]]:
+    def fetch_aliases(self, steam_ids: List[SteamId]) -> Dict[SteamId, List[str]]:
         formatted_steam_ids = "+".join([str(steam_id) for steam_id in steam_ids])
         url_template = f"{A_ELO.url_base}aliases/{formatted_steam_ids}.json"
 
@@ -613,7 +615,7 @@ class balancetwo(Plugin):
             return {}
         js = result.json()
 
-        aliases: dict[SteamId, list[str]] = {}
+        aliases: Dict[SteamId, List[str]] = {}
         for steam_id in steam_ids:
             if str(steam_id) not in js:
                 continue
@@ -629,7 +631,7 @@ class balancetwo(Plugin):
 
     def format_player_elos(self, a_elo: RatingProvider, b_elo: RatingProvider,
                            truskill: RatingProvider, map_based_truskill: Optional[RatingProvider],
-                           steam_id: SteamId, indent: int = 0, aliases: list[str] = None) -> str:
+                           steam_id: SteamId, indent: int = 0, aliases: Optional[List[str]] = None) -> str:
         display_name = self.resolve_player_name(steam_id)
         formatted_player_name = self.format_player_name(steam_id)
         result = [" " * indent + f"{formatted_player_name}^7"]
@@ -748,7 +750,7 @@ class balancetwo(Plugin):
         formatted_aliases = self.format_player_aliases(target_steam_id, aliases[target_steam_id])
         reply_func(f"{formatted_aliases}^7")
 
-    def format_player_aliases(self, steam_id: SteamId, aliases: list[str]) -> str:
+    def format_player_aliases(self, steam_id: SteamId, aliases: List[str]) -> str:
         formatted_player_name = self.format_player_name(steam_id)
         formatted_aliseses = "^7, ".join(aliases)
         return f"{formatted_player_name}^7\nAliases used: {formatted_aliseses}"
@@ -902,7 +904,7 @@ class balancetwo(Plugin):
             self.report_teams(team2_steam_ids, team1_steam_ids, channel)
         return
 
-    def dominant_team_for_steam_ids(self, steam_ids: list[SteamId]):
+    def dominant_team_for_steam_ids(self, steam_ids: List[SteamId]):
         list_of_teams = []
         for steam_id in steam_ids:
             player = self.player(steam_id)
@@ -923,7 +925,7 @@ class balancetwo(Plugin):
             self.jointimes[steam_id] = datetime.now()
         return self.jointimes[steam_id]
 
-    def find_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
+    def find_balanced_teams(self, steam_ids: List[SteamId]) -> Tuple[List[SteamId], List[SteamId]]:
         teams = self.teams()
 
         if len(teams["red"] + teams["blue"]) < 8:
@@ -931,7 +933,7 @@ class balancetwo(Plugin):
 
         return self.find_large_balanced_teams(steam_ids)
 
-    def find_non_recent_small_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
+    def find_non_recent_small_balanced_teams(self, steam_ids: List[SteamId]) -> Tuple[List[SteamId], List[SteamId]]:
         if self.game is None:
             return [], []
 
@@ -982,7 +984,7 @@ class balancetwo(Plugin):
 
         return red_team, blue_team
 
-    def find_large_balanced_teams(self, steam_ids: list[SteamId]) -> tuple[list[SteamId], list[SteamId]]:
+    def find_large_balanced_teams(self, steam_ids: List[SteamId]) -> Tuple[List[SteamId], List[SteamId]]:
         if self.game is None:
             return [], []
 
@@ -1009,8 +1011,8 @@ class balancetwo(Plugin):
                 parked_lowest_steam_id = rated_steam_ids[0]
             rated_steam_ids.remove(rated_steam_ids[0])
 
-        red_steam_ids: list[SteamId] = []
-        blue_steam_ids: list[SteamId] = []
+        red_steam_ids: List[SteamId] = []
+        blue_steam_ids: List[SteamId] = []
 
         while len(rated_steam_ids) > 0:
             player1 = rated_steam_ids.pop()
@@ -1062,7 +1064,7 @@ class balancetwo(Plugin):
 
         return red_steam_ids, blue_steam_ids
 
-    def report_teams(self, red_team: list[SteamId], blue_team: list[SteamId], channel: AbstractChannel) -> None:
+    def report_teams(self, red_team: List[SteamId], blue_team: List[SteamId], channel: AbstractChannel) -> None:
         if self.game is None:
             return
 
@@ -1127,7 +1129,8 @@ class balancetwo(Plugin):
 
         return A_ELO.name
 
-    def team_average(self, gametype: str, steam_ids: list[SteamId], rating_provider: RatingProvider = None) -> float:
+    def team_average(self, gametype: str, steam_ids: List[SteamId], rating_provider: Optional[RatingProvider] = None) \
+            -> float:
         if not steam_ids or len(steam_ids) == 0:
             return 0
 
@@ -1143,10 +1146,10 @@ class balancetwo(Plugin):
             if steam_id not in configured_rating_provider.rated_steam_ids():
                 return 0
 
-        return sum(
-            [configured_rating_provider.rating_for(steam_id, gametype) for steam_id in steam_ids]) / len(steam_ids)
+        return \
+            sum(configured_rating_provider.rating_for(steam_id, gametype) for steam_id in steam_ids) / len(steam_ids)
 
-    def team_stddev(self, steam_ids: list[SteamId], gametype: str, *,
+    def team_stddev(self, steam_ids: List[SteamId], gametype: str, *,
                     mu: Optional[float] = None, rating_provider: Optional[RatingProvider] = None) -> float:
         if not steam_ids or len(steam_ids) == 0:
             return 0
@@ -1214,7 +1217,7 @@ class balancetwo(Plugin):
         return minqlx.RET_NONE
 
     @minqlx.thread
-    def collect_suggestions(self, teams: dict[str, list[Player]], gametype: str, channel: AbstractChannel):
+    def collect_suggestions(self, teams: Dict[str, List[Player]], gametype: str, channel: AbstractChannel):
         possible_switches = self.filtered_suggestions(teams, gametype)
 
         if not self.repeat_vetoed_switches and len(self.vetoed_switches) > 0:
@@ -1228,7 +1231,7 @@ class balancetwo(Plugin):
                                             possible_switches))
         self.handle_suggestions_collected(possible_switches, channel)
 
-    def filtered_suggestions(self, teams: dict[str, list[Player]], gametype: str) -> list[Suggestion]:
+    def filtered_suggestions(self, teams: Dict[str, List[Player]], gametype: str) -> List[Suggestion]:
         configured_rating_provider_name = self.configured_rating_provider_name()
         configured_rating_provider = self.ratings[configured_rating_provider_name]
 
@@ -1269,7 +1272,7 @@ class balancetwo(Plugin):
 
         return abs(suggestion.avg_diff) <= minimum_suggestion_diff
 
-    def minimum_suggestion_parameters(self) -> tuple[Any, Any]:
+    def minimum_suggestion_parameters(self) -> Tuple[Any, Any]:
         if self.game is not None:
             played_rounds = self.game.blue_score + self.game.red_score
         else:
@@ -1285,7 +1288,7 @@ class balancetwo(Plugin):
 
         return minimum_suggestion_diff, minimum_suggestion_stddev_diff
 
-    def possible_switches(self, teams: dict[str, list[Player]], gametype: str) -> list[Suggestion]:
+    def possible_switches(self, teams: Dict[str, List[Player]], gametype: str) -> List[Suggestion]:
         configured_rating_provider_name = self.configured_rating_provider_name()
         configured_rating_provider = self.ratings[configured_rating_provider_name]
 
@@ -1313,7 +1316,7 @@ class balancetwo(Plugin):
 
         return switches
 
-    def handle_suggestions_collected(self, possible_switches: list[Suggestion], channel: AbstractChannel):
+    def handle_suggestions_collected(self, possible_switches: List[Suggestion], channel: AbstractChannel):
         configured_rating_strategy = self.get_cvar("qlx_balancetwo_ratingStrategy")
         if configured_rating_strategy is None:
             return
@@ -1829,7 +1832,7 @@ class balancetwo(Plugin):
 
         self.jointimes[steam_id] = current_time
 
-    def schedule_kick_for_players_outside_rating_limits(self, steam_ids: list[SteamId]) -> None:
+    def schedule_kick_for_players_outside_rating_limits(self, steam_ids: List[SteamId]) -> None:
         if self.game is None:
             return
 
@@ -2136,7 +2139,7 @@ class balancetwo(Plugin):
 
         return minqlx.RET_NONE
 
-    def calculate_player_average_difference(self, gametype: str, team1: list[Player], team2: list[Player]) -> float:
+    def calculate_player_average_difference(self, gametype: str, team1: List[Player], team2: List[Player]) -> float:
         team1_steam_ids = [player.steam_id for player in team1]
         team2_steam_ids = [player.steam_id for player in team2]
         configured_rating_provider_name = self.configured_rating_provider_name()
@@ -2227,12 +2230,12 @@ class balancetwo(Plugin):
 
     def announce_evening_up_teams(self) -> None:
         player_movements = self.find_player_movements_to_even_teams()
-        result: dict[str, list[str]] = {}
+        result: Dict[str, List[str]] = {}
         for player, moved_to in player_movements:
             result.setdefault(moved_to, []).append(player.name)
 
         message = "^6Uneven teams detected!^7 At round start "
-        move_announcements: list[str] = []
+        move_announcements: List[str] = []
 
         if "red" in result or "blue" in result or "free" in result:
             for moved_to in ["red", "blue", "free"]:
@@ -2358,7 +2361,7 @@ class balancetwo(Plugin):
             relevant_players = [player for player in teams[bigger_team]
                                 if player.steam_id not in self.switched_players]
 
-        if (self.game.red_score + self.game.blue_score) < 1:
+        if self.game and (self.game.red_score + self.game.blue_score) < 1:
             sorted_team = sorted(relevant_players, key=lambda _player: self.find_time(_player.steam_id), reverse=True)
             if abs(team_diff) % 2 == 1 and self.last_action == "spec":
                 return [(sorted_team[0], "spectator")] + \
@@ -2376,7 +2379,7 @@ class balancetwo(Plugin):
 
         return [(player, moved_to) for player in sorted_team[:amount_players_moved]]
 
-    def handle_game_end(self, data: dict[str, Any]) -> None:
+    def handle_game_end(self, data: Dict[str, Any]) -> None:
         if not self.game or bool(data["ABORTED"]):
             return
 
@@ -2433,7 +2436,7 @@ class balancetwo(Plugin):
         with open(elostats_filename, "a", encoding="utf-8") as elostats_file:
             elostats_file.write(f"{stats}\n")
 
-    def team_stats(self, team: list[Player], gametype: str) -> dict[SteamId, list[Any]]:
+    def team_stats(self, team: List[Player], gametype: str) -> Dict[SteamId, List[Any]]:
         returned = {}
         for player in team:
             a_elo = 0
@@ -2462,7 +2465,7 @@ class SkillRatingProvider:
         self.balance_api = balance_api
         self.timeout = timeout
 
-    async def fetch_elos(self, steam_ids: list[SteamId], headers: Optional[dict[str, str]] = None):
+    async def fetch_elos(self, steam_ids: List[SteamId], headers: Optional[Dict[str, str]] = None):
         if len(steam_ids) == 0:
             return None
 
@@ -2623,7 +2626,7 @@ class RatingProvider:
         return player_data.privacy
 
     def rated_steam_ids(self):
-        returned: list[SteamId] = []
+        returned: List[SteamId] = []
         for json_rating in self.jsons:
             if "playerinfo" not in json_rating:
                 continue
@@ -2687,7 +2690,7 @@ class ConnectThread(threading.Thread):
         super().__init__()
         self.rating_provider: SkillRatingProvider = rating_provider
         self._steam_id: SteamId = steam_id
-        self.fetched_result: Optional[dict[str, Any]] = None
+        self.fetched_result: Optional[Dict[str, Any]] = None
 
     def run(self) -> None:
         async def fetch_ratings():
@@ -2698,19 +2701,19 @@ class ConnectThread(threading.Thread):
 
 class SuggestionRatingStrategy:
     @abstractmethod
-    def best_suggestion(self, suggestions: list[Suggestion]) -> Suggestion:
+    def best_suggestion(self, suggestions: List[Suggestion]) -> Suggestion:
         pass
 
 
 class DiffSuggestionRatingStrategy(SuggestionRatingStrategy):
-    def best_suggestion(self, suggestions: list[Suggestion]) -> Suggestion:
+    def best_suggestion(self, suggestions: List[Suggestion]) -> Suggestion:
         return min(suggestions, key=lambda suggestion: abs(suggestion.avg_diff))
 
 
 class SuggestionQueue:
     __slots__ = ("suggestions", "strategy")
 
-    def __init__(self, items: list[Suggestion] = None,
+    def __init__(self, items: Optional[List[Suggestion]] = None,
                  strategy: SuggestionRatingStrategy = DiffSuggestionRatingStrategy()):
         self.suggestions = items if items is not None else []
         self.strategy = strategy
@@ -2740,7 +2743,7 @@ class Suggestion:
         self.blue_player = blue_player
         self.avg_diff = avg_diff
         self.stddev_diff = stddev_diff
-        self._agreed: list[SteamId] = []
+        self._agreed: List[SteamId] = []
         self.auto_switch = Plugin.get_cvar("qlx_balancetwo_autoSwitch", bool)
 
     def __eq__(self, other: Any) -> bool:
@@ -2778,7 +2781,7 @@ class Suggestion:
     def all_agreed(self) -> bool:
         return self.agreed(self.red_player) and self.agreed(self.blue_player)
 
-    def affected_steam_ids(self) -> list[SteamId]:
+    def affected_steam_ids(self) -> List[SteamId]:
         return [self.red_player.steam_id, self.blue_player.steam_id]
 
     def execute(self) -> None:

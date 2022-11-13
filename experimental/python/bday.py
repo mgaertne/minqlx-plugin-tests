@@ -36,7 +36,7 @@ class bday(minqlx.Plugin):
         self.add_hook("map", self.handle_map)
         self.add_hook("team_switch", self.handle_team_switch)
 
-        self.number_of_bday_maps = self.get_cvar("qlx_bday_mapscount", int)
+        self.number_of_bday_maps = self.get_cvar("qlx_bday_mapscount", int) or 1
         self.pending_bday_confirmations = {}
 
     def cmd_bday(self, player: minqlx.Player, msg: str, _channel: minqlx.AbstractChannel):
@@ -308,7 +308,8 @@ class bday(minqlx.Plugin):
         if self.bmap_steamid is None:
             return
 
-        self.db.incr(f"{BDAY_KEY.format(self.bmap_steamid)}:{datetime.today().year}")
+        if self.db:
+            self.db.incr(f"{BDAY_KEY.format(self.bmap_steamid)}:{datetime.today().year}")
         self.bmap_steamid = None
         self.bmap_map = None
 

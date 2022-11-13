@@ -41,7 +41,7 @@ class asdf(Plugin):
         self.red_overall_damage: int = 0
         self.blue_overall_damage: int = 0
 
-        self.min_ammo_rate: float = self.get_cvar("qlx_asdf_minammo_rate", float)
+        self.min_ammo_rate: float = self.get_cvar("qlx_asdf_minammo_rate", float) or 0.25
 
     def handle_player_spawn(self, player: Player):
         if not self.game or self.game.state != "in_progress":
@@ -129,6 +129,9 @@ class asdf(Plugin):
 
     @minqlx.thread
     def store_weapon_stats(self, stats: dict):
+        if not self.db:
+            return
+
         steam_id = stats["DATA"]["STEAM_ID"]
         for weapon in stats["DATA"]["WEAPONS"]:
             self.db.hincrby(WEAPON_STATS_KEY.format(steam_id) + f":{weapon}", "deaths",
@@ -171,10 +174,10 @@ class asdf(Plugin):
 
         teams = self.teams()
 
-        red_diff = sum([deltas[player.steam_id] for player in teams["red"] if player.steam_id in deltas])
+        red_diff = sum(deltas[player.steam_id] for player in teams["red"] if player.steam_id in deltas)
         self.red_overall_damage += red_diff
 
-        blue_diff = sum([deltas[player.steam_id] for player in teams["blue"] if player.steam_id in deltas])
+        blue_diff = sum(deltas[player.steam_id] for player in teams["blue"] if player.steam_id in deltas)
         self.blue_overall_damage += blue_diff
 
         self.logger.debug(f"red_diff: {red_diff} blue_diff: {blue_diff}")
@@ -218,6 +221,9 @@ class asdf(Plugin):
         reply_channel.reply(f"Weapon statistics for player {player_name}^7: {stats_string}")
 
     def weapon_stats_for(self, steam_id: SteamId):
+        if not self.db:
+            return {}
+
         returned = {}
         for key in self.db.keys(WEAPON_STATS_KEY.format(steam_id) + ":*"):
             weapon_stats = self.db.hgetall(key)
@@ -237,7 +243,7 @@ class asdf(Plugin):
 
         try:
             steam_id = int(target)
-            if self.db.exists(_name_key.format(steam_id)):
+            if self.db and self.db.exists(_name_key.format(steam_id)):
                 return self.resolve_player_name(steam_id), steam_id
         except ValueError:
             pass
@@ -259,7 +265,7 @@ class asdf(Plugin):
         if player is not None:
             return player.name
 
-        if self.db.exists(_name_key.format(steam_id)):
+        if self.db and self.db.exists(_name_key.format(steam_id)):
             return self.db.get(_name_key.format(steam_id))
 
         return item

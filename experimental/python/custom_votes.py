@@ -56,7 +56,7 @@ class custom_votes(minqlx.Plugin):
             return minqlx.RET_STOP_ALL
 
         if vote.lower() == "allready":
-            if self.game.state == "warmup":
+            if self.game and self.game.state == "warmup":
                 minqlx.callvote("qlx !allready", "Ready all players?")
                 minqlx.client_command(caller.id, "vote yes")
                 return minqlx.RET_STOP_ALL

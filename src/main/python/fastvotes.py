@@ -28,7 +28,7 @@ class fastvotes(minqlx.Plugin):
         self.set_cvar_once("qlx_fastvoteTypes", "map, kick")
         self.set_cvar_once("qlx_fastvoteStrategy", "threshold")
 
-        self.fastvote_types = self.get_cvar("qlx_fastvoteTypes", list)
+        self.fastvote_types = self.get_cvar("qlx_fastvoteTypes", list) or ["map", "kick"]
 
         self.add_hook("vote", self.process_vote, priority=minqlx.PRI_LOWEST)
         self.add_hook("vote_started", self.handle_vote, priority=minqlx.PRI_LOWEST)
@@ -85,8 +85,8 @@ class ThresholdFastVoteStrategy:
         Plugin.set_cvar_once("qlx_fastvoteThresholdFastPassDiff", 6)
         Plugin.set_cvar_once("qlx_fastvoteThresholdFastFailDiff", 5)
 
-        self.threshold_fast_pass_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastPassDiff", int)
-        self.threshold_fast_fail_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastFailDiff", int)
+        self.threshold_fast_pass_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastPassDiff", int) or 0
+        self.threshold_fast_fail_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastFailDiff", int) or 5
 
     def evaluate_votes(self, yes_votes, no_votes):
         diff = yes_votes - no_votes

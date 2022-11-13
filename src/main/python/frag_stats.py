@@ -18,7 +18,7 @@ class frag_stats(minqlx.Plugin):
 
         self.set_cvar_once("qlx_fragstats_toplimit", "10")
 
-        self.toplimit: int = self.get_cvar("qlx_fragstats_toplimit", int)
+        self.toplimit: int = self.get_cvar("qlx_fragstats_toplimit", int) or 10
 
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("game_countdown", self.handle_game_countdown)
