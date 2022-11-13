@@ -363,8 +363,9 @@ class mydiscordbot(minqlx.Plugin):
         if len(msg) < 2:
             return minqlx.RET_USAGE
 
-        self.discord.triggered_message(player, Plugin.clean_text(" ".join(msg[1:])))
-        self.msg("Message to Discord chat cast!")
+        quake_message = Plugin.clean_text(" ".join(msg[1:]))
+        self.discord.triggered_message(player, quake_message)
+        self.msg(f"Message '{quake_message}' sent to discord chat!")
         return minqlx.RET_NONE
 
     def cmd_discordbot(self, _player: minqlx.Player, msg: List[str], channel: minqlx.AbstractChannel) -> int:

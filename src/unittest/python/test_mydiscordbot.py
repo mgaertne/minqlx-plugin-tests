@@ -173,7 +173,7 @@ class MyDiscordBotTests(unittest.TestCase):
         self.plugin.cmd_discord(triggering_player, ["!discord", "asdf"], minqlx.CHAT_CHANNEL)
 
         verify(self.discord).triggered_message(triggering_player, "asdf")
-        assert_plugin_sent_to_console("Message to Discord chat cast!")
+        assert_plugin_sent_to_console("Message 'asdf' sent to discord chat!")
 
     @staticmethod
     def test_get_game_info_in_warmup():
