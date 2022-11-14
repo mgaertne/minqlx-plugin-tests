@@ -1,4 +1,5 @@
 import random
+from typing import Optional, Set
 
 # noinspection PyPackageRequirements
 from discord import app_commands, Interaction, Member, PartialMessageable, InteractionMessage
@@ -35,22 +36,43 @@ async def slap(interaction: Interaction, member: Member):
     await send_to_discord_and_quake(interaction, random.choice(slaps))
 
 
+def int_set(string_set: Optional[Set[str]]) -> Set[int]:
+    returned: Set[int] = set()
+
+    if string_set is None:
+        return returned
+
+    for item in string_set:
+        if item == '':
+            continue
+        value = int(item)
+        returned.add(value)
+
+    return returned
+
+
 async def send_to_discord_and_quake(interaction: Interaction, message: str) -> None:
     await interaction.response.send_message(message)
+
+    discord_relay_channel_ids: Set[int] = int_set(
+        Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+
+    if interaction.channel_id not in discord_relay_channel_ids:
+        return
 
     interaction_response: InteractionMessage = await interaction.original_response()
     mentioned_users = interaction_response.mentions
     quake_message = message.lstrip("_").rstrip("_")
     for user in mentioned_users:
-        quake_message = quake_message.replace(user.mention, user.display_name)
+        quake_message = quake_message.replace(user.mention, f"@{user.display_name}")
 
+    show_channel_name = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool) or False
     discord_message_prefix: str = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
-    if interaction.channel is None or isinstance(interaction.channel, PartialMessageable):
+    if not show_channel_name or interaction.channel is None or isinstance(interaction.channel, PartialMessageable):
         Plugin.msg(f"{discord_message_prefix}^2 {quake_message}")
         return
 
     Plugin.msg(f"{discord_message_prefix} ^5#{interaction.channel.name}^7:^2 {quake_message}")
-
 
 async def setup(bot: Bot):
     bot.tree.add_command(slap)
