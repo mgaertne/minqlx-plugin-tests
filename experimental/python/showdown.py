@@ -29,13 +29,13 @@ class showdown(minqlx.Plugin):
         self.add_command(("hurry", "showdown"), self.cmd_showdown)
 
         self.vote_showdown = self.get_cvar("qlx_showdown_vote", bool)
-        self.vote_showdown_teamsize = self.get_cvar("qlx_showdown_vote_teamsize", int)
-        self.min_opp = self.get_cvar("qlx_showdown_min", int)
-        self.max_opp = self.get_cvar("qlx_showdown_max", int)
+        self.vote_showdown_teamsize = self.get_cvar("qlx_showdown_vote_teamsize", int) or 2
+        self.min_opp = self.get_cvar("qlx_showdown_min", int) or 2
+        self.max_opp = self.get_cvar("qlx_showdown_max", int) or 4
         self.showdown_random_weapons = self.get_cvar("qlx_showdown_random_weapons", list)
         self.random_weapons_iter = random_iterator(self.showdown_random_weapons)
 
-        self.showdown_overwrite_permission_level = self.get_cvar("qlx_showdown_overwrite_permission_level", int)
+        self.showdown_overwrite_permission_level = self.get_cvar("qlx_showdown_overwrite_permission_level", int) or 1
         self.between_rounds = True
 
         self.last_standing_steam_id = None
@@ -125,7 +125,13 @@ class showdown(minqlx.Plugin):
             return
 
         teams = self.teams()
+        if self.last_standing_steam_id is None:
+            return
+
         showdown_player = self.player(self.last_standing_steam_id)
+        if showdown_player is None:
+            return
+
         voting_team = showdown_player.team
 
         self.showdown_votes = {"hurry": [], "showdown": []}
@@ -152,6 +158,9 @@ class showdown(minqlx.Plugin):
 
         teams = self.teams()
         showdown_player = self.player(self.last_standing_steam_id)
+
+        if showdown_player is None:
+            return False
 
         other_team = self.other_team(showdown_player.team)
         if other_team is None:
@@ -224,7 +233,7 @@ class showdown(minqlx.Plugin):
         if self.showdown_activated:
             return False
 
-        if self.game.state != "in_progress":
+        if not self.game or self.game.state != "in_progress":
             return False
 
         return self.max_opp < len(alive_b + alive_r)
@@ -289,6 +298,9 @@ class showdown(minqlx.Plugin):
     def start_showdown(self):
         @minqlx.next_frame
         def set_showdown_weapon(_p, _weapons):
+            if self.showdown_weapon is None:
+                return
+
             _p.weapons(**_weapons)
             _p.weapon(self.showdown_weapon.ql_id)
             _p.ammo(**{self.showdown_weapon.shortname: -1})
@@ -316,6 +328,9 @@ class showdown(minqlx.Plugin):
         self.showdown_is_counting_down = False
 
     def allow_music(self):
+        if not self.game:
+            return False
+
         if self.game.blue_score == self.game.roundlimit - 1:
             return False
 
@@ -393,10 +408,11 @@ class showdown(minqlx.Plugin):
             base_key = LAST_STANDING_LOG.format(self.last_standing_steam_id)
             last_standing_time = int(time.time() - self.last_standing_time)
             # noinspection PyUnresolvedReferences
-            if redis.VERSION >= (3, ):
-                self.db.zadd(base_key, {timestamp: last_standing_time})
-            else:
-                self.db.zadd(base_key, last_standing_time, timestamp)
+            if self.db:
+                if redis.VERSION >= (3, ):
+                    self.db.zadd(base_key, {timestamp: last_standing_time})
+                else:
+                    self.db.zadd(base_key, last_standing_time, timestamp)
             self.last_standing_steam_id = None
             self.last_standing_time = None
 
@@ -405,7 +421,8 @@ class showdown(minqlx.Plugin):
 
         self.showdown_activated = False
 
-        if self.music_started and self.game.roundlimit not in [self.game.red_score, self.game.blue_score]:
+        if self.music_started and self.game is not None and \
+                self.game.roundlimit not in [self.game.red_score, self.game.blue_score]:
             self.stop_sound()
         self.music_started = False
 
@@ -419,12 +436,7 @@ class showdown(minqlx.Plugin):
         if self.showdown_activated:
             return
 
-        if (player.privileges is not None or
-            self.db.has_permission(player.steam_id, self.showdown_overwrite_permission_level)) and \
-                msg[0][1:] == "showdown" and len(msg) > 1 or \
-                (len(msg) == 1 and self.showdown_votes is not None and
-                 player.steam_id in self.showdown_votes["showdown"]):
-
+        if self.is_player_eligible_to_trigger_showdown(player) and self.is_showdown_trigger_attempt(player, msg):
             if len(msg) < 2 or msg[1] == "random":
                 self.logger.debug("random showdown")
                 self.weapon_showdown()
@@ -464,8 +476,7 @@ class showdown(minqlx.Plugin):
 
         voted_showdown = msg[0][1:].lower()
         if player.steam_id in self.showdown_votes[voted_showdown]:
-            if player.privileges is None and \
-                    not self.db.has_permission(player.steam_id, self.showdown_overwrite_permission_level):
+            if not self.is_player_eligible_to_trigger_showdown(player):
                 voted_text = self.showdown_vote_text_for(voted_showdown)
                 player.tell(f"You already voted for {voted_text}!")
                 return
@@ -496,6 +507,27 @@ class showdown(minqlx.Plugin):
             f"voted for showdown, ^5{votes_for_hurry}^7/^5{votes_needed}^7 voted to punish {showdown_player.name}^7.")
 
         self.evaluate_votes()
+
+    def is_player_eligible_to_trigger_showdown(self, player):
+        if player.privileges is not None:
+            return True
+
+        if not self.db:
+            return False
+
+        return self.db.has_permission(player.steam_id, self.showdown_overwrite_permission_level)
+
+    def is_showdown_trigger_attempt(self, player, msg):
+        if len(msg) < 1:
+            return False
+
+        if msg[0][1:] != "showdown":
+            return False
+
+        if len(msg) > 1:
+            return True
+
+        return self.showdown_votes is not None and player.steam_id in self.showdown_votes["showdown"]
 
     def punish_last_standing_player(self):
         if self.last_standing_steam_id is None:
@@ -538,17 +570,24 @@ class showdown(minqlx.Plugin):
 
     def evaluate_votes(self):
         teams = self.teams()
+        if self.last_standing_steam_id is None:
+            return
+
         showdown_player = self.player(self.last_standing_steam_id)
+        if showdown_player is None:
+            return
 
         voting_team = teams[showdown_player.team]
 
         votes_needed = math.floor((len(voting_team) - 1) / 2) + 1
 
-        if len(self.showdown_votes["hurry"]) >= votes_needed:
+        if self.showdown_votes is None:
+            return
+        if "hurry" in self.showdown_votes and (self.showdown_votes["hurry"]) >= votes_needed:
             self.punish_last_standing_player()
             return
 
-        if len(self.showdown_votes["showdown"]) >= votes_needed:
+        if "showdown" in self.showdown_votes and (self.showdown_votes["showdown"]) >= votes_needed:
             self.weapon_showdown()
 
 

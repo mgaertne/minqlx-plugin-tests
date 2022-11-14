@@ -1,4 +1,5 @@
 from operator import itemgetter
+from typing import Optional
 
 import minqlx  # type: ignore
 from minqlx import Player
@@ -160,7 +161,7 @@ class spec_rotation(minqlx.Plugin):
             next_steam_id = self.spec_rotation.pop(0)
             self.switch_player(next_steam_id, player.team)
 
-    def switch_player(self, steam_id: SteamId, team: str, msg: str = None) -> None:
+    def switch_player(self, steam_id: SteamId, team: str, msg: Optional[str] = None) -> None:
         switching_player = self.player(steam_id)
         if not switching_player:
             return
