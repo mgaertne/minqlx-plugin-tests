@@ -2,7 +2,6 @@ import asyncio
 from asyncio import AbstractEventLoop
 import threading
 
-# noinspection PyPackageRequirements
 from typing import Optional, Set, Dict
 
 # noinspection PyPackageRequirements

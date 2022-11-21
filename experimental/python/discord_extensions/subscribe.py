@@ -3,7 +3,7 @@ import time
 import threading
 from typing import Optional, Union, Dict, List
 
-import schedule  # type: ignore
+import schedule
 
 # noinspection PyPackageRequirements
 from discord import app_commands, Member, Activity, ActivityType, Interaction, Color, Embed, User, Game, \
