@@ -270,7 +270,7 @@ class asdf(Plugin):
 
         return item
 
-    def find_target_player_or_list_alternatives(self, player: Player, target: Union[int, str, Player]):
+    def find_target_player_or_list_alternatives(self, player: Player, target: Union[int, str]):
         # Tell a player which players matched
         def list_alternatives(players: list[Player], indent: int = 2):
             amount_alternatives = len(players)
@@ -293,7 +293,7 @@ class asdf(Plugin):
         except minqlx.NonexistentPlayerError:
             pass
 
-        target_players = self.find_player(target)
+        target_players = self.find_player(str(target))
 
         # If there were absolutely no matches
         if not target_players:
