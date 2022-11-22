@@ -758,7 +758,7 @@ class SimpleAsyncDiscord(threading.Thread):
         matches: List[re.Match] = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda _match: len(str(_match)), reverse=True):
-            if match in ["all", "everyone", "here"]:
+            if str(match) in ["all", "everyone", "here"]:
                 continue
             member = SimpleAsyncDiscord.find_user_that_matches(str(match), member_list, player)
             if member is not None:
