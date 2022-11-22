@@ -50,7 +50,8 @@ ShiN0 somewhen in October 2017
     def warntimer(self):
         warner_thread_name = threading.current_thread().name
         self.warner_thread_name = warner_thread_name
-        timer_delay = self.get_cvar("roundtimelimit", int) - 30
+        roundtimelimit = self.get_cvar("roundtimelimit", int) or 150
+        timer_delay = roundtimelimit - 30
         time.sleep(timer_delay)
         self.play_thirty_second_warning(warner_thread_name)
 
