@@ -1357,7 +1357,7 @@ class weird_stats(Plugin):
 
     def determine_player_speeds(self) -> Dict[SteamId, float]:
         if len(self.travelled_distances) == 0 or len(self.alive_times) == 0:
-            return []
+            return {}
 
         current_play_times = self.determine_current_play_times()
 
