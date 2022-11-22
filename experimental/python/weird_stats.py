@@ -1367,12 +1367,10 @@ class weird_stats(Plugin):
         longest_join_time = max(current_play_times.values())
 
         player_speeds: Dict[SteamId, float] = {}
-        alive_times: Dict[SteamId, float] = {}
         for steam_id, alive_time in self.alive_times.items():
             player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
             if player_alive_time == 0.0:
                 continue
-            alive_times[steam_id] = player_alive_time
             player_distance = convert_units_to_meters(player_units)
 
             if current_play_times.get(steam_id, 0.0) < self.stats_play_time_fraction * longest_join_time:
