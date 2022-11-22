@@ -8,7 +8,7 @@ You are free to modify this plugin to your own one.
 from __future__ import annotations
 
 import asyncio
-from typing import Optional, Any, Callable, Tuple, Dict, List, Union
+from typing import Optional, Any, Callable, Tuple, Dict, List
 
 import aiohttp
 from aiohttp import ClientTimeout
@@ -731,7 +731,7 @@ class RatingProvider:
 
         return player_data[gametype]
 
-    def rating_for(self, steam_id: SteamId, gametype: str) -> Optional[Union[int, float]]:
+    def rating_for(self, steam_id: SteamId, gametype: str):
         gametype_data = self.gametype_data_for(steam_id, gametype)
         if gametype_data is None:
             return None
