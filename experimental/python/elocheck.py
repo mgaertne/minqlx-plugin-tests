@@ -474,7 +474,7 @@ class elocheck(Plugin):
 
         if map_based_truskill is not None:
             formatted_map_based_truskills = map_based_truskill.format_elos(steam_id)
-            if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0:
+            if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0 and self.game:
                 formatted_mapname = self.game.map.lower()
                 formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
                 for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):

@@ -20,7 +20,7 @@ from ast import literal_eval
 from collections import Counter
 
 from operator import itemgetter
-from typing import Callable, Any, Optional, Iterator, Sequence, TypeVar, List, Dict, Tuple, Set
+from typing import Callable, Any, Optional, Iterator, Sequence, TypeVar, List, Dict, Tuple, Set, Generic
 
 from datetime import datetime, timedelta
 
@@ -2882,7 +2882,7 @@ class PlayerMovedToSpecError(Exception):
 T = TypeVar('T')
 
 
-class RandomIterator:
+class RandomIterator(Generic[T]):
     __slots__ = ("seq", "random_seq", "iterator")
 
     def __init__(self, seq: Sequence[T]):

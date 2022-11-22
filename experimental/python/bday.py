@@ -347,10 +347,10 @@ class bday(minqlx.Plugin):
     def play_birthday_song(self):
         if "karaoke" in self.plugins:
             karaoke_plugin = minqlx.Plugin._loaded_plugins["karaoke"]  # pylint: disable=protected-access
-            karaoke_plugin.double = True
-            karaoke_plugin.currentsong = "happybirthday"
-            # noinspection PyUnresolvedReferences
-            karaoke_plugin.clrdouble(66, "_")
+            karaoke_plugin.double = True  # type: ignore
+            karaoke_plugin.currentsong = "happybirthday"  # type: ignore
+            # noinspection PyUnresolvedReferences  # type: ignore
+            karaoke_plugin.clrdouble(66, "_")  # type: ignore
 
         self.stop_sound()
         self.play_sound("sound/karaoke4/happybirthday.ogg")
@@ -425,11 +425,11 @@ class bday(minqlx.Plugin):
     def determine_installed_maps(self):
         if "maps" in self._loaded_plugins:
             # noinspection PyUnresolvedReferences
-            return self.plugins["maps"].logged_maps
+            return self._loaded_plugins["maps"].logged_maps  # type: ignore
 
         if "maps_manager" in self._loaded_plugins:
             # noinspection PyUnresolvedReferences
-            return self.plugins["maps_manager"].installed_maps
+            return self._loaded_plugins["maps_manager"].installed_maps  # type: ignore
 
         return []
 
