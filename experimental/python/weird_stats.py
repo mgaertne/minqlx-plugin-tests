@@ -1,7 +1,7 @@
 import random
 import math
 
-from typing import NamedTuple, Optional, Callable, Any, Union, List, Tuple
+from typing import NamedTuple, Optional, Callable, Any, Union, List, Tuple, Dict
 import itertools
 from operator import itemgetter
 
@@ -177,7 +177,7 @@ class Weapons(NamedTuple):
 
 
 class PlayerStatsEntry:
-    def __init__(self, stats_data: dict[str, Any]):
+    def __init__(self, stats_data: Dict[str, Any]):
         if "TYPE" not in stats_data:
             raise ValueError("Unknown stats_data")
 
@@ -464,13 +464,13 @@ class PlayerStatsEntry:
             self.stats_data.append(stats_entry)
 
 
-def filter_stats_for_max_value(stats: list[PlayerStatsEntry], func: Callable[[PlayerStatsEntry], Any]) \
-        -> list[PlayerStatsEntry]:
+def filter_stats_for_max_value(stats: List[PlayerStatsEntry], func: Callable[[PlayerStatsEntry], Any]) \
+        -> List[PlayerStatsEntry]:
     max_value = max(stats, key=func)
     return list(filter(lambda stats_entry: func(stats_entry) == func(max_value), stats))
 
 
-def most_weapon_hits_announcement(stats: list[PlayerStatsEntry]) -> Optional[str]:
+def most_weapon_hits_announcement(stats: List[PlayerStatsEntry]) -> Optional[str]:
     returned = ""
 
     for announcement, filter_func in [
@@ -505,7 +505,7 @@ def most_weapon_hits_announcement(stats: list[PlayerStatsEntry]) -> Optional[str
     return f"  Players with most hits per weapon: {returned}"
 
 
-def most_accurate_railbitches_announcement(stats: list[PlayerStatsEntry]) -> Optional[str]:
+def most_accurate_railbitches_announcement(stats: List[PlayerStatsEntry]) -> Optional[str]:
     railbitches = filter_stats_for_max_value(stats, lambda stats_entry: stats_entry.weapons.railgun.accuracy)
     if len(railbitches) == 0:
         return None
@@ -522,7 +522,7 @@ def most_accurate_railbitches_announcement(stats: list[PlayerStatsEntry]) -> Opt
            f"(^5{railbitches[0].weapons.railgun.accuracy:.02f}^7 percent accuracy)"
 
 
-def longest_shaftlamers_announcement(stats: list[PlayerStatsEntry]) -> Optional[str]:
+def longest_shaftlamers_announcement(stats: List[PlayerStatsEntry]) -> Optional[str]:
     shaftlamers = filter_stats_for_max_value(stats, lambda stats_entry: stats_entry.weapons.lightninggun.time)
     if len(shaftlamers) == 0:
         return None
@@ -540,7 +540,7 @@ def longest_shaftlamers_announcement(stats: list[PlayerStatsEntry]) -> Optional[
            f"(^5{shaftlamers[0].weapons.lightninggun.time}^7 seconds)"
 
 
-def most_honorable_haste_pickup_announcement(stats: list[PlayerStatsEntry]) -> Optional[str]:
+def most_honorable_haste_pickup_announcement(stats: List[PlayerStatsEntry]) -> Optional[str]:
     hasters = filter_stats_for_max_value(stats, lambda stats_entry: stats_entry.pickups.haste)
     if len(hasters) == 0:
         return None
@@ -555,7 +555,7 @@ def most_honorable_haste_pickup_announcement(stats: list[PlayerStatsEntry]) -> O
     return f"  ^5Haste honor awards^7: {haste_player_names}^7 (^5{hasters[0].pickups.haste}^7 pickups)"
 
 
-def weird_facts(stats: list[PlayerStatsEntry]) -> Optional[str]:
+def weird_facts(stats: List[PlayerStatsEntry]) -> Optional[str]:
     medal_facts = random_medal_facts(stats)
     formatted_weird_facts = medal_facts[0]
     if len(medal_facts) > 1:
@@ -574,8 +574,8 @@ def random_conjunction() -> str:
     return random.choice([", and ", ", but ", ", while "])
 
 
-def random_medal_facts(stats: list[PlayerStatsEntry], *, count: int = 1) -> list[str]:
-    returned: list[str] = []
+def random_medal_facts(stats: List[PlayerStatsEntry], *, count: int = 1) -> List[str]:
+    returned: List[str] = []
 
     medalstats = list(Medals._fields)
     random.shuffle(medalstats)
@@ -590,7 +590,7 @@ def random_medal_facts(stats: list[PlayerStatsEntry], *, count: int = 1) -> list
     return returned
 
 
-def formatted_medal_fact(stats: list[PlayerStatsEntry], medal_stat: str) -> str:
+def formatted_medal_fact(stats: List[PlayerStatsEntry], medal_stat: str) -> str:
     most_medaled_stats = \
         filter_stats_for_max_value(stats, lambda stats_entry: getattr(stats_entry.medals, medal_stat))
 
@@ -607,7 +607,7 @@ def formatted_medal_fact(stats: list[PlayerStatsEntry], medal_stat: str) -> str:
     return ""
 
 
-WEAPON_FACTS_LOOKUP: dict[str, dict[str, list[str]]] = {
+WEAPON_FACTS_LOOKUP: Dict[str, Dict[str, List[str]]] = {
     "deaths": {
         "machinegun": [
             "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7",
@@ -991,8 +991,8 @@ def format_weapon_fact(weapon_stat: str, player_names: str, weapon_name: str, st
                                     stats_amount=format_int(stats_amount))
 
 
-def random_weapon_stats(stats: list[PlayerStatsEntry], *, count: int = 3) -> list[str]:
-    returned: list[str] = []
+def random_weapon_stats(stats: List[PlayerStatsEntry], *, count: int = 3) -> List[str]:
+    returned: List[str] = []
 
     weaponstats = [field for field in WeaponStats._fields if field not in ["name"]]
     randomized_weapon_stats = list(itertools.product(Weapons._fields, weaponstats))
@@ -1008,7 +1008,7 @@ def random_weapon_stats(stats: list[PlayerStatsEntry], *, count: int = 3) -> lis
     return returned
 
 
-def formatted_weapon_fact(stats: list[PlayerStatsEntry], weapon: str, weapon_fact: str) -> str:
+def formatted_weapon_fact(stats: List[PlayerStatsEntry], weapon: str, weapon_fact: str) -> str:
     most_weaponed_stats = filter_stats_for_max_value(
         stats, lambda stats_entry: getattr(getattr(stats_entry.weapons, weapon), weapon_fact))
 
@@ -1052,23 +1052,23 @@ class weird_stats(Plugin):
             self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int)  # type: ignore
 
         self.game_start_time: Optional[datetime] = None
-        self.join_times: dict[SteamId, datetime] = {}
-        self.play_times: dict[SteamId, float] = {}
+        self.join_times: Dict[SteamId, datetime] = {}
+        self.play_times: Dict[SteamId, float] = {}
 
         self.in_round: bool = False
         self.game_ended: bool = False
         self.match_end_announced: bool = False
 
-        self.means_of_death: dict[SteamId, dict[str, int]] = {}
+        self.means_of_death: Dict[SteamId, Dict[str, int]] = {}
 
         self.round_start_datetime: Optional[datetime] = None
-        self.fastest_death: tuple[SteamId, float] = -1, -1
-        self.alive_times: dict[SteamId, float] = {}
-        self.previous_positions: dict[SteamId, Position] = {}
-        self.travelled_distances: dict[SteamId, float] = {}
+        self.fastest_death: Tuple[SteamId, float] = -1, -1
+        self.alive_times: Dict[SteamId, float] = {}
+        self.previous_positions: Dict[SteamId, Position] = {}
+        self.travelled_distances: Dict[SteamId, float] = {}
 
-        self.player_stats: dict[SteamId, PlayerStatsEntry] = {}
-        self.playerstats_announcements: list[Callable[[list[PlayerStatsEntry]], Optional[str]]] = \
+        self.player_stats: Dict[SteamId, PlayerStatsEntry] = {}
+        self.playerstats_announcements: List[Callable[[List[PlayerStatsEntry]], Optional[str]]] = \
             [most_accurate_railbitches_announcement, longest_shaftlamers_announcement,
              most_honorable_haste_pickup_announcement, weird_facts]
 
@@ -1293,42 +1293,11 @@ class weird_stats(Plugin):
 
         return True
 
-    def player_speeds_announcements(self, *, top_entries: int = -1, match_end_announcements: bool = False) -> list[str]:
+    def player_speeds_announcements(self, *, top_entries: int = -1, match_end_announcements: bool = False) -> List[str]:
         if len(self.travelled_distances) == 0 or len(self.alive_times) == 0:
             return []
 
-        current_play_times = self.play_times.copy()
-        if self.game and self.game.state == "in_progress":
-            current_datetime = datetime.now()
-            teams = self.teams()
-            for _player in teams["red"] + teams["blue"]:
-                if _player.steam_id not in self.join_times:
-                    continue
-                current_play_times[_player.steam_id] = \
-                    current_play_times.get(_player.steam_id, 0.0) + \
-                    (current_datetime - self.join_times[_player.steam_id]).total_seconds()
-
-        if len(current_play_times) == 0:
-            return []
-
-        longest_join_time = max(current_play_times.values())
-
-        player_speeds: dict[SteamId, float] = {}
-        alive_times: dict[SteamId, float] = {}
-        for steam_id, alive_time in self.alive_times.items():
-            player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
-            if player_alive_time == 0.0:
-                continue
-            alive_times[steam_id] = player_alive_time
-            player_distance = convert_units_to_meters(player_units)
-
-            if current_play_times.get(steam_id, 0.0) < self.stats_play_time_fraction * longest_join_time:
-                continue
-
-            player_speed = 3.6 * player_distance / player_alive_time
-
-            player_speeds[steam_id] = round(player_speed, 2)
-
+        player_speeds: Dict[SteamId, float] = self.determine_player_speeds()
         if len(player_speeds) == 0:
             return []
 
@@ -1360,13 +1329,14 @@ class weird_stats(Plugin):
                 player = self.player(steam_id)
                 if player is None:
                     continue
+                _, alive_time = self.gather_data_for_speed_calculation(steam_id)
                 if match_end_announcements:
-                    dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_times[steam_id]
+                    dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_time
                 elif steam_id in self.player_stats:
                     dmg_per_second = (player.stats.damage_dealt + self.player_stats[steam_id].damage.dealt) \
-                                     / alive_times[steam_id]
+                                     / alive_time
                 else:
-                    dmg_per_second = player.stats.damage_dealt / alive_times[steam_id]
+                    dmg_per_second = player.stats.damage_dealt / alive_time
                 returned.append(
                     f"  {prefix} {player.name}^7 (^5{format_float(speed)} km/h^7, "
                     f"^5{format_float(dmg_per_second)} dmg/sec.^7)")
@@ -1374,6 +1344,45 @@ class weird_stats(Plugin):
                 prefix = "   "
 
         return returned
+
+    def determine_current_play_times(self):
+        current_play_times = self.play_times.copy()
+        if self.game and self.game.state == "in_progress":
+            current_datetime = datetime.now()
+            teams = self.teams()
+            for _player in teams["red"] + teams["blue"]:
+                if _player.steam_id not in self.join_times:
+                    continue
+                current_play_times[_player.steam_id] = \
+                    current_play_times.get(_player.steam_id, 0.0) + \
+                    (current_datetime - self.join_times[_player.steam_id]).total_seconds()
+        return current_play_times
+
+    def determine_player_speeds(self) -> Dict[SteamId, float]:
+        current_play_times = self.determine_current_play_times()
+
+        if len(current_play_times) == 0:
+            return {}
+
+        longest_join_time = max(current_play_times.values())
+
+        player_speeds: Dict[SteamId, float] = {}
+        alive_times: Dict[SteamId, float] = {}
+        for steam_id, alive_time in self.alive_times.items():
+            player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
+            if player_alive_time == 0.0:
+                continue
+            alive_times[steam_id] = player_alive_time
+            player_distance = convert_units_to_meters(player_units)
+
+            if current_play_times.get(steam_id, 0.0) < self.stats_play_time_fraction * longest_join_time:
+                continue
+
+            player_speed = 3.6 * player_distance / player_alive_time
+
+            player_speeds[steam_id] = round(player_speed, 2)
+
+        return player_speeds
 
     def quickest_deaths(self) -> str:
         steam_id, alive_time = self.fastest_death
@@ -1390,9 +1399,9 @@ class weird_stats(Plugin):
 
         return f"  ^5Quickest death^7: {quickest_death_name} (^5{alive_time_delta.total_seconds():.02f} seconds^7)"
 
-    def environmental_deaths(self, means_of_death: dict[SteamId, dict[str, int]], means_of_death_filter: list[str]) \
+    def environmental_deaths(self, means_of_death: Dict[SteamId, Dict[str, int]], means_of_death_filter: List[str]) \
             -> str:
-        filtered_means_of_death: dict[SteamId, int] = {}
+        filtered_means_of_death: Dict[SteamId, int] = {}
         for steam_id, death_data in means_of_death.items():
             for mod in means_of_death_filter:
                 filtered_means_of_death[steam_id] = \
@@ -1418,7 +1427,7 @@ class weird_stats(Plugin):
                f"(^5{filtered_means_of_death[most_environmental_deaths]}^7)"
 
     @minqlx.thread
-    def record_speeds(self, mapname: str, speeds: dict[SteamId, float]) -> None:
+    def record_speeds(self, mapname: str, speeds: Dict[SteamId, float]) -> None:
         if self.db is None:
             return
 
@@ -1635,7 +1644,7 @@ class weird_stats(Plugin):
         if self.db is None:
             return
 
-        all_avg_speeds: dict[str, float] = {}
+        all_avg_speeds: Dict[str, float] = {}
         for map_speed_key in self.db.keys(MAP_SPEED_LOG.format("*")):
             mapname = \
                 map_speed_key[
@@ -1681,7 +1690,7 @@ class weird_stats(Plugin):
 
         return interim_map_speeds
 
-    def gather_data_for_speed_calculation(self, steam_id: SteamId) -> tuple[float, float]:
+    def gather_data_for_speed_calculation(self, steam_id: SteamId) -> Tuple[float, float]:
         if steam_id not in self.travelled_distances:
             return 0.0, 0.0
 
