@@ -124,7 +124,7 @@ class duelarena(minqlx.Plugin):
 
     @minqlx.thread
     def ensure_duel_players(self):
-        warmup_delay = int(self.get_cvar('g_roundWarmupDelay'))
+        warmup_delay = self.get_cvar('g_roundWarmupDelay', int) or 30
         time.sleep(warmup_delay / 1000 - 1)
         self.duelarena_game.ensure_duelarena_players()
 
@@ -404,6 +404,9 @@ class DuelArenaGame:
         red_player = Plugin.player(red_sid)
         blue_player = Plugin.player(blue_sid)
 
+        if not red_player or not blue_player:
+            return
+
         if red_player.team == "red" and blue_player.team == "blue":
             self.game.addteamscore("red", self.scores[red_sid] - self.game.red_score)
             self.game.addteamscore("blue", self.scores[blue_sid] - self.game.blue_score)
@@ -482,8 +485,16 @@ class DuelArenaGame:
         return self.initduel
 
     def validate_players(self):
-        self.playerset[:] = [sid for sid in self.playerset if Plugin.player(sid) and Plugin.player(sid).ping < 990]
+        self.playerset[:] = [sid for sid in self.playerset if self.player_is_still_with_us(sid)]
         self.queue[:] = [sid for sid in self.queue if sid in self.playerset]
+
+    @staticmethod
+    def player_is_still_with_us(steam_id):
+        player = Plugin.player(steam_id)
+        if not player:
+            return False
+
+        return player.ping < 990
 
     def record_scores(self, red_score, blue_score):
         teams = Plugin.teams()
