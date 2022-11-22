@@ -1,4 +1,3 @@
-# noinspection PyPackageRequirements
 from typing import Set, Optional
 
 # noinspection PyPackageRequirements
