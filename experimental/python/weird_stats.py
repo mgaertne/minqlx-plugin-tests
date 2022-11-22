@@ -1294,9 +1294,6 @@ class weird_stats(Plugin):
         return True
 
     def player_speeds_announcements(self, *, top_entries: int = -1, match_end_announcements: bool = False) -> List[str]:
-        if len(self.travelled_distances) == 0 or len(self.alive_times) == 0:
-            return []
-
         player_speeds: Dict[SteamId, float] = self.determine_player_speeds()
         if len(player_speeds) == 0:
             return []
@@ -1329,7 +1326,7 @@ class weird_stats(Plugin):
                 player = self.player(steam_id)
                 if player is None:
                     continue
-                _, alive_time = self.gather_data_for_speed_calculation(steam_id)
+                alive_time = self.alive_time_of(steam_id)
                 if match_end_announcements:
                     dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_time
                 elif steam_id in self.player_stats:
@@ -1359,6 +1356,9 @@ class weird_stats(Plugin):
         return current_play_times
 
     def determine_player_speeds(self) -> Dict[SteamId, float]:
+        if len(self.travelled_distances) == 0 or len(self.alive_times) == 0:
+            return []
+
         current_play_times = self.determine_current_play_times()
 
         if len(current_play_times) == 0:
@@ -1368,7 +1368,8 @@ class weird_stats(Plugin):
 
         player_speeds: Dict[SteamId, float] = {}
         for steam_id, alive_time in self.alive_times.items():
-            player_units, player_alive_time = self.gather_data_for_speed_calculation(steam_id)
+            player_units = self.travelled_distances.get(steam_id, 0.0)
+            player_alive_time = self.alive_time_of(steam_id)
             if player_alive_time == 0.0:
                 continue
             player_distance = convert_units_to_meters(player_units)
@@ -1688,19 +1689,13 @@ class weird_stats(Plugin):
 
         return interim_map_speeds
 
-    def gather_data_for_speed_calculation(self, steam_id: SteamId) -> Tuple[float, float]:
-        if steam_id not in self.travelled_distances:
-            return 0.0, 0.0
-
-        current_datetime = datetime.now()
-
-        player_units = self.travelled_distances[steam_id]
+    def alive_time_of(self, steam_id: SteamId) -> float:
+        player = self.player(steam_id)
 
         player_alive_time = self.alive_times.get(steam_id, 0.0)
+        if not self.in_round or self.round_start_datetime is None or not player or not player.is_alive:
+            return player_alive_time
 
-        player = self.player(steam_id)
-        if self.in_round and self.round_start_datetime is not None and player is not None and player.is_alive:
-            player_alive_timedelta: timedelta = current_datetime - self.round_start_datetime
-            player_alive_time = self.alive_times.get(steam_id, 0.0) + player_alive_timedelta.total_seconds()
-
-        return player_units, player_alive_time
+        current_datetime = datetime.now()
+        player_alive_timedelta: timedelta = current_datetime - self.round_start_datetime
+        return self.alive_times.get(steam_id, 0.0) + player_alive_timedelta.total_seconds()
