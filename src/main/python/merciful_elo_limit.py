@@ -29,7 +29,7 @@ class merciful_elo_limit(Plugin):
         self.set_cvar_once("qlx_mercifulelo_daysbanned", "30")
 
         self.min_elo = self.get_cvar("qlx_mercifulelo_minelo", int)
-        self.application_games = self.get_cvar("qlx_mercifulelo_applicationgames", int)
+        self.application_games = self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
         self.above_games = self.get_cvar("qlx_mercifulelo_abovegames", int)
         self.banned_days = self.get_cvar("qlx_mercifulelo_daysbanned", int)
 
@@ -68,7 +68,7 @@ class merciful_elo_limit(Plugin):
 
         player_ratings = {p.steam_id: gametype for p in players}
         # noinspection PyUnresolvedReferences
-        balance_plugin.add_request(player_ratings, self.callback_ratings, CHAT_CHANNEL)
+        balance_plugin.add_request(player_ratings, self.callback_ratings, CHAT_CHANNEL)  # type: ignore
 
     def handle_round_countdown(self, _round_number):
         if not self.game:
@@ -91,6 +91,9 @@ class merciful_elo_limit(Plugin):
             minqlx.COMMANDS.handle_input(DummyOwner(self.logger),
                                          f"!ban {_player.steam_id} {duration} {msg}",
                                          DummyChannel(self.logger))
+
+        if not self.db:
+            return
 
         if self.is_player_in_exception_list(player):
             return
@@ -118,9 +121,12 @@ class merciful_elo_limit(Plugin):
 
         mybalance_plugin = Plugin._loaded_plugins['mybalance']
         # noinspection PyUnresolvedReferences
-        return player.steam_id in mybalance_plugin.exceptions
+        return player.steam_id in mybalance_plugin.exceptions  # type: ignore
 
     def get_value_from_db_or_zero(self, key):
+        if not self.db:
+            return 0
+
         value = self.db.get(key)
         if value is None:
             return 0
@@ -136,7 +142,7 @@ class merciful_elo_limit(Plugin):
             return None
         balance_plugin = Plugin._loaded_plugins['balance']
         # noinspection PyUnresolvedReferences
-        ratings = balance_plugin.ratings
+        ratings = balance_plugin.ratings  # type: ignore
 
         gametype = self.game.type_short
         if gametype not in SUPPORTED_GAMETYPES:
@@ -179,6 +185,9 @@ class merciful_elo_limit(Plugin):
             self.handle_player_at_round_start(player)
 
     def handle_player_at_round_start(self, player):
+        if not self.db:
+            return
+
         if self.is_player_in_exception_list(player):
             return
 
@@ -208,6 +217,10 @@ class merciful_elo_limit(Plugin):
     def cmd_mercis(self, _player, _msg, channel):
         reply_channel = self.identify_reply_channel(channel)
         players = self.players()
+
+        if not self.db:
+            reply_channel.reply("Something went wrong. Consult an admin!")
+            return
 
         reported_players = []
         for player in players:
