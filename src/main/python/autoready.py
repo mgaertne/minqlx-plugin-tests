@@ -6,7 +6,7 @@ import time
 
 from threading import RLock, Thread
 
-from typing import Optional, Callable, Iterator, Sequence, TypeVar, Dict
+from typing import Optional, Callable, Iterator, Sequence, TypeVar, Dict, Generic
 
 from minqlx import Plugin, Player
 
@@ -28,17 +28,17 @@ class autoready(Plugin):
         self.set_cvar_once("qlx_autoready_timer_visible", "60")
         self.set_cvar_once("qlx_autoready_disable_manual_readyup", "0")
 
-        self.min_players: int = self.get_cvar("qlx_autoready_min_players", int)
-        self.autostart_delay: int = self.get_cvar("qlx_autoready_autostart_delay", int)
-        self.min_counter: int = self.get_cvar("qlx_autoready_min_seconds", int)
-        self.timer_visible: int = self.get_cvar("qlx_autoready_timer_visible", int)
-        self.disable_player_ready: bool = self.get_cvar("qlx_autoready_disable_manual_readyup", bool)
+        self.min_players: int = self.get_cvar("qlx_autoready_min_players", int) or 10
+        self.autostart_delay: int = self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        self.min_counter: int = self.get_cvar("qlx_autoready_min_seconds", int) or 30
+        self.timer_visible: int = self.get_cvar("qlx_autoready_timer_visible", int) or 60
+        self.disable_player_ready: bool = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
 
         self.timer: Optional[CountdownThread] = None
         self.current_timer: int = -1
         self.timer_lock: RLock = RLock()
 
-        self.announcer: RandomIterator = RandomIterator(THIRTY_SECOND_WARNINGS)
+        self.announcer: RandomIterator[str] = RandomIterator(THIRTY_SECOND_WARNINGS)
 
         self.add_hook("client_command", self.handle_client_command)
         self.add_hook("map", self.handle_map_change)
@@ -239,7 +239,7 @@ def allready(_remaining: int) -> None:
 T = TypeVar('T')
 
 
-class RandomIterator:
+class RandomIterator(Generic[T]):
     def __init__(self, seq: Sequence[T]):
         self.seq = seq
         self.random_seq = random.sample(self.seq, len(self.seq))
