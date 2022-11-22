@@ -1,5 +1,5 @@
 import unittest
-from mockito import unstub, mock, spy2, spy, verify, patch, when  # type: ignore
+from mockito import unstub, mock, spy2, spy, verify, patch, when, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import assert_that, is_, not_, contains_exactly
 
@@ -51,8 +51,9 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
     # noinspection PyMethodMayBeStatic
     def setup_qlstats_response(self, response):
-        patch(requests.get, lambda _: response)
-        spy(requests.get)
+        #patch(requests, "get", lambda _: response)
+        spy2(requests.get)
+        when2(requests.get, any_(), timeout=any_()).thenReturn(response)
 
     def test_handle_player_connect_plugin_disable(self):
         self.plugin.plugin_enabled = False
@@ -145,7 +146,7 @@ class qlstats_privacy_policy_tests(unittest.TestCase):
 
         self.plugin.handle_player_connect(connecting_player)
 
-        verify(requests).get(f"http://qlstats.net/belo/{connecting_player.steam_id}")
+        verify(requests).get(f"http://qlstats.net/belo/{connecting_player.steam_id}", timeout=any_())
 
     def test_handle_player_connect_logs_error_if_result_status_not_ok(self):
         result = self.qlstats_response(status_code=500)

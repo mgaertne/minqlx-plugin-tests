@@ -30,8 +30,8 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         self.plugin_enabled = True
         self.kick_players = self.get_cvar("qlx_qlstatsPrivacyKick", bool)
-        self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list)
-        self.max_num_join_attempts = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int)
+        self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list) or ["public", "private", "untracked"]
+        self.max_num_join_attempts = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int) or 5
 
         self.exceptions = set()
         self.join_attempts = {}
@@ -78,7 +78,8 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         b = minqlx.Plugin._loaded_plugins['balance']   # pylint: disable=protected-access
         # noinspection PyUnresolvedReferences
-        b.add_request({player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
+        b.add_request(  # type: ignore
+            {player.steam_id: self.game.type_short}, self.callback_connect, minqlx.CHAT_CHANNEL)
 
         if not self.get_cvar("qlx_qlstatsPrivacyBlock", bool):
             return minqlx.RET_NONE
@@ -131,7 +132,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
             return
 
         # noinspection PyUnresolvedReferences
-        player_info = self.plugins["balance"].player_info
+        player_info = self._loaded_plugins["balance"].player_info  # type: ignore
 
         for sid in players:
             if sid in self.exceptions:
@@ -173,7 +174,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         if new in ["red", "blue", "any"]:
             # noinspection PyUnresolvedReferences
-            player_info = self.plugins["balance"].player_info
+            player_info = self._loaded_plugins["balance"].player_info  # type: ignore
             if player.steam_id not in player_info:
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
                 return minqlx.RET_STOP_ALL
@@ -261,6 +262,9 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.plugin_enabled = True
         channel.reply("^7QLStats policy check enabled.")
 
+        if not self.game:
+            return
+
         if self.kick_players:
             self.callback_connect(
                 {player.steam_id: self.game.type_short for player in self.players()}, channel)
@@ -268,7 +272,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         teams = self.teams()
         # noinspection PyUnresolvedReferences
-        player_info = self.plugins["balance"].player_info
+        player_info = self._loaded_plugins["balance"].player_info  # type: ignore
 
         for player in teams["red"] + teams["blue"]:
             if player.steam_id not in player_info:
@@ -301,4 +305,4 @@ class ConnectThread(threading.Thread):
 
     def run(self):
         url = f"http://qlstats.net/{self._balance_api}/{self._steam_id}"
-        self._result = requests.get(url)
+        self._result = requests.get(url, timeout=15)
