@@ -44,9 +44,9 @@ class auto_rebalance(minqlx.Plugin):
         Plugin.set_cvar_once("qlx_rebalanceWinningStreakThreshold", "3")
         Plugin.set_cvar_once("qlx_rebalanceNumAnnouncements", "2")
 
-        self.score_diff_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int)
-        self.winning_streak_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int)
-        self.num_announcements = Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int)
+        self.score_diff_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int) or 3
+        self.winning_streak_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int) or 3
+        self.num_announcements = Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int) or 2
 
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
@@ -186,9 +186,9 @@ class auto_rebalance(minqlx.Plugin):
             return 0
 
         # noinspection PyUnresolvedReferences
-        ratings = self.plugins["balance"].ratings
+        ratings = self.plugins["balance"].ratings  # type: ignore
 
-        average = 0
+        average = 0.0
         for p in team:
             if p.steam_id not in ratings:
                 average += DEFAULT_RATING
@@ -240,7 +240,7 @@ class auto_rebalance(minqlx.Plugin):
             b = Plugin._loaded_plugins['balance']  # pylint: disable=protected-access
             players = {p.steam_id: gametype for p in teams["red"] + teams["blue"]}
             # noinspection PyUnresolvedReferences
-            b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)
+            b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)  # type: ignore
         return minqlx.RET_NONE
 
     def team_is_on_a_winning_streak(self, team):
@@ -254,6 +254,9 @@ class auto_rebalance(minqlx.Plugin):
             self.winning_streak_suggestion_threshold * [team]
 
     def announced_often_enough(self, winning_team):
+        if not self.game:
+            return False
+
         maximum_announcements = self.winning_streak_suggestion_threshold + self.num_announcements
 
         return abs(self.game.red_score - self.game.blue_score) > \
