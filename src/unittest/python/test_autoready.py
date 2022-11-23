@@ -1,12 +1,13 @@
-import unittest
-
 import time
 import random
 from datetime import datetime, timedelta
+from unittest.mock import call, NonCallableMock, patch, Mock
+
+import pytest
+from pytest_mock import MockerFixture
 
 # noinspection PyProtectedMember
-from mockito import mock, when, unstub, verify, any_, spy2, when2  # type: ignore
-from hamcrest import assert_that, is_, not_
+from mockito import unstub  # type: ignore
 
 from minqlx_plugin_test import setup_cvars, setup_plugin, fake_player, connected_players, setup_game_in_warmup, \
     setup_no_game, setup_game_in_progress, assert_plugin_center_printed, assert_plugin_played_sound
@@ -17,9 +18,28 @@ import autoready
 from autoready import CountdownThread, RandomIterator
 
 
-class AutoReadyTests(unittest.TestCase):
+class TestAutoReady:
 
-    def setUp(self):
+    @pytest.fixture
+    def timer(self, mocker: MockerFixture):
+        timer_ = mocker.Mock(spec=CountdownThread)
+        mocker.spy(timer_, "start")
+        mocker.spy(timer_, "stop")
+        mocker.patch("autoready.CountdownThread", return_value=timer_)
+        return timer_
+
+    @pytest.fixture
+    def alive_timer(self, mocker, timer):
+        mocker.patch.object(timer, "is_alive", return_value=True)
+        return timer
+
+    @pytest.fixture
+    def plugin(self, mocker):
+        mocker.patch("autoready.CountdownThread", new_callable=NonCallableMock)
+        return autoready.autoready()
+
+    @staticmethod
+    def setup_method():
         setup_plugin()
         setup_cvars({
             "zmq_stats_enable": "1",
@@ -30,19 +50,13 @@ class AutoReadyTests(unittest.TestCase):
             "qlx_autoready_disable_manual_readyup": "0"
         })
 
-        self.mapname = "campgrounds"
-        setup_game_in_warmup(game_type="ca", mapname=self.mapname)
-        self.plugin = autoready.autoready()
+        setup_game_in_warmup(game_type="ca", mapname="campgrounds")
 
-        self.timer = mock(CountdownThread)
-        when(self.timer).start().thenReturn(None)
-        when(self.timer).stop().thenReturn(None)
-        when(autoready).CountdownThread(any_(int), timed_actions=any_(dict)).thenReturn(self.timer)
-
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
-    def test_handle_client_command_allows_readyup_by_default(self):
+    def test_handle_client_command_allows_readyup_by_default(self, plugin):
         player = fake_player(1, "Readying Player", team="red")
         connected_players(player,
                           fake_player(2, "Other Player", team="blue"),
@@ -55,9 +69,9 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        return_val = self.plugin.handle_client_command(player, "readyup")
+        return_val = plugin.handle_client_command(player, "readyup")
 
-        assert_that(return_val, is_(True))
+        assert return_val
 
     def test_handle_client_command_disallows_readyup_when_configured(self):
         setup_cvars({
@@ -69,7 +83,7 @@ class AutoReadyTests(unittest.TestCase):
             "qlx_autoready_disable_manual_readyup": "1"
         })
 
-        self.plugin = autoready.autoready()
+        plugin = autoready.autoready()
 
         player = fake_player(1, "Readying Player", team="red")
         connected_players(player,
@@ -83,9 +97,9 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        return_val = self.plugin.handle_client_command(player, "readyup")
+        return_val = plugin.handle_client_command(player, "readyup")
 
-        assert_that(return_val, is_(False))
+        assert not return_val
 
     def test_handle_client_command_allows_readyup_when_configured_with_too_few_players(self):
         setup_cvars({
@@ -97,7 +111,7 @@ class AutoReadyTests(unittest.TestCase):
             "qlx_autoready_disable_manual_readyup": "1"
         })
 
-        self.plugin = autoready.autoready()
+        plugin = autoready.autoready()
 
         player = fake_player(1, "Readying Player", team="red")
         connected_players(player,
@@ -109,9 +123,9 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(7, "Other Player", team="red"),
                           fake_player(8, "Other Player", team="blue"))
 
-        return_val = self.plugin.handle_client_command(player, "readyup")
+        return_val = plugin.handle_client_command(player, "readyup")
 
-        assert_that(return_val, is_(True))
+        assert return_val
 
     def test_handle_client_command_allows_other_commands(self):
         setup_cvars({
@@ -123,7 +137,7 @@ class AutoReadyTests(unittest.TestCase):
             "qlx_autoready_disable_manual_readyup": "1"
         })
 
-        self.plugin = autoready.autoready()
+        plugin = autoready.autoready()
 
         player = fake_player(1, "Readying Player", team="red")
         connected_players(player,
@@ -137,51 +151,50 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        return_val = self.plugin.handle_client_command(player, "score")
+        return_val = plugin.handle_client_command(player, "score")
 
-        assert_that(return_val, is_(True))
+        assert return_val
 
-    def test_handle_map_change_with_no_running_timer(self):
-        self.plugin.handle_map_change("campgrounds", "ca")
+    def test_handle_map_change_with_no_running_timer(self, plugin, timer):
+        plugin.handle_map_change("campgrounds", "ca")
 
-        verify(self.timer, times=0).stop()
-        assert_that(self.plugin.current_timer, is_(-1))
+        timer.stop.assert_not_called()
+        assert plugin.current_timer == -1
 
-    def test_handle_map_change_with_expired_timer(self):
-        when(self.timer).is_alive().thenReturn(False)
-        self.plugin.timer = self.timer
-        self.plugin.handle_map_change("campgrounds", "ca")
+    def test_handle_map_change_with_expired_timer(self, mocker, plugin, timer):
+        plugin.timer = timer
+        with mocker.patch.object(timer, "is_alive", return_value=False):
+            plugin.handle_map_change("campgrounds", "ca")
 
-        verify(self.timer, times=0).stop()
-        assert_that(self.plugin.current_timer, is_(-1))
+        timer.stop.assert_not_called()
+        assert plugin.current_timer == -1
 
-    def test_handle_map_change_stops_timer_and_remembers_remaining_seconds(self):
-        self.timer.seconds_left = 42
-        when(self.timer).is_alive().thenReturn(True)
-        self.plugin.timer = self.timer
+    def test_handle_map_change_stops_timer_and_remembers_remaining_seconds(self, plugin, alive_timer):
+        alive_timer.seconds_left = 42
+        plugin.timer = alive_timer
 
-        self.plugin.handle_map_change("campgrounds", "ca")
+        plugin.handle_map_change("campgrounds", "ca")
 
-        verify(self.plugin.timer).stop()
-        assert_that(self.plugin.current_timer, is_(42))
+        alive_timer.stop.assert_called_once()
+        assert plugin.current_timer == 42
 
-    def test_handle_game_countdown_with_no_timer(self):
-        self.plugin.handle_game_countdown()
+    def test_handle_game_countdown_with_no_timer(self, plugin, timer):
+        plugin.handle_game_countdown()
 
-        verify(self.timer, times=0).stop()
+        timer.stop.assert_not_called()
 
-    def test_handle_game_countdown_resets_current_timer(self):
-        self.plugin.timer = self.timer
+    def test_handle_game_countdown_resets_current_timer(self, plugin, timer):
+        plugin.timer = timer
 
-        self.plugin.current_timer = 45
+        plugin.current_timer = 45
 
-        self.plugin.handle_game_countdown()
+        plugin.handle_game_countdown()
 
-        verify(self.timer).stop()
-        assert_that(self.plugin.current_timer, is_(-1))
-        assert_that(self.plugin.timer, is_(None))
+        timer.stop.assert_called_once()
+        assert plugin.current_timer == -1
+        assert plugin.timer is None
 
-    def test_handle_team_switch_with_no_game(self):
+    def test_handle_team_switch_with_no_game(self, plugin, timer):
         setup_no_game()
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
@@ -195,11 +208,11 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        verify(self.timer, times=0).start()
+        timer.start.assert_not_called()
 
-    def test_handle_team_switch_with_game_not_in_warmup(self):
+    def test_handle_team_switch_with_game_not_in_warmup(self, plugin, timer):
         setup_game_in_progress()
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
@@ -213,11 +226,11 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        verify(self.timer, times=0).start()
+        timer.start.assert_not_called()
 
-    def test_handle_team_switch_player_switching_to_spec(self):
+    def test_handle_team_switch_player_switching_to_spec(self, plugin, timer):
         switching_player = fake_player(1, "Switching Player", team="red")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -230,13 +243,12 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "red", "spectator")
+        plugin.handle_team_switch(switching_player, "red", "spectator")
 
-        verify(self.timer, times=0).start()
+        timer.start.assert_not_called()
 
-    def test_handle_team_switch_timer_already_started(self):
-        self.plugin.timer = self.timer
-        when(self.timer).is_alive().thenReturn(True)
+    def test_handle_team_switch_timer_already_started(self, plugin, alive_timer):
+        plugin.timer = alive_timer
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -249,11 +261,11 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        verify(self.timer, times=0).start()
+        alive_timer.start.assert_not_called()
 
-    def test_handle_team_switch_with_too_few_players(self):
+    def test_handle_team_switch_with_too_few_players(self, plugin, timer):
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -264,11 +276,11 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(7, "Other Player", team="red"),
                           fake_player(8, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        verify(self.timer, times=0).start()
+        timer.start.assert_not_called()
 
-    def test_handle_team_switch_starts_autoready_timer(self):
+    def test_handle_team_switch_starts_autoready_timer(self, plugin, timer):
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -281,13 +293,13 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        verify(self.timer).start()
-        assert_that(self.plugin.current_timer, is_(180))
+        timer.start.assert_called_once()
+        assert plugin.current_timer == 180
 
-    def test_handle_team_switch_restarts_autoready_timer_after_mapchange(self):
-        self.plugin.current_timer = 42
+    def test_handle_team_switch_restarts_autoready_timer_after_mapchange(self, plugin, timer):
+        plugin.current_timer = 42
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -300,12 +312,12 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        assert_that(self.plugin.current_timer, is_(42))
+        assert plugin.current_timer == 42
 
-    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self):
-        self.plugin.current_timer = 21
+    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self, plugin, timer):
+        plugin.current_timer = 21
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -318,32 +330,32 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(9, "Other Player", team="red"),
                           fake_player(10, "Other Player", team="blue"))
 
-        self.plugin.handle_team_switch(switching_player, "spectator", "red")
+        plugin.handle_team_switch(switching_player, "spectator", "red")
 
-        assert_that(self.plugin.current_timer, is_(30))
+        assert plugin.current_timer == 30
 
-    def test_handle_player_disconnect_with_no_game(self):
+    def test_handle_player_disconnect_with_no_game(self, plugin):
         setup_no_game()
-        self.plugin.current_timer = 42
+        plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player)
 
-        self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
+        plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.current_timer, is_(42))
+        assert plugin.current_timer == 42
 
-    def test_handle_player_disconnect_while_game_not_in_warmup(self):
+    def test_handle_player_disconnect_while_game_not_in_warmup(self, plugin):
         setup_game_in_progress()
-        self.plugin.current_timer = 42
+        plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player)
 
-        self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
+        plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.current_timer, is_(42))
+        assert plugin.current_timer == 42
 
-    def test_handle_player_disconnect_in_warmup_with_too_many_players(self):
-        self.plugin.current_timer = 42
+    def test_handle_player_disconnect_in_warmup_with_too_many_players(self, plugin):
+        plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -358,12 +370,12 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(11, "Other Player", team="red"),
                           fake_player(12, "Other Player", team="blue"))
 
-        self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
+        plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.current_timer, is_(42))
+        assert plugin.current_timer == 42
 
-    def test_handle_player_disconnect_disables_countdown_timer(self):
-        self.plugin.current_timer = 42
+    def test_handle_player_disconnect_disables_countdown_timer(self, plugin):
+        plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -374,14 +386,13 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(7, "Other Player", team="red"),
                           fake_player(8, "Other Player", team="blue"))
 
-        self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
+        plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
-        assert_that(self.plugin.current_timer, is_(-1))
+        assert plugin.current_timer == -1
 
-    def test_handle_player_disconnect_with_running_timer(self):
-        self.plugin.timer = self.timer
-        when(self.timer).is_alive().thenReturn(True)
-        self.plugin.current_timer = 42
+    def test_handle_player_disconnect_with_running_timer(self, plugin, alive_timer):
+        plugin.timer = alive_timer
+        plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -392,11 +403,11 @@ class AutoReadyTests(unittest.TestCase):
                           fake_player(7, "Other Player", team="red"),
                           fake_player(8, "Other Player", team="blue"))
 
-        self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
+        plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
-        verify(self.timer).stop()
-        assert_that(self.plugin.timer, is_(None))
-        assert_that(self.plugin.current_timer, is_(-1))
+        alive_timer.stop.assert_called_once()
+        assert plugin.timer is None
+        assert plugin.current_timer == -1
 
     # noinspection PyMethodMayBeStatic
     def test_display_countdown_above_30(self):
@@ -411,46 +422,45 @@ class AutoReadyTests(unittest.TestCase):
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^125")
 
     # noinspection PyMethodMayBeStatic
-    def test_blink(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
+    def test_blink(self, mocker):
+        mocker.patch("time.sleep")
+        sleep_spy = mocker.spy(time, "sleep")
 
         autoready.blink(8)
 
-        verify(time).sleep(0.4)
+        sleep_spy.assert_called_once_with(0.4)
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ")
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108")
 
     # noinspection PyMethodMayBeStatic
-    def test_warning_blink(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
+    def test_warning_blink(self, mocker):
+        mocker.patch("time.sleep")
+        sleep_spy = mocker.spy(time, "sleep")
 
         autoready.warning_blink(30, "thirty_second_warning")
 
-        verify(time).sleep(0.4)
+        sleep_spy.assert_called_once_with(0.4)
         assert_plugin_played_sound("thirty_second_warning")
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ")
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^130")
 
     # noinspection PyMethodMayBeStatic
-    def test_double_blink(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
+    def test_double_blink(self, mocker):
+        mocker.patch("time.sleep")
+        sleep_spy = mocker.spy(time, "sleep")
 
         autoready.double_blink(8)
 
-        verify(time, times=2).sleep(0.2)
-        verify(time).sleep(0.3)
+        calls = [call(0.2), call(0.3), call(0.2)]
+        sleep_spy.assert_has_calls(calls)
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108", times=2)
 
     # noinspection PyMethodMayBeStatic
-    def test_shuffle_double_blink_when_diff_larger_than_one_player(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
-        spy2(Plugin.shuffle)
-        when2(Plugin.shuffle).thenReturn(None)
+    def test_shuffle_double_blink_when_diff_larger_than_one_player(self, mocker):
+        mocker.patch("time.sleep")
+        sleep_spy = mocker.spy(time, "sleep")
+        shuffle_spy = mocker.spy(Plugin, "shuffle")
 
         connected_players(fake_player(1, "Red Player1", team="red"),
                           fake_player(2, "Red Player2", team="red"),
@@ -465,18 +475,17 @@ class AutoReadyTests(unittest.TestCase):
 
         autoready.shuffle_double_blink(10)
 
-        verify(time, times=2).sleep(0.2)
-        verify(time).sleep(0.3)
-        verify(Plugin).shuffle()
+        calls = [call(0.2), call(0.3), call(0.2)]
+        sleep_spy.assert_has_calls(calls)
+        shuffle_spy.assert_called_once()
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^110", times=2)
 
     # noinspection PyMethodMayBeStatic
-    def test_shuffle_double_blink_when_diff_one_player(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
-        spy2(Plugin.shuffle)
-        when2(Plugin.shuffle).thenReturn(None)
+    def test_shuffle_double_blink_when_diff_one_player(self, mocker):
+        mocker.patch("time.sleep")
+        sleep_spy = mocker.spy(time, "sleep")
+        shuffle_spy = mocker.spy(Plugin, "shuffle")
 
         connected_players(fake_player(1, "Red Player1", team="red"),
                           fake_player(2, "Red Player2", team="red"),
@@ -490,133 +499,131 @@ class AutoReadyTests(unittest.TestCase):
 
         autoready.shuffle_double_blink(10)
 
-        verify(time, times=2).sleep(0.2)
-        verify(time).sleep(0.3)
-        verify(Plugin, times=0).shuffle()
+        calls = [call(0.2), call(0.3), call(0.2)]
+        sleep_spy.assert_has_calls(calls)
+        shuffle_spy.assert_not_called()
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^110", times=2)
 
     # noinspection PyMethodMayBeStatic
-    def test_wear_off_double_blink(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
+    def test_wear_off_double_blink(self, mocker):
+        mocker.patch("time.sleep")
+        sleep_spy = mocker.spy(time, "sleep")
 
         autoready.wear_off_double_blink(8)
 
-        verify(time, times=2).sleep(0.2)
-        verify(time).sleep(0.3)
+        calls = [call(0.2), call(0.3), call(0.2)]
+        sleep_spy.assert_has_calls(calls)
         assert_plugin_played_sound("sound/items/wearoff.ogg")
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108", times=2)
 
     # noinspection PyMethodMayBeStatic
-    def test_allready(self):
-        spy2(Plugin.allready)
-        when2(Plugin.allready).thenReturn(None)
+    def test_allready(self, mocker):
+        mocker.patch("minqlx.Plugin.allready")
+        allready_spy = mocker.spy(Plugin, "allready")
 
         autoready.allready(0)
 
-        verify(Plugin).allready()
+        allready_spy.assert_called_once()
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^20^7:^200")
 
 
 # noinspection PyPep8Naming
-class CountdownThread_tests(unittest.TestCase):
-    def setUp(self):
-        spy2(time.sleep)
-        when2(time.sleep, any_(float)).thenReturn(None)
+class TestCountdownThread:
+    def setup_method(self):
+        patch("time.sleep", return_value=None)
 
-        self.mocked_function42 = mock()
-        self.mocked_function21 = mock()
+        self.mocked_function42 = Mock()
+        self.mocked_function21 = Mock()
         timed_test_actions = {42: self.mocked_function42, 21: self.mocked_function21}
-        self.countdown_thread = CountdownThread(125, timed_actions=timed_test_actions)
+        self.countdown_thread = CountdownThread(125, timed_actions=timed_test_actions)  # type: ignore
         self.fake_thread_runtime = datetime(year=2022, month=4, day=4, hour=11, minute=11, second=11)
         self.countdown_thread._now = self.fake_thread_runtime  # pylint: disable=W0212
 
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
     def test_seconds_left_when_thread_has_not_been_started(self):
-        assert_that(self.countdown_thread.seconds_left, is_(self.countdown_thread.duration))
+        assert self.countdown_thread.seconds_left == self.countdown_thread.duration
 
     def test_seconds_left_when_thread_has_been_stopped_before(self):
         self.countdown_thread._remaining = 7  # pylint: disable=W0212
 
-        assert_that(self.countdown_thread.seconds_left, is_(7))
+        assert self.countdown_thread.seconds_left == 7
 
     def test_seconds_left_when_thread_is_current_running(self):
         test_target_time = self.fake_thread_runtime + timedelta(seconds=11, milliseconds=999, microseconds=999)
         self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
 
-        assert_that(self.countdown_thread.seconds_left, is_(11))
+        assert self.countdown_thread.seconds_left == 11
 
     def test_stop_when_thread_is_not_running(self):
         self.countdown_thread.stop()
 
-        assert_that(self.countdown_thread.seconds_left, is_(self.countdown_thread.duration))
+        assert self.countdown_thread.seconds_left == self.countdown_thread.duration
 
-    def test_stop_when_target_time_is_unset(self):
-        spy2(self.countdown_thread.is_alive)
-        when2(self.countdown_thread.is_alive).thenReturn(True)
+    def test_stop_when_target_time_is_unset(self, mocker):
+        mocker.patch.object(self.countdown_thread, "is_alive", return_value=True)
 
         self.countdown_thread.stop()
 
-        assert_that(self.countdown_thread.seconds_left, is_(self.countdown_thread.duration))
+        assert self.countdown_thread.seconds_left == self.countdown_thread.duration
 
-    def test_stop_when_thread_is_running(self):
-        spy2(self.countdown_thread.is_alive)
-        when2(self.countdown_thread.is_alive).thenReturn(True)
+    def test_stop_when_thread_is_running(self, mocker):
+        mocker.patch.object(self.countdown_thread, "is_alive", return_value=True)
         test_target_time = self.fake_thread_runtime + timedelta(seconds=11, milliseconds=999, microseconds=999)
         self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
 
         self.countdown_thread.stop()
 
-        assert_that(self.countdown_thread.seconds_left, is_(11))
+        assert self.countdown_thread.seconds_left == 11
 
     def test_determine_timed_action_for_several_combinations(self):
         func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(42)
-        assert_that(func_result, is_(self.mocked_function42))
+        assert func_result == self.mocked_function42
         func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(41)
-        assert_that(func_result, is_(self.mocked_function21))
+        assert func_result == self.mocked_function21
         func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(21)
-        assert_that(func_result, is_(self.mocked_function21))
+        assert func_result == self.mocked_function21
         func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(20)
-        assert_that(func_result, is_(not_(self.mocked_function42)))
-        assert_that(func_result, is_(not_(self.mocked_function21)))
+        assert func_result != self.mocked_function42
+        assert func_result != self.mocked_function21
 
-    def test_run_inner_loop_function(self):
+    def test_run_inner_loop_function(self, mocker):
+        sleep_spy = mocker.spy(time, "sleep")
         test_target_time = self.fake_thread_runtime + timedelta(seconds=35)
         self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
 
         self.countdown_thread.run_loop_step()
 
-        verify(self.mocked_function21, times=1).__call__(any_(int))
-        verify(time).sleep(0.0)
+        self.mocked_function21.assert_called_once()
+        sleep_spy.assert_called_once_with(0.0)
 
     def test_calculate_target_time(self):
         target_datetime = self.countdown_thread.calculate_target_time()
 
-        assert_that(target_datetime, is_(self.fake_thread_runtime + timedelta(seconds=125)))
+        assert target_datetime == self.fake_thread_runtime + timedelta(seconds=125)
 
 
 # noinspection PyPep8Naming
-class RandomIterator_tests(unittest.TestCase):
-    def setUp(self):
-        self.sequence = [1, 2, 3]
-        self.random_sequence = [2, 1, 3]
+class TestRandomIterator:
 
-        spy2(random.sample)
-        when(random).sample(any_(list), any_(int)).thenReturn(self.random_sequence)
+    sequence = [1, 2, 3]
+    random_sequence = [2, 1, 3]
 
-    def tearDown(self):
-        unstub()
+    @pytest.fixture
+    def random_iterator(self, mocker):
+        mocker.patch("random.sample", return_value=self.random_sequence)
+        self.sample_spy = mocker.spy(random, "sample")
+        return iter(RandomIterator(self.sequence))
 
-    def test_random_iterator(self):
-        iterator = iter(RandomIterator(self.sequence))
-
+    def test_random_iterator(self, random_iterator):
         returned_sequence: list[int] = []
         for i in range(6):
-            returned_sequence.append(next(iterator))
+            returned_sequence.append(next(random_iterator))
 
-        assert_that(returned_sequence, is_(2 * self.random_sequence))
-        verify(random, times=2).sample(self.sequence, 3)
+        assert returned_sequence == 2 * self.random_sequence
+        calls = [call(self.sequence, 3), call(self.sequence, 3)]
+        self.sample_spy.assert_has_calls(calls)
