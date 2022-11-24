@@ -23,7 +23,7 @@ class DuelArenaTests(unittest.TestCase):
             "qlx_duelarenaNormalToDuelThreshold": "11",
             "g_roundWarmupDelay": "2000"
         })
-        setup_game_in_progress("ca")
+        setup_game_in_progress(game_type="ca")
         connected_players()
         self.plugin = duelarena()
         spy2(self.plugin.duelarena_game.reset)
@@ -498,7 +498,7 @@ class DuelArenaTests(unittest.TestCase):
         assert_that(return_code, is_(None))
 
     def test_handle_round_end_with_wrong_gametype(self):
-        setup_game_in_progress("ft")
+        setup_game_in_progress(game_type="ft")
 
         return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
@@ -768,7 +768,7 @@ class DuelArenaTests(unittest.TestCase):
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        assert_game_addteamscore("blue", 4)
+        assert_game_addteamscore(team="blue", score=4)
 
     def test_handle_round_end_when_player_queue_empty_duelarena_is_deactivated(self):
         red_player = fake_player(1, "Red Player", "red")
@@ -915,7 +915,7 @@ class DuelArenaGameTests(unittest.TestCase):
             "qlx_duelarenaDuelToNormalThreshold": "6",
             "qlx_duelarenaNormalToDuelThreshold": "11"
         })
-        setup_game_in_progress("ca")
+        setup_game_in_progress(game_type="ca")
         connected_players()
         self.duelarena_game = DuelArenaGame()
 
@@ -1437,8 +1437,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -2)
-        assert_game_addteamscore("blue", 1)
+        assert_game_addteamscore(team="red", score=-2)
+        assert_game_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_player_was_put_on(player2, any_(str), times=0)
 
@@ -1451,8 +1451,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -4)
-        assert_game_addteamscore("blue", 3)
+        assert_game_addteamscore(team="red", score=-4)
+        assert_game_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_player_was_put_on(player2, any_(str), times=0)
 
@@ -1465,8 +1465,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -2)
-        assert_game_addteamscore("blue", 1)
+        assert_game_addteamscore(team="red", score=-2)
+        assert_game_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_that(self.duelarena_game.player_blue, is_(player2.steam_id))
         assert_player_was_put_on(player2, "blue")
@@ -1480,8 +1480,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -4)
-        assert_game_addteamscore("blue", 3)
+        assert_game_addteamscore(team="red", score=-4)
+        assert_game_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_that(self.duelarena_game.player_red, is_(player2.steam_id))
         assert_player_was_put_on(player2, "red")
@@ -1495,8 +1495,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -2)
-        assert_game_addteamscore("blue", 1)
+        assert_game_addteamscore(team="red", score=-2)
+        assert_game_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, "red")
         assert_that(self.duelarena_game.player_red, is_(player1.steam_id))
         assert_player_was_put_on(player2, any_(str), times=0)
@@ -1510,8 +1510,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -4)
-        assert_game_addteamscore("blue", 3)
+        assert_game_addteamscore(team="red", score=-4)
+        assert_game_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, "blue")
         assert_that(self.duelarena_game.player_blue, is_(player1.steam_id))
         assert_player_was_put_on(player2, any_(str), times=0)
@@ -1525,8 +1525,8 @@ class DuelArenaGameTests(unittest.TestCase):
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore("red", -2)
-        assert_game_addteamscore("blue", 1)
+        assert_game_addteamscore(team="red", score=-2)
+        assert_game_addteamscore(team="blue", score=1)
         assert_that(self.duelarena_game.player_red, is_(player1.steam_id))
         assert_player_was_put_on(player1, "red")
         assert_that(self.duelarena_game.player_blue, is_(player2.steam_id))

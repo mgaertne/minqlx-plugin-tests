@@ -115,7 +115,7 @@ class MercifulEloLimitTests(unittest.TestCase):
             .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
     def test_fetch_elos_of_players_with_unsupported_gametype(self):
-        setup_game_in_progress("unsupported")
+        setup_game_in_progress(game_type="unsupported")
         self.setup_balance_ratings({})
 
         self.plugin.fetch_elos_of_players([])
@@ -173,7 +173,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.db, times=0).get(any_)
 
     def test_callback_ratings_with_unsupported_game_type(self):
-        setup_game_in_progress("unsupported")
+        setup_game_in_progress(game_type="unsupported")
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         player3 = fake_player(789, "Speccing Player", team="spectator")
@@ -429,7 +429,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.db, times=0).delete(any_)
 
     def test_handle_round_start_with_unsupported_gametype(self):
-        setup_game_in_progress("unsupported")
+        setup_game_in_progress(game_type="unsupported")
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)

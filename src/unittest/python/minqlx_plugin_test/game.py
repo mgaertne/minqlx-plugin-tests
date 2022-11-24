@@ -17,7 +17,7 @@ def setup_no_game():
     when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
 
 
-def setup_game_in_warmup(game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
+def setup_game_in_warmup(*, game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
                          roundlimit: int = 8, maxclients: int = 16) -> None:
     """Set up the server with a game currently in warmup mode.
 
@@ -40,7 +40,7 @@ def setup_game_in_warmup(game_type: str = "ca", mapname: str = "campgrounds", ma
     mock_game.maxclients = maxclients
 
 
-def setup_game_in_progress(game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
+def setup_game_in_progress(*, game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
                            roundlimit: int = 8, red_score: int = 0, blue_score: int = 0, maxclients: int = 16) -> None:
     """Set up the server with a game currently in progress. You may specify the game_type, roundlimit, and score for
     the red and blue teams with the optional parameters.
@@ -68,7 +68,7 @@ def setup_game_in_progress(game_type: str = "ca", mapname: str = "campgrounds", 
     mock_game.maxclients = maxclients
 
 
-def assert_game_addteamscore(team: str, score: int, _times: int = 1) -> None:
+def assert_game_addteamscore(*, team: str, score: int, _times: int = 1) -> None:
     """Verify that the score of the team was manipulated by the given amount.
 
     **The test needs to be set up via :func:`.setUp_game_in_warmup()` or :func:`.setup_game_in_progress()`

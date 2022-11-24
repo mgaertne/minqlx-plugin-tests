@@ -28,7 +28,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
     def setUp(self):
         setup_plugin()
-        setup_game_in_warmup("ca")
+        setup_game_in_warmup(game_type="ca")
         connected_players()
         self.discord = mock(spec=SimpleAsyncDiscord, strict=False)
         setup_cvars({
