@@ -1173,10 +1173,16 @@ class weird_stats(Plugin):
                                    for player in teams["red"] + teams["blue"]}
 
     def handle_death(self, victim: Player, killer: Player, data: dict) -> None:
+        self.record_means_of_death(victim, killer, data["MOD"])
+
+        if self.in_round:
+            self.record_alive_time(victim)
+
+    def record_means_of_death(self, victim: Player, killer: Player, means_of_death: str) -> None:
         if not self.game or self.game.state != "in_progress":
             return
 
-        if data["MOD"] == "SWITCHTEAM":
+        if means_of_death == "SWITCHTEAM":
             return
 
         if killer is not None and victim is not None and victim.steam_id == killer.steam_id:
@@ -1185,13 +1191,14 @@ class weird_stats(Plugin):
         if victim is None:
             return
 
-        means_of_death = determine_means_of_death(data["MOD"])
+        means_of_death = determine_means_of_death(means_of_death)
         if victim.steam_id not in self.means_of_death:
             self.means_of_death[victim.steam_id] = {}
         self.means_of_death[victim.steam_id][means_of_death] = \
             self.means_of_death[victim.steam_id].get(means_of_death, 0) + 1
 
-        if not self.in_round:
+    def record_alive_time(self, *players: Player) -> None:
+        if not self.game or self.game.state != "in_progress":
             return
 
         if self.round_start_datetime is None:
@@ -1199,23 +1206,19 @@ class weird_stats(Plugin):
 
         player_alive_timedelta: timedelta = datetime.now() - self.round_start_datetime
         player_alive_time: float = player_alive_timedelta.total_seconds()
-        if self.fastest_death == (-1, -1) or self.fastest_death[1] > player_alive_time:
-            self.fastest_death = victim.steam_id, player_alive_time
-        self.alive_times[victim.steam_id] = self.alive_times.get(victim.steam_id, 0.0) + player_alive_time
+
+        for player in players:
+            if self.fastest_death == (-1, -1) or self.fastest_death[1] > player_alive_time:
+                self.fastest_death = player.steam_id, player_alive_time
+            self.alive_times[player.steam_id] = self.alive_times.get(player.steam_id, 0.0) + player_alive_time
 
     def handle_round_end(self, _data: dict) -> None:
         self.in_round = False
 
-        if self.round_start_datetime is None:
-            return
-
-        round_end_time = datetime.now()
         teams = self.teams()
-        for steam_id in [player.steam_id for player in teams["red"] + teams["blue"] if
-                         player.is_alive and player.health > 0]:
-            player_alive_timedelta: timedelta = round_end_time - self.round_start_datetime
-            player_alive_time: float = player_alive_timedelta.total_seconds()
-            self.alive_times[steam_id] = self.alive_times.get(steam_id, 0.0) + player_alive_time
+        surviving_players = [player for player in teams["red"] + teams["blue"] if
+                             player.is_alive and player.health > 0]
+        self.record_alive_time(*surviving_players)
 
         self.round_start_datetime = None
 
@@ -1325,6 +1328,8 @@ class weird_stats(Plugin):
                 counter += 1
                 player = self.player(steam_id)
                 if player is None:
+                    if counter == 2:
+                        counter = 1
                     continue
                 alive_time = self.alive_time_of(steam_id)
                 if match_end_announcements:
