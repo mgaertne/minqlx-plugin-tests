@@ -1314,8 +1314,7 @@ class weird_stats(Plugin):
         average_speed = statistics.mean(player_speeds.values())
         returned = [f"(avg: ^5{format_float(average_speed)} km/h^7)"]
 
-        counter = 1
-        for speed, steam_ids in grouped_speeds:
+        for counter, (speed, steam_ids) in enumerate(grouped_speeds, start=1):
             if 0 < top_entries < len(returned):
                 return returned
 
@@ -1325,11 +1324,8 @@ class weird_stats(Plugin):
                 continue
 
             for steam_id in steam_ids:
-                counter += 1
                 player = self.player(steam_id)
                 if player is None:
-                    if counter == 2:
-                        counter = 1
                     continue
                 alive_time = self.alive_time_of(steam_id)
                 if match_end_announcements:
