@@ -1308,20 +1308,29 @@ class weird_stats(Plugin):
             self.record_speeds(self.game.map.lower(), player_speeds)
 
         grouped_speeds = itertools.groupby(
-            sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
-            key=player_speeds.get)
+                sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
+                key=player_speeds.get)
+        grouped_speeds_dict: Dict[float, List[SteamId]] = \
+            {speed: list(steam_ids) for speed, steam_ids in grouped_speeds}  # type: ignore
 
         average_speed = statistics.mean(player_speeds.values())
         returned = [f"(avg: ^5{format_float(average_speed)} km/h^7)"]
 
-        for counter, (speed, steam_ids) in enumerate(grouped_speeds, start=1):
-            if 0 < top_entries < len(returned):
+        dots_inserted = False
+        extra = 0
+        for counter, (speed, steam_ids) in enumerate(grouped_speeds_dict.items(), start=1):
+            if match_end_announcements and 0 < top_entries < counter:
                 return returned
 
-            prefix = f"^5{counter:2}^7."
-
-            if speed is None:
+            if not match_end_announcements and top_entries < counter < len(grouped_speeds_dict) - top_entries + 1:
+                if not dots_inserted:
+                    returned.append("   ...")
+                    extra += max(0, len(steam_ids) - 1)
+                    dots_inserted = True
                 continue
+
+            prefix = f"^5{counter+extra:2}^7."
+            extra += max(0, len(steam_ids) - 1)
 
             for steam_id in steam_ids:
                 player = self.player(steam_id)
