@@ -1,3 +1,4 @@
+import sys
 from unittest.mock import patch, Mock
 
 import pytest
@@ -122,8 +123,9 @@ class TestAutoRebalance:
         assert return_code == minqlx.RET_NONE
         assert_plugin_sent_to_console(matches(".*not possible.*"))
 
-    def test_handle_team_switch_attempt_unsupported_gametype(self, game_in_progress):
-        game_in_progress.type_short = "rr"
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["game_type=rr"], indirect=True)
+    def test_handle_team_switch_attempt_unsupported_gametype(self):
         self.setup_balance_ratings([])
         player = fake_player(42, "Fake Player")
         connected_players(player)
@@ -297,36 +299,30 @@ class TestAutoRebalance:
 
         assert return_code == minqlx.RET_NONE
 
-    def test_handle_round_end_wrong_gametype(self, game_in_progress):
-        game_in_progress.type_short = "rr"
-
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["game_type=rr"], indirect=True)
+    def test_handle_round_end_wrong_gametype(self):
         return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert return_code == minqlx.RET_NONE
 
-    def test_handle_round_end_roundlimit_reached(self, game_in_progress):
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 8
-        game_in_progress.blue_score = 3
-
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=8,blue_score=3"], indirect=True)
+    def test_handle_round_end_roundlimit_reached(self):
         return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert return_code == minqlx.RET_NONE
 
-    def test_handle_round_end_suggestion_threshold_not_met(self, game_in_progress):
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 4
-        game_in_progress.blue_score = 3
-
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True)
+    def test_handle_round_end_suggestion_threshold_not_met(self):
         return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert return_code == minqlx.RET_NONE
 
-    def test_handle_round_end_teams_unbalanced(self, game_in_progress):
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 5
-        game_in_progress.blue_score = 1
-
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True)
+    def test_handle_round_end_teams_unbalanced(self):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
         blue_player1 = fake_player(246, "Blue Player1", "blue")
@@ -336,11 +332,10 @@ class TestAutoRebalance:
 
         assert return_code == minqlx.RET_NONE
 
-    def test_handle_round_end_teams_callback_called(self, mocker, mocked_balance_plugin, game_in_progress):
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True)
+    def test_handle_round_end_teams_callback_called(self, mocker, mocked_balance_plugin):
         add_request_spy = mocker.spy(mocked_balance_plugin, "add_request")
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 5
-        game_in_progress.blue_score = 1
 
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
@@ -355,11 +350,10 @@ class TestAutoRebalance:
 
         add_request_spy.assert_called_once_with(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
-    def test_handle_round_end_no_balance_plugin(self, game_in_progress):
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True)
+    def test_handle_round_end_no_balance_plugin(self):
         self.setup_no_balance_plugin()
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 5
-        game_in_progress.blue_score = 1
 
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
@@ -372,11 +366,9 @@ class TestAutoRebalance:
 
         assert return_code == minqlx.RET_NONE
 
-    def test_handle_round_end_winner_is_tracked_for_winning_streak(self, game_in_progress):
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 3
-        game_in_progress.blue_score = 1
-
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=3,blue_score=1"], indirect=True)
+    def test_handle_round_end_winner_is_tracked_for_winning_streak(self):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
         blue_player1 = fake_player(246, "Blue Player1", "blue")
@@ -389,12 +381,11 @@ class TestAutoRebalance:
 
         assert self.plugin.winning_teams == ["red", "blue", "red", "red"]
 
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=3,blue_score=1"], indirect=True)
     def test_handle_round_end_winning_streak_triggers_teams_callback(
-            self, mocker, mocked_balance_plugin, game_in_progress):
+            self, mocker, mocked_balance_plugin):
         add_request_spy = mocker.spy(mocked_balance_plugin, "add_request")
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 3
-        game_in_progress.blue_score = 1
 
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
@@ -409,12 +400,11 @@ class TestAutoRebalance:
         players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         add_request_spy.assert_called_once_with(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
+    @pytest.mark.usefixtures("game_in_progress")
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True)
     def test_handle_round_end_winning_streak_triggers_teams_callback_already_called_multiple_times(
-            self, mocker, mocked_balance_plugin, game_in_progress):
+            self, mocker, mocked_balance_plugin):
         add_request_spy = mocker.spy(mocked_balance_plugin, "add_request")
-        game_in_progress.roundlimit = 8
-        game_in_progress.red_score = 4
-        game_in_progress.blue_score = 3
 
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
