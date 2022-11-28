@@ -9,8 +9,8 @@ from pytest_mock import MockerFixture
 # noinspection PyProtectedMember
 from mockito import unstub  # type: ignore
 
-from minqlx_plugin_test import setup_cvars, setup_plugin, fake_player, connected_players, setup_game_in_warmup, \
-    setup_no_game, setup_game_in_progress, assert_plugin_center_printed, assert_plugin_played_sound
+from minqlx_plugin_test import setup_cvars, setup_plugin, fake_player, connected_players, \
+    assert_plugin_center_printed, assert_plugin_played_sound
 
 from minqlx import Plugin
 
@@ -50,12 +50,11 @@ class TestAutoReady:
             "qlx_autoready_disable_manual_readyup": "0"
         })
 
-        setup_game_in_warmup(game_type="ca", mapname="campgrounds")
-
     @staticmethod
     def teardown_method():
         unstub()
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_allows_readyup_by_default(self, plugin):
         player = fake_player(1, "Readying Player", team="red")
         connected_players(player,
@@ -73,6 +72,7 @@ class TestAutoReady:
 
         assert return_val
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_disallows_readyup_when_configured(self):
         setup_cvars({
             "zmq_stats_enable": "1",
@@ -101,6 +101,7 @@ class TestAutoReady:
 
         assert not return_val
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_allows_readyup_when_configured_with_too_few_players(self):
         setup_cvars({
             "zmq_stats_enable": "1",
@@ -127,6 +128,7 @@ class TestAutoReady:
 
         assert return_val
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_allows_other_commands(self):
         setup_cvars({
             "zmq_stats_enable": "1",
@@ -155,6 +157,7 @@ class TestAutoReady:
 
         assert return_val
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_map_change_with_no_running_timer(self, plugin, timer):
         plugin.handle_map_change("campgrounds", "ca")
 
@@ -169,6 +172,7 @@ class TestAutoReady:
         timer.stop.assert_not_called()
         assert plugin.current_timer == -1
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_map_change_stops_timer_and_remembers_remaining_seconds(self, plugin, alive_timer):
         alive_timer.seconds_left = 42
         plugin.timer = alive_timer
@@ -178,11 +182,13 @@ class TestAutoReady:
         alive_timer.stop.assert_called_once()
         assert plugin.current_timer == 42
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_game_countdown_with_no_timer(self, plugin, timer):
         plugin.handle_game_countdown()
 
         timer.stop.assert_not_called()
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_game_countdown_resets_current_timer(self, plugin, timer):
         plugin.timer = timer
 
@@ -194,8 +200,8 @@ class TestAutoReady:
         assert plugin.current_timer == -1
         assert plugin.timer is None
 
+    @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_team_switch_with_no_game(self, plugin, timer):
-        setup_no_game()
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -212,8 +218,8 @@ class TestAutoReady:
 
         timer.start.assert_not_called()
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_with_game_not_in_warmup(self, plugin, timer):
-        setup_game_in_progress()
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
                           fake_player(2, "Other Player", team="blue"),
@@ -230,6 +236,7 @@ class TestAutoReady:
 
         timer.start.assert_not_called()
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_player_switching_to_spec(self, plugin, timer):
         switching_player = fake_player(1, "Switching Player", team="red")
         connected_players(switching_player,
@@ -247,6 +254,7 @@ class TestAutoReady:
 
         timer.start.assert_not_called()
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_timer_already_started(self, plugin, alive_timer):
         plugin.timer = alive_timer
         switching_player = fake_player(1, "Switching Player", team="spectator")
@@ -265,6 +273,7 @@ class TestAutoReady:
 
         alive_timer.start.assert_not_called()
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_with_too_few_players(self, plugin, timer):
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
@@ -280,6 +289,7 @@ class TestAutoReady:
 
         timer.start.assert_not_called()
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_starts_autoready_timer(self, plugin, timer):
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(switching_player,
@@ -298,6 +308,7 @@ class TestAutoReady:
         timer.start.assert_called_once()
         assert plugin.current_timer == 180
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_restarts_autoready_timer_after_mapchange(self, plugin, timer):
         plugin.current_timer = 42
         switching_player = fake_player(1, "Switching Player", team="spectator")
@@ -316,6 +327,7 @@ class TestAutoReady:
 
         assert plugin.current_timer == 42
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self, plugin, timer):
         plugin.current_timer = 21
         switching_player = fake_player(1, "Switching Player", team="spectator")
@@ -334,8 +346,8 @@ class TestAutoReady:
 
         assert plugin.current_timer == 30
 
+    @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_player_disconnect_with_no_game(self, plugin):
-        setup_no_game()
         plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player)
@@ -344,8 +356,8 @@ class TestAutoReady:
 
         assert plugin.current_timer == 42
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_disconnect_while_game_not_in_warmup(self, plugin):
-        setup_game_in_progress()
         plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
         connected_players(disconnecting_player)
@@ -354,6 +366,7 @@ class TestAutoReady:
 
         assert plugin.current_timer == 42
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_player_disconnect_in_warmup_with_too_many_players(self, plugin):
         plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
@@ -374,6 +387,7 @@ class TestAutoReady:
 
         assert plugin.current_timer == 42
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_player_disconnect_disables_countdown_timer(self, plugin):
         plugin.current_timer = 42
         disconnecting_player = fake_player(1, "Disconnecting Player")
@@ -390,6 +404,7 @@ class TestAutoReady:
 
         assert plugin.current_timer == -1
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_player_disconnect_with_running_timer(self, plugin, alive_timer):
         plugin.timer = alive_timer
         plugin.current_timer = 42
@@ -410,18 +425,21 @@ class TestAutoReady:
         assert plugin.current_timer == -1
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_display_countdown_above_30(self):
         autoready.display_countdown(121)
 
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^32^7:^301")
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_display_countdown_below_30(self):
         autoready.display_countdown(25)
 
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^125")
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_blink(self, mocker):
         mocker.patch("time.sleep")
         sleep_spy = mocker.spy(time, "sleep")
@@ -433,6 +451,7 @@ class TestAutoReady:
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108")
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_warning_blink(self, mocker):
         mocker.patch("time.sleep")
         sleep_spy = mocker.spy(time, "sleep")
@@ -445,6 +464,7 @@ class TestAutoReady:
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^130")
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_double_blink(self, mocker):
         mocker.patch("time.sleep")
         sleep_spy = mocker.spy(time, "sleep")
@@ -457,6 +477,7 @@ class TestAutoReady:
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108", times=2)
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_shuffle_double_blink_when_diff_larger_than_one_player(self, mocker):
         mocker.patch("time.sleep")
         sleep_spy = mocker.spy(time, "sleep")
@@ -482,6 +503,7 @@ class TestAutoReady:
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^110", times=2)
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_shuffle_double_blink_when_diff_one_player(self, mocker):
         mocker.patch("time.sleep")
         sleep_spy = mocker.spy(time, "sleep")
@@ -506,6 +528,7 @@ class TestAutoReady:
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^110", times=2)
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_wear_off_double_blink(self, mocker):
         mocker.patch("time.sleep")
         sleep_spy = mocker.spy(time, "sleep")
@@ -519,6 +542,7 @@ class TestAutoReady:
         assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108", times=2)
 
     # noinspection PyMethodMayBeStatic
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_allready(self, mocker):
         mocker.patch("minqlx.Plugin.allready")
         allready_spy = mocker.spy(Plugin, "allready")
