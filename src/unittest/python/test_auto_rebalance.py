@@ -1,5 +1,4 @@
-from minqlx_plugin_test import setup_plugin, setup_cvars, connected_players, \
-    fake_player, assert_plugin_sent_to_console, assert_player_was_put_on
+from minqlx_plugin_test import connected_players, fake_player, assert_plugin_sent_to_console, assert_player_was_put_on
 
 import pytest
 
@@ -14,8 +13,13 @@ from minqlx import Plugin
 from auto_rebalance import auto_rebalance
 
 
+@pytest.mark.usefixtures("cvars")
+@pytest.mark.parametrize("cvars",
+                         ["qlx_rebalanceScoreDiffThreshold=3,"
+                          "qlx_rebalanceWinningStreakThreshold=3,"
+                          "qlx_rebalanceNumAnnouncements=2"],
+                         indirect=True)
 class TestAutoRebalance:
-
     @pytest.fixture
     def mocked_balance_plugin(self):
         mocked_balance_plugin = mock()
@@ -25,12 +29,6 @@ class TestAutoRebalance:
         unstub()
 
     def setup_method(self):
-        setup_plugin()
-        setup_cvars({
-            "qlx_rebalanceScoreDiffThreshold": "3",
-            "qlx_rebalanceWinningStreakThreshold": "3",
-            "qlx_rebalanceNumAnnouncements": "2"
-        })
         connected_players()
         self.plugin = auto_rebalance()
 

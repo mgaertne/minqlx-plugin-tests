@@ -7,8 +7,8 @@ from hamcrest import assert_that, equal_to, is_, not_
 # noinspection PyProtectedMember
 from mockito import unstub, mock, when, any_, verify, spy2, when2  # type: ignore
 
-from minqlx_plugin_test import setup_cvars, setup_plugin, fake_player, connected_players, \
-    assert_plugin_center_printed, assert_plugin_played_sound
+from minqlx_plugin_test import setup_cvars, fake_player, connected_players, assert_plugin_center_printed, \
+    assert_plugin_played_sound
 
 from minqlx import Plugin
 
@@ -16,8 +16,16 @@ import autoready
 from autoready import CountdownThread, RandomIterator
 
 
+@pytest.mark.usefixtures("cvars")
+@pytest.mark.parametrize("cvars",
+                         ["zmq_stats_enable=1,"
+                          "qlx_autoready_min_players=10,"
+                          "qlx_autoready_autostart_delay=180,"
+                          "qlx_autoready_min_seconds=30,"
+                          "qlx_autoready_timer_visible=60,"
+                          "qlx_autoready_disable_manual_readyup=0"],
+                         indirect=True)
 class TestAutoReady:
-
     @pytest.fixture
     def timer(self):
         timer_ = mock(spec=CountdownThread)
@@ -30,23 +38,16 @@ class TestAutoReady:
     @pytest.fixture
     def expired_timer(self, timer):
         when(timer).is_alive().thenReturn(False)
-        return timer
+        yield timer
+        unstub()
 
     @pytest.fixture
     def alive_timer(self, timer):
         when(timer).is_alive().thenReturn(True)
-        return timer
+        yield timer
+        unstub()
 
     def setup_method(self):
-        setup_plugin()
-        setup_cvars({
-            "zmq_stats_enable": "1",
-            "qlx_autoready_min_players": "10",
-            "qlx_autoready_autostart_delay": "180",
-            "qlx_autoready_min_seconds": "30",
-            "qlx_autoready_timer_visible": "60",
-            "qlx_autoready_disable_manual_readyup": "0"
-        })
         self.plugin = autoready.autoready()
 
     @staticmethod
