@@ -1,19 +1,18 @@
-import unittest
+import pytest
 
-from minqlx_plugin_test import setup_plugin, setup_cvars, fake_player, connected_players
+from minqlx_plugin_test import setup_cvars, fake_player, connected_players
 
 from mockito import spy2, unstub, when2, verify  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
+from mockito.matchers import any_  # type: ignore
 from hamcrest import assert_that, instance_of, is_
 
 from minqlx import Plugin
 from fastvotes import fastvotes, ThresholdFastVoteStrategy, ParticipationFastVoteStrategy
 
 
-class FastVotesTests(unittest.TestCase):
+class TestFastVotes:
 
-    def setUp(self):
-        setup_plugin()
+    def setup_method(self):
         setup_cvars({
             "qlx_fastvoteTypes": "map",
             "qlx_fastvoteStrategy": "threshold",
@@ -26,7 +25,8 @@ class FastVotesTests(unittest.TestCase):
 
         self.plugin = fastvotes()
 
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
     # noinspection PyMethodMayBeStatic
@@ -39,11 +39,8 @@ class FastVotesTests(unittest.TestCase):
         when2(Plugin.current_vote_count).thenReturn((number_yes, number_no))
 
     def test_resolve_strategy_for_unknown_strategy(self):
-        with self.assertRaises(ValueError) as context:
+        with pytest.raises(ValueError, match='unknown value'):
             self.plugin.resolve_strategy_for_fastvote("unknown")
-
-        exception = context.exception
-        assert_that(exception.args, matches(".*unknown value.*"))
 
     def test_resolve_strategy_for_threshold(self):
         strategy = self.plugin.resolve_strategy_for_fastvote("threshold")
@@ -153,9 +150,9 @@ class FastVotesTests(unittest.TestCase):
         verify(Plugin).force_vote(False)
 
 
-class ParticipationFastVoteStrategyTests(unittest.TestCase):
+class TestParticipationFastVoteStrategy:
 
-    def setUp(self):
+    def setup_method(self):
         setup_cvars({
             "qlx_fastvoteParticipationPercentage": "0.67"
         })
