@@ -1,3 +1,4 @@
+import functools
 from typing import Union, Any
 
 from minqlx import Player, Plugin
@@ -36,6 +37,9 @@ def fake_player(steam_id: int, name: str, team: str = "spectator", _id: int = 0,
     player.team = team
     player.ping = ping
     player.score = score
+    player.assert_was_put_on = functools.partial(assert_player_was_put_on, player)
+    player.assert_was_told = functools.partial(assert_player_was_told, player)
+    player.assert_center_print = functools.partial(assert_player_received_center_print, player)
     return player
 
 

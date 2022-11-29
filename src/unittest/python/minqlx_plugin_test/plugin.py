@@ -1,3 +1,4 @@
+import functools
 from typing import Dict, Optional, Union, Any
 
 import minqlx
@@ -156,6 +157,7 @@ def mocked_channel() -> minqlx.AbstractChannel:
     """
     channel = mock(spec=minqlx.AbstractChannel, strict=False)
     when(channel).reply(any_).thenReturn(None)
+    channel.assert_was_replied = functools.partial(assert_channel_was_replied, channel)
     return channel
 
 

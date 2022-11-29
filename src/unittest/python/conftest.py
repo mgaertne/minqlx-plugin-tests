@@ -7,7 +7,7 @@ from mockito import when2, unstub, mock, spy2, any_, when
 
 import minqlx
 from minqlx import Game, NonexistentGameError, Plugin
-from minqlx_plugin_test import assert_channel_was_replied
+from minqlx_plugin_test import assert_channel_was_replied, assert_game_addteamscore
 
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)
@@ -55,6 +55,12 @@ def _no_game():
 @pytest.fixture(name="minqlx_game")
 def game(request: FixtureRequest):
     mock_game = mock(spec=Game, strict=False)
+    mock_game.type_short = "ca"
+    mock_game.map = "campgrounds"
+    mock_game.red_score = 0
+    mock_game.blue_score = 0
+    mock_game.roundlimit = 8
+    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
     parse_game_fixture_params(request, mock_game)
 
     when2(minqlx.Game).thenReturn(mock_game)
@@ -63,13 +69,6 @@ def game(request: FixtureRequest):
 
 
 def parse_game_fixture_params(request, minqlx_game):
-    # using sensible defaults
-    minqlx_game.type_short = "ca"
-    minqlx_game.map = "campgrounds"
-    minqlx_game.red_score = 0
-    minqlx_game.blue_score = 0
-    minqlx_game.roundlimit = 8
-
     if hasattr(request, "param"):
         params = request.param.split(",")
         for parameter in params:

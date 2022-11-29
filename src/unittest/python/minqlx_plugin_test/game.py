@@ -1,3 +1,4 @@
+import functools
 from typing import Optional
 
 import minqlx
@@ -38,6 +39,7 @@ def setup_game_in_warmup(*, game_type: str = "ca", mapname: str = "campgrounds",
     mock_game.map_title = map_title
     mock_game.roundlimit = roundlimit
     mock_game.maxclients = maxclients
+    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
 
 
 def setup_game_in_progress(*, game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
@@ -66,6 +68,7 @@ def setup_game_in_progress(*, game_type: str = "ca", mapname: str = "campgrounds
     mock_game.red_score = red_score
     mock_game.blue_score = blue_score
     mock_game.maxclients = maxclients
+    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
 
 
 def assert_game_addteamscore(*, team: str, score: int, _times: int = 1) -> None:

@@ -2,11 +2,12 @@ import asyncio
 import logging
 
 import unittest
+from typing import Set
 from unittest.mock import AsyncMock
 
 from mockito import mock, unstub, verify, when, when2, patch  # type: ignore
 from mockito.matchers import matches, arg_that  # type: ignore
-from hamcrest import assert_that, is_
+from hamcrest import assert_that, equal_to
 
 from undecorated import undecorated  # type: ignore
 
@@ -166,7 +167,7 @@ class MyDiscordBotTests(unittest.TestCase):
     def test_cmd_discord_message_too_short(self):
         response = self.plugin.cmd_discord(fake_player(1, "Triggering Player"), ["!discord"], minqlx.CHAT_CHANNEL)
 
-        assert_that(response, is_(minqlx.RET_USAGE))
+        assert_that(response, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_discord_message_triggered(self):
         triggering_player = fake_player(1, "Triggering Player")
@@ -182,7 +183,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Warmup"))
+        assert_that(game_info, equal_to("Warmup"))
 
     @staticmethod
     def test_get_game_info_in_countdown():
@@ -191,7 +192,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Match starting"))
+        assert_that(game_info, equal_to("Match starting"))
 
     @staticmethod
     def test_get_game_info_in_progress():
@@ -203,7 +204,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Match in progress: **1** - **2**"))
+        assert_that(game_info, equal_to("Match in progress: **1** - **2**"))
 
     @staticmethod
     def test_get_game_info_red_hit_roundlimit():
@@ -215,7 +216,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Match ended: **8** - **2**"))
+        assert_that(game_info, equal_to("Match ended: **8** - **2**"))
 
     @staticmethod
     def test_get_game_info_blue_hit_roundlimit():
@@ -227,7 +228,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Match ended: **5** - **8**"))
+        assert_that(game_info, equal_to("Match ended: **5** - **8**"))
 
     @staticmethod
     def test_get_game_info_red_player_dropped_out():
@@ -239,7 +240,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Match ended: **-999** - **3**"))
+        assert_that(game_info, equal_to("Match ended: **-999** - **3**"))
 
     @staticmethod
     def test_get_game_info_blue_player_dropped_out():
@@ -251,7 +252,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Match ended: **5** - **-999**"))
+        assert_that(game_info, equal_to("Match ended: **5** - **-999**"))
 
     @staticmethod
     def test_get_game_info_unknown_game_state():
@@ -263,7 +264,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         game_info = mydiscordbot.get_game_info(mock_game)
 
-        assert_that(game_info, is_("Warmup"))
+        assert_that(game_info, equal_to("Warmup"))
 
     @staticmethod
     def test_player_data_with_players_on_both_teams():
@@ -274,7 +275,8 @@ class MyDiscordBotTests(unittest.TestCase):
 
         player_data = mydiscordbot.player_data()
 
-        assert_that(player_data, is_("\n**R:** **Player4**(5) **Player1**(1) \n**B:** **Player2**(3) **Player3**(2) "))
+        assert_that(player_data,
+                    equal_to("\n**R:** **Player4**(5) **Player1**(1) \n**B:** **Player2**(3) **Player3**(2) "))
 
     @staticmethod
     def test_player_data_with_just_red_players():
@@ -283,7 +285,7 @@ class MyDiscordBotTests(unittest.TestCase):
 
         player_data = mydiscordbot.player_data()
 
-        assert_that(player_data, is_("\n**R:** **Player1**(0) **Player4**(0) "))
+        assert_that(player_data, equal_to("\n**R:** **Player1**(0) **Player4**(0) "))
 
     @staticmethod
     def test_player_data_with_just_blue_players():
@@ -292,13 +294,13 @@ class MyDiscordBotTests(unittest.TestCase):
 
         player_data = mydiscordbot.player_data()
 
-        assert_that(player_data, is_("\n**B:** **Player2**(0) **Player3**(0) "))
+        assert_that(player_data, equal_to("\n**B:** **Player2**(0) **Player3**(0) "))
 
     @staticmethod
     def test_team_data_with_empty_player_list():
         team_data = mydiscordbot.team_data([])
 
-        assert_that(team_data, is_(""))
+        assert_that(team_data, equal_to(""))
 
     @staticmethod
     def test_team_data_with_limit():
@@ -311,13 +313,14 @@ class MyDiscordBotTests(unittest.TestCase):
                        fake_player(7, "Player7", "red", score=7),
                        ]
         team_data = mydiscordbot.team_data(player_list, limit=5)
-        assert_that(team_data, is_("**Player3**(55) **Player2**(52) **Player5**(35) **Player7**(7) **Player6**(5) "))
+        assert_that(team_data,
+                    equal_to("**Player3**(55) **Player2**(52) **Player5**(35) **Player7**(7) **Player6**(5) "))
 
     def test_cmd_discordbot_invalid(self):
         triggering_player = fake_player(1, "Triggering Player")
         return_code = self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "asdf"], minqlx.CHAT_CHANNEL)
 
-        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_discordbot_too_many_arguments(self):
         triggering_player = fake_player(1, "Triggering Player")
@@ -325,7 +328,7 @@ class MyDiscordBotTests(unittest.TestCase):
                                                  ["!discordbot", "status", "asdf"],
                                                  minqlx.CHAT_CHANNEL)
 
-        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_discordbot_status(self):
         when(self.discord).status().thenReturn("Discord status message")
@@ -464,7 +467,7 @@ class MinqlxHelpCommandTests(unittest.TestCase):
     def test_get_ending_note(self):
         ending_note = self.help_command.get_ending_note()
 
-        assert_that(ending_note, is_("Type !help command for more info on a command."))
+        assert_that(ending_note, equal_to("Type !help command for more info on a command."))
 
 
 def assert_matching_string_send_to_discord_context(context, matcher):
@@ -599,21 +602,21 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
     def test_status_connected(self):
         status = self.discord.status()
 
-        assert_that(status, is_("Discord connection up and running."))
+        assert_that(status, equal_to("Discord connection up and running."))
 
     def test_status_no_client(self):
         self.discord.discord = None
 
         status = self.discord.status()
 
-        assert_that(status, is_("No discord connection set up."))
+        assert_that(status, equal_to("No discord connection set up."))
 
     def test_status_client_not_connected(self):
         when(self.discord_client).is_ready().thenReturn(False)
 
         status = self.discord.status()
 
-        assert_that(status, is_("Discord client not connected."))
+        assert_that(status, equal_to("Discord client not connected."))
 
     async def test_initialize_bot(self):
         self.discord.initialize_bot(self.discord_client)
@@ -741,7 +744,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         verify(relay_channel, times=0).send(any)
 
     def test_send_to_discord_channels_with_no_channel_ids(self):
-        self.discord.send_to_discord_channels(set(), "awesome relayed message")
+        string_set: Set[str] = set()
+        self.discord.send_to_discord_channels(string_set, "awesome relayed message")
 
         verify(self.discord_client, times=0)
 
@@ -997,7 +1001,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
 
-        assert_that(matched_user, is_(exact_matching_user))
+        assert_that(matched_user, equal_to(exact_matching_user))
 
     @staticmethod
     def test_find_user_match_case_insensitive_match():
@@ -1006,7 +1010,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [case_insensitive_matching_user, other_user])
 
-        assert_that(matched_user, is_(case_insensitive_matching_user))
+        assert_that(matched_user, equal_to(case_insensitive_matching_user))
 
     @staticmethod
     def test_find_user_match_exact_nick_match():
@@ -1015,7 +1019,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
 
-        assert_that(matched_user, is_(exact_matching_user))
+        assert_that(matched_user, equal_to(exact_matching_user))
 
     @staticmethod
     def test_find_user_match_case_insensitive_nick_match():
@@ -1024,7 +1028,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
 
-        assert_that(matched_user, is_(exact_matching_user))
+        assert_that(matched_user, equal_to(exact_matching_user))
 
     @staticmethod
     def test_find_user_match_fuzzy_match_on_name():
@@ -1033,7 +1037,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("UsEr", [fuzzy_matching_user, other_user])
 
-        assert_that(matched_user, is_(fuzzy_matching_user))
+        assert_that(matched_user, equal_to(fuzzy_matching_user))
 
     @staticmethod
     def test_find_user_match_fuzzy_match_on_nick():
@@ -1042,7 +1046,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("UsEr", [fuzzy_matching_user, other_user])
 
-        assert_that(matched_user, is_(fuzzy_matching_user))
+        assert_that(matched_user, equal_to(fuzzy_matching_user))
 
     @staticmethod
     def test_find_user_match_no_match_found():
@@ -1050,7 +1054,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
                                                                  [mocked_user(name="no_match-user"),
                                                                   mocked_user(name="non-matched user")])
 
-        assert_that(matched_user, is_(None))
+        assert_that(matched_user, equal_to(None))
 
     @staticmethod
     def test_find_user_match_more_than_one_user_found():
@@ -1058,7 +1062,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
                                                                  [mocked_user(name="matched_user"),
                                                                   mocked_user(name="another-matched-uSEr")])
 
-        assert_that(matched_user, is_(None))
+        assert_that(matched_user, equal_to(None))
 
     @staticmethod
     def test_find_user_match_more_than_one_user_found_and_player_informed():
@@ -1070,7 +1074,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         verify(sending_player).tell("Found ^62^7 matching discord users for @user:")
         verify(sending_player).tell("@matched_user @another-matched-uSEr ")
-        assert_that(matched_user, is_(None))
+        assert_that(matched_user, equal_to(None))
 
     @staticmethod
     def test_find_channel_match_exact_match():
@@ -1080,7 +1084,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
                                                                        [exact_matching_channel, other_channel])
 
-        assert_that(matched_channel, is_(exact_matching_channel))
+        assert_that(matched_channel, equal_to(exact_matching_channel))
 
     @staticmethod
     def test_find_channel_match_case_insensitive_match():
@@ -1091,7 +1095,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
                                                                        [case_insensitive_matching_channel,
                                                                         other_channel])
 
-        assert_that(matched_channel, is_(case_insensitive_matching_channel))
+        assert_that(matched_channel, equal_to(case_insensitive_matching_channel))
 
     @staticmethod
     def test_find_channel_match_fuzzy_match():
@@ -1101,7 +1105,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
                                                                        [fuzzy_matching_channel, other_channel])
 
-        assert_that(matched_channel, is_(fuzzy_matching_channel))
+        assert_that(matched_channel, equal_to(fuzzy_matching_channel))
 
     @staticmethod
     def test_find_channel_match_no_match_found():
@@ -1109,7 +1113,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
                                                                        [mocked_channel(name="no_match-channel"),
                                                                         mocked_channel(name="non-matched channel")])
 
-        assert_that(matched_channel, is_(None))
+        assert_that(matched_channel, equal_to(None))
 
     @staticmethod
     def test_find_channel_match_more_than_one_channel_found():
@@ -1117,7 +1121,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
                                                                        [mocked_channel(name="matched_general"),
                                                                         mocked_channel(name="another-matched-general")])
 
-        assert_that(matched_channel, is_(None))
+        assert_that(matched_channel, equal_to(None))
 
     @staticmethod
     def test_find_channel_match_more_than_one_channel_found_and_player_informed():
@@ -1129,7 +1133,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         verify(sending_player).tell("Found ^62^7 matching discord channels for #general:")
         verify(sending_player).tell("#matched_general #another-matched-general ")
-        assert_that(matched_channel, is_(None))
+        assert_that(matched_channel, equal_to(None))
 
     def test_triggered_message(self):
         trigger_channel1 = self.triggered_channel()
