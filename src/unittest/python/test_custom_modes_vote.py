@@ -1,5 +1,3 @@
-import pytest
-
 from minqlx_plugin_test import fake_player, assert_plugin_sent_to_console, setup_cvars
 
 from mockito import spy2, unstub, verify  # type: ignore
