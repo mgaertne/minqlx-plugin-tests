@@ -1,15 +1,14 @@
-import unittest
 import time
 import logging
 
-from minqlx_plugin_test import setup_plugin, setup_cvars, setup_game_in_progress, mocked_channel, connected_players, \
-    fake_player, setup_no_game, assert_plugin_sent_to_console, assert_channel_was_replied
+import pytest
+import redis
+
+from minqlx_plugin_test import connected_players, fake_player, assert_plugin_sent_to_console, setup_cvars
 
 from mockito import mock, when, unstub, verify, patch, spy2, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import is_, assert_that, has_item
-
-from redis import Redis
 
 import minqlx
 from minqlx import Plugin, CHAT_CHANNEL
@@ -17,10 +16,19 @@ from minqlx import Plugin, CHAT_CHANNEL
 from merciful_elo_limit import merciful_elo_limit
 
 
-class MercifulEloLimitTests(unittest.TestCase):
+class TestMercifulEloLimit:
 
-    def setUp(self):
-        setup_plugin()
+    @pytest.fixture(name="minqlx_db")
+    def minqlx_db(self):
+        self.plugin.database = redis.Redis  # type: ignore
+        db = mock(spec=redis.Redis)
+        self.plugin._db_instance = db  # pylint: disable=protected-access
+
+        when(db).__getitem__(any_).thenReturn("42")  # pylint: disable=C2801
+        yield db
+        unstub()
+
+    def setup_method(self):
         setup_cvars({
             "qlx_mercifulelo_minelo": "800",
             "qlx_mercifulelo_applicationgames": "10",
@@ -29,23 +37,16 @@ class MercifulEloLimitTests(unittest.TestCase):
             "qlx_owner": "42"
         })
 
-        setup_game_in_progress()
         self.plugin = merciful_elo_limit()
-        self.reply_channel = mocked_channel()
 
-        self.plugin.database = Redis
-        self.db = mock(Redis)
-        self.plugin._db_instance = self.db  # pylint: disable=protected-access
-
-        when(self.db).__getitem__(any_).thenReturn("42")
-
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
     def setup_balance_ratings(self, player_elos):
         gametype = None
         if len(player_elos) > 0:
-            gametype = self.plugin.game.type_short
+            gametype = self.plugin.game.type_short  # type: ignore
         ratings = {}
         for player, elo in player_elos:
             ratings[player.steam_id] = {gametype: {'elo': elo}}
@@ -60,6 +61,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         mybalance_plugin.exceptions = [player.steam_id for player in players]
         self.plugin._loaded_plugins["mybalance"] = mybalance_plugin  # pylint: disable=protected-access
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_resets_tracked_player_ids(self):
         connected_players()
         self.setup_balance_ratings([])
@@ -69,6 +71,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         assert_that(self.plugin.tracked_player_sids, is_([]))
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_resets_announced_player_ids(self):
         connected_players()
         self.setup_balance_ratings([])
@@ -78,6 +81,7 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         assert_that(self.plugin.announced_player_elos, is_([]))
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_fetches_elos_of_connected_players(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -91,6 +95,7 @@ class MercifulEloLimitTests(unittest.TestCase):
             self.plugin.callback_ratings, CHAT_CHANNEL
         )
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_fetches_elo_of_connecting_player(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -105,8 +110,8 @@ class MercifulEloLimitTests(unittest.TestCase):
             self.plugin.callback_ratings, CHAT_CHANNEL
         )
 
+    @pytest.mark.usefixtures("no_minqlx_game")
     def test_fetch_elos_of_players_with_no_game_setup(self):
-        setup_no_game()
         self.setup_balance_ratings({})
 
         self.plugin.fetch_elos_of_players([])
@@ -114,8 +119,8 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.plugin._loaded_plugins["balance"], times=0)\
             .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
-    def test_fetch_elos_of_players_with_unsupported_gametype(self):
-        setup_game_in_progress(game_type="unsupported")
+    @pytest.mark.parametrize("game_in_progress", ["game_type=unsupported"], indirect=True)
+    def test_fetch_elos_of_players_with_unsupported_gametype(self, game_in_progress):
         self.setup_balance_ratings({})
 
         self.plugin.fetch_elos_of_players([])
@@ -123,6 +128,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.plugin._loaded_plugins["balance"], times=0)\
             .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_fetch_elos_of_player_with_no_balance_plugin(self):
         mocked_logger = mock(spec=logging.Logger, strict=False)
         spy2(minqlx.get_logger)
@@ -133,8 +139,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         verify(mocked_logger).warning(matches("Balance plugin not found.*"))
 
+    @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_round_countdown_with_no_game(self):
-        setup_no_game()
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         player3 = fake_player(789, "Speccing Player", team="spectator")
@@ -146,6 +152,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.plugin._loaded_plugins["balance"], times=0)\
             .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
+    @pytest.mark.usefixtures("game_in_progress")
     def test_handle_round_countdown_fetches_elos_of_players_in_teams(self):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -160,8 +167,8 @@ class MercifulEloLimitTests(unittest.TestCase):
             self.plugin.callback_ratings, CHAT_CHANNEL
         )
 
-    def test_callback_ratings_with_no_game_running(self):
-        setup_no_game()
+    @pytest.mark.usefixtures("no_minqlx_game")
+    def test_callback_ratings_with_no_game_running(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         player3 = fake_player(789, "Speccing Player", team="spectator")
@@ -170,10 +177,10 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.callback_ratings([], minqlx.CHAT_CHANNEL)
 
-        verify(self.db, times=0).get(any_)
+        verify(minqlx_db, times=0).get(any_)
 
-    def test_callback_ratings_with_unsupported_game_type(self):
-        setup_game_in_progress(game_type="unsupported")
+    @pytest.mark.parametrize("game_in_progress", ["game_type=unsupported"], indirect=True)
+    def test_callback_ratings_with_unsupported_game_type(self, game_in_progress, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         player3 = fake_player(789, "Speccing Player", team="spectator")
@@ -182,9 +189,10 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         self.plugin.callback_ratings([], minqlx.CHAT_CHANNEL)
 
-        verify(self.db, times=0).get(any_)
+        verify(minqlx_db, times=0).get(any_)
 
-    def test_callback_ratings_warns_low_elo_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_callback_ratings_warns_low_elo_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -193,14 +201,15 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any_).thenReturn("2")
+        when(minqlx_db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 application matches.*"))
 
-    def test_callback_ratings_announces_information_to_other_players(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_callback_ratings_announces_information_to_other_players(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -209,13 +218,14 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any_).thenReturn("2")
+        when(minqlx_db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         assert_plugin_sent_to_console(matches("Fake Player2.*is below.*, but has.*8.*application matches left.*"))
 
-    def test_callback_ratings_announces_information_to_other_players_just_once_per_connect(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_callback_ratings_announces_information_to_other_players_just_once_per_connect(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -225,13 +235,14 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any_).thenReturn("2")
+        when(minqlx_db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         assert_plugin_sent_to_console(matches("Player.*is below.*, but has 8 application matches left.*"), times=0)
 
-    def test_callback_ratings_makes_exception_for_player_in_exception_list(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_callback_ratings_makes_exception_for_player_in_exception_list(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         player3 = fake_player(789, "Fake Player3", team="red")
@@ -242,7 +253,7 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any_).thenReturn("2")
+        when(minqlx_db).get(any_).thenReturn("2")
 
         self.plugin.callback_ratings([player1, player2, player3], minqlx.CHAT_CHANNEL)
 
@@ -251,7 +262,8 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(player3, times=0).center_print(any_)
         verify(player3, times=0).tell(any_)
 
-    def test_callback_ratings_warns_low_elo_player_when_application_games_not_set(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_callback_ratings_warns_low_elo_player_when_application_games_not_set(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -260,49 +272,52 @@ class MercifulEloLimitTests(unittest.TestCase):
         patch(minqlx.next_frame, lambda func: func)
         patch(minqlx.thread, lambda func: func)
         patch(time.sleep, lambda _: None)
-        when(self.db).get(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn(None)
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         verify(player2, times=12).center_print(matches(".*Skill warning.*10.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*10.*of 10 application matches.*"))
 
-    def test_callback_ratings_bans_low_elo_players_that_used_up_their_application_games(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_callback_ratings_bans_low_elo_players_that_used_up_their_application_games(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any_).thenReturn("11")
+        when(minqlx_db).get(any_).thenReturn("11")
         spy2(minqlx.COMMANDS.handle_input)
         when2(minqlx.COMMANDS.handle_input, any_, any_, any_).thenReturn(None)
 
         patch(minqlx.next_frame, lambda func: func)
 
-        when(self.db).delete(any_).thenReturn(None)
+        when(minqlx_db).delete(any_).thenReturn(None)
 
         self.plugin.callback_ratings([player1, player2], minqlx.CHAT_CHANNEL)
 
         verify(minqlx.COMMANDS).handle_input(any_, any_, any_)
-        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
-        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
+        verify(minqlx_db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
+        verify(minqlx_db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
 
-    def test_handle_round_start_increases_application_games_for_untracked_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_increases_application_games_for_untracked_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any_).thenReturn("3")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(False)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("3")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(False)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:freegames")
+        verify(minqlx_db).incr(f"minqlx:players:{player2.steam_id}:minelo:freegames")
 
-    def test_handle_round_start_makes_exception_for_player_in_exception_list(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_makes_exception_for_player_in_exception_list(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         player3 = fake_player(789, "Fake Player3", team="red")
@@ -310,126 +325,134 @@ class MercifulEloLimitTests(unittest.TestCase):
         self.setup_balance_ratings({(player1, 900), (player2, 799), (player3, 600)})
         self.setup_exception_list([player3])
 
-        when(self.db).get(any_).thenReturn("3")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(False)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("3")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(False)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:freegames")
-        verify(self.db, times=0).incr(f"minqlx:players:{player3.steam_id}:minelo:freegames")
+        verify(minqlx_db).incr(f"minqlx:players:{player2.steam_id}:minelo:freegames")
+        verify(minqlx_db, times=0).incr(f"minqlx:players:{player3.steam_id}:minelo:freegames")
 
-    def test_handle_round_start_starts_tracking_for_low_elo_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_starts_tracking_for_low_elo_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any_).thenReturn("3")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(False)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("3")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(False)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
         assert_that(self.plugin.tracked_player_sids, has_item(player2.steam_id))
 
-    def test_handle_round_start_resets_above_games_for_low_elo_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_resets_above_games_for_low_elo_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any_).thenReturn("3")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(True)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("3")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(True)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
+        verify(minqlx_db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
-    def test_handle_round_start_increases_above_games_for_application_games_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_increases_above_games_for_application_games_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any_).thenReturn("3")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(True)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("3")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(True)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
+        verify(minqlx_db).incr(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
-    def test_handle_round_start_increases_above_games_for_application_games_player_with_no_aobve_games_set(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_increases_above_games_for_application_games_player_with_no_aobve_games_set(
+            self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any_).thenReturn("1")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(True)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("1")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(True)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).incr(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
+        verify(minqlx_db).incr(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
-    def test_handle_round_start_starts_tracking_of_above_elo_players_for_application_games_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_starts_tracking_of_above_elo_players_for_application_games_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any_).thenReturn("3")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(True)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("3")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(True)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
         assert_that(self.plugin.tracked_player_sids, has_item(player2.steam_id))
 
-    def test_handle_round_start_removes_minelo_db_entries_for_above_elo_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_removes_minelo_db_entries_for_above_elo_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.setup_balance_ratings({(player1, 900), (player2, 801)})
 
-        when(self.db).get(any_).thenReturn("11")
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(True)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn("11")
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(True)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
-        verify(self.db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
+        verify(minqlx_db).delete(f"minqlx:players:{player2.steam_id}:minelo:freegames")
+        verify(minqlx_db).delete(f"minqlx:players:{player2.steam_id}:minelo:abovegames")
 
-    def test_handle_round_start_skips_already_tracked_player(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_skips_already_tracked_player(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
         self.plugin.tracked_player_sids.append(player2.steam_id)
         self.setup_balance_ratings({(player1, 900), (player2, 799)})
 
-        when(self.db).get(any_).thenReturn(3)
-        when(self.db).delete(any_).thenReturn(None)
-        when(self.db).exists(any_).thenReturn(False)
-        when(self.db).incr(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn(3)
+        when(minqlx_db).delete(any_).thenReturn(None)
+        when(minqlx_db).exists(any_).thenReturn(False)
+        when(minqlx_db).incr(any_).thenReturn(None)
 
         self.plugin.handle_round_start(1)
 
-        verify(self.db, times=0).delete(any_)
-        verify(self.db, times=0).delete(any_)
+        verify(minqlx_db, times=0).delete(any_)
+        verify(minqlx_db, times=0).delete(any_)
 
-    def test_handle_round_start_with_unsupported_gametype(self):
-        setup_game_in_progress(game_type="unsupported")
+    @pytest.mark.parametrize("game_in_progress", ["game_type=unsupported"], indirect=True)
+    def test_handle_round_start_with_unsupported_gametype(self, game_in_progress, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -440,7 +463,8 @@ class MercifulEloLimitTests(unittest.TestCase):
         verify(self.plugin._loaded_plugins["balance"], times=0)\
             .add_request(any_, any_, any_)  # pylint: disable=protected-access
 
-    def test_handle_round_start_with_no_balance_plugin(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_round_start_with_no_balance_plugin(self, minqlx_db):
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
         connected_players(player1, player2)
@@ -453,7 +477,8 @@ class MercifulEloLimitTests(unittest.TestCase):
 
         verify(mocked_logger, atleast=1).warning(matches("Balance plugin not found.*"))
 
-    def test_cmd_mercis_shows_currently_connected_merciful_players(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_cmd_mercis_shows_currently_connected_merciful_players(self, mock_channel, minqlx_db):
         player = fake_player(666, "Cmd using Player")
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -461,22 +486,22 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player, player1, player2, player3)
         self.setup_balance_ratings({(player, 1400), (player1, 801), (player2, 799), (player3, 900)})
 
-        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:freegames").thenReturn("2")
-        when(self.db).get(f"minqlx:players:{player2.steam_id}:minelo:freegames").thenReturn("3")
-        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:abovegames").thenReturn("6")
-        when(self.db).get(f"minqlx:players:{player.steam_id}:minelo:freegames").thenReturn(None)
-        when(self.db).get(f"minqlx:players:{player3.steam_id}:minelo:freegames").thenReturn(None)
+        when(minqlx_db).get(f"minqlx:players:{player1.steam_id}:minelo:freegames").thenReturn("2")
+        when(minqlx_db).get(f"minqlx:players:{player2.steam_id}:minelo:freegames").thenReturn("3")
+        when(minqlx_db).get(f"minqlx:players:{player1.steam_id}:minelo:abovegames").thenReturn("6")
+        when(minqlx_db).get(f"minqlx:players:{player.steam_id}:minelo:freegames").thenReturn(None)
+        when(minqlx_db).get(f"minqlx:players:{player3.steam_id}:minelo:freegames").thenReturn(None)
 
-        self.plugin.cmd_mercis(player, ["!mercis"], self.reply_channel)
+        self.plugin.cmd_mercis(player, ["!mercis"], mock_channel)
 
-        assert_channel_was_replied(self.reply_channel, matches(r"Fake Player1 \(elo: 801\):.*8.*application matches "
-                                                               r"left,.*6.*matches above.*"))
-        assert_channel_was_replied(self.reply_channel, matches(r"Fake Player2 \(elo: 799\):.*7.*application matches "
-                                                               r"left"))
+        mock_channel.assert_was_replied(
+            matches(r"Fake Player1 \(elo: 801\):.*8.*application matches left,.*6.*matches above.*"))
+        mock_channel.assert_was_replied(
+            matches(r"Fake Player2 \(elo: 799\):.*7.*application matches left"))
 
-    def test_cmd_mercis_replies_to_main_cbannel_instead_of_team_chat(self):
-        self.addCleanup(self.reset_chat_channel, minqlx.CHAT_CHANNEL)
-        minqlx.CHAT_CHANNEL = mocked_channel()
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_cmd_mercis_replies_to_main_cbannel_instead_of_team_chat(self, mock_channel, minqlx_db):
+        minqlx.CHAT_CHANNEL = mock_channel
         player = fake_player(666, "Cmd using Player")
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -484,29 +509,25 @@ class MercifulEloLimitTests(unittest.TestCase):
         connected_players(player, player1, player2, player3)
         self.setup_balance_ratings({(player, 1400), (player1, 801), (player2, 799), (player3, 900)})
 
-        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:freegames").thenReturn("2")
-        when(self.db).get(f"minqlx:players:{player2.steam_id}:minelo:freegames").thenReturn("3")
-        when(self.db).get(f"minqlx:players:{player1.steam_id}:minelo:abovegames").thenReturn("6")
-        when(self.db).get(f"minqlx:players:{player.steam_id}:minelo:freegames").thenReturn(None)
-        when(self.db).get(f"minqlx:players:{player3.steam_id}:minelo:freegames").thenReturn(None)
+        when(minqlx_db).get(f"minqlx:players:{player1.steam_id}:minelo:freegames").thenReturn("2")
+        when(minqlx_db).get(f"minqlx:players:{player2.steam_id}:minelo:freegames").thenReturn("3")
+        when(minqlx_db).get(f"minqlx:players:{player1.steam_id}:minelo:abovegames").thenReturn("6")
+        when(minqlx_db).get(f"minqlx:players:{player.steam_id}:minelo:freegames").thenReturn(None)
+        when(minqlx_db).get(f"minqlx:players:{player3.steam_id}:minelo:freegames").thenReturn(None)
 
         self.plugin.cmd_mercis(player, ["!mercis"], minqlx.BLUE_TEAM_CHAT_CHANNEL)
 
-        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches(r"Fake Player1 \(elo: 801\):.*8.*application matches "
-                                                                r"left,.*6.*matches above.*"))
-        assert_channel_was_replied(minqlx.CHAT_CHANNEL, matches(r"Fake Player2 \(elo: 799\):.*7.*application matches "
-                                                                r"left"))
+        mock_channel.assert_was_replied(
+            matches(r"Fake Player1 \(elo: 801\):.*8.*application matches left,.*6.*matches above.*"))
+        mock_channel.assert_was_replied(matches(r"Fake Player2 \(elo: 799\):.*7.*application matches left"))
 
-    # noinspection PyMethodMayBeStatic
-    def reset_chat_channel(self, original_chat_channel):
-        minqlx.CHAT_CHANNEL = original_chat_channel
-
-    def test_cmd_mercis_shows_no_mercis_if_no_player_using_their_application_matches(self):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_cmd_mercis_shows_no_mercis_if_no_player_using_their_application_matches(self, minqlx_db):
         player = fake_player(666, "Cmd using Player")
         connected_players(player)
         self.setup_balance_ratings({(player, 1400)})
 
-        when(self.db).get(any_).thenReturn(None)
+        when(minqlx_db).get(any_).thenReturn(None)
 
         self.plugin.cmd_mercis(player, ["!mercis"], minqlx.CHAT_CHANNEL)
 
