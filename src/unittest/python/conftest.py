@@ -60,7 +60,7 @@ def game(request: FixtureRequest):
     mock_game.red_score = 0
     mock_game.blue_score = 0
     mock_game.roundlimit = 8
-    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
+    mock_game.assert_addteamscore = assert_game_addteamscore
     parse_game_fixture_params(request, mock_game)
 
     when2(minqlx.Game).thenReturn(mock_game)

@@ -1,7 +1,7 @@
 import pytest
 
 from minqlx_plugin_test import setup_cvars, connected_players, fake_player, assert_player_was_told, \
-    assert_plugin_center_printed, assert_plugin_sent_to_console, assert_player_was_put_on, assert_game_addteamscore
+    assert_plugin_center_printed, assert_plugin_sent_to_console, assert_player_was_put_on
 
 from mockito import spy2, unstub, verify  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
@@ -802,7 +802,7 @@ class TestDuelArenaTests:
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        assert_game_addteamscore(team="blue", score=4)
+        game_in_progress.assert_addteamscore(team="blue", score=4)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_handle_round_end_when_player_queue_empty_duelarena_is_deactivated(self, game_in_progress):
@@ -1498,8 +1498,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-2)
-        assert_game_addteamscore(team="blue", score=1)
+        game_in_progress.assert_addteamscore(team="red", score=-2)
+        game_in_progress.assert_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_player_was_put_on(player2, any_(str), times=0)
 
@@ -1512,8 +1512,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-4)
-        assert_game_addteamscore(team="blue", score=3)
+        game_in_progress.assert_addteamscore(team="red", score=-4)
+        game_in_progress.assert_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_player_was_put_on(player2, any_(str), times=0)
 
@@ -1526,8 +1526,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-2)
-        assert_game_addteamscore(team="blue", score=1)
+        game_in_progress.assert_addteamscore(team="red", score=-2)
+        game_in_progress.assert_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_that(self.duelarena_game.player_blue, equal_to(player2.steam_id))
         assert_player_was_put_on(player2, "blue")
@@ -1541,8 +1541,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-4)
-        assert_game_addteamscore(team="blue", score=3)
+        game_in_progress.assert_addteamscore(team="red", score=-4)
+        game_in_progress.assert_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_that(self.duelarena_game.player_red, equal_to(player2.steam_id))
         assert_player_was_put_on(player2, "red")
@@ -1556,8 +1556,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-2)
-        assert_game_addteamscore(team="blue", score=1)
+        game_in_progress.assert_addteamscore(team="red", score=-2)
+        game_in_progress.assert_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, "red")
         assert_that(self.duelarena_game.player_red, equal_to(player1.steam_id))
         assert_player_was_put_on(player2, any_(str), times=0)
@@ -1571,8 +1571,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-4)
-        assert_game_addteamscore(team="blue", score=3)
+        game_in_progress.assert_addteamscore(team="red", score=-4)
+        game_in_progress.assert_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, "blue")
         assert_that(self.duelarena_game.player_blue, equal_to(player1.steam_id))
         assert_player_was_put_on(player2, any_(str), times=0)
@@ -1586,8 +1586,8 @@ class TestDuelArenaGame:
 
         self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
-        assert_game_addteamscore(team="red", score=-2)
-        assert_game_addteamscore(team="blue", score=1)
+        game_in_progress.assert_addteamscore(team="red", score=-2)
+        game_in_progress.assert_addteamscore(team="blue", score=1)
         assert_that(self.duelarena_game.player_red, equal_to(player1.steam_id))
         assert_player_was_put_on(player1, "red")
         assert_that(self.duelarena_game.player_blue, equal_to(player2.steam_id))

@@ -68,7 +68,7 @@ def setup_game_in_progress(*, game_type: str = "ca", mapname: str = "campgrounds
     mock_game.red_score = red_score
     mock_game.blue_score = blue_score
     mock_game.maxclients = maxclients
-    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
+    mock_game.assert_addteamscore = assert_game_addteamscore
 
 
 def assert_game_addteamscore(*, team: str, score: int, _times: int = 1) -> None:
