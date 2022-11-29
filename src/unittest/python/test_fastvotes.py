@@ -4,7 +4,7 @@ from minqlx_plugin_test import setup_cvars, fake_player, connected_players
 
 from mockito import spy2, unstub, when2, verify  # type: ignore
 from mockito.matchers import any_  # type: ignore
-from hamcrest import assert_that, instance_of, is_
+from hamcrest import assert_that, instance_of, equal_to
 
 from minqlx import Plugin
 from fastvotes import fastvotes, ThresholdFastVoteStrategy, ParticipationFastVoteStrategy
@@ -57,28 +57,28 @@ class TestFastVotes:
 
         self.plugin.handle_vote(fake_player(123, "Any Player"), "map", "thunderstruck")
 
-        assert_that(self.plugin.track_vote, is_(True))
+        assert_that(self.plugin.track_vote, equal_to(True))
 
     def test_handle_vote_map_vote_called_with_mixed_cases(self):
         self.plugin.track_vote = False
 
         self.plugin.handle_vote(fake_player(123, "Any Player"), "mAP", "theatreofpain")
 
-        assert_that(self.plugin.track_vote, is_(True))
+        assert_that(self.plugin.track_vote, equal_to(True))
 
-    def test_handle_vote_kick_player_is_not_tracked(self):
+    def test_handle_vote_kick_player_equal_tonot_tracked(self):
         self.plugin.track_vote = False
 
         self.plugin.handle_vote(fake_player(123, "Any Player"), "kick", "Fake Player")
 
-        assert_that(self.plugin.track_vote, is_(False))
+        assert_that(self.plugin.track_vote, equal_to(False))
 
     def test_handle_vote_ended_resets_tracking(self):
         self.plugin.track_vote = True
 
         self.plugin.handle_vote_ended([3, 2], "map", "campgrounds", True)
 
-        assert_that(self.plugin.track_vote, is_(False))
+        assert_that(self.plugin.track_vote, equal_to(False))
 
     def test_process_vote_with_no_active_vote_running(self):
         when2(Plugin.is_vote_active).thenReturn(False)
@@ -86,7 +86,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), True)
 
-        assert_that(self.plugin.track_vote, is_(False))
+        assert_that(self.plugin.track_vote, equal_to(False))
         verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_player_votes_on_an_untracked_vote(self):
@@ -96,7 +96,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
-        assert_that(self.plugin.track_vote, is_(False))
+        assert_that(self.plugin.track_vote, equal_to(False))
         verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_current_vote_count_not_available(self):
@@ -106,7 +106,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
-        assert_that(self.plugin.track_vote, is_(True))
+        assert_that(self.plugin.track_vote, equal_to(True))
         verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_threshold_player_votes_yes_total_vote_count_does_not_meet_threshold(self):
@@ -116,7 +116,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), True)
 
-        assert_that(self.plugin.track_vote, is_(True))
+        assert_that(self.plugin.track_vote, equal_to(True))
         verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_threshold_player_votes_yes_and_hits_vote_threshold(self):
@@ -126,7 +126,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), True)
 
-        assert_that(self.plugin.track_vote, is_(False))
+        assert_that(self.plugin.track_vote, equal_to(False))
         verify(Plugin).force_vote(True)
 
     def test_process_vote_threshold_player_votes_no_and_does_not_meet_threashold(self):
@@ -136,7 +136,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
-        assert_that(self.plugin.track_vote, is_(True))
+        assert_that(self.plugin.track_vote, equal_to(True))
         verify(Plugin, times=0).force_vote(any_)
 
     def test_process_vote_threshold_player_votes_no_and_hits_vote_threshold(self):
@@ -146,7 +146,7 @@ class TestFastVotes:
 
         self.plugin.process_vote(fake_player(123, "Any Player"), False)
 
-        assert_that(self.plugin.track_vote, is_(False))
+        assert_that(self.plugin.track_vote, equal_to(False))
         verify(Plugin).force_vote(False)
 
 
@@ -168,17 +168,17 @@ class TestParticipationFastVoteStrategy:
     def test_evaluate_participation_vote_threshold_not_met(self):
         result = self.strategy.evaluate_votes(3, 1)
 
-        assert_that(result, is_(None))
+        assert_that(result, equal_to(None))
 
     def test_evaluate_participation_vote_threshold_met_for_pass(self):
         result = self.strategy.evaluate_votes(4, 1)
 
-        assert_that(result, is_(True))
+        assert_that(result, equal_to(True))
 
     def test_evaluate_participation_vote_threshold_met_for_fail(self):
         result = self.strategy.evaluate_votes(1, 4)
 
-        assert_that(result, is_(False))
+        assert_that(result, equal_to(False))
 
     def test_evaluate_participation_vote_vote_draw(self):
         connected_players(fake_player(123, "Player1"),
@@ -192,4 +192,4 @@ class TestParticipationFastVoteStrategy:
 
         result = self.strategy.evaluate_votes(3, 3)
 
-        assert_that(result, is_(None))
+        assert_that(result, equal_to(None))

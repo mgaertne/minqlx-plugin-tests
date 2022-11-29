@@ -8,7 +8,7 @@ from minqlx_plugin_test import connected_players, fake_player, assert_plugin_sen
 
 from mockito import mock, when, unstub, verify, patch, spy2, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import is_, assert_that, has_item
+from hamcrest import equal_to, assert_that, has_item
 
 import minqlx
 from minqlx import Plugin, CHAT_CHANNEL
@@ -69,7 +69,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_map_change("campgrounds", "ca")
 
-        assert_that(self.plugin.tracked_player_sids, is_([]))
+        assert_that(self.plugin.tracked_player_sids, equal_to([]))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_resets_announced_player_ids(self):
@@ -79,7 +79,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_map_change("campgrounds", "ca")
 
-        assert_that(self.plugin.announced_player_elos, is_([]))
+        assert_that(self.plugin.announced_player_elos, equal_to([]))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_fetches_elos_of_connected_players(self):
@@ -478,7 +478,7 @@ class TestMercifulEloLimit:
         verify(mocked_logger, atleast=1).warning(matches("Balance plugin not found.*"))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_cmd_mercis_shows_currently_connected_merciful_players(self, mock_channel, minqlx_db):
+    def test_cmd_mercequal_toshows_currently_connected_merciful_players(self, mock_channel, minqlx_db):
         player = fake_player(666, "Cmd using Player")
         player1 = fake_player(123, "Fake Player1", team="red")
         player2 = fake_player(456, "Fake Player2", team="blue")
@@ -500,7 +500,7 @@ class TestMercifulEloLimit:
             matches(r"Fake Player2 \(elo: 799\):.*7.*application matches left"))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_cmd_mercis_replies_to_main_cbannel_instead_of_team_chat(self, mock_channel, minqlx_db):
+    def test_cmd_mercequal_toreplies_to_main_cbannel_instead_of_team_chat(self, mock_channel, minqlx_db):
         minqlx.CHAT_CHANNEL = mock_channel
         player = fake_player(666, "Cmd using Player")
         player1 = fake_player(123, "Fake Player1", team="red")
@@ -522,7 +522,7 @@ class TestMercifulEloLimit:
         mock_channel.assert_was_replied(matches(r"Fake Player2 \(elo: 799\):.*7.*application matches left"))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_cmd_mercis_shows_no_mercis_if_no_player_using_their_application_matches(self, minqlx_db):
+    def test_cmd_mercequal_toshows_no_mercequal_toif_no_player_using_their_application_matches(self, minqlx_db):
         player = fake_player(666, "Cmd using Player")
         connected_players(player)
         self.setup_balance_ratings({(player, 1400)})

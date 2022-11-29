@@ -4,7 +4,7 @@ import time
 import pytest
 from mockito import unstub, patch, verify  # type: ignore
 from mockito.matchers import any_  # type: ignore
-from hamcrest import assert_that, none, is_
+from hamcrest import assert_that, equal_to
 
 from undecorated import undecorated  # type: ignore
 
@@ -27,19 +27,19 @@ class TestThirtySecondWarnPlugin:
 
     def test_standard(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "standard")
-        assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
+        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo/30_second_warning.ogg"))
 
     def test_female(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "female")
-        assert_that(self.warner.get_announcer_sound(), is_("sound/vo_female/30_second_warning.ogg"))
+        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo_female/30_second_warning.ogg"))
 
     def test_evil(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "evil")
-        assert_that(self.warner.get_announcer_sound(), is_("sound/vo_evil/30_second_warning.ogg"))
+        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo_evil/30_second_warning.ogg"))
 
     def test_non_existing_reverts_to_standard(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "invalid")
-        assert_that(self.warner.get_announcer_sound(), is_("sound/vo/30_second_warning.ogg"))
+        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo/30_second_warning.ogg"))
 
     # noinspection PyMethodMayBeStatic
     def hardcoded_choice(self, _seq):
@@ -48,16 +48,16 @@ class TestThirtySecondWarnPlugin:
     def test_random(self):
         random.choice = self.hardcoded_choice
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "random")
-        assert_that(self.warner.get_announcer_sound(), is_("randomvoice"))
+        assert_that(self.warner.get_announcer_sound(), equal_to("randomvoice"))
 
     @pytest.mark.usefixtures("no_minqlx_game")
-    def test_plays_no_sound_when_game_is_not_running_anymore(self):
+    def test_plays_no_sound_when_game_equal_tonot_running_anymore(self):
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ft"], indirect=True)
-    def test_plays_no_sound_when_game_is_not_clan_arena(self, game_in_progress):
+    def test_plays_no_sound_when_game_equal_tonot_clan_arena(self, game_in_progress):
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
@@ -91,14 +91,14 @@ class TestThirtySecondWarnPlugin:
 
         self.warner.handle_game_start(None)
 
-        assert_that(self.warner.warner_thread_name, none())
+        assert_that(self.warner.warner_thread_name, equal_to(None))
 
     def test_round_end_increases_round_number(self):
         self.warner.warner_thread_name = "test_round_end_increases_round_number1"
 
         self.warner.handle_round_end(None)
 
-        assert_that(self.warner.warner_thread_name, none())
+        assert_that(self.warner.warner_thread_name, equal_to(None))
 
     def test_warntimer_sets_thread_name(self):
         setup_cvar("roundtimelimit", "180")

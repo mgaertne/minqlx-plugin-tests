@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timedelta
 
 import pytest
-from hamcrest import assert_that, equal_to, is_, not_
+from hamcrest import assert_that, equal_to, not_, is_
 # noinspection PyProtectedMember
 from mockito import unstub, mock, when, any_, verify, spy2, when2  # type: ignore
 
@@ -197,7 +197,7 @@ class TestAutoReady:
 
         verify(timer).stop()
         assert_that(self.plugin.current_timer, equal_to(-1))
-        assert_that(self.plugin.timer, is_(None))  # type: ignore
+        assert_that(self.plugin.timer, equal_to(None))  # type: ignore
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_team_switch_with_no_game(self, timer):
@@ -420,7 +420,7 @@ class TestAutoReady:
         self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
         verify(alive_timer).stop()
-        assert_that(self.plugin.timer, is_(None))  # type: ignore
+        assert_that(self.plugin.timer, equal_to(None))  # type: ignore
         assert_that(self.plugin.current_timer, equal_to(-1))
 
     def test_display_countdown_above_30(self):
@@ -598,8 +598,8 @@ class TestCountdownThread:
         func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(21)
         assert_that(func_result, is_(self.mocked_function21))
         func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(20)
-        assert_that(func_result, is_(not_(self.mocked_function42)))
-        assert_that(func_result, is_(not_(self.mocked_function21)))
+        assert_that(func_result, not_(is_(self.mocked_function42)))
+        assert_that(func_result, not_(is_(self.mocked_function21)))
 
     def test_run_inner_loop_function(self):
         test_target_time = self.fake_thread_runtime + timedelta(seconds=35)

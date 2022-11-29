@@ -1,7 +1,7 @@
 import pytest
 from mockito import unstub, mock, spy2, verify, when, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import assert_that, is_, not_, contains_exactly
+from hamcrest import assert_that, equal_to, not_, contains_exactly
 
 from undecorated import undecorated  # type: ignore
 
@@ -77,7 +77,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(self.plugin.plugin_enabled, is_(False))
+        assert_that(self.plugin.plugin_enabled, equal_to(False))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_wrong_version_of_balance_plugin(self, mock_channel):
@@ -87,7 +87,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(self.plugin.plugin_enabled, is_(False))
+        assert_that(self.plugin.plugin_enabled, equal_to(False))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect(self):
@@ -116,10 +116,10 @@ class TestQlstatsPrivacyPolicy:
 
         result = self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(result, is_("Fetching your qlstats settings..."))
+        assert_that(result, equal_to("Fetching your qlstats settings..."))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_postpones_connect_if_there_is_no_result(self):
+    def test_handle_player_connect_postpones_connect_if_there_equal_tono_result(self):
         self.setup_qlstats_response(None)
         setup_cvars({
             "qlx_qlstatsPrivacyKick": "0",
@@ -133,7 +133,7 @@ class TestQlstatsPrivacyPolicy:
 
         result = self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(result, is_("Fetching your qlstats settings..."))
+        assert_that(result, equal_to("Fetching your qlstats settings..."))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_dispatches_fetching_of_privacy_settings_from_qlstats(self):
@@ -252,7 +252,7 @@ class TestQlstatsPrivacyPolicy:
 
         returned = self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(returned, is_("Error: Open qlstats.net, click Login/Sign-up, set privacy settings to "
+        assert_that(returned, equal_to("Error: Open qlstats.net, click Login/Sign-up, set privacy settings to "
                                   "public, anonymous, click save and reconnect!"))
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -275,7 +275,7 @@ class TestQlstatsPrivacyPolicy:
 
         returned = self.plugin.handle_player_connect(connecting_player)
 
-        assert_that(returned, is_(minqlx.RET_NONE))
+        assert_that(returned, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_callback_connect_players_plugin_disabled(self):
@@ -365,7 +365,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_player_disconnect(player, "quit")
 
-        assert_that(self.plugin.exceptions, is_({456}))
+        assert_that(self.plugin.exceptions, equal_to({456}))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_disconnect_clears_join_attempts(self):
@@ -374,7 +374,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_player_disconnect(player, "quit")
 
-        assert_that(player.steam_id not in self.plugin.join_attempts, is_(True))
+        assert_that(player.steam_id not in self.plugin.join_attempts, equal_to(True))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_no_balance_plugin(self, mock_channel):
@@ -385,7 +385,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(self.plugin.plugin_enabled, is_(False))
+        assert_that(self.plugin.plugin_enabled, equal_to(False))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_plugin_disabled(self):
@@ -395,7 +395,7 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_team_switch_attempt_no_game_running(self):
@@ -405,7 +405,7 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_player_has_exception_to_join(self):
@@ -415,7 +415,7 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
-        assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_player_has_no_ratings(self):
@@ -425,7 +425,7 @@ class TestQlstatsPrivacyPolicy:
         return_code = self.plugin.handle_team_switch_attempt(switching_player, "spectator", "any")
 
         assert_player_was_told(switching_player, matches("We couldn't fetch your ratings.*"))
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting(self):
@@ -439,8 +439,8 @@ class TestQlstatsPrivacyPolicy:
         assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
         assert_player_received_center_print(specced_player, matches(r"\^3Join not allowed.*"))
         assert_player_was_told(specced_player, matches(".*Open qlstats.net.*"))
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_that(specced_player.steam_id in self.plugin.join_attempts, is_(True))
+        assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
+        assert_that(specced_player.steam_id in self.plugin.join_attempts, equal_to(True))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_with_unlimited_join_attempts(self):
@@ -455,8 +455,8 @@ class TestQlstatsPrivacyPolicy:
         assert_plugin_sent_to_console(matches(".*not allowed to join.*"))
         assert_player_received_center_print(specced_player, matches(r"\^3Join not allowed.*"))
         assert_player_was_told(specced_player, matches(r".*Open qlstats\.net.*"))
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_that(specced_player.steam_id not in self.plugin.join_attempts, is_(True))
+        assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
+        assert_that(specced_player.steam_id not in self.plugin.join_attempts, equal_to(True))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_player_has_forbidden_privacy_setting_moved_to_spec(self):
@@ -473,7 +473,7 @@ class TestQlstatsPrivacyPolicy:
         assert_player_was_put_on(specced_player, "spectator")
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_team_switch_attempt_player_with_max_join_attempts_is_kicked(self):
+    def test_handle_team_switch_attempt_player_with_max_join_attempts_equal_tokicked(self):
         kicked_player = fake_player(123, "Test Player")
         connected_players(kicked_player)
         self.plugin.join_attempts[kicked_player.steam_id] = 0
@@ -482,7 +482,7 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(kicked_player, "spec", "blue")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
+        assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
         verify(kicked_player).kick(any_())
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -495,8 +495,8 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
 
-        assert_that(return_code, is_(minqlx.RET_STOP_ALL))
-        assert_that(self.plugin.join_attempts[specced_player.steam_id], is_(2))
+        assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
+        assert_that(self.plugin.join_attempts[specced_player.steam_id], equal_to(2))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_player_with_correct_privacy_settings(self):
@@ -507,10 +507,10 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
 
-        assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_team_switch_attempt_player_moved_to_spec_is_fine(self):
+    def test_handle_team_switch_attempt_player_moved_to_spec_equal_tofine(self):
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         # noinspection PyUnresolvedReferences
@@ -518,7 +518,7 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "red", "spectator")
 
-        assert_that(return_code, is_(minqlx.RET_NONE))
+        assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_policy_exception_for_player_too_short(self, mock_channel):
@@ -527,7 +527,7 @@ class TestQlstatsPrivacyPolicy:
 
         return_code = self.plugin.cmd_policy_exception(admin_player, ["!except"], mock_channel)
 
-        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_policy_exception_for_connected_player(self, mock_channel):
@@ -537,7 +537,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.cmd_policy_exception(admin_player, ["!except", "except"], mock_channel)
 
-        assert_that(self.plugin.exceptions, is_({exception_player.steam_id}))
+        assert_that(self.plugin.exceptions, equal_to({exception_player.steam_id}))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_policy_exception_for_no_matching_player(self, mock_channel):
@@ -563,7 +563,7 @@ class TestQlstatsPrivacyPolicy:
         self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*QLStats policy check disabled.*"))
-        assert_that(self.plugin.plugin_enabled, is_(False))
+        assert_that(self.plugin.plugin_enabled, equal_to(False))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_with_no_balance_plugin(self, mock_channel):
@@ -573,7 +573,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
-        assert_that(self.plugin.plugin_enabled, is_(False))
+        assert_that(self.plugin.plugin_enabled, equal_to(False))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_enables_policy_check(self, mock_channel):
@@ -582,7 +582,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
-        assert_that(self.plugin.plugin_enabled, is_(True))
+        assert_that(self.plugin.plugin_enabled, equal_to(True))
         mock_channel.assert_was_replied(matches(".*QLStats policy check enabled.*"))
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -650,13 +650,13 @@ class TestQlstatsPrivacyPolicy:
     def test_cmd_switch_plugin_shows_usage(self, mock_channel):
         return_code = self.plugin.cmd_switch_plugin(None, ["!policy", "asdf"], mock_channel)
 
-        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_shows_usage_for_too_many_parameters(self, mock_channel):
         return_code = self.plugin.cmd_switch_plugin(None, ["!policy", "too", "many", "parameters"], mock_channel)
 
-        assert_that(return_code, is_(minqlx.RET_USAGE))
+        assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_removes_existing_connect_thread(self):
@@ -664,7 +664,7 @@ class TestQlstatsPrivacyPolicy:
 
         undecorated(self.plugin.remove_thread)(self.plugin, 1234)
 
-        assert_that(self.plugin.connectthreads, is_({}))
+        assert_that(self.plugin.connectthreads, equal_to({}))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_does_nothing_if_thread_does_not_exist(self):
@@ -672,4 +672,4 @@ class TestQlstatsPrivacyPolicy:
 
         undecorated(self.plugin.remove_thread)(self.plugin, 12345)
 
-        assert_that(self.plugin.connectthreads, is_({1234: "asdf"}))
+        assert_that(self.plugin.connectthreads, equal_to({1234: "asdf"}))
