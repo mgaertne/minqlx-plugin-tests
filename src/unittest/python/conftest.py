@@ -40,7 +40,7 @@ def _cvars(request):
         params = request.param.split(",")
         for parameter in params:
             cvar, value = parameter.split("=")
-            when2(minqlx.get_cvar, cvar).thenReturn(value)
+            when2(minqlx.get_cvar, cvar.strip()).thenReturn(value.strip())
     yield
     unstub()
 
@@ -74,13 +74,13 @@ def parse_game_fixture_params(request, minqlx_game):
         params = request.param.split(",")
         for parameter in params:
             key, value = parameter.split("=")
-            if key == "game_type":
-                minqlx_game.type_short = value
+            if key.strip() == "game_type":
+                minqlx_game.type_short = value.strip()
                 continue
-            if key in ["roundlimit", "red_score", "blue_score"]:
-                setattr(minqlx_game, key, int(value))
+            if key.strip() in ["roundlimit", "red_score", "blue_score"]:
+                setattr(minqlx_game, key.strip(), int(value.strip()))
                 continue
-            setattr(minqlx_game, key, value)
+            setattr(minqlx_game, key.strip(), value.strip())
 
 
 @pytest.fixture(name="game_in_warmup")
