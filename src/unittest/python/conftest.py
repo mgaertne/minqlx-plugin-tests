@@ -93,6 +93,17 @@ def _game_in_warmup(minqlx_game, request: FixtureRequest):
     yield minqlx_game
 
 
+@pytest.fixture(name="game_in_countdown")
+def _game_in_countdown(minqlx_game, request: FixtureRequest):
+    minqlx_game.state = "countdown"
+    minqlx_game.type_short = "ca"
+    minqlx_game.map = "campgrounds"
+
+    parse_game_fixture_params(request, minqlx_game)
+
+    yield minqlx_game
+
+
 @pytest.fixture(name="game_in_progress")
 def _game_in_progress(minqlx_game, request: FixtureRequest):
     minqlx_game.state = "in_progress"

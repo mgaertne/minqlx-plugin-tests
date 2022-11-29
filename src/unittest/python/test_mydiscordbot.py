@@ -1,11 +1,11 @@
 import asyncio
 import logging
 
-import unittest
 from typing import Set
 from unittest.mock import AsyncMock
 
-from mockito import mock, unstub, verify, when, when2, patch  # type: ignore
+import pytest
+from mockito import mock, unstub, verify, when  # type: ignore
 from mockito.matchers import matches, arg_that  # type: ignore
 from hamcrest import assert_that, equal_to
 
@@ -21,15 +21,13 @@ from discord.ext.commands import Bot
 import minqlx
 from mydiscordbot import mydiscordbot, MinqlxHelpCommand, SimpleAsyncDiscord
 
-from minqlx_plugin_test import setup_plugin, setup_game_in_warmup, connected_players, setup_cvars, \
-    assert_plugin_sent_to_console, fake_player, player_that_matches, setup_no_game, setup_cvar
+from minqlx_plugin_test import connected_players, setup_cvars, assert_plugin_sent_to_console, fake_player, \
+    player_that_matches, setup_cvar
 
 
-class MyDiscordBotTests(unittest.TestCase):
+class TestMyDiscordBotTests:
 
-    def setUp(self):
-        setup_plugin()
-        setup_game_in_warmup(game_type="ca")
+    def setup_method(self):
         connected_players()
         self.discord = mock(spec=SimpleAsyncDiscord, strict=False)
         setup_cvars({
@@ -37,7 +35,8 @@ class MyDiscordBotTests(unittest.TestCase):
         })
         self.plugin = mydiscordbot(discord_client=self.discord)
 
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
     @staticmethod
@@ -152,14 +151,17 @@ class MyDiscordBotTests(unittest.TestCase):
 
         verify(self.discord).relay_message("*Vote failed.*")
 
-    def test_game_countdown(self):
-        setup_game_in_warmup(game_type="ca", mapname="campgrounds", map_title="Campgrounds")
+    @pytest.mark.parametrize("game_in_warmup",
+                             ["game_type=ca, map=campgrounds, map_title=Campgrounds, maxclients=16"],
+                             indirect=True)
+    def test_game_countdown(self, game_in_warmup):
+        connected_players()
         undecorated(self.plugin.handle_game_countdown_or_end)(self.plugin)
 
         verify(self.discord).relay_message("Warmup on **Campgrounds** (CA) with **0/16** players. ")
 
+    @pytest.mark.usefixtures("no_minqlx_game")
     def test_game_countdown_with_no_game(self):
-        setup_no_game()
         undecorated(self.plugin.handle_game_countdown_or_end)(self.plugin)
 
         verify(self.discord, times=0).relay_message(any)
@@ -177,92 +179,56 @@ class MyDiscordBotTests(unittest.TestCase):
         assert_plugin_sent_to_console("Message 'asdf' sent to discord chat!")
 
     @staticmethod
-    def test_get_game_info_in_warmup():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "warmup"
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    def test_get_game_info_in_warmup(game_in_warmup):
+        game_info = mydiscordbot.get_game_info(game_in_warmup)
 
         assert_that(game_info, equal_to("Warmup"))
 
     @staticmethod
-    def test_get_game_info_in_countdown():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "countdown"
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    def test_get_game_info_in_countdown(game_in_countdown):
+        game_info = mydiscordbot.get_game_info(game_in_countdown)
 
         assert_that(game_info, equal_to("Match starting"))
 
     @staticmethod
-    def test_get_game_info_in_progress():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "in_progress"
-        mock_game.roundlimit = 8
-        mock_game.red_score = 1
-        mock_game.blue_score = 2
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8, red_score=1, blue_score=2"], indirect=True)
+    def test_get_game_info_in_progress(game_in_progress):
+        game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match in progress: **1** - **2**"))
 
     @staticmethod
-    def test_get_game_info_red_hit_roundlimit():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "in_progress"
-        mock_game.roundlimit = 8
-        mock_game.red_score = 8
-        mock_game.blue_score = 2
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8, red_score=8, blue_score=2"], indirect=True)
+    def test_get_game_info_red_hit_roundlimit(game_in_progress):
+        game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **8** - **2**"))
 
     @staticmethod
-    def test_get_game_info_blue_hit_roundlimit():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "in_progress"
-        mock_game.roundlimit = 8
-        mock_game.red_score = 5
-        mock_game.blue_score = 8
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8, red_score=5, blue_score=8"], indirect=True)
+    def test_get_game_info_blue_hit_roundlimit(game_in_progress):
+        game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **5** - **8**"))
 
     @staticmethod
-    def test_get_game_info_red_player_dropped_out():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "in_progress"
-        mock_game.roundlimit = 8
-        mock_game.red_score = -999
-        mock_game.blue_score = 3
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8, red_score=-999, blue_score=3"], indirect=True)
+    def test_get_game_info_red_player_dropped_out(game_in_progress):
+        game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **-999** - **3**"))
 
     @staticmethod
-    def test_get_game_info_blue_player_dropped_out():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "in_progress"
-        mock_game.roundlimit = 8
-        mock_game.red_score = 5
-        mock_game.blue_score = -999
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8, red_score=5, blue_score=-999"], indirect=True)
+    def test_get_game_info_blue_player_dropped_out(game_in_progress):
+        game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **5** - **-999**"))
 
     @staticmethod
-    def test_get_game_info_unknown_game_state():
-        mock_game = mock(spec=minqlx.Game, strict=False)
-        mock_game.state = "asdf"
-        mock_game.roundlimit = 8
-        mock_game.red_score = 3
-        mock_game.blue_score = 2
-
-        game_info = mydiscordbot.get_game_info(mock_game)
+    @pytest.mark.parametrize("game_in_progress", ["state=asdf, roundlimit=8, red_score=1, blue_score=2"], indirect=True)
+    def test_get_game_info_unknown_game_state(game_in_progress):
+        game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Warmup"))
 
@@ -330,79 +296,71 @@ class MyDiscordBotTests(unittest.TestCase):
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
-    def test_cmd_discordbot_status(self):
+    def test_cmd_discordbot_status(self, mock_channel):
         when(self.discord).status().thenReturn("Discord status message")
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "status"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "status"], mock_channel)
 
-        verify(chat_channel).reply("Discord status message")
+        mock_channel.assert_was_replied("Discord status message")
 
-    def test_cmd_discordbot_status2(self):
+    def test_cmd_discordbot_status2(self, mock_channel):
         when(self.discord).status().thenReturn("Discord status message")
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot"], mock_channel)
 
-        verify(chat_channel).reply("Discord status message")
+        mock_channel.assert_was_replied("Discord status message")
 
-    def test_cmd_discordbot_connect(self):
+    def test_cmd_discordbot_connect(self, mock_channel):
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "connect"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "connect"], mock_channel)
 
-        verify(chat_channel).reply("Connecting to Discord...")
+        mock_channel.assert_was_replied("Connecting to Discord...")
         verify(self.discord).run()
 
-    def test_cmd_discordbot_connect_when_already_connected(self):
+    def test_cmd_discordbot_connect_when_already_connected(self, mock_channel):
         when(self.discord).is_discord_logged_in().thenReturn(True)
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "connect"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "connect"], mock_channel)
 
-        verify(chat_channel).reply("Connecting to Discord...")
+        mock_channel.assert_was_replied("Connecting to Discord...")
         verify(self.discord, times=0).run()
 
-    def test_cmd_discordbot_disconnect(self):
+    def test_cmd_discordbot_disconnect(self, mock_channel):
         when(self.discord).is_discord_logged_in().thenReturn(True)
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "disconnect"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "disconnect"], mock_channel)
 
-        verify(chat_channel).reply("Disconnecting from Discord...")
+        mock_channel.assert_was_replied("Disconnecting from Discord...")
         verify(self.discord).stop()
 
-    def test_cmd_discordbot_disconnect_when_already_disconnected(self):
+    def test_cmd_discordbot_disconnect_when_already_disconnected(self, mock_channel):
         when(self.discord).is_discord_logged_in().thenReturn(False)
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "disconnect"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "disconnect"], mock_channel)
 
-        verify(chat_channel).reply("Disconnecting from Discord...")
+        mock_channel.assert_was_replied("Disconnecting from Discord...")
         verify(self.discord, times=0).stop()
 
-    def test_cmd_discordbot_reconnect(self):
+    def test_cmd_discordbot_reconnect(self, mock_channel):
         when(self.discord).is_discord_logged_in().thenReturn(True).thenReturn(False)
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "reconnect"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "reconnect"], mock_channel)
 
-        verify(chat_channel).reply("Reconnecting to Discord...")
+        mock_channel.assert_was_replied("Reconnecting to Discord...")
         verify(self.discord).stop()
         verify(self.discord).run()
 
-    def test_cmd_discordbot_reconnect_when_disconnected(self):
+    def test_cmd_discordbot_reconnect_when_disconnected(self, mock_channel):
         when(self.discord).is_discord_logged_in().thenReturn(False)
         triggering_player = fake_player(1, "Triggering Player")
-        chat_channel = mock(spec=minqlx.AbstractChannel, strict=False)
-        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "reconnect"], chat_channel)
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot", "reconnect"], mock_channel)
 
-        verify(chat_channel).reply("Reconnecting to Discord...")
+        mock_channel.assert_was_replied("Reconnecting to Discord...")
         verify(self.discord, times=0).stop()
         verify(self.discord).run()
 
 
-def mocked_user(_id=777, name="Some-Discord-User", nick=None):
+def mocked_discord_user(_id=777, name="Some-Discord-User", nick=None):
     user = mock(spec=User)
 
     user.id = _id
@@ -413,7 +371,7 @@ def mocked_user(_id=777, name="Some-Discord-User", nick=None):
     return user
 
 
-def mocked_channel(_id=666, name="channel-name", channel_type=ChannelType.text, topic=None):
+def mocked_discord_channel(_id=666, name="channel-name", channel_type=ChannelType.text, topic=None):
     channel = mock(spec=TextChannel)
 
     channel.id = _id
@@ -429,7 +387,7 @@ def mocked_channel(_id=666, name="channel-name", channel_type=ChannelType.text, 
     return channel
 
 
-def mocked_message(content="message content", user=mocked_user(), channel=mocked_channel()):
+def mocked_discord_message(content="message content", user=mocked_discord_user(), channel=mocked_discord_channel()):
     message = mock(spec=Message)
 
     message.content = content
@@ -440,28 +398,14 @@ def mocked_message(content="message content", user=mocked_user(), channel=mocked
     return message
 
 
-class MinqlxHelpCommandTests(unittest.TestCase):
+class TestMinqlxHelpCommand:
 
-    def setUp(self):
+    def setup_method(self):
         self.help_command = MinqlxHelpCommand()
-        self.help_command.context = mock({'send': AsyncMock()})
-        self.help_command.context.prefix = "!"
-        self.help_command.context.invoked_with = "help"
-        self.help_command.context.bot = mock({'description': 'Mocked Bot'}, spec=Bot)
-        self.help_command.context.bot.user = mocked_user()
-        self.help_command.context.bot.user.display_name = "Discord-Bot"
-        self.help_command.context.bot.user.mention = "Discord-Bot#123"
-        help_command = mock({'name': 'help', 'description': 'Fake Help', 'short_doc': 'Fake Help',
-                             'hidden': False, 'cog_name': None, 'aliases': []})
-        when(help_command).can_run(self.help_command.context).thenReturn(AsyncMock(return_value=True))
-        fake_command = mock({'name': 'fake', 'description': 'Fake Command', 'short_doc': 'Fake Command',
-                             'hidden': False, 'cog_name': None, 'aliases': []})
-        when(fake_command).can_run(self.help_command.context).thenReturn(AsyncMock(return_value=True))
-        self.help_command.context.bot.all_commands = {help_command.name: help_command, fake_command.name: fake_command}
-        self.help_command.command = self.help_command.context.bot
-        when(self.help_command.context.bot).can_run(any).thenReturn(AsyncMock(return_value=True))
+        self.help_command.context = mock({"prefix": "!", "invoked_with": "help"})
 
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
     def test_get_ending_note(self):
@@ -480,11 +424,9 @@ def assert_text_was_sent_to_discord_channel(channel, matcher):
     assert_that(channel.send.call_args.args[0], matcher)
 
 
-class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
+class TestSimpleAsyncDiscord:
 
-    def setUp(self):
-        setup_plugin()
-
+    def setup_method(self):
         setup_cvars({
             "qlx_owner": "1234567890",
             "qlx_discordBotToken": "bottoken",
@@ -517,7 +459,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.setup_discord_library()
 
-    def tearDown(self):
+    def teardown_method(self):
         self.discord_client.loop.close()
         unstub()
 
@@ -545,7 +487,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.discord = self.discord_client
 
-    def mocked_context(self, prefix="%", bot=None, message=mocked_message(), invoked_with="asdf"):
+    def mocked_context(self, prefix="%", bot=None, message=mocked_discord_message(), invoked_with="asdf"):
         context = mock({'send': AsyncMock()})
         context.prefix = prefix
         context.bot = self.discord_client
@@ -557,28 +499,21 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         return context
 
     def relay_channel(self):
-        channel = mocked_channel(_id=1234, name="relay-channel")
+        channel = mocked_discord_channel(_id=1234, name="relay-channel")
 
         when(self.discord_client).get_channel(channel.id).thenReturn(channel)
 
         return channel
 
     def relay_teamchat_channel(self):
-        channel = mocked_channel(_id=242, name="relay-teamchat-channel")
+        channel = mocked_discord_channel(_id=242, name="relay-teamchat-channel")
 
         when(self.discord_client).get_channel(channel.id).thenReturn(channel)
 
         return channel
 
     def triggered_channel(self):
-        channel = mocked_channel(_id=456, name="triggered-channel")
-
-        when(self.discord_client).get_channel(channel.id).thenReturn(channel)
-
-        return channel
-
-    def uninteresting_channel(self):
-        channel = mocked_channel(_id=987, name="uninteresting-channel")
+        channel = mocked_discord_channel(_id=456, name="triggered-channel")
 
         when(self.discord_client).get_channel(channel.id).thenReturn(channel)
 
@@ -618,6 +553,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         assert_that(status, equal_to("Discord client not connected."))
 
+    @pytest.mark.asyncio
     async def test_initialize_bot(self):
         self.discord.initialize_bot(self.discord_client)
 
@@ -625,12 +561,14 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         verify(self.discord_client).add_listener(self.discord.on_ready)
         verify(self.discord_client).add_listener(self.discord.on_message)
 
+    @pytest.mark.asyncio
     async def test_disable_version(self):
         self.discord.discord_version_enabled = False
         self.discord.initialize_bot(self.discord_client)
 
         verify(self.discord_client, times=0).add_command(name="version", callback=self.discord.version)
 
+    @pytest.mark.asyncio
     async def test_version(self):
         context = self.mocked_context()
 
@@ -638,6 +576,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         assert_matching_string_send_to_discord_context(context, "```version information```")
 
+    @pytest.mark.asyncio
     async def test_on_ready(self):
         self.setup_discord_library()
 
@@ -645,67 +584,67 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord_client.change_presence.assert_called_once_with(activity=discord.Game(name="Quake Live"))
 
-    async def test_on_message_is_relayed(self):
-        message = mocked_message(content="some chat message",
-                                 user=mocked_user(name="Sender"),
-                                 channel=self.relay_channel())
+    @pytest.mark.asyncio
+    async def test_on_message_is_relayed(self, mock_channel):
+        message = mocked_discord_message(content="some chat message",
+                                         user=mocked_discord_user(name="Sender"),
+                                         channel=self.relay_channel())
 
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+        minqlx.CHAT_CHANNEL = mock_channel
 
         await self.discord.on_message(message)
 
         verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^6Sender^7:^2 some chat message")
 
-    async def test_on_message_by_user_with_nickname(self):
-        message = mocked_message(content="some chat message",
-                                 user=mocked_user(name="Sender", nick="SenderNick"),
-                                 channel=self.relay_channel())
+    @pytest.mark.asyncio
+    async def test_on_message_by_user_with_nickname(self, mock_channel):
+        message = mocked_discord_message(content="some chat message",
+                                         user=mocked_discord_user(name="Sender", nick="SenderNick"),
+                                         channel=self.relay_channel())
 
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+        minqlx.CHAT_CHANNEL = mock_channel
 
         await self.discord.on_message(message)
 
         verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^6SenderNick^7:^2 some chat message")
 
-    async def test_on_message_in_wrong_channel(self):
-        message = mocked_message(content="some chat message",
-                                 channel=self.triggered_channel())
+    @pytest.mark.asyncio
+    async def test_on_message_in_wrong_channel(self, mock_channel):
+        message = mocked_discord_message(content="some chat message",
+                                         channel=self.triggered_channel())
 
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
-
-        await self.discord.on_message(message)
-
-        verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
-
-    async def test_on_message_too_short_message(self):
-        message = mocked_message(content="",
-                                 channel=self.relay_channel())
-
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+        minqlx.CHAT_CHANNEL = mock_channel
 
         await self.discord.on_message(message)
 
         verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
 
-    async def test_on_message_from_bot(self):
-        message = mocked_message(content="",
-                                 user=self.discord_client.user,
-                                 channel=self.relay_channel())
+    @pytest.mark.asyncio
+    async def test_on_message_too_short_message(self, mock_channel):
+        message = mocked_discord_message(content="",
+                                         channel=self.relay_channel())
 
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+        minqlx.CHAT_CHANNEL = mock_channel
 
         await self.discord.on_message(message)
 
         verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
 
-    async def test_on_message_without_message(self):
-        patch(minqlx.CHAT_CHANNEL, "reply", lambda msg: None)
-        when2(minqlx.CHAT_CHANNEL.reply, any).thenReturn(None)
+    @pytest.mark.asyncio
+    async def test_on_message_from_bot(self, mock_channel):
+        message = mocked_discord_message(content="",
+                                         user=self.discord_client.user,
+                                         channel=self.relay_channel())
+
+        minqlx.CHAT_CHANNEL = mock_channel
+
+        await self.discord.on_message(message)
+
+        verify(minqlx.CHAT_CHANNEL, times=0).reply(any)
+
+    @pytest.mark.asyncio
+    async def test_on_message_without_message(self, mock_channel):
+        minqlx.CHAT_CHANNEL = mock_channel
 
         await self.discord.on_message(None)
 
@@ -735,9 +674,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         assert_text_was_sent_to_discord_channel(relay_channel, "awesome relayed message")
 
     def test_relay_message_with_not_connected_client(self):
-        when(self.discord_client).is_ready().thenReturn(False)
-
         relay_channel = self.relay_channel()
+        when(self.discord_client).is_ready().thenReturn(False)
 
         self.discord.relay_message("awesome relayed message")
 
@@ -756,7 +694,6 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     def test_relay_chat_message_simple_message(self):
         relay_channel = self.relay_channel()
-
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
 
@@ -766,7 +703,6 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     def test_relay_chat_message_with_asterisks_in_playername(self):
         relay_channel = self.relay_channel()
-
         player = fake_player(steam_id=1, name="*Chatting* player")
         minqlx_channel = ""
 
@@ -780,8 +716,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.setup_discord_library()
 
         relay_channel = self.relay_channel()
-
-        mentioned_user = mocked_user(_id=123, name="chatter")
+        mentioned_user = mocked_discord_user(_id=123, name="chatter")
         self.setup_discord_members(mentioned_user)
         self.setup_discord_channels()
 
@@ -817,8 +752,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.setup_discord_library()
 
         relay_channel = self.relay_channel()
-
-        unmentioned_user = mocked_user(_id=123, name="chatter")
+        unmentioned_user = mocked_discord_user(_id=123, name="chatter")
         self.setup_discord_members(unmentioned_user)
         self.setup_discord_channels()
 
@@ -837,8 +771,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.setup_discord_library()
 
         relay_channel = self.relay_channel()
-
-        mentioned_channel = mocked_channel(_id=456, name="mentioned-channel")
+        mentioned_channel = mocked_discord_channel(_id=456, name="mentioned-channel")
         self.setup_discord_members()
         self.setup_discord_channels(mentioned_channel)
 
@@ -857,7 +790,6 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.setup_discord_library()
 
         relay_channel = self.relay_channel()
-
         self.setup_discord_members()
         self.setup_discord_channels()
 
@@ -873,9 +805,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
-        when(self.discord_client).is_ready().thenReturn(False)
-
         relay_channel = self.relay_channel()
+        when(self.discord_client).is_ready().thenReturn(False)
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
@@ -885,33 +816,30 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         verify(relay_channel, times=0).send(any)
 
     def test_relay_team_chat_message_simple_message(self):
-        relay_channel = self.relay_teamchat_channel()
-
+        relay_teamchat_channel = self.relay_teamchat_channel()
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great!")
 
-        assert_text_was_sent_to_discord_channel(relay_channel, "**Chatting player**: QL is great!")
+        assert_text_was_sent_to_discord_channel(relay_teamchat_channel, "**Chatting player**: QL is great!")
 
     def test_relay_team_chat_message_with_asterisks_in_playername(self):
-        relay_channel = self.relay_teamchat_channel()
-
+        relay_teamchat_channel = self.relay_teamchat_channel()
         player = fake_player(steam_id=1, name="*Chatting* player")
         minqlx_channel = ""
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great!")
 
-        assert_text_was_sent_to_discord_channel(relay_channel, r"**\*Chatting\* player**: QL is great!")
+        assert_text_was_sent_to_discord_channel(relay_teamchat_channel, r"**\*Chatting\* player**: QL is great!")
 
     def test_relay_team_chat_message_replace_user_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
-        relay_channel = self.relay_teamchat_channel()
-
-        mentioned_user = mocked_user(_id=123, name="chatter")
+        relay_teamchat_channel = self.relay_teamchat_channel()
+        mentioned_user = mocked_discord_user(_id=123, name="chatter")
         self.setup_discord_members(mentioned_user)
         self.setup_discord_channels()
 
@@ -921,7 +849,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @chatter !")
 
         assert_text_was_sent_to_discord_channel(
-            relay_channel,
+            relay_teamchat_channel,
             f"**Chatting player**: QL is great, {mentioned_user.mention} !")
 
     def test_relay_team_chat_message_mentioned_member_not_found(self):
@@ -929,8 +857,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
-        relay_channel = self.relay_teamchat_channel()
-
+        relay_teamchat_channel = self.relay_teamchat_channel()
         self.setup_discord_members()
         self.setup_discord_channels()
 
@@ -939,16 +866,15 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @chatter !")
 
-        assert_text_was_sent_to_discord_channel(relay_channel, "**Chatting player**: QL is great, @chatter !")
+        assert_text_was_sent_to_discord_channel(relay_teamchat_channel, "**Chatting player**: QL is great, @chatter !")
 
     def test_relay_team_chat_message_replace_channel_mention(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
-        relay_channel = self.relay_teamchat_channel()
-
-        mentioned_channel = mocked_channel(_id=456, name="mentioned-channel")
+        relay_teamchat_channel = self.relay_teamchat_channel()
+        mentioned_channel = mocked_discord_channel(_id=456, name="mentioned-channel")
         self.setup_discord_members()
         self.setup_discord_channels(mentioned_channel)
 
@@ -958,7 +884,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, #mention !")
 
         assert_text_was_sent_to_discord_channel(
-            relay_channel,
+            relay_teamchat_channel,
             f"**Chatting player**: QL is great, {mentioned_channel.mention} !")
 
     def test_relay_team_chat_message_mentioned_channel_not_found(self):
@@ -966,8 +892,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
-        relay_channel = self.relay_teamchat_channel()
-
+        relay_teamchat_channel = self.relay_teamchat_channel()
         self.setup_discord_members()
         self.setup_discord_channels()
 
@@ -976,28 +901,27 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, #mention !")
 
-        assert_text_was_sent_to_discord_channel(relay_channel, "**Chatting player**: QL is great, #mention !")
+        assert_text_was_sent_to_discord_channel(relay_teamchat_channel, "**Chatting player**: QL is great, #mention !")
 
     def test_relay_team_chat_message_discord_not_logged_in(self):
         setup_cvar("qlx_discordReplaceMentionsForRelayedMessages", "1")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
+        relay_teamchat_channel = self.relay_teamchat_channel()
         when(self.discord_client).is_ready().thenReturn(False)
-
-        relay_channel = self.relay_teamchat_channel()
 
         player = fake_player(steam_id=1, name="Chatting player")
         minqlx_channel = ""
 
         self.discord.relay_team_chat_message(player, minqlx_channel, "QL is great, @member #mention !")
 
-        verify(relay_channel, times=0).send(any)
+        verify(relay_teamchat_channel, times=0).send(any)
 
     @staticmethod
     def test_find_user_match_exact_match():
-        exact_matching_user = mocked_user(name="user")
-        other_user = mocked_user(name="non-exact-match-User")
+        exact_matching_user = mocked_discord_user(name="user")
+        other_user = mocked_discord_user(name="non-exact-match-User")
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
 
@@ -1005,8 +929,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_user_match_case_insensitive_match():
-        case_insensitive_matching_user = mocked_user(name="uSeR")
-        other_user = mocked_user(name="non-matched user")
+        case_insensitive_matching_user = mocked_discord_user(name="uSeR")
+        other_user = mocked_discord_user(name="non-matched user")
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [case_insensitive_matching_user, other_user])
 
@@ -1014,8 +938,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_user_match_exact_nick_match():
-        exact_matching_user = mocked_user(name="non-matching name", nick="user")
-        other_user = mocked_user(name="non-exact-match-User")
+        exact_matching_user = mocked_discord_user(name="non-matching name", nick="user")
+        other_user = mocked_discord_user(name="non-exact-match-User")
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
 
@@ -1023,8 +947,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_user_match_case_insensitive_nick_match():
-        exact_matching_user = mocked_user(name="non-matching name", nick="UseR")
-        other_user = mocked_user(name="non-matched user", nick="non-matched nick")
+        exact_matching_user = mocked_discord_user(name="non-matching name", nick="UseR")
+        other_user = mocked_discord_user(name="non-matched user", nick="non-matched nick")
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user", [exact_matching_user, other_user])
 
@@ -1032,8 +956,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_user_match_fuzzy_match_on_name():
-        fuzzy_matching_user = mocked_user(name="matching-GeneRal-user")
-        other_user = mocked_user(name="non-matched channel")
+        fuzzy_matching_user = mocked_discord_user(name="matching-GeneRal-user")
+        other_user = mocked_discord_user(name="non-matched channel")
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("UsEr", [fuzzy_matching_user, other_user])
 
@@ -1041,8 +965,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_user_match_fuzzy_match_on_nick():
-        fuzzy_matching_user = mocked_user(name="non-matchin-usr", nick="matching-General-uSeR")
-        other_user = mocked_user(name="non-matched channel")
+        fuzzy_matching_user = mocked_discord_user(name="non-matchin-usr", nick="matching-General-uSeR")
+        other_user = mocked_discord_user(name="non-matched channel")
 
         matched_user = SimpleAsyncDiscord.find_user_that_matches("UsEr", [fuzzy_matching_user, other_user])
 
@@ -1051,16 +975,16 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     def test_find_user_match_no_match_found():
         matched_user = SimpleAsyncDiscord.find_user_that_matches("awesome",
-                                                                 [mocked_user(name="no_match-user"),
-                                                                  mocked_user(name="non-matched user")])
+                                                                 [mocked_discord_user(name="no_match-user"),
+                                                                  mocked_discord_user(name="non-matched user")])
 
         assert_that(matched_user, equal_to(None))
 
     @staticmethod
     def test_find_user_match_more_than_one_user_found():
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user",
-                                                                 [mocked_user(name="matched_user"),
-                                                                  mocked_user(name="another-matched-uSEr")])
+                                                                 [mocked_discord_user(name="matched_user"),
+                                                                  mocked_discord_user(name="another-matched-uSEr")])
 
         assert_that(matched_user, equal_to(None))
 
@@ -1068,8 +992,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
     def test_find_user_match_more_than_one_user_found_and_player_informed():
         sending_player = fake_player(steam_id=1, name="Player")
         matched_user = SimpleAsyncDiscord.find_user_that_matches("user",
-                                                                 [mocked_user(name="matched_user"),
-                                                                  mocked_user(name="another-matched-uSEr")],
+                                                                 [mocked_discord_user(name="matched_user"),
+                                                                  mocked_discord_user(name="another-matched-uSEr")],
                                                                  sending_player)
 
         verify(sending_player).tell("Found ^62^7 matching discord users for @user:")
@@ -1078,8 +1002,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_channel_match_exact_match():
-        exact_matching_channel = mocked_channel(name="general")
-        other_channel = mocked_channel(name="General")
+        exact_matching_channel = mocked_discord_channel(name="general")
+        other_channel = mocked_discord_channel(name="General")
 
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
                                                                        [exact_matching_channel, other_channel])
@@ -1088,8 +1012,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_channel_match_case_insensitive_match():
-        case_insensitive_matching_channel = mocked_channel(name="GeNeRaL")
-        other_channel = mocked_channel(name="non-matched General")
+        case_insensitive_matching_channel = mocked_discord_channel(name="GeNeRaL")
+        other_channel = mocked_discord_channel(name="non-matched General")
 
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
                                                                        [case_insensitive_matching_channel,
@@ -1099,8 +1023,8 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_channel_match_fuzzy_match():
-        fuzzy_matching_channel = mocked_channel(name="matching-GeneRal-channel")
-        other_channel = mocked_channel(name="non-matched channel")
+        fuzzy_matching_channel = mocked_discord_channel(name="matching-GeneRal-channel")
+        other_channel = mocked_discord_channel(name="non-matched channel")
 
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
                                                                        [fuzzy_matching_channel, other_channel])
@@ -1109,36 +1033,38 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
     @staticmethod
     def test_find_channel_match_no_match_found():
-        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
-                                                                       [mocked_channel(name="no_match-channel"),
-                                                                        mocked_channel(name="non-matched channel")])
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches(
+            "general",
+            [mocked_discord_channel(name="no_match-channel"),
+             mocked_discord_channel(name="non-matched channel")])
 
         assert_that(matched_channel, equal_to(None))
 
     @staticmethod
     def test_find_channel_match_more_than_one_channel_found():
-        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
-                                                                       [mocked_channel(name="matched_general"),
-                                                                        mocked_channel(name="another-matched-general")])
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches(
+            "general",
+            [mocked_discord_channel(name="matched_general"),
+             mocked_discord_channel(name="another-matched-general")])
 
         assert_that(matched_channel, equal_to(None))
 
     @staticmethod
     def test_find_channel_match_more_than_one_channel_found_and_player_informed():
         sending_player = fake_player(steam_id=1, name="Player")
-        matched_channel = SimpleAsyncDiscord.find_channel_that_matches("general",
-                                                                       [mocked_channel(name="matched_general"),
-                                                                        mocked_channel(name="another-matched-general")],
-                                                                       sending_player)
+        matched_channel = SimpleAsyncDiscord.find_channel_that_matches(
+            "general",
+            [mocked_discord_channel(name="matched_general"),
+             mocked_discord_channel(name="another-matched-general")],
+            sending_player)
 
         verify(sending_player).tell("Found ^62^7 matching discord channels for #general:")
         verify(sending_player).tell("#matched_general #another-matched-general ")
         assert_that(matched_channel, equal_to(None))
 
     def test_triggered_message(self):
-        trigger_channel1 = self.triggered_channel()
-
-        trigger_channel2 = mocked_channel(_id=789)
+        triggered_channel = self.triggered_channel()
+        trigger_channel2 = mocked_discord_channel(_id=789)
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
 
         self.setup_discord_members()
@@ -1148,13 +1074,12 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        assert_text_was_sent_to_discord_channel(trigger_channel1, "**Chatting player**: QL is great!")
+        assert_text_was_sent_to_discord_channel(triggered_channel, "**Chatting player**: QL is great!")
         assert_text_was_sent_to_discord_channel(trigger_channel2, "**Chatting player**: QL is great!")
 
     def test_triggered_message_with_escaped_playername(self):
-        trigger_channel1 = self.triggered_channel()
-
-        trigger_channel2 = mocked_channel(_id=789)
+        triggered_channel = self.triggered_channel()
+        trigger_channel2 = mocked_discord_channel(_id=789)
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
 
         self.setup_discord_members()
@@ -1164,14 +1089,13 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        assert_text_was_sent_to_discord_channel(trigger_channel1, r"**\*Chatting\_player\***: QL is great!")
+        assert_text_was_sent_to_discord_channel(triggered_channel, r"**\*Chatting\_player\***: QL is great!")
         assert_text_was_sent_to_discord_channel(trigger_channel2, r"**\*Chatting\_player\***: QL is great!")
 
     def test_triggered_message_replaces_mentions(self):
-        trigger_channel1 = self.triggered_channel()
-
-        mentioned_user = mocked_user(_id=123, name="chatter")
-        mentioned_channel = mocked_channel(_id=456, name="mentioned-channel")
+        triggered_channel = self.triggered_channel()
+        mentioned_user = mocked_discord_user(_id=123, name="chatter")
+        mentioned_channel = mocked_discord_channel(_id=456, name="mentioned-channel")
         self.setup_discord_members(mentioned_user)
         self.setup_discord_channels(mentioned_channel)
 
@@ -1180,7 +1104,7 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord.triggered_message(player, "QL is great, @chatter #mention !")
 
         assert_text_was_sent_to_discord_channel(
-            trigger_channel1,
+            triggered_channel,
             f"**Chatting player**: QL is great, {mentioned_user.mention} {mentioned_channel.mention} !")
 
     def test_triggered_message_no_triggered_channels_configured(self):
@@ -1188,20 +1112,21 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
+        triggered_channel = self.triggered_channel()
+
         player = fake_player(steam_id=1, name="Chatting player")
 
         self.discord.triggered_message(player, "QL is great, @member #mention !")
 
-        verify(self.triggered_channel(), times=0).send(any)
+        verify(triggered_channel, times=0).send(any)
 
     def test_triggered_message_no_replacement_configured(self):
         setup_cvar("qlx_discordReplaceMentionsForTriggeredMessages", "0")
         self.discord = SimpleAsyncDiscord("version information", self.logger)
         self.setup_discord_library()
 
-        trigger_channel1 = self.triggered_channel()
-
-        mentioned_channel = mocked_channel(_id=456, name="mentioned-channel")
+        triggered_channel = self.triggered_channel()
+        mentioned_channel = mocked_discord_channel(_id=456, name="mentioned-channel")
         self.setup_discord_members()
         self.setup_discord_channels(mentioned_channel)
 
@@ -1210,14 +1135,14 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
         self.discord.triggered_message(player, "QL is great, @member #mention !")
 
         assert_text_was_sent_to_discord_channel(
-            trigger_channel1,
+            triggered_channel,
             "**Chatting player**: QL is great, @member #mention !")
 
     def test_prefixed_triggered_message(self):
+        triggered_channel = self.triggered_channel()
         self.discord.discord_triggered_channel_message_prefix = "Server Prefix"
-        trigger_channel1 = self.triggered_channel()
 
-        trigger_channel2 = mocked_channel(_id=789)
+        trigger_channel2 = mocked_discord_channel(_id=789)
         when(self.discord_client).get_channel(trigger_channel2.id).thenReturn(trigger_channel2)
 
         self.setup_discord_members()
@@ -1227,5 +1152,5 @@ class SimpleAsyncDiscordTests(unittest.IsolatedAsyncioTestCase):
 
         self.discord.triggered_message(player, "QL is great!")
 
-        assert_text_was_sent_to_discord_channel(trigger_channel1, "Server Prefix **Chatting player**: QL is great!")
+        assert_text_was_sent_to_discord_channel(triggered_channel, "Server Prefix **Chatting player**: QL is great!")
         assert_text_was_sent_to_discord_channel(trigger_channel2, "Server Prefix **Chatting player**: QL is great!")
