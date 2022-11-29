@@ -63,6 +63,13 @@ def game(request: FixtureRequest):
 
 
 def parse_game_fixture_params(request, minqlx_game):
+    # using sensible defaults
+    minqlx_game.type_short = "ca"
+    minqlx_game.map = "campgrounds"
+    minqlx_game.red_score = 0
+    minqlx_game.blue_score = 0
+    minqlx_game.roundlimit = 8
+
     if hasattr(request, "param"):
         params = request.param.split(",")
         for parameter in params:
