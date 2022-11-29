@@ -1,7 +1,7 @@
 import random
 import time
-import unittest
 
+import pytest
 from mockito import unstub, patch, verify  # type: ignore
 from mockito.matchers import any_  # type: ignore
 from hamcrest import assert_that, none, is_
@@ -10,20 +10,19 @@ from undecorated import undecorated  # type: ignore
 
 from thirtysecwarn import thirtysecwarn
 
-from minqlx_plugin_test import setup_plugin, setup_cvars, setup_cvar, setup_no_game, assert_plugin_played_sound, \
-    setup_game_in_progress, setup_game_in_warmup
+from minqlx_plugin_test import setup_cvars, setup_cvar, assert_plugin_played_sound
 
 
-class TestThirtySecondWarnPlugin(unittest.TestCase):
+class TestThirtySecondWarnPlugin:
 
-    def setUp(self):
-        setup_plugin()
+    def setup_method(self):
         self.warner = thirtysecwarn()
         setup_cvars({
             "qlx_thirtySecondWarnAnnouncer": "standard"
         })
 
-    def tearDown(self):
+    @staticmethod
+    def teardown_method():
         unstub()
 
     def test_standard(self):
@@ -51,39 +50,36 @@ class TestThirtySecondWarnPlugin(unittest.TestCase):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "random")
         assert_that(self.warner.get_announcer_sound(), is_("randomvoice"))
 
+    @pytest.mark.usefixtures("no_minqlx_game")
     def test_plays_no_sound_when_game_is_not_running_anymore(self):
-        setup_no_game()
-
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
-    def test_plays_no_sound_when_game_is_not_clan_arena(self):
-        setup_game_in_progress(game_type="ft")
-
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ft"], indirect=True)
+    def test_plays_no_sound_when_game_is_not_clan_arena(self, game_in_progress):
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_plays_no_sound_when_game_not_in_progress(self):
-        setup_game_in_warmup()
-
         undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
-    def test_plays_no_sound_when_next_round_started(self):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
+    def test_plays_no_sound_when_next_round_started(self, game_in_progress):
         calling_round_number = 4
-        setup_game_in_progress(game_type="ca")
         self.warner.timer_round_number = calling_round_number + 1
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
 
         assert_plugin_played_sound(any_(str), times=0)
 
-    def test_plays_sound_when_round_still_running(self):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
+    def test_plays_sound_when_round_still_running(self, game_in_progress):
         warner_thread_name = "test_plays_sound_when_round_still_running1"
-        setup_game_in_progress(game_type="ca")
         self.warner.warner_thread_name = warner_thread_name
 
         undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
