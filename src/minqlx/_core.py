@@ -506,7 +506,7 @@ def initialize_cvars() -> None:
     minqlx.set_cvar_once("qlx_database", "Redis")
     minqlx.set_cvar_once("qlx_commandPrefix", "!")
     minqlx.set_cvar_once("qlx_logs", "2")
-    minqlx.set_cvar_once("qlx_logsSize", str(3*10**6))  # 3 MB
+    minqlx.set_cvar_once("qlx_logsSize", str(3 * 10 ** 6))  # 3 MB
     # Redis
     minqlx.set_cvar_once("qlx_redisAddress", "127.0.0.1")
     minqlx.set_cvar_once("qlx_redisDatabase", "0")

@@ -372,7 +372,7 @@ class Player:
 
     def weapons(self, reset=False, **kwargs):
         if reset:
-            weaps = minqlx.Weapons(((False,)*15))
+            weaps = minqlx.Weapons(((False,) * 15))
         else:
             weaps = self.state.weapons
 
@@ -410,7 +410,7 @@ class Player:
 
     def ammo(self, reset=False, **kwargs):
         if reset:
-            a = minqlx.Weapons(((0,)*15))
+            a = minqlx.Weapons(((0,) * 15))
         else:
             a = self.state.ammo
 
@@ -438,7 +438,7 @@ class Player:
 
     def powerups(self, reset=False, **kwargs):
         if reset:
-            pu = minqlx.Powerups(((0,)*6))
+            pu = minqlx.Powerups(((0,) * 6))
         else:
             pu = self.state.powerups
 

@@ -30,7 +30,9 @@ def initialize(project):
     project.depends_on_requirements('requirements.txt')
     project.build_depends_on_requirements('requirements-dev.txt')
 
-    project.set_property("dir_source_pytest_python", "src/unittest/python")
+    project.set_property("dir_source_main_python", "src")
+
+    project.set_property("dir_source_pytest_python", "tests")
     project.set_property("pytest_extra_args", ["--cov-config=.coveragerc"])
 
     project.set_property("pytest_coverage_xml", True)

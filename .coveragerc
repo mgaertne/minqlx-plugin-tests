@@ -1,2 +1,2 @@
 [report]
-omit = src/main/python/minqlx/*
+omit = src/minqlx/* src/experimental/* src/experimental/discord_extensions/*
