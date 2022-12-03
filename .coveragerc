@@ -1,2 +1,9 @@
+[run]
+disable_warnings =
+    module-not-imported
+
 [report]
-omit = src/minqlx/* src/experimental/* src/experimental/discord_extensions/*
+omit =
+    src/minqlx/*
+    src/experimental/*
+    src/experimental/discord_extensions/*
