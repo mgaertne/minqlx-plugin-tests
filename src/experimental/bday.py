@@ -402,8 +402,8 @@ class bday(minqlx.Plugin):
             return mapstring
 
         matched_maps = sorted(list(set(
-            [key for key, value in long_map_names_lookup.items() if value.find(mapstring) != -1
-             and key in logged_maps] +
+            [key for key, value in long_map_names_lookup.items() if value.find(mapstring) != -1 and
+             key in logged_maps] +
             [_mapname for _mapname in logged_maps if _mapname.lower().find(mapstring) != -1]
         )))
 

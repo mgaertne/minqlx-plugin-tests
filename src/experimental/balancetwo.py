@@ -1226,8 +1226,8 @@ class balancetwo(Plugin):
 
         if self.unique_player_switches and len(self.switched_players) > 0:
             possible_switches = list(filter(lambda suggestion:
-                                            suggestion.red_player.steam_id not in self.switched_players
-                                            and suggestion.blue_player.steam_id not in self.switched_players,
+                                            suggestion.red_player.steam_id not in self.switched_players and
+                                            suggestion.blue_player.steam_id not in self.switched_players,
                                             possible_switches))
         self.handle_suggestions_collected(possible_switches, channel)
 

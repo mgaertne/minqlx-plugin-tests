@@ -130,14 +130,11 @@ class SubscriberCog(Cog):
             -> list[app_commands.Choice[str]]:
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
         filtered_candidates = [mapname for mapname, formatted_long_name in self.formatted_installed_maps.items()
-                               if current.lower() in formatted_long_name.lower()
-                               and mapname not in subscribed_maps]
+                               if current.lower() in formatted_long_name.lower() and mapname not in subscribed_maps]
         filtered_candidates.sort()
 
-        return [
-                   app_commands.Choice(name=self.formatted_installed_maps[mapname], value=mapname)
-                   for mapname in filtered_candidates[:25]
-               ]
+        return [app_commands.Choice(name=self.formatted_installed_maps[mapname], value=mapname)
+                for mapname in filtered_candidates[:25]]
 
     @subscribe_group.command(name="player", description="Get notified when your favorite players joins the server")
     @app_commands.describe(player="Name of the player you want to subscribe to")

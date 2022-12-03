@@ -1308,8 +1308,8 @@ class weird_stats(Plugin):
             self.record_speeds(self.game.map.lower(), player_speeds)
 
         grouped_speeds = itertools.groupby(
-                sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
-                key=player_speeds.get)
+            sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
+            key=player_speeds.get)
         grouped_speeds_dict: Dict[float, List[SteamId]] = \
             {speed: list(steam_ids) for speed, steam_ids in grouped_speeds}  # type: ignore
 
@@ -1340,8 +1340,8 @@ class weird_stats(Plugin):
                 if match_end_announcements:
                     dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_time
                 elif steam_id in self.player_stats:
-                    dmg_per_second = (player.stats.damage_dealt + self.player_stats[steam_id].damage.dealt) \
-                                     / alive_time
+                    dmg_per_second = \
+                        (player.stats.damage_dealt + self.player_stats[steam_id].damage.dealt) / alive_time
                 else:
                     dmg_per_second = player.stats.damage_dealt / alive_time
                 returned.append(
@@ -1637,9 +1637,9 @@ class weird_stats(Plugin):
             channel.reply(f"^7No records found for map ^6{mapname}^7.")
             return
 
-        formatted_speeds = "^7] [".join([
-                f"{self.resolve_player_name(steam_id)}-^5{speed:.2f} km/h" for steam_id, speed in
-                map_speed_statistics[0:10]])
+        formatted_speeds = "^7] [".join(
+            [f"{self.resolve_player_name(steam_id)}-^5{speed:.2f} km/h" for steam_id, speed in
+             map_speed_statistics[0:10]])
         channel.reply(f"^7All-time top 10 speeds for ^6{mapname}^7: ")
         channel.reply(f"^7[{formatted_speeds}^7].")
 
@@ -1676,16 +1676,14 @@ class weird_stats(Plugin):
             upper_limit = self.fastestmaps_display_warmup
 
         sorted_mapnames = sorted(all_avg_speeds, key=all_avg_speeds.get, reverse=True)  # type:ignore
-        formatted_speeds = "^7] [".join([
-                f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
-                for mapname in sorted_mapnames[0:upper_limit]])
+        formatted_speeds = "^7] [".join(
+            [f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7" for mapname in sorted_mapnames[0:upper_limit]])
         channel.reply(f"Top {upper_limit} fastest maps by average player speed:")
         channel.reply(f"^7[{formatted_speeds}^7].")
 
         sorted_mapnames.reverse()
-        formatted_speeds = "^7] [".join([
-                f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
-                for mapname in sorted_mapnames[0:upper_limit]])
+        formatted_speeds = "^7] [".join(
+            [f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7" for mapname in sorted_mapnames[0:upper_limit]])
         channel.reply(f"Top {upper_limit} slowest maps by average player speed:")
         channel.reply(f"^7[{formatted_speeds}^7].")
 

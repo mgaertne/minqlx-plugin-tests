@@ -74,5 +74,6 @@ async def send_to_discord_and_quake(interaction: Interaction, message: str) -> N
 
     Plugin.msg(f"{discord_message_prefix} ^5#{interaction.channel.name}^7:^2 {quake_message}")
 
+
 async def setup(bot: Bot):
     bot.tree.add_command(slap)
