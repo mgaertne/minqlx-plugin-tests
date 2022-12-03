@@ -1,8 +1,4 @@
 [run]
-disable_warnings =
-    module-not-imported
-
-[report]
 omit =
     src/minqlx/*
     src/experimental/*
