@@ -1,10 +1,10 @@
 import functools
 from typing import Optional
 
+from mockito import when2, mock, verify  # type: ignore
+
 import minqlx
 from minqlx import Game, NonexistentGameError
-
-from mockito import when2, mock, verify  # type: ignore
 
 # Functions for setting up the state of the game currently active on the server.
 

@@ -23,9 +23,6 @@ from logging.handlers import RotatingFileHandler
 
 from typing import Optional, Union, Set, List, Any, Tuple
 
-import minqlx
-from minqlx import Plugin
-
 # noinspection PyPackageRequirements
 import discord  # type: ignore
 # noinspection PyPackageRequirements
@@ -34,6 +31,9 @@ from discord import ChannelType, AllowedMentions  # type: ignore
 from discord.ext.commands import Bot, Command, DefaultHelpCommand, Context  # type: ignore
 # noinspection PyPackageRequirements
 import discord.ext.tasks  # type: ignore
+
+import minqlx
+from minqlx import Plugin
 
 plugin_version = "v2.0.0"
 

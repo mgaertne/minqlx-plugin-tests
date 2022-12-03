@@ -5,9 +5,9 @@ from _pytest.fixtures import FixtureRequest
 # noinspection PyProtectedMember
 from mockito import when2, unstub, mock, spy2, any_, when
 
+from minqlx_plugin_test import assert_channel_was_replied, assert_game_addteamscore
 import minqlx
 from minqlx import Game, NonexistentGameError, Plugin
-from minqlx_plugin_test import assert_channel_was_replied, assert_game_addteamscore
 
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)

@@ -18,11 +18,11 @@ from discord import ChannelType, User, Message, TextChannel, Status
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot
 
-import minqlx
-from mydiscordbot import mydiscordbot, MinqlxHelpCommand, SimpleAsyncDiscord
-
 from minqlx_plugin_test import connected_players, setup_cvars, assert_plugin_sent_to_console, fake_player, \
     player_that_matches, setup_cvar
+
+import minqlx
+from mydiscordbot import mydiscordbot, MinqlxHelpCommand, SimpleAsyncDiscord
 
 
 class TestMyDiscordBotTests:

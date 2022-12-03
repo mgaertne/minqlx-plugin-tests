@@ -8,10 +8,11 @@ from undecorated import undecorated  # type: ignore
 import requests
 from requests import Response
 
-import minqlx
-from qlstats_privacy_policy import qlstats_privacy_policy, ConnectThread
 from minqlx_plugin_test import setup_cvars, fake_player, assert_plugin_sent_to_console, connected_players, \
     assert_player_was_told, assert_player_received_center_print, assert_player_was_put_on
+
+import minqlx
+from qlstats_privacy_policy import qlstats_privacy_policy, ConnectThread
 
 
 # noinspection PyPep8Naming

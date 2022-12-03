@@ -1,12 +1,12 @@
 import functools
 from typing import Dict, Optional, Union, Any
 
-import minqlx
-from minqlx import Plugin, Player
-
 from mockito import spy2, when2, verify, mock, when  # type: ignore
 # noinspection PyProtectedMember
 from mockito.matchers import any_, Matcher  # type: ignore
+
+import minqlx
+from minqlx import Plugin, Player
 
 # Functions for setting up unit tests for a :class:`minqlx.Plugin` and checking interactions with class methods
 # provided by minqlx.

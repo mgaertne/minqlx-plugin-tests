@@ -14,13 +14,13 @@ import aiohttp
 from aiohttp import ClientTimeout
 from aiohttp_retry import RetryClient, ExponentialRetry
 
-import minqlx
-from minqlx import Player, AbstractChannel, Plugin
-from minqlx.database import Redis
-
 from requests import Session, RequestException, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
+
+import minqlx
+from minqlx import Player, AbstractChannel, Plugin
+from minqlx.database import Redis
 
 
 SteamId = int

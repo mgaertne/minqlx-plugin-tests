@@ -10,9 +10,9 @@ from discord.utils import utcnow
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot
 
-from minqlx import Plugin
-
 import schedule  # type: ignore
+
+from minqlx import Plugin
 
 
 async def create_and_start_event(bot: Bot):

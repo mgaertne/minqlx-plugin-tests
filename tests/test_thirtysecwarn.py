@@ -8,9 +8,9 @@ from hamcrest import assert_that, equal_to
 
 from undecorated import undecorated  # type: ignore
 
-from thirtysecwarn import thirtysecwarn
-
 from minqlx_plugin_test import setup_cvars, setup_cvar, assert_plugin_played_sound
+
+from thirtysecwarn import thirtysecwarn
 
 
 class TestThirtySecondWarnPlugin:

@@ -6,10 +6,10 @@ from mockito import mock, when, unstub, verify  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import assert_that, equal_to, not_, contains_inanyorder, contains_exactly
 
+from minqlx_plugin_test import setup_cvars, fake_player, connected_players, assert_player_was_told
+
 import minqlx
 from frag_stats import frag_stats
-
-from minqlx_plugin_test import setup_cvars, fake_player, connected_players, assert_player_was_told
 
 
 class TestFragStats:

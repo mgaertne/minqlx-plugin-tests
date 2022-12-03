@@ -1,11 +1,11 @@
 import functools
 from typing import Union, Any
 
-from minqlx import Player, Plugin
-
 from mockito import mock, when2, verify  # type: ignore
 # noinspection PyProtectedMember
 from mockito.matchers import Matcher, any_  # type: ignore
+
+from minqlx import Player, Plugin
 
 
 # Functions for setting up players in the game and verifying interactions with them.
