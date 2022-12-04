@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, Set, Dict
 import threading
 
 import requests
@@ -7,10 +7,7 @@ from requests import Response
 import minqlx
 from minqlx import Player, AbstractChannel
 
-if TYPE_CHECKING:
-    from typing import Set, Dict
-
-    SteamId = int
+SteamId = int
 
 COLORED_QLSTATS_INSTRUCTIONS = "Error: Open qlstats.net, click Login/Sign-up, set privacy settings to ^6{}^7, " \
                                "click save and reconnect!"

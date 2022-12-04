@@ -596,7 +596,7 @@ class SimpleAsyncDiscord(threading.Thread):
         :return: the formatted message that may be sent back to Quake Live.
         """
         sender = author.name
-        if isinstance(author, discord.Member) and author.nick is not None:
+        if hasattr(author, "nick") and author.nick is not None:
             sender = author.nick
 
         channel_name = "" if isinstance(channel, (discord.DMChannel, discord.PartialMessageable)) else channel.name
