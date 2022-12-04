@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, Protocol
+from typing import Tuple, Protocol, Optional
 
 import minqlx
 
@@ -83,7 +83,7 @@ class fastvotes(minqlx.Plugin):
 
 
 class FastVoteStrategy(Protocol):
-    def evaluate_votes(self, yes_votes: int, no_votes: int) -> bool | None:
+    def evaluate_votes(self, yes_votes: int, no_votes: int) -> Optional[bool]:
         ...
 
 
@@ -96,7 +96,7 @@ class ThresholdFastVoteStrategy:
         self.threshold_fast_pass_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastPassDiff", int) or 0
         self.threshold_fast_fail_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastFailDiff", int) or 5
 
-    def evaluate_votes(self, yes_votes: int, no_votes: int) -> bool | None:
+    def evaluate_votes(self, yes_votes: int, no_votes: int) -> Optional[bool]:
         diff = yes_votes - no_votes
 
         if diff >= self.threshold_fast_pass_diff:
@@ -115,7 +115,7 @@ class ParticipationFastVoteStrategy:
 
         self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", float) or 0.67
 
-    def evaluate_votes(self, yes_votes: int, no_votes: int) -> bool | None:
+    def evaluate_votes(self, yes_votes: int, no_votes: int) -> Optional[bool]:
         num_connected_players = len(Plugin.players())
 
         current_participation = (yes_votes + no_votes) / num_connected_players

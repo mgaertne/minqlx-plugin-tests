@@ -1,6 +1,6 @@
 import time
 from logging import Logger
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import minqlx
 from minqlx import Plugin, CHAT_CHANNEL, AbstractChannel, Player
@@ -136,7 +136,7 @@ class merciful_elo_limit(Plugin):
             return 0
         return int(value)
 
-    def elo_for_player(self, player: Player) -> int | None:
+    def elo_for_player(self, player: Player) -> Optional[int]:
         if not self.game:
             return None
 
@@ -272,7 +272,7 @@ class DummyOwner(minqlx.AbstractDummyPlayer):
         self.logger = logger
 
     @property
-    def steam_id(self) -> SteamId | None:
+    def steam_id(self) -> Optional[SteamId]:
         return minqlx.owner()
 
     @property

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import threading
 
 import requests
@@ -309,7 +309,7 @@ class ConnectThread(threading.Thread):
         super().__init__()
         self._balance_api = balance_api
         self._steam_id = steam_id
-        self._result: Response | None = None
+        self._result: Optional[Response] = None
 
     def run(self) -> None:
         url = f"http://qlstats.net/{self._balance_api}/{self._steam_id}"

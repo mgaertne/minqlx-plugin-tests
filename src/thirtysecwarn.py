@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 import time
 import random
 import threading
@@ -36,7 +36,7 @@ ShiN0 somewhen in October 2017
             "evil": "sound/vo_evil/30_second_warning.ogg"
         }
 
-        self.warner_thread_name: str | None = None
+        self.warner_thread_name: Optional[str] = None
 
     def handle_game_start(self, _game: Any) -> None:
         self.warner_thread_name = None
