@@ -1,4 +1,4 @@
-from typing import Optional, Set, Dict
+from typing import Optional, Set, Dict, Union
 import threading
 
 import requests
@@ -70,7 +70,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         return True
 
-    def handle_player_connect(self, player: Player) -> int | str:
+    def handle_player_connect(self, player: Player) -> Union[int, str]:
         if not self.plugin_enabled:
             return minqlx.RET_NONE
 
