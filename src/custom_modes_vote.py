@@ -1,6 +1,8 @@
+from typing import Tuple, Set
+
 import minqlx
 
-from minqlx import Plugin
+from minqlx import Plugin, AbstractChannel, Player
 
 game_settings = {
     "dmflags": {'pql': '60', 'vql': '28'},
@@ -35,7 +37,7 @@ class custom_modes_vote(minqlx.Plugin):
     previous map's mode even with the new map.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.set_cvar_once("qlx_modeVoteNewMapDefault", "pql")
@@ -52,7 +54,7 @@ class custom_modes_vote(minqlx.Plugin):
         self.mode = self.default_mode or ""
 
     # noinspection PyMethodMayBeStatic
-    def available_modes(self):
+    def available_modes(self) -> Set[str]:
         keys = set()
         for value in game_settings.values():
             for key in value.keys():
@@ -60,11 +62,11 @@ class custom_modes_vote(minqlx.Plugin):
 
         return keys
 
-    def handle_map_change(self, _mapname, _factory):
+    def handle_map_change(self, _mapname: str, _factory: str) -> None:
         if self.default_mode and self.mode != self.default_mode:
             self.switch_mode(self.default_mode)
 
-    def handle_vote_called(self, caller, vote, args):
+    def handle_vote_called(self, caller: Player, vote: str, args: str) -> int:
         if vote.lower() != "mode":
             return minqlx.RET_NONE
 
@@ -80,7 +82,7 @@ class custom_modes_vote(minqlx.Plugin):
         self.msg(f"{caller.name}^7 called a vote.")
         return minqlx.RET_STOP_ALL
 
-    def handle_vote_ended(self, _votes, vote, args, passed):
+    def handle_vote_ended(self, _votes: Tuple[int, int], vote: str, args: str, passed: bool) -> None:
         if vote.lower() != "mode":
             return
 
@@ -92,7 +94,7 @@ class custom_modes_vote(minqlx.Plugin):
 
         self.switch_mode(args.lower())
 
-    def cmd_switch_mode(self, _player, msg, _channel):
+    def cmd_switch_mode(self, _player: Player, msg: str, _channel: AbstractChannel) -> int:
         if len(msg) != 2:
             return minqlx.RET_USAGE
 
@@ -102,7 +104,7 @@ class custom_modes_vote(minqlx.Plugin):
         self.switch_mode(msg[1].lower())
         return minqlx.RET_NONE
 
-    def switch_mode(self, mode):
+    def switch_mode(self, mode: str) -> None:
         self.mode = mode
         for setting, values in game_settings.items():
             minqlx.console_command(f"{setting} {values[mode]}")

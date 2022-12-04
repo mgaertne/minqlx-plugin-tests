@@ -19,7 +19,7 @@ THIRTY_SECOND_WARNINGS = [
 
 # noinspection PyPep8Naming
 class autoready(Plugin):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.set_cvar_once("qlx_autoready_min_players", "10")
@@ -146,7 +146,7 @@ class CountdownThread(Thread):
 
         return int((self._target_time - self._determine_now()).total_seconds())
 
-    def stop(self):
+    def stop(self) -> None:
         if not self.is_alive():
             return
 
@@ -158,13 +158,13 @@ class CountdownThread(Thread):
                 int((self._target_time - self._determine_now()).total_seconds()),
                 0)
 
-    def run(self):
+    def run(self) -> None:
         self._target_time = self.calculate_target_time()
 
         while self._remaining == -1 and self._target_time > self._determine_now():
             self.run_loop_step()
 
-    def run_loop_step(self):
+    def run_loop_step(self) -> None:
         if self._target_time is None:
             return
 

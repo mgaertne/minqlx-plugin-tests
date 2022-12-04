@@ -1,6 +1,9 @@
+from __future__ import annotations
+from typing import Tuple, Protocol
+
 import minqlx
 
-from minqlx import Plugin
+from minqlx import Plugin, Player
 
 
 # noinspection PyPep8Naming
@@ -22,7 +25,7 @@ class fastvotes(minqlx.Plugin):
     connected players has participated and the result is not a draw.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.set_cvar_once("qlx_fastvoteTypes", "map, kick")
@@ -37,7 +40,7 @@ class fastvotes(minqlx.Plugin):
         self.track_vote = False
 
     # noinspection PyMethodMayBeStatic
-    def resolve_strategy_for_fastvote(self, strategy):
+    def resolve_strategy_for_fastvote(self, strategy: str) -> FastVoteStrategy:
         if strategy.lower() == "threshold":
             return ThresholdFastVoteStrategy()
         if strategy.lower() == "participation":
@@ -45,14 +48,14 @@ class fastvotes(minqlx.Plugin):
 
         raise ValueError(f"qlx_fastvoteStrategy set to an unknown value: {strategy}")
 
-    def handle_vote(self, _player, vote, _args):
+    def handle_vote(self, _player: Player, vote: str, _args: str) -> None:
         if vote.lower() in self.fastvote_types:
             self.track_vote = True
 
-    def handle_vote_ended(self, _votes, _vote, _args, _passed):
+    def handle_vote_ended(self, _votes: Tuple[int, int], _vote: str, _args: str, _passed: bool) -> None:
         self.track_vote = False
 
-    def process_vote(self, _player, yes):
+    def process_vote(self, _player: Player, yes: bool) -> None:
         if not self.track_vote:
             return
 
@@ -68,7 +71,7 @@ class fastvotes(minqlx.Plugin):
         yes_votes = votes[0] + 1 if yes else votes[0]
         no_votes = votes[1] if yes else votes[1] + 1
 
-        strategy = self.get_cvar("qlx_fastvoteStrategy", str)
+        strategy = self.get_cvar("qlx_fastvoteStrategy", str) or "threshold"
         fastvote_strategy = self.resolve_strategy_for_fastvote(strategy)
 
         eval_result = fastvote_strategy.evaluate_votes(yes_votes, no_votes)
@@ -79,16 +82,21 @@ class fastvotes(minqlx.Plugin):
         Plugin.force_vote(eval_result)
 
 
+class FastVoteStrategy(Protocol):
+    def evaluate_votes(self, yes_votes: int, no_votes: int) -> bool | None:
+        ...
+
+
 class ThresholdFastVoteStrategy:
 
-    def __init__(self):
+    def __init__(self) -> None:
         Plugin.set_cvar_once("qlx_fastvoteThresholdFastPassDiff", 6)
         Plugin.set_cvar_once("qlx_fastvoteThresholdFastFailDiff", 5)
 
         self.threshold_fast_pass_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastPassDiff", int) or 0
         self.threshold_fast_fail_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastFailDiff", int) or 5
 
-    def evaluate_votes(self, yes_votes, no_votes):
+    def evaluate_votes(self, yes_votes: int, no_votes: int) -> bool | None:
         diff = yes_votes - no_votes
 
         if diff >= self.threshold_fast_pass_diff:
@@ -102,12 +110,12 @@ class ThresholdFastVoteStrategy:
 
 class ParticipationFastVoteStrategy:
 
-    def __init__(self):
+    def __init__(self) -> None:
         Plugin.set_cvar_once("qlx_fastvoteParticipationPercentage", 0.67)
 
-        self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", float)
+        self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", float) or 0.67
 
-    def evaluate_votes(self, yes_votes, no_votes):
+    def evaluate_votes(self, yes_votes: int, no_votes: int) -> bool | None:
         num_connected_players = len(Plugin.players())
 
         current_participation = (yes_votes + no_votes) / num_connected_players

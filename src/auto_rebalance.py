@@ -10,8 +10,10 @@ This plugin automatically rebalances new-joiners at round start based upon the r
 It's intended to run with the default balance plugin, and will print an error on every round countdown if the
 balance plugin is not loaded together with this one.
 """
+from typing import Any, Tuple, Dict, List
+
 import minqlx
-from minqlx import Plugin
+from minqlx import Plugin, Player
 
 DEFAULT_RATING = 1500
 SUPPORTED_GAMETYPES = ("ca", "ctf", "dom", "ft", "tdm", "duel", "ffa")
@@ -33,7 +35,7 @@ class auto_rebalance(minqlx.Plugin):
     * qlx_rebalanceNumAnnouncements (default: "2") The number of announcements the plugin will make for a current
     switch suggestion at round end
     """
-    def __init__(self):
+    def __init__(self) -> None:
         """
         default constructor, adds the plugin hooks and initializes variables used
         """
@@ -53,12 +55,12 @@ class auto_rebalance(minqlx.Plugin):
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
         for event in ["map", "game_countdown"]:
             self.add_hook(event, self.handle_reset_winning_teams)
-        self.winning_teams = []
+        self.winning_teams: List[str] = []
 
         self.plugin_version = f"{self.name} Version: v0.1.1"
         self.logger.info(self.plugin_version)
 
-    def handle_team_switch_attempt(self, player, old, new):
+    def handle_team_switch_attempt(self, player: Player, old: str, new: str) -> int:
         """
         Handles the case where a player switches from spectators to "red", "blue", or "any" team, and
         the resulting teams would be suboptimal balanced.
@@ -136,7 +138,7 @@ class auto_rebalance(minqlx.Plugin):
         return minqlx.RET_NONE
 
     # noinspection PyMethodMayBeStatic
-    def other_team(self, team):
+    def other_team(self, team: str) -> str:
         """
         Calculates the other playing team based upon the provided team string.
 
@@ -149,7 +151,7 @@ class auto_rebalance(minqlx.Plugin):
         return "red"
 
     # noinspection PyMethodMayBeStatic
-    def format_team(self, team):
+    def format_team(self, team: str) -> str:
         if team == "red":
             return "^1red^7"
         if team == "blue":
@@ -157,7 +159,7 @@ class auto_rebalance(minqlx.Plugin):
 
         return f"^3{team}^7"
 
-    def calculate_player_average_difference(self, gametype, team1, team2):
+    def calculate_player_average_difference(self, gametype: str, team1: List[Player], team2: List[Player]) -> float:
         """
         calculates the difference between the team averages of the two provided teams for the given gametype
 
@@ -173,7 +175,7 @@ class auto_rebalance(minqlx.Plugin):
         team2_avg = self.team_average(gametype, team2)
         return abs(team1_avg - team2_avg)
 
-    def team_average(self, gametype, team):
+    def team_average(self, gametype: str, team: List[Player]) -> float:
         """
         Calculates the average rating of a team.
 
@@ -198,14 +200,14 @@ class auto_rebalance(minqlx.Plugin):
 
         return average
 
-    def handle_round_start(self, _roundnumber):
+    def handle_round_start(self, _roundnumber: int) -> None:
         """
         Remembers the steam ids of all players at round startup
         """
         self.last_new_player_id = None
 
     @minqlx.delay(1.5)
-    def handle_round_end(self, data):
+    def handle_round_end(self, data: Any) -> int:
         """
         Triggered when a round has ended
 
@@ -243,7 +245,7 @@ class auto_rebalance(minqlx.Plugin):
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)  # type: ignore
         return minqlx.RET_NONE
 
-    def team_is_on_a_winning_streak(self, team):
+    def team_is_on_a_winning_streak(self, team: str) -> bool:
         """
         checks whether the given team is on a winning streak by comparing the last teams that won
 
@@ -253,7 +255,7 @@ class auto_rebalance(minqlx.Plugin):
         return self.winning_teams[-self.winning_streak_suggestion_threshold:] == \
             self.winning_streak_suggestion_threshold * [team]
 
-    def announced_often_enough(self, winning_team):
+    def announced_often_enough(self, winning_team: str) -> bool:
         if not self.game:
             return False
 
@@ -263,7 +265,7 @@ class auto_rebalance(minqlx.Plugin):
             self.score_diff_suggestion_threshold + self.num_announcements or \
             self.winning_teams[-maximum_announcements:] == maximum_announcements * [winning_team]
 
-    def handle_reset_winning_teams(self, *_args, **_kwargs):
+    def handle_reset_winning_teams(self, *_args: Tuple[Any], **_kwargs: Dict[Any, Any]) -> None:
         """
         resets the winning teams list
         """
