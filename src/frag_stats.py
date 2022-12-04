@@ -131,7 +131,7 @@ class frag_stats(minqlx.Plugin):
 
         return fragging_player.name, fragging_player.steam_id
 
-    def mapfrag_statistics_for(self, fragger_identifier: Optional[Union[int, str]]) -> Counter[str]:
+    def mapfrag_statistics_for(self, fragger_identifier: Optional[Union[int, str]]) -> Counter:
         player_fragged_log = [killed for killer, killed in self.frag_log if killer == fragger_identifier]
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
@@ -154,7 +154,7 @@ class frag_stats(minqlx.Plugin):
                                     for victim, kill_count in fragged_statistics.most_common(self.toplimit))
         reply_channel.reply(f"Top {self.toplimit} reaperz of {fragged_name}^7's soul: {formatted_stats}")
 
-    def mapfraggers_of(self, fragged_identifier: Optional[Union[int, str]]) -> Counter[str]:
+    def mapfraggers_of(self, fragged_identifier: Optional[Union[int, str]]) -> Counter:
         player_fragged_log = [killer for killer, killed in self.frag_log if killed == fragged_identifier]
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
@@ -241,7 +241,7 @@ class frag_stats(minqlx.Plugin):
                                     for victim, kill_count in fragged_statistics.most_common(self.toplimit))
         reply_channel.reply(f"Top {self.toplimit} reaped soulz for {fragger_name}^7: {formatted_stats}")
 
-    def overall_frag_statistics_for(self, fragger_identifier: Union[int, str]) -> Counter[str]:
+    def overall_frag_statistics_for(self, fragger_identifier: Union[int, str]) -> Counter:
         if self.db is None:
             return Counter([])
         player_fragged_log = self.db.zrevrangebyscore(COLLECTED_SOULZ_KEY.format(fragger_identifier),
@@ -270,7 +270,7 @@ class frag_stats(minqlx.Plugin):
             f"{victim}^7 ({kill_count})" for victim, kill_count in fragged_statistics.most_common(self.toplimit))
         reply_channel.reply(f"Top {self.toplimit} reaperz of {fragged_name}^7's soul: {formatted_stats}")
 
-    def overall_fraggers_of(self, fragged_identifier: Union[str, int]) -> Counter[str]:
+    def overall_fraggers_of(self, fragged_identifier: Union[str, int]) -> Counter:
         if self.db is None:
             return Counter([])
         player_fragger_log = self.db.zrevrangebyscore(REAPERZ_KEY.format(fragged_identifier), "+INF", "-INF",
