@@ -1,9 +1,10 @@
 from collections import Counter
-from typing import List, Union, Tuple, Optional, Sequence
+from typing import List, Union, Tuple, Optional, Sequence, Any, Dict
 
 import redis
 
 import minqlx
+from minqlx import Player
 
 COLLECTED_SOULZ_KEY: str = "minqlx:players:{}:soulz"
 REAPERZ_KEY: str = "minqlx:players:{}:reaperz"
@@ -13,7 +14,7 @@ _name_key: str = "minqlx:players:{}:last_used_name"
 # noinspection PyPep8Naming
 class frag_stats(minqlx.Plugin):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.set_cvar_once("qlx_fragstats_toplimit", "10")
@@ -39,7 +40,7 @@ class frag_stats(minqlx.Plugin):
     def handle_game_countdown(self) -> None:
         self.frag_log = []
 
-    def handle_death(self, victim: minqlx.Player, killer: Optional[minqlx.Player], data) -> None:
+    def handle_death(self, victim: minqlx.Player, killer: Optional[minqlx.Player], data: Dict[Any, Any]) -> None:
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -130,7 +131,7 @@ class frag_stats(minqlx.Plugin):
 
         return fragging_player.name, fragging_player.steam_id
 
-    def mapfrag_statistics_for(self, fragger_identifier: Optional[Union[int, str]]) -> Counter:
+    def mapfrag_statistics_for(self, fragger_identifier: Optional[Union[int, str]]) -> Counter[str]:
         player_fragged_log = [killed for killer, killed in self.frag_log if killer == fragger_identifier]
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
@@ -153,7 +154,7 @@ class frag_stats(minqlx.Plugin):
                                     for victim, kill_count in fragged_statistics.most_common(self.toplimit))
         reply_channel.reply(f"Top {self.toplimit} reaperz of {fragged_name}^7's soul: {formatted_stats}")
 
-    def mapfraggers_of(self, fragged_identifier: Optional[Union[int, str]]) -> Counter:
+    def mapfraggers_of(self, fragged_identifier: Optional[Union[int, str]]) -> Counter[str]:
         player_fragged_log = [killer for killer, killed in self.frag_log if killed == fragged_identifier]
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
@@ -185,7 +186,7 @@ class frag_stats(minqlx.Plugin):
     def find_target_player_or_list_alternatives(self, player: minqlx.Player, target: Union[str, int]) \
             -> Optional[minqlx.Player]:
         # Tell a player which players matched
-        def list_alternatives(players, indent=2):
+        def list_alternatives(players: List[Player], indent: int = 2) -> None:
             player.tell(f"A total of ^6{len(players)}^7 players matched for {target}:")
             out = ""
             for p in players:
@@ -240,7 +241,7 @@ class frag_stats(minqlx.Plugin):
                                     for victim, kill_count in fragged_statistics.most_common(self.toplimit))
         reply_channel.reply(f"Top {self.toplimit} reaped soulz for {fragger_name}^7: {formatted_stats}")
 
-    def overall_frag_statistics_for(self, fragger_identifier: Union[int, str]) -> Counter:
+    def overall_frag_statistics_for(self, fragger_identifier: Union[int, str]) -> Counter[str]:
         if self.db is None:
             return Counter([])
         player_fragged_log = self.db.zrevrangebyscore(COLLECTED_SOULZ_KEY.format(fragger_identifier),
@@ -269,7 +270,7 @@ class frag_stats(minqlx.Plugin):
             f"{victim}^7 ({kill_count})" for victim, kill_count in fragged_statistics.most_common(self.toplimit))
         reply_channel.reply(f"Top {self.toplimit} reaperz of {fragged_name}^7's soul: {formatted_stats}")
 
-    def overall_fraggers_of(self, fragged_identifier: Union[str, int]) -> Counter:
+    def overall_fraggers_of(self, fragged_identifier: Union[str, int]) -> Counter[str]:
         if self.db is None:
             return Counter([])
         player_fragger_log = self.db.zrevrangebyscore(REAPERZ_KEY.format(fragged_identifier), "+INF", "-INF",
