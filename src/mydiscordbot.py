@@ -21,16 +21,16 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from typing import Optional, Union, Set, List, Any, Tuple
+from typing import Optional, Union, Set, List, Any, Tuple, Dict
 
 # noinspection PyPackageRequirements
-import discord  # type: ignore
+import discord
 # noinspection PyPackageRequirements
-from discord import ChannelType, AllowedMentions  # type: ignore
+from discord import ChannelType, AllowedMentions, Message
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot, Command, DefaultHelpCommand, Context  # type: ignore
+from discord.ext.commands import Bot, Command, DefaultHelpCommand, Context
 # noinspection PyPackageRequirements
-import discord.ext.tasks  # type: ignore
+import discord.ext.tasks
 
 import minqlx
 from minqlx import Plugin
@@ -338,7 +338,7 @@ class mydiscordbot(minqlx.Plugin):
         self.discord.relay_message(content)
 
     @minqlx.delay(1)
-    def handle_game_countdown_or_end(self, *_args, **_kwargs) -> None:
+    def handle_game_countdown_or_end(self, *_args: List[Any], **_kwargs: Dict[Any, Any]) -> None:
         """
         Handler called when the game is in countdown, i.e. about to start. This function mainly updates the topics of
         the relay channels and the triggered channels (when configured), and sends a message to all relay channels.
@@ -419,7 +419,7 @@ class MinqlxHelpCommand(DefaultHelpCommand):
     A help formatter for the minqlx plugin's bot to provide help information. This is a customized variation of
     discord.py's :class:`DefaultHelpCommand`.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(no_category="minqlx Commands")
 
     def get_ending_note(self) -> str:
@@ -570,7 +570,7 @@ class SimpleAsyncDiscord(threading.Thread):
                                             ignore_extra=False,
                                             help="display the plugin's version information"))
 
-    async def version(self, ctx: Context, *_args, **_kwargs) -> None:
+    async def version(self, ctx: Context[Bot], *_args: List[Any], **_kwargs: Dict[Any, Any]) -> None:
         """
         Triggers the plugin's version information sent to discord
 
@@ -578,7 +578,13 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         await ctx.send(f"```{self.version_information}```")
 
-    def _format_message_to_quake(self, channel: discord.TextChannel, author: discord.Member, content: str) -> str:
+    def _format_message_to_quake(self,
+                                 channel: Union[
+                                     Union[discord.TextChannel, discord.VoiceChannel, discord.Thread,
+                                           discord.DMChannel, discord.PartialMessageable],
+                                     discord.GroupChannel],
+                                 author: Union[discord.Member, discord.User],
+                                 content: str) -> str:
         """
         Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
         console.
@@ -590,12 +596,13 @@ class SimpleAsyncDiscord(threading.Thread):
         :return: the formatted message that may be sent back to Quake Live.
         """
         sender = author.name
-        if author.nick is not None:
+        if isinstance(author, discord.Member) and author.nick is not None:
             sender = author.nick
 
+        channel_name = "" if isinstance(channel, (discord.DMChannel, discord.PartialMessageable)) else channel.name
         if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
             return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content}"
-        return f"{self.discord_message_prefix} ^5#{channel.name} ^6{sender}^7:^2 {content}"
+        return f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content}"
 
     async def on_ready(self) -> None:
         """
@@ -621,7 +628,7 @@ class SimpleAsyncDiscord(threading.Thread):
         await self.discord.tree.sync()
         self.logger.info("Application command tree synced!")
 
-    async def on_message(self, message) -> None:
+    async def on_message(self, message: Message) -> None:
         """
         Function called once a message is sent through discord. Here the main interaction points either back to
         Quake Live or discord happen.
@@ -640,12 +647,13 @@ class SimpleAsyncDiscord(threading.Thread):
 
         # relay all messages from the relay channels back to Quake Live.
         if message.channel.id in self.discord_relay_channel_ids:
+            # noinspection PyTypeChecker
             content: str = message.clean_content
             if len(content) > 0:
                 minqlx.CHAT_CHANNEL.reply(
                     self._format_message_to_quake(message.channel, message.author, content))
 
-    async def on_command_error(self, exception: Exception, ctx: Context) -> None:
+    async def on_command_error(self, exception: Exception, ctx: Context[Bot]) -> None:
         """
         overrides the default command error handler so that no exception is produced for command errors
 
@@ -755,7 +763,7 @@ class SimpleAsyncDiscord(threading.Thread):
         matcher = re.compile("(?:^| )@([^ ]{3,})")
 
         member_list = list(self.discord.get_all_members())
-        matches: List[re.Match] = matcher.findall(returned_message)
+        matches: List[re.Match[str]] = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda _match: len(str(_match)), reverse=True):
             if str(match) in ["all", "everyone", "here"]:
@@ -826,7 +834,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
         channel_list = [ch for ch in self.discord.get_all_channels()
                         if ch.type in [ChannelType.text, ChannelType.voice, ChannelType.group]]
-        matches: List[re.Match] = matcher.findall(returned_message)
+        matches: List[re.Match[str]] = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda _match: len(str(_match)), reverse=True):
             channel = SimpleAsyncDiscord.find_channel_that_matches(str(match), channel_list, player)
