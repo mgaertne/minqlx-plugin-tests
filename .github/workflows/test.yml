@@ -10,18 +10,27 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10']
 
     steps:
-      - shell: bash
-        if: |
-          contains(env.DEPLOY_OSES, runner.os) &&
-          contains(env.DEPLOY_PYTHONS, matrix.python-version) &&
-          contains(env.DEPLOY_BRANCHES, github.ref)
-        run: |
-          echo "PYB_EXTRA_ARGS=analyze" >> $GITHUB_ENV
-      - uses: pybuilder/build@master
-        with:
-          python-version: ${{ matrix.python-version }}
-          pyb-extra-args: ${{ env.PYB_EXTRA_ARGS }}
-          pyb-version: ">=0.13.0.dev0"
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install tox tox-gh-actions
+    - name: Test with tox
+      run: tox
+    - name: Upload coverage.xml
+      if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.10' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: tox-gh-actions-coverage
+        path: coverage.xml
+        if-no-files-found: error
+    - name: Upload coverage.xml to codecov
+      if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.10' }}
+      uses: codecov/codecov-action@v2

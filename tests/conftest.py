@@ -1,13 +1,22 @@
 import functools
 
+import minqlx
 import pytest
 from _pytest.fixtures import FixtureRequest
-# noinspection PyProtectedMember
-from mockito import when2, unstub, mock, spy2, any_, when
+from minqlx import Game
+from minqlx import NonexistentGameError
+from minqlx import Plugin
+from mockito import any_
+from mockito import mock
+from mockito import spy2
+from mockito import unstub
+from mockito import when
+from mockito import when2
 
-from minqlx_plugin_test import assert_channel_was_replied, assert_game_addteamscore
-import minqlx
-from minqlx import Game, NonexistentGameError, Plugin
+from .minqlx_plugin_test import assert_channel_was_replied
+from .minqlx_plugin_test import assert_game_addteamscore
+
+# noinspection PyProtectedMember
 
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)
@@ -47,7 +56,9 @@ def _cvars(request):
 
 @pytest.fixture(name="no_minqlx_game")
 def _no_game():
-    when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
+    when2(minqlx.Game).thenRaise(
+        NonexistentGameError("Tried to instantiate a game while no game is active.")
+    )
     yield
     unstub()
 
