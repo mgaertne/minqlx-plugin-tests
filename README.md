@@ -1,5 +1,8 @@
 # minqlx-plugin-tests
-![python](https://img.shields.io/badge/python-3.8%7C3.9%7C3.10%7C3.11-blue.svg) ![Tests](https://github.com/mgaertne/minqlx-plugin-tests/actions/workflows/test.yml/badge.svg)
+![python](https://img.shields.io/badge/python-3.8%7C3.9%7C3.10%7C3.11-blue.svg)
+![Tests](https://github.com/mgaertne/minqlx-plugin-tests/actions/workflows/test.yml/badge.svg)
+[![codecov](https://codecov.io/gh/mgaertne/minqlx-plugin-tests/branch/master/graph/badge.svg)](https://codecov.io/gh/mgaertne/minqlx-plugin-tests)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 Test support functions for unit testing [minqlx-plugins](https://github.com/MinoMino/minqlx-plugins).
 
