@@ -1,28 +1,16 @@
 import asyncio
 import threading
 import time
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Dict, List, Optional, Union
+
+import schedule
+# noinspection PyPackageRequirements
+from discord import Activity, ActivityType, app_commands, Color, CustomActivity, Embed, Game, Interaction, Member, \
+    Spotify, Streaming, User
+# noinspection PyPackageRequirements
+from discord.ext.commands import Bot, Cog, GroupCog
 
 import minqlx
-import schedule
-from discord import Activity
-from discord import ActivityType
-from discord import app_commands
-from discord import Color
-from discord import CustomActivity
-from discord import Embed
-from discord import Game
-from discord import Interaction
-from discord import Member
-from discord import Spotify
-from discord import Streaming
-from discord import User
-from discord.ext.commands import Bot
-from discord.ext.commands import Cog
-from discord.ext.commands import GroupCog
 from minqlx import Player
 from minqlx import Plugin
 from minqlx.database import Redis
