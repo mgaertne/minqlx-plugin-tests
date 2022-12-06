@@ -56,22 +56,22 @@ class TestMercifulEloLimit:
         ratings = {}
         for player, elo in player_elos:
             ratings[player.steam_id] = {gametype: {"elo": elo}}
-        self.plugin._loaded_plugins["balance"] = mock(
-            {"ratings": ratings}
-        )  # pylint: disable=protected-access
+        self.plugin._loaded_plugins[  # pylint: disable=protected-access
+            "balance"
+        ] = mock({"ratings": ratings})
 
     def setup_no_balance_plugin(self):
         if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
-            del self.plugin._loaded_plugins[
+            del self.plugin._loaded_plugins[  # pylint: disable=protected-access
                 "balance"
-            ]  # pylint: disable=protected-access
+            ]
 
     def setup_exception_list(self, players):
         mybalance_plugin = mock(Plugin)
         mybalance_plugin.exceptions = [player.steam_id for player in players]
-        self.plugin._loaded_plugins[
+        self.plugin._loaded_plugins[  # pylint: disable=protected-access
             "mybalance"
-        ] = mybalance_plugin  # pylint: disable=protected-access
+        ] = mybalance_plugin
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_resets_tracked_player_ids(self):
@@ -103,8 +103,8 @@ class TestMercifulEloLimit:
         self.plugin.handle_map_change("thunderstruck", "ca")
 
         verify(
-            self.plugin._loaded_plugins["balance"]
-        ).add_request(  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
+        ).add_request(
             {player1.steam_id: "ca", player2.steam_id: "ca"},
             self.plugin.callback_ratings,
             CHAT_CHANNEL,
@@ -123,8 +123,8 @@ class TestMercifulEloLimit:
         self.plugin.handle_player_connect(connecting_player)
 
         verify(
-            self.plugin._loaded_plugins["balance"]
-        ).add_request(  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
+        ).add_request(
             {connecting_player.steam_id: "ca"},
             self.plugin.callback_ratings,
             CHAT_CHANNEL,
@@ -136,9 +136,10 @@ class TestMercifulEloLimit:
 
         self.plugin.fetch_elos_of_players([])
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(
-            any_, any_, any_
-        )  # pylint: disable=protected-access
+        verify(
+            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            times=0,
+        ).add_request(any_, any_, any_)
 
     @pytest.mark.parametrize(
         "game_in_progress", ["game_type=unsupported"], indirect=True
@@ -148,9 +149,10 @@ class TestMercifulEloLimit:
 
         self.plugin.fetch_elos_of_players([])
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(
-            any_, any_, any_
-        )  # pylint: disable=protected-access
+        verify(
+            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            times=0,
+        ).add_request(any_, any_, any_)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_fetch_elos_of_player_with_no_balance_plugin(self):
@@ -173,9 +175,10 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_round_countdown(1)
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(
-            any_, any_, any_
-        )  # pylint: disable=protected-access
+        verify(
+            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            times=0,
+        ).add_request(any_, any_, any_)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_round_countdown_fetches_elos_of_players_in_teams(self):
@@ -188,8 +191,8 @@ class TestMercifulEloLimit:
         self.plugin.handle_round_countdown(4)
 
         verify(
-            self.plugin._loaded_plugins["balance"]
-        ).add_request(  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
+        ).add_request(
             {player1.steam_id: "ca", player2.steam_id: "ca"},
             self.plugin.callback_ratings,
             CHAT_CHANNEL,
@@ -411,6 +414,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_round_start(1)
 
+        # noinspection PyTypeChecker
         assert_that(self.plugin.tracked_player_sids, has_item(player2.steam_id))
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -485,6 +489,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_round_start(1)
 
+        # noinspection PyTypeChecker
         assert_that(self.plugin.tracked_player_sids, has_item(player2.steam_id))
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -541,9 +546,10 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_round_start(2)
 
-        verify(self.plugin._loaded_plugins["balance"], times=0).add_request(
-            any_, any_, any_
-        )  # pylint: disable=protected-access
+        verify(
+            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            times=0,
+        ).add_request(any_, any_, any_)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_round_start_with_no_balance_plugin(self, merciful_db):
@@ -588,6 +594,7 @@ class TestMercifulEloLimit:
             f"minqlx:players:{player3.steam_id}:minelo:freegames"
         ).thenReturn(None)
 
+        # noinspection PyTypeChecker
         self.plugin.cmd_mercis(player, ["!mercis"], mock_channel)
 
         mock_channel.assert_was_replied(
@@ -629,6 +636,7 @@ class TestMercifulEloLimit:
             f"minqlx:players:{player3.steam_id}:minelo:freegames"
         ).thenReturn(None)
 
+        # noinspection PyTypeChecker
         self.plugin.cmd_mercis(player, ["!mercis"], minqlx.BLUE_TEAM_CHAT_CHANNEL)
 
         mock_channel.assert_was_replied(
@@ -650,6 +658,7 @@ class TestMercifulEloLimit:
 
         when(merciful_db).get(any_).thenReturn(None)
 
+        # noinspection PyTypeChecker
         self.plugin.cmd_mercis(player, ["!mercis"], minqlx.CHAT_CHANNEL)
 
         assert_plugin_sent_to_console(any_, times=0)

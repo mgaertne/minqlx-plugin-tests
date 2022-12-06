@@ -10,11 +10,12 @@ from custom_modes_vote import custom_modes_vote
 
 
 class TestCustomModesVote:
-
     def setup_method(self):
-        setup_cvars({
-            "qlx_modeVoteNewMapDefault": "vql",
-        })
+        setup_cvars(
+            {
+                "qlx_modeVoteNewMapDefault": "vql",
+            }
+        )
 
         spy2(Plugin.callvote)
         spy2(minqlx.console_command)
@@ -61,7 +62,9 @@ class TestCustomModesVote:
     def test_handle_vote_called_for_unavailable_mode(self):
         voting_player = fake_player(123, "Voting Player", _id=3)
 
-        return_code = self.plugin.handle_vote_called(voting_player, "mode", "unavailable")
+        return_code = self.plugin.handle_vote_called(
+            voting_player, "mode", "unavailable"
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         verify(Plugin, times=0).callvote(any_, any_)
@@ -81,7 +84,9 @@ class TestCustomModesVote:
     def test_handle_vote_called_for_not_for_mode_change(self):
         voting_player = fake_player(123, "Voting Player", _id=3)
 
-        return_code = self.plugin.handle_vote_called(voting_player, "map", "campgrounds ca")
+        return_code = self.plugin.handle_vote_called(
+            voting_player, "map", "campgrounds ca"
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         verify(Plugin, times=0).callvote(any_, any_)
@@ -89,42 +94,58 @@ class TestCustomModesVote:
         assert_plugin_sent_to_console(any_, times=0)
 
     def test_handle_vote_ended_vote_passed(self):
+        # noinspection PyTypeChecker
         self.plugin.handle_vote_ended(None, "mode", "pql", True)
 
         assert_that(self.plugin.mode, equal_to("pql"))
 
     def test_handle_vote_ended_vote_failed(self):
+        # noinspection PyTypeChecker
         self.plugin.handle_vote_ended(None, "mode", "pql", False)
 
         assert_that(self.plugin.mode, equal_to("vql"))
 
     def test_handle_vote_ended_unavailable_mode_for_this_plugin(self):
+        # noinspection PyTypeChecker
         self.plugin.handle_vote_ended(None, "mode", "unavailable", True)
 
         verify(minqlx, times=0).console_command(any_)
 
     def test_handle_vote_ended_not_vor_mode_vote(self):
+        # noinspection PyTypeChecker
         self.plugin.handle_vote_ended(None, "map", "campgrounds ca", True)
 
         verify(minqlx, times=0).console_command(any_)
 
     def test_cmd_switch_mode_no_mode_given(self):
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode"], None)
+        # noinspection PyTypeChecker
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_too_many_parameters_given(self):
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None)
+        # noinspection PyTypeChecker
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_unavailable_mode(self):
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "unavailable"], None)
+        # noinspection PyTypeChecker
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "unavailable"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_to_available_mode(self):
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "pql"], None)
+        # noinspection PyTypeChecker
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "pql"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.mode, equal_to("pql"))

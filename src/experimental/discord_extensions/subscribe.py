@@ -4,19 +4,29 @@ import time
 from typing import Dict, List, Optional, Union
 
 import schedule
+
 # noinspection PyPackageRequirements
-from discord import Activity, ActivityType, app_commands, Color, CustomActivity, Embed, Game, Interaction, Member, \
-    Spotify, Streaming, User
+from discord import (
+    Activity,
+    ActivityType,
+    app_commands,
+    Color,
+    CustomActivity,
+    Embed,
+    Game,
+    Interaction,
+    Member,
+    Spotify,
+    Streaming,
+    User,
+)
+
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Cog, GroupCog
 
 import minqlx
-from minqlx import Player
-from minqlx import Plugin
+from minqlx import Player, Plugin
 from minqlx.database import Redis
-
-# noinspection PyPackageRequirements
-# noinspection PyPackageRequirements
 
 DISCORD_MAP_SUBSCRIPTION_KEY = "minqlx:discord:{}:subscribed_maps"
 DISCORD_PLAYER_SUBSCRIPTION_KEY = "minqlx:discord:{}:subscribed_players"
