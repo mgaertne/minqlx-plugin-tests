@@ -6,14 +6,15 @@ import time
 
 from threading import RLock, Thread
 
-from typing import Optional, Callable, Iterator, Sequence, TypeVar, Dict, Generic
+from typing import Optional, Callable, Iterator, Sequence, TypeVar, Dict, Generic, Any
 
+import minqlx
 from minqlx import Plugin, Player
 
 THIRTY_SECOND_WARNINGS = [
     "sound/vo/30_second_warning.ogg",
     "sound/vo_female/30_second_warning.ogg",
-    "sound/vo_evil/30_second_warning.ogg"
+    "sound/vo_evil/30_second_warning.ogg",
 ]
 
 
@@ -29,10 +30,16 @@ class autoready(Plugin):
         self.set_cvar_once("qlx_autoready_disable_manual_readyup", "0")
 
         self.min_players: int = self.get_cvar("qlx_autoready_min_players", int) or 10
-        self.autostart_delay: int = self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        self.autostart_delay: int = (
+            self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        )
         self.min_counter: int = self.get_cvar("qlx_autoready_min_seconds", int) or 30
-        self.timer_visible: int = self.get_cvar("qlx_autoready_timer_visible", int) or 60
-        self.disable_player_ready: bool = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
+        self.timer_visible: int = (
+            self.get_cvar("qlx_autoready_timer_visible", int) or 60
+        )
+        self.disable_player_ready: bool = (
+            self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
+        )
 
         self.timer: Optional[CountdownThread] = None
         self.current_timer: int = -1
@@ -44,6 +51,7 @@ class autoready(Plugin):
         self.add_hook("map", self.handle_map_change)
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("game_countdown", self.handle_game_countdown)
+        self.add_hook("game_start", self.handle_game_start)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
 
     def handle_client_command(self, _player: Player, command: str) -> bool:
@@ -63,7 +71,9 @@ class autoready(Plugin):
         self.timer.stop()
         self.current_timer = self.timer.seconds_left
 
-    def handle_team_switch(self, _player: Player, _old_team: str, new_team: str) -> None:
+    def handle_team_switch(
+        self, _player: Player, _old_team: str, new_team: str
+    ) -> None:
         if not self.game:
             return
 
@@ -86,7 +96,9 @@ class autoready(Plugin):
         else:
             self.current_timer = self.autostart_delay
 
-        self.timer = CountdownThread(self.current_timer, timed_actions=self.timed_actions())
+        self.timer = CountdownThread(
+            self.current_timer, timed_actions=self.timed_actions()
+        )
         self.timer.start()
 
     def timed_actions(self) -> Dict[int, Callable[[int], None]]:
@@ -98,10 +110,32 @@ class autoready(Plugin):
             10: shuffle_double_blink,
             9: double_blink,
             1: wear_off_double_blink,
-            0: allready
+            0: allready,
         }
 
     def handle_game_countdown(self) -> None:
+        if self.timer is None:
+            return
+
+        with self.timer_lock:
+            self.timer.stop()
+            self.current_timer = self.timer.seconds_left
+
+        self.make_sure_game_really_starts()
+
+    @minqlx.thread
+    def make_sure_game_really_starts(self):
+        while self.timer is not None:
+            time.sleep(1)
+            if self.timer is None:
+                return
+
+            if self.game and self.game.state == "warmup":
+                self.shuffle()
+                time.sleep(2)
+                self.allready()
+
+    def handle_game_start(self, _data: Dict[Any, Any]) -> None:
         if self.timer is None:
             return
 
@@ -125,14 +159,17 @@ class autoready(Plugin):
 
 
 class CountdownThread(Thread):
-    def __init__(self, duration: int, *, timed_actions: Dict[int, Callable[[int], None]]):
+    def __init__(
+        self, duration: int, *, timed_actions: Dict[int, Callable[[int], None]]
+    ):
         super().__init__()
         self.duration: int = duration
         self._target_time: Optional[datetime] = None
         self._remaining: int = -1
         self._lock: RLock = RLock()
         self.timed_actions: Dict[int, Callable[[int], None]] = {
-            duration: timed_actions[duration] for duration in sorted(timed_actions.keys(), reverse=True)
+            duration: timed_actions[duration]
+            for duration in sorted(timed_actions.keys(), reverse=True)
         }
         self._now: Optional[datetime] = None
 
@@ -155,8 +192,8 @@ class CountdownThread(Thread):
 
         with self._lock:
             self._remaining = max(
-                int((self._target_time - self._determine_now()).total_seconds()),
-                0)
+                int((self._target_time - self._determine_now()).total_seconds()), 0
+            )
 
     def run(self) -> None:
         self._target_time = self.calculate_target_time()
@@ -170,10 +207,14 @@ class CountdownThread(Thread):
 
         remaining = int((self._target_time - self._determine_now()).total_seconds())
 
-        remaining_function: Callable[[int], None] = self.determine_timed_action_for_remaining_seconds(remaining)
+        remaining_function: Callable[
+            [int], None
+        ] = self.determine_timed_action_for_remaining_seconds(remaining)
         remaining_function(remaining)
 
-        sleep_delay = self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        sleep_delay = (
+            self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        )
         if sleep_delay < timedelta(seconds=0.0):
             return
 
@@ -187,7 +228,9 @@ class CountdownThread(Thread):
     def calculate_target_time(self) -> datetime:
         return self._determine_now() + timedelta(seconds=self.duration)
 
-    def determine_timed_action_for_remaining_seconds(self, remaining: int) -> Callable[[int], None]:
+    def determine_timed_action_for_remaining_seconds(
+        self, remaining: int
+    ) -> Callable[[int], None]:
         for duration, action in self.timed_actions.items():
             if remaining >= duration:
                 return action
@@ -197,9 +240,11 @@ class CountdownThread(Thread):
 def display_countdown(remaining: int) -> None:
     time_color_format = "^1" if remaining <= 30 else "^3"
     remaining_minutes, remaining_seconds = divmod(remaining, 60)
-    Plugin.center_print(f"Match will ^2auto-start^7 in\n"
-                        f"{time_color_format}{int(remaining_minutes):01}^7:"
-                        f"{time_color_format}{int(remaining_seconds):02}")
+    Plugin.center_print(
+        f"Match will ^2auto-start^7 in\n"
+        f"{time_color_format}{int(remaining_minutes):01}^7:"
+        f"{time_color_format}{int(remaining_seconds):02}"
+    )
 
 
 def blink(remaining: int, *, sleep: float = 0.4) -> None:
@@ -219,14 +264,18 @@ def double_blink(remaining: int, *, sleep: float = 0.2, _delay: float = 0.3) -> 
     blink(remaining, sleep=sleep)
 
 
-def shuffle_double_blink(remaining: int, *, sleep: float = 0.2, _delay: float = 0.3) -> None:
+def shuffle_double_blink(
+    remaining: int, *, sleep: float = 0.2, _delay: float = 0.3
+) -> None:
     teams = Plugin.teams()
     if abs(len(teams["red"]) - len(teams["blue"])) > 1:
         Plugin.shuffle()
     double_blink(remaining, sleep=sleep, _delay=0.3)
 
 
-def wear_off_double_blink(remaining: int, *, sleep: float = 0.2, _delay: float = 0.3) -> None:
+def wear_off_double_blink(
+    remaining: int, *, sleep: float = 0.2, _delay: float = 0.3
+) -> None:
     Plugin.play_sound("sound/items/wearoff.ogg")
     double_blink(remaining, sleep=sleep, _delay=_delay)
 
@@ -236,7 +285,7 @@ def allready(_remaining: int) -> None:
     Plugin.allready()
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class RandomIterator(Generic[T]):

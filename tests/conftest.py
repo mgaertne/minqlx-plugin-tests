@@ -1,22 +1,17 @@
 import functools
+from typing import Union, Any
 
-import minqlx
 import pytest
 from _pytest.fixtures import FixtureRequest
-from minqlx import Game
-from minqlx import NonexistentGameError
-from minqlx import Plugin
-from mockito import any_
-from mockito import mock
-from mockito import spy2
-from mockito import unstub
-from mockito import when
-from mockito import when2
-
-from .minqlx_plugin_test import assert_channel_was_replied
-from .minqlx_plugin_test import assert_game_addteamscore
 
 # noinspection PyProtectedMember
+from mockito import any_, patch, mock, spy2, unstub, when, when2, verify
+
+# noinspection PyProtectedMember
+from mockito.matchers import Matcher
+
+import minqlx
+from minqlx import Game, NonexistentGameError, Plugin
 
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)
@@ -39,7 +34,11 @@ def _plugin():
     when2(Plugin.kick, any_, any_(str)).thenReturn(None)
     spy2(minqlx.get_cvar)
     when2(minqlx.get_cvar, "zmq_stats_enable").thenReturn("1")
+    patch(minqlx.next_frame, lambda func: func)
+    patch(minqlx.thread, lambda func: func)
+
     yield
+
     unstub()
 
 
@@ -61,6 +60,16 @@ def _no_game():
     )
     yield
     unstub()
+
+
+def assert_game_addteamscore(*, team: str, score: int, _times: int = 1) -> None:
+    """Verify that the score of the team was manipulated by the given amount.
+
+    :param: team: the team for which the team score should have been manipualted
+    :param: score: the amount that should have been added to the team's score. This may be negative or a matcher.
+    :param: times: the amount of times the function addteamscore should have been called. (default: 1)
+    """
+    verify(minqlx.Game(), times=_times).addteamscore(team, score)
 
 
 @pytest.fixture(name="minqlx_game")
@@ -124,6 +133,21 @@ def _game_in_progress(minqlx_game, request: FixtureRequest):
     parse_game_fixture_params(request, minqlx_game)
 
     yield minqlx_game
+
+
+def assert_channel_was_replied(
+    channel: minqlx.AbstractChannel,
+    matcher: Union[str, Matcher, Any],
+    *,
+    times: int = 1
+) -> None:
+    """Verify that a mocked channel was replied to with the given matcher.
+
+    :param: channel: The mocked channel that was replied to.
+    :param: matcher: a matcher for the amount reply sent to the channel.
+    :param: times: The amount of times the plugin should have replied to the channel. (default: 1).
+    """
+    verify(channel, times=times).reply(matcher)
 
 
 @pytest.fixture(name="mock_channel")
