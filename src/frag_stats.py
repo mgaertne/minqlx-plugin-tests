@@ -62,7 +62,6 @@ class frag_stats(minqlx.Plugin):
         if self.db is None:
             return
 
-        # noinspection PyUnresolvedReferences
         if redis.VERSION >= (3, ):
             self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), 1, victim_sid)
             self.db.zincrby(REAPERZ_KEY.format(victim_sid), 1, recorded_killer)
