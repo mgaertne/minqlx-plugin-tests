@@ -552,8 +552,8 @@ class TestSimpleAsyncDiscord:
 
         self.setup_discord_library()
 
-    def teardown_method(self):
-        self.discord_client.loop.close()
+    @staticmethod
+    def teardown_method():
         unstub()
 
     def setup_discord_client_mock_common(self):
