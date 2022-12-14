@@ -721,9 +721,9 @@ class TestCountdownThread:
 
         self.countdown_thread.run_loop_step()
 
-        verify(self.mocked_function21, times=1).__call__(
+        verify(self.mocked_function21, times=1).__call__(  # pylint: disable=C2801
             any_(int)
-        )  # pylint: disable=C2801
+        )
         verify(time).sleep(0.0)
 
     def test_calculate_target_time(self):
