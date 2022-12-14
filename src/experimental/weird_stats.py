@@ -1163,7 +1163,7 @@ class weird_stats(Plugin):
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("frame", self.handle_frame)
-        self.add_hook("map", self.handle_map_change)
+        self.add_hook("game_countdown", self.handle_game_countdown)
         self.add_hook("game_start", self.handle_game_start)
         self.add_hook("round_start", self.handle_round_start)
         self.add_hook("death", self.handle_death)
@@ -1234,7 +1234,7 @@ class weird_stats(Plugin):
             self.previous_positions[player.steam_id], Position(*player.position())
         )
 
-    def handle_map_change(self, _mapname: str, _factory: str) -> None:
+    def handle_game_countdown(self) -> None:
         self.reinitialize_game()
 
     def reinitialize_game(self) -> None:
@@ -1441,9 +1441,10 @@ class weird_stats(Plugin):
         if match_end_announcements:
             current_play_times = self.determine_current_play_times()
 
-            longest_join_time = max(current_play_times.values())
             if len(current_play_times) == 0:
                 return []
+
+            longest_join_time = max(current_play_times.values())
 
             player_speeds = {
                 steam_id: speed
@@ -1573,6 +1574,9 @@ class weird_stats(Plugin):
                 filtered_means_of_death[steam_id] = filtered_means_of_death.get(
                     steam_id, 0
                 ) + death_data.get(mod, 0)
+
+        if len(filtered_means_of_death) == 0:
+            return ""
 
         most_environmental_deaths = max(filtered_means_of_death, key=filtered_means_of_death.get)  # type: ignore
         if filtered_means_of_death[most_environmental_deaths] == 0:
