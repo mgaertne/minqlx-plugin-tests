@@ -119,7 +119,7 @@ class frag_stats(minqlx.Plugin):
 
         if isinstance(target, str) and target in [
             "!lava", "!void", "!acid", "!drowning", "!squished", "!unknown", "!grenade", "!grenade_splash",
-                      "!rocket", "!rocket_splash", "!telefrag"
+            "!rocket", "!rocket_splash", "!telefrag"
         ]:
             return target[1:], target[1:]
 
