@@ -1,5 +1,4 @@
 from logging import Logger
-from typing import Any
 
 import redis
 
@@ -39,7 +38,7 @@ class AbstractDatabase:
     def get_flag(self, player: minqlx.Player, flag: str, default: bool = ...) -> bool:
         ...
 
-    def connect(self) -> Any:
+    def connect(self) -> AbstractDatabase | None:
         ...
 
     def close(self) -> None:
@@ -57,20 +56,20 @@ class Redis(AbstractDatabase):
     def __contains__(self, key: str) -> bool:
         ...
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> str:
         ...
 
-    def __setitem__(self, key: str, item: Any) -> None:
+    def __setitem__(self, key: str, item: str | int) -> None:
         ...
 
     def __delitem__(self, key: str) -> None:
         ...
 
-    def __getattr__(self, attr: Any) -> Any:
+    def __getattr__(self, attr: str) -> str:
         ...
 
     @property
-    def r(self) -> Any:
+    def r(self) -> Redis:
         ...
 
     def set_permission(self, player: minqlx.Player, level: int) -> None:
@@ -89,7 +88,7 @@ class Redis(AbstractDatabase):
         ...
 
     def connect(self, host: str | None = ..., database: int = ..., unix_socket: bool = ...,
-                password: str | None = ...) -> redis.Redis | None:
+                password: str | None = ...) -> Redis | None:
         ...
 
     def close(self) -> None:

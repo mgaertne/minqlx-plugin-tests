@@ -1,5 +1,3 @@
-from typing import Any
-
 import minqlx
 
 _DUMMY_USERINFO: tuple[str]
@@ -15,7 +13,7 @@ class Player:
     _valid: bool
     _id: int
     _info: minqlx.PlayerInfo | None
-    _userinfo: dict[Any, Any] | None
+    _userinfo: dict[str, str] | None
     _steam_id = int
     _name: str
 

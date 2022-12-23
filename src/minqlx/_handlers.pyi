@@ -1,6 +1,6 @@
-import collections
-from re import Pattern
-from typing import Any
+from collections import deque
+from sched import scheduler
+from typing import Pattern
 
 import minqlx
 
@@ -12,8 +12,8 @@ _re_team: Pattern
 _re_vote_ended: Pattern
 _re_userinfo: Pattern
 
-frame_tasks: Any
-next_frame_tasks: collections.deque
+frame_tasks: scheduler
+next_frame_tasks: deque
 
 _zmq_warning_issued: bool
 _first_game: bool
