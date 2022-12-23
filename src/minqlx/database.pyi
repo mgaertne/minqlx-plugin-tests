@@ -47,8 +47,8 @@ class AbstractDatabase:
 
 
 class Redis(AbstractDatabase):
-    _conn: [redis.Redis | None]
-    _pool: [redis.ConnectionPool | None]
+    _conn: redis.Redis | None
+    _pool: redis.ConnectionPool | None
     _pass: str
 
     def __del__(self) -> None:
@@ -88,8 +88,8 @@ class Redis(AbstractDatabase):
     def get_flag(self, player, flag: str, default: bool = False) -> bool:
         ...
 
-    def connect(self, host: [str | None] = ..., database: int = ..., unix_socket: bool = ...,
-                password: [str | None] = ...) -> [redis.Redis | None]:
+    def connect(self, host: str | None = ..., database: int = ..., unix_socket: bool = ...,
+                password: str | None = ...) -> redis.Redis | None:
         ...
 
     def close(self) -> None:
