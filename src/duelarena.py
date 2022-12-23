@@ -12,7 +12,7 @@ DUELARENA_JOIN_MSG = "You joined ^6DuelArena^7 mode, and you will automatically 
 
 
 # noinspection PyPep8Naming
-class duelarena(minqlx.Plugin):
+class duelarena(Plugin):
 
     def __init__(self):
         super().__init__()
@@ -567,13 +567,13 @@ class DuelArenaGame:
         Plugin.msg("DuelArena results:")
         place = 0
         prev_score = -1
-        for pscore in sorted(self.scores.items(), key=itemgetter(1), reverse=True):
-            if pscore[1] != prev_score:
+        for steam_id, score in sorted(self.scores.items(), key=itemgetter(1), reverse=True):
+            if score != prev_score:
                 place += 1
-            prev_score = pscore[1]
-            player = Plugin.player(pscore[0])
+            prev_score = score
+            player = Plugin.player(steam_id)
             if player and len(player.name) != 0:
-                Plugin.msg(f"Place ^3{place}.^7 {player.name} ^7(Wins:^2{pscore[1]}^7)")
+                Plugin.msg(f"Place ^3{place}.^7 {player.name} ^7(Wins:^2{score}^7)")
 
     def reset_duelarena_scores(self):
         self.scores = {}
