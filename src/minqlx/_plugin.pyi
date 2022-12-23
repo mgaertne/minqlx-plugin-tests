@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Callable, Iterable, Type, overload, ClassVar, Mapping, Sized
+from typing import Callable, Iterable, Type, overload, ClassVar, Mapping
 
 from minqlx.database import Redis
 from minqlx import Command, Player, Game, AbstractChannel
@@ -44,7 +44,7 @@ class Plugin:
     def set_cvar_limit_once(cls, name: str, value: int | float, minimum: int | float, maximum: int | float,
                             flags: int = ...) -> bool: ...
     @classmethod
-    def players(cls) -> Iterable[Player]: ...
+    def players(cls) -> list[Player]: ...
     @classmethod
     def player(cls, name: str | int | Player, player_list: Iterable[Player] | None = ...) -> Player | None: ...
     @classmethod
