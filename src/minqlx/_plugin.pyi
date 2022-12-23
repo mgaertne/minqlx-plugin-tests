@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Callable, Iterable, Type, overload, ClassVar, Mapping
+from typing import Callable, Iterable, Type, overload, ClassVar, Mapping, Sized
 
 from minqlx.database import Redis
 from minqlx import Command, Player, Game, AbstractChannel
@@ -61,7 +61,7 @@ class Plugin:
     @classmethod
     def find_player(cls, name: str, player_list: Iterable[Player] | None = ...) -> Iterable[Player]: ...
     @classmethod
-    def teams(cls, player_list: Iterable[Player] | None = ...) -> Mapping[str, Iterable[Player]]: ...
+    def teams(cls, player_list: Iterable[Player] | None = ...) -> Mapping[str, list[Player]]: ...
     @classmethod
     def center_print(cls, msg: str, recipient: str | int | Player | None = ...) -> None: ...
     @classmethod
