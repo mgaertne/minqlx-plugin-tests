@@ -1,5 +1,5 @@
 from re import Pattern
-from typing import Any, Type, Callable, ClassVar
+from typing import Any, Type, Callable, Iterable, Mapping
 
 import minqlx
 
@@ -9,14 +9,26 @@ _re_vote: Pattern
 class EventDispatcher:
     name: str
     plugins: dict[minqlx.Plugin, tuple[list, list, list, list, list]]
-    args: Any
-    kwargs: Any
-    return_value: str | bool | None
-    no_debug: tuple[str, ...]
+    _args: Iterable[str] | None
+    _kwargs: Mapping[str, str] | None
+    _return_value: str | bool | list | None
+    no_debug: Iterable[str]
     need_zmq_stats_enabled: bool
 
     def __init__(self) -> None: ...
 
+    @property
+    def args(self) -> Iterable[str]: ...
+    @args.setter
+    def args(self, value: Iterable[str]) -> None: ...
+    @property
+    def kwargs(self) -> Mapping[str, str]: ...
+    @kwargs.setter
+    def kwargs(self, value: Mapping[str, str]) -> None: ...
+    @property
+    def return_value(self) -> str | bool | list | None: ...
+    @return_value.setter
+    def return_value(self, value: str | bool | list | None) -> None: ...
     def dispatch(self, *args, **kwargs): ...
     def handle_return(self, handler: Callable, value: int | str | None) -> Any: ...
     def add_hook(self, plugin: minqlx.Plugin | str, handler: Callable, priority: int = ...) -> None: ...

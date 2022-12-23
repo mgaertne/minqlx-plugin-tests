@@ -35,12 +35,35 @@ class EventDispatcher:
     need_zmq_stats_enabled = False
 
     def __init__(self):
-        self.name = type(self).name
-        self.need_zmq_enabled = type(self).need_zmq_stats_enabled
+        self.name: str
         self.plugins = {}
-        self.args = None
-        self.kwargs = None
-        self.return_value = True
+        self._args = None
+        self._kwargs = None
+        self._return_value = True
+
+    @property
+    def args(self):
+        return self._args
+
+    @args.setter
+    def args(self, value):
+        self._args = value
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
+    @kwargs.setter
+    def kwargs(self, value):
+        self._kwargs = value
+
+    @property
+    def return_value(self):
+        return self._return_value
+
+    @return_value.setter
+    def return_value(self, value):
+        self._return_value = value
 
     def dispatch(self, *args, **kwargs):
         """Calls all the handlers that have been registered when hooking this event.

@@ -32,6 +32,7 @@ import shlex
 import sys
 
 from logging.handlers import RotatingFileHandler
+from typing import Dict
 
 import minqlx
 import minqlx.database
@@ -117,10 +118,11 @@ def parse_variables(varstr, ordered=False):
     :type: ordered: bool
     :returns: dict -- A dictionary with the variables added as key-value pairs.
     """
-    if ordered:
-        res = collections.OrderedDict()
-    else:
+    res: Dict[str, str]
+    if not ordered:
         res = {}
+    else:
+        res = collections.OrderedDict()
     if not varstr.strip():
         return res
 
