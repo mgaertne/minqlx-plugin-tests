@@ -1,6 +1,4 @@
-import zmq
-
-import minqlx
+from zmq import Context, Socket
 
 
 class StatsListener:
@@ -8,12 +6,11 @@ class StatsListener:
     address: str
     password: str | None
 
-    context: zmq.Context
-    socket: zmq.Socket
+    context: Context
+    socket: Socket
     _in_progress: bool
 
     def __init__(self): ...
 
-    @minqlx.delay(0.25)
     def keep_receiving(self) -> None: ...
     def stop(self) -> None: ...

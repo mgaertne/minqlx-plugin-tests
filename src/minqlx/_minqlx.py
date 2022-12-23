@@ -1,4 +1,3 @@
-# encoding: utf-8
 __version__ = 'NOT_SET'
 DEBUG = False
 
