@@ -46,10 +46,10 @@ from ._zmq import StatsListener
 
 try:
     _minqlx = importlib.import_module(name="_minqlx")
-    from _minqlx import *  # type: ignore
+    from _minqlx import *
 except ModuleNotFoundError:
     _minqlx = importlib.import_module(name="._minqlx", package="minqlx")
-    from ._minqlx import *  # pylint: disable=unused-wildcard-import, wrong-import-position
+    from ._minqlx import *
 
 __version__ = _minqlx.__version__
 __plugins_version__ = "NOT_SET"
