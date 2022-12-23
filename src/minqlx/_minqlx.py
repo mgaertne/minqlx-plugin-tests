@@ -1,91 +1,89 @@
 # encoding: utf-8
-from typing import Union, Optional, Callable, List
-
 __version__ = 'NOT_SET'
 DEBUG = False
 
 
 # Variables with simple values
-RET_NONE: int = 0
-RET_STOP: int = 1
-RET_STOP_EVENT: int = 2
-RET_STOP_ALL: int = 3
-RET_USAGE: int = 4
+RET_NONE = 0
+RET_STOP = 1
+RET_STOP_EVENT = 2
+RET_STOP_ALL = 3
+RET_USAGE = 4
 
-PRI_HIGHEST: int = 0
-PRI_HIGH: int = 1
-PRI_NORMAL: int = 2
-PRI_LOW: int = 3
-PRI_LOWEST: int = 4
+PRI_HIGHEST = 0
+PRI_HIGH = 1
+PRI_NORMAL = 2
+PRI_LOW = 3
+PRI_LOWEST = 4
 
 # Cvar flags
-CVAR_ARCHIVE: int = 1
-CVAR_USERINFO: int = 2
-CVAR_SERVERINFO: int = 4
-CVAR_SYSTEMINFO: int = 8
-CVAR_INIT: int = 16
-CVAR_LATCH: int = 32
-CVAR_ROM: int = 64
-CVAR_USER_CREATED: int = 128
-CVAR_TEMP: int = 256
-CVAR_CHEAT: int = 512
-CVAR_NORESTART: int = 1024
+CVAR_ARCHIVE = 1
+CVAR_USERINFO = 2
+CVAR_SERVERINFO = 4
+CVAR_SYSTEMINFO = 8
+CVAR_INIT = 16
+CVAR_LATCH = 32
+CVAR_ROM = 64
+CVAR_USER_CREATED = 128
+CVAR_TEMP = 256
+CVAR_CHEAT = 512
+CVAR_NORESTART = 1024
 
 # Privileges
-PRIV_NONE: int = 0
-PRIV_MOD: int = 1
-PRIV_ADMIN: int = 2
-PRIV_ROOT: int = 3
-PRIV_BANNED: int = 4294967295
+PRIV_NONE = 0
+PRIV_MOD = 1
+PRIV_ADMIN = 2
+PRIV_ROOT = 3
+PRIV_BANNED = 4294967295
 
 # Connection states
-CS_FREE: int = 0
-CS_ZOMBIE: int = 1
-CS_CONNECTED: int = 2
-CS_PRIMED: int = 3
-CS_ACTIVE: int = 4
+CS_FREE = 0
+CS_ZOMBIE = 1
+CS_CONNECTED = 2
+CS_PRIMED = 3
+CS_ACTIVE = 4
 
 # Teams
-TEAM_FREE: int = 0
-TEAM_RED: int = 1
-TEAM_BLUE: int = 2
-TEAM_SPECTATOR: int = 3
+TEAM_FREE = 0
+TEAM_RED = 1
+TEAM_BLUE = 2
+TEAM_SPECTATOR = 3
 
 # Means of death
-MOD_UNKNOWN: int = 0
-MOD_SHOTGUN: int = 1
-MOD_GAUNTLET: int = 2
-MOD_MACHINEGUN: int = 3
-MOD_GRENADE: int = 4
-MOD_GRENADE_SPLASH: int = 5
-MOD_ROCKET: int = 6
-MOD_ROCKET_SPLASH: int = 7
-MOD_PLASMA: int = 8
-MOD_PLASMA_SPLASH: int = 9
-MOD_RAILGUN: int = 10
-MOD_LIGHTNING: int = 11
-MOD_BFG: int = 12
-MOD_BFG_SPLASH: int = 13
-MOD_WATER: int = 14
-MOD_SLIME: int = 15
-MOD_LAVA: int = 16
-MOD_CRUSH: int = 17
-MOD_TELEFRAG: int = 18
-MOD_FALLING: int = 19
-MOD_SUICIDE: int = 20
-MOD_TARGET_LASER: int = 21
-MOD_TRIGGER_HURT: int = 22
-MOD_NAIL: int = 23
-MOD_CHAINGUN: int = 24
-MOD_PROXIMITY_MINE: int = 25
-MOD_KAMIKAZE: int = 26
-MOD_JUICED: int = 27
-MOD_GRAPPLE: int = 28
-MOD_SWITCH_TEAMS: int = 29
-MOD_THAW: int = 30
-MOD_LIGHTNING_DISCHARGE: int = 31
-MOD_HMG: int = 32
-MOD_RAILGUN_HEADSHOT: int = 33
+MOD_UNKNOWN = 0
+MOD_SHOTGUN = 1
+MOD_GAUNTLET = 2
+MOD_MACHINEGUN = 3
+MOD_GRENADE = 4
+MOD_GRENADE_SPLASH = 5
+MOD_ROCKET = 6
+MOD_ROCKET_SPLASH = 7
+MOD_PLASMA = 8
+MOD_PLASMA_SPLASH = 9
+MOD_RAILGUN = 10
+MOD_LIGHTNING = 11
+MOD_BFG = 12
+MOD_BFG_SPLASH = 13
+MOD_WATER = 14
+MOD_SLIME = 15
+MOD_LAVA = 16
+MOD_CRUSH = 17
+MOD_TELEFRAG = 18
+MOD_FALLING = 19
+MOD_SUICIDE = 20
+MOD_TARGET_LASER = 21
+MOD_TRIGGER_HURT = 22
+MOD_NAIL = 23
+MOD_CHAINGUN = 24
+MOD_PROXIMITY_MINE = 25
+MOD_KAMIKAZE = 26
+MOD_JUICED = 27
+MOD_GRAPPLE = 28
+MOD_SWITCH_TEAMS = 29
+MOD_THAW = 30
+MOD_LIGHTNING_DISCHARGE = 31
+MOD_HMG = 32
+MOD_RAILGUN_HEADSHOT = 33
 
 
 # classes
@@ -137,37 +135,37 @@ class PlayerInfo(tuple):
     """ Information about a player, such as Steam ID, name, client ID, and whatnot. """
 
     @property
-    def client_id(self) -> int:
+    def client_id(self):
         """The player's client ID."""
         return self[0]
 
     @property
-    def name(self) -> str:
+    def name(self):
         """The player's name."""
         return self[1]
 
     @property
-    def connection_state(self) -> int:
+    def connection_state(self):
         """The player's connection state."""
         return self[2]
 
     @property
-    def userinfo(self) -> str:
+    def userinfo(self):
         """The player's userinfo    ."""
         return self[3]
 
     @property
-    def steam_id(self) -> int:
+    def steam_id(self):
         """The player's 64-bit representation of the Steam ID."""
         return self[4]
 
     @property
-    def team(self) -> int:
+    def team(self):
         """The player's team."""
         return self[5]
 
     @property
-    def privileges(self) -> int:
+    def privileges(self):
         """The player's privileges."""
         return self[6]
 
@@ -240,174 +238,173 @@ class PlayerStats(tuple):
 
 
 # functions
-def player_info(_client_id: int) -> Optional[PlayerInfo]:
+def player_info(_client_id):
     """ Returns a dictionary with information about a player by ID. """
 
 
-def players_info() -> List[PlayerInfo]:
+def players_info():
     """ Returns a list with dictionaries with information about all the players on the server. """
 
 
-def get_userinfo(_client_id: int) -> Optional[str]:
+def get_userinfo(_client_id):
     """ Returns a string with a player's userinfo. """
 
 
-def send_server_command(_client_id: Optional[int], _cmd: str) -> Optional[bool]:
+def send_server_command(_client_id, _cmd):
     """ Sends a server command to either one specific client or all the clients. """
 
 
-def client_command(_client_id: int, _cmd: str) -> Optional[bool]:
+def client_command(_client_id, _cmd):
     """ Tells the server to process a command from a specific client. """
 
 
-def console_command(_cmd: str) -> None:
+def console_command(_cmd):
     """ Executes a command as if it was executed from the server console. """
 
 
-def get_cvar(_cvar: str) -> Optional[str]:
+def get_cvar(_cvar):
     """ Gets a cvar. """
 
 
-def set_cvar(_cvar: str, _value: str, _flags: Optional[int] = None) -> bool:
+def set_cvar(_cvar, _value, _flags=None):
     """ Sets a cvar. """
 
 
-def set_cvar_limit(_name: str, _value: Union[int, float], _min: Union[int, float], _max: Union[int, float],
-                   _flags: int) -> None:
+def set_cvar_limit(_name, _value, _min, _max, _flags):
     """ Sets a non-string cvar with a minimum and maximum value. """
 
 
-def kick(_client_id: int, _reason: Optional[str] = None) -> None:
+def kick(_client_id, _reason=None):
     """ Kick a player and allowing the admin to supply a reason for it. """
 
 
-def console_print(_text: str) -> None:
+def console_print(_text: str):
     """ Prints text on the console. If used during an RCON command, it will be printed in the player's console. """
 
 
-def get_configstring(_config_id: int) -> str:
+def get_configstring(_config_id):
     """ Get a configstring. """
 
 
-def set_configstring(_config_id: int, _value: str) -> None:
+def set_configstring(_config_id, _value):
     """ Sets a configstring and sends it to all the players on the server. """
 
 
-def force_vote(_pass: bool) -> bool:
+def force_vote(_pass):
     """ Forces the current vote to either fail or pass. """
 
 
-def add_console_command(_command: str) -> None:
+def add_console_command(_command):
     """ Adds a console command that will be handled by Python code. """
 
 
-def register_handler(_event: str, _handler: Optional[Callable] = None) -> None:
+def register_handler(_event, _handler=None):
     """ Register an event handler. Can be called more than once per event, but only the last one will work. """
 
 
-def player_state(_client_id: int) -> Optional[PlayerState]:
+def player_state(_client_id):
     """ Get information about the player's state in the game. """
 
 
-def player_stats(_client_id: int) -> Optional[PlayerStats]:
+def player_stats(_client_id):
     """ Get some player stats. """
 
 
-def set_position(_client_id: int, _position: Vector3) -> bool:
+def set_position(_client_id, _position):
     """ Sets a player's position vector. """
 
 
-def set_velocity(_client_id: int, _velocity: Vector3) -> bool:
+def set_velocity(_client_id, _velocity):
     """ Sets a player's velocity vector. """
 
 
-def noclip(_client_id: int, _activate: bool) -> bool:
+def noclip(_client_id, _activate):
     """ Sets noclip for a player. """
 
 
-def set_health(_client_id: int, _health: int) -> bool:
+def set_health(_client_id, _health):
     """ Sets a player's health. """
 
 
-def set_armor(_client_id: int, _armor: int) -> bool:
+def set_armor(_client_id, _armor):
     """ Sets a player's armor. """
 
 
-def set_weapons(_client_id: int, _weapons: Weapons) -> bool:
+def set_weapons(_client_id, _weapons):
     """ Sets a player's weapons. """
 
 
-def set_weapon(_client_id: int, _weapon: int) -> bool:
+def set_weapon(_client_id, _weapon):
     """ Sets a player's current weapon. """
 
 
-def set_ammo(_client_id: int, _ammo: Weapons) -> bool:
+def set_ammo(_client_id, _ammo):
     """ Sets a player's ammo. """
 
 
-def set_powerups(_client_id: int, _powerups: Powerups) -> bool:
+def set_powerups(_client_id, _powerups):
     """ Sets a player's powerups. """
 
 
-def set_holdable(_client_id: int, _powerup: int) -> bool:
+def set_holdable(_client_id, _powerup):
     """ Sets a player's holdable item. """
 
 
-def drop_holdable(_client_id: int) -> bool:
+def drop_holdable(_client_id):
     """ Drops player's holdable item. """
 
 
-def set_flight(_client_id: int, _flight: Flight) -> bool:
+def set_flight(_client_id, _flight):
     """ Sets a player's flight parameters, such as current fuel, max fuel and, so on. """
 
 
-def set_invulnerability(_client_id: int, _time: int) -> bool:
+def set_invulnerability(_client_id, _time):
     """ Makes player invulnerable for limited time. """
 
 
-def set_score(_client_id: int, _score: int) -> bool:
+def set_score(_client_id, _score):
     """ Sets a player's score. """
 
 
-def callvote(_vote: str, _vote_display: str, _vote_time: Optional[int] = None) -> None:
+def callvote(_vote, _vote_display, _vote_time=None):
     """ Calls a vote as if started by the server and not a player. """
 
 
-def allow_single_player(_allow: bool) -> None:
+def allow_single_player(_allow):
     """ Allows or disallows a game with only a single player in it to go on without forfeiting. Useful for race. """
 
 
-def player_spawn(_client_id: int) -> bool:
+def player_spawn(_client_id):
     """ Allows or disallows a game with only a single player in it to go on without forfeiting. Useful for race. """
 
 
-def set_privileges(_client_id: int, _privileges: int) -> bool:
+def set_privileges(_client_id, _privileges):
     """ Sets a player's privileges. Does not persist. """
 
 
-def destroy_kamikaze_timers() -> bool:
+def destroy_kamikaze_timers():
     """ Removes all current kamikaze timers. """
 
 
-def spawn_item(_item_id: int, _x: int, _y: int, _z: int) -> bool:
+def spawn_item(_item_id, _x, _y, _z):
     """ Spawns item with specified coordinates. """
 
 
-def remove_dropped_items() -> bool:
+def remove_dropped_items():
     """ Removes all dropped items. """
 
 
-def slay_with_mod(_client_id: int, _mod: int) -> bool:
+def slay_with_mod(_client_id, _mod):
     """ Slay player with mean of death. """
 
 
-def replace_items(_item1: Union[int, str], _item2: Union[int, str]) -> bool:
+def replace_items(_item1, _item2):
     """ Replaces target entity's item with specified one. """
 
 
-def dev_print_items() -> None:
+def dev_print_items():
     """ Prints all items and entity numbers to server console. """
 
 
-def force_weapon_respawn_time(_respawn_time: int) -> bool:
+def force_weapon_respawn_time(_respawn_time):
     """ Force all weapons to have a specified respawn time, overriding custom map respawn times set for them. """

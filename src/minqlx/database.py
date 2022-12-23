@@ -15,9 +15,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
-from logging import Logger
-from typing import Any, Optional
-
 import redis
 import minqlx
 
@@ -25,6 +22,7 @@ import minqlx
 # ====================================================================
 #                          AbstractDatabase
 # ====================================================================
+# noinspection PyProtectedMember
 class AbstractDatabase:
     # An instance counter. Useful for closing connections.
     _counter = 0
@@ -37,10 +35,10 @@ class AbstractDatabase:
         self.__class__._counter -= 1
 
     @property
-    def logger(self) -> Logger:
+    def logger(self):
         return minqlx.get_logger(self.plugin)
 
-    def set_permission(self, player, level: int) -> None:
+    def set_permission(self, player, level):
         """Abstract method. Should set the permission of a player.
 
         :raises: NotImplementedError
@@ -48,7 +46,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def get_permission(self, player) -> int:
+    def get_permission(self, player):
         """Abstract method. Should return the permission of a player.
 
         :returns: int
@@ -57,7 +55,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def has_permission(self, player, level: int = 5) -> bool:
+    def has_permission(self, player, level=5):
         """Abstract method. Should return whether or not a player has more than or equal
         to a certain permission level. Should only take a value of 0 to 5, where 0 is
         always True.
@@ -68,7 +66,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def set_flag(self, player, flag: str, value: bool = True) -> None:
+    def set_flag(self, player, flag, value=True):
         """Abstract method. Should set specified player flag to value.
 
         :raises: NotImplementedError
@@ -76,11 +74,11 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def clear_flag(self, player, flag: str) -> None:
+    def clear_flag(self, player, flag):
         """Should clear specified player flag."""
         return self.set_flag(player, flag, False)
 
-    def get_flag(self, player, flag: str, default: bool = False) -> bool:
+    def get_flag(self, player, flag, default=False):
         """Abstract method. Should return specified player flag
 
         :returns: bool
@@ -89,7 +87,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def connect(self) -> Any:
+    def connect(self):
         """Abstract method. Should return a connection to the database. Exactly what a
         "connection" obviously depends on the database, so the specifics will be up
         to the implementation.
@@ -101,7 +99,7 @@ class AbstractDatabase:
         """
         raise NotImplementedError("The base plugin can't do database actions.")
 
-    def close(self) -> None:
+    def close(self):
         """Abstract method. If the database has a connection state, this method should
         close the connection.
 
@@ -114,45 +112,46 @@ class AbstractDatabase:
 # ====================================================================
 #                               Redis
 # ====================================================================
+# noinspection PyProtectedMember
 class Redis(AbstractDatabase):
     """A subclass of :class:`minqlx.AbstractDatabase` providing support for Redis."""
 
     # We only use the instance-level ones if we override the URI from the config.
-    _conn: Optional[redis.Redis] = None
-    _pool: Optional[redis.ConnectionPool] = None
-    _pass: str = ""
+    _conn = None
+    _pool = None
+    _pass = ""
 
-    def __del__(self) -> None:
+    def __del__(self):
         super().__del__()
         self.close()
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key):
         return self.r.exists(key)
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key):
         res = self.r.get(key)
         if res is None:
             raise KeyError(f"The key '{key}' is not present in the database.")
         return res
 
-    def __setitem__(self, key: str, item: Any) -> None:
+    def __setitem__(self, key, item):
         res = self.r.set(key, item)
         if res is False:
             raise RuntimeError("The database assignment failed.")
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key):
         res = self.r.delete(key)
         if res == 0:
             raise KeyError(f"The key '{key}' is not present in the database.")
 
-    def __getattr__(self, attr: Any) -> Any:
+    def __getattr__(self, attr):
         return getattr(self.r, attr)
 
     @property
-    def r(self) -> Any:
+    def r(self):
         return self.connect()
 
-    def set_permission(self, player, level: int) -> None:
+    def set_permission(self, player, level):
         """Sets the permission of a player.
 
         :param: player: The player in question.
@@ -166,7 +165,7 @@ class Redis(AbstractDatabase):
 
         self[key] = level
 
-    def get_permission(self, player) -> int:
+    def get_permission(self, player):
         """Gets the permission of a player.
 
         :param: player: The player in question.
@@ -195,7 +194,7 @@ class Redis(AbstractDatabase):
 
         return int(perm)
 
-    def has_permission(self, player, level: int = 5) -> bool:
+    def has_permission(self, player, level=5):
         """Checks if the player has higher than or equal to *level*.
 
         :param: player: The player in question.
@@ -207,7 +206,7 @@ class Redis(AbstractDatabase):
         """
         return self.get_permission(player) >= level
 
-    def set_flag(self, player, flag: str, value: bool = True) -> None:
+    def set_flag(self, player, flag, value=True):
         """Sets specified player flag
 
         :param: player: The player in question.
@@ -225,7 +224,7 @@ class Redis(AbstractDatabase):
 
         self[key] = 1 if value else 0
 
-    def get_flag(self, player, flag: str, default: bool = False) -> bool:
+    def get_flag(self, player, flag, default=False):
         """Clears the specified player flag
 
         :param: player: The player in question.
@@ -246,8 +245,7 @@ class Redis(AbstractDatabase):
         except KeyError:
             return default
 
-    def connect(self, host: Optional[str] = None, database: int = 0, unix_socket: bool = False,
-                password: Optional[str] = None) -> Optional[redis.Redis]:
+    def connect(self, host=None, database=0, unix_socket=False, password=None):
         """Returns a connection to a Redis database. If *host* is None, it will
         fall back to the settings in the config and ignore the rest of the arguments.
         It will also share the connection across any plugins using the default
@@ -314,7 +312,7 @@ class Redis(AbstractDatabase):
                 self._conn = redis.StrictRedis(connection_pool=self._pool, decode_responses=True)
         return self._conn
 
-    def close(self) -> None:
+    def close(self):
         """Close the Redis connection if the config was overridden. Otherwise only do so
         if this is the last plugin using the default connection.
 

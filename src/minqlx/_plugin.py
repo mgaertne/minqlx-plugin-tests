@@ -15,14 +15,9 @@
 
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import annotations
-
-from logging import Logger
-from typing import List, Dict, Optional, Callable, Tuple, Iterable, Type, Union, Set, overload
+from typing import ClassVar, Dict
 
 import minqlx
-from minqlx.database import Redis
 
 
 class Plugin:
@@ -48,20 +43,20 @@ class Plugin:
 
     """
     # Static dictionary of plugins currently loaded for the purpose of inter-plugin communication.
-    _loaded_plugins: Dict[str, Plugin] = {}
+    _loaded_plugins: ClassVar[Dict[str, 'minqlx.Plugin']] = {}
     # The database driver class the plugin should use.
-    database: Optional[Type[Redis]] = None
+    database = None
 
     def __init__(self):
-        self._hooks: List[Tuple[str, Callable, int]] = []
-        self._commands: List[minqlx.Command] = []
-        self._db_instance: Optional[Redis] = None
+        self._hooks = []
+        self._commands = []
+        self._db_instance = None
 
     def __str__(self):
         return self.name
 
     @property
-    def db(self) -> Optional[Redis]:
+    def db(self):
         """The database instance."""
         if not self.database:
             raise RuntimeError(f"Plugin '{self.name}' does not have a database driver.")
@@ -71,12 +66,12 @@ class Plugin:
         return self._db_instance
 
     @property
-    def name(self) -> str:
+    def name(self):
         """The name of the plugin."""
         return self.__class__.__name__
 
     @property
-    def plugins(self) -> Dict[str, Plugin]:
+    def plugins(self):
         """A dictionary containing plugin names as keys and plugin instances
         as values of all currently loaded plugins.
 
@@ -84,21 +79,21 @@ class Plugin:
         return self._loaded_plugins.copy()
 
     @property
-    def hooks(self) -> List[Tuple[str, Callable, int]]:
+    def hooks(self):
         """A list of all the hooks this plugin has."""
         if not hasattr(self, "_hooks"):
             self._hooks = []
         return self._hooks.copy()
 
     @property
-    def commands(self) -> List[minqlx.Command]:
+    def commands(self):
         """A list of all the commands this plugin has registered."""
         if not hasattr(self, "_commands"):
             self._commands = []
         return self._commands.copy()
 
     @property
-    def game(self) -> Optional[minqlx.Game]:
+    def game(self):
         """A Game instance."""
         try:
             return minqlx.Game()
@@ -106,19 +101,19 @@ class Plugin:
             return None
 
     @property
-    def logger(self) -> Logger:
+    def logger(self):
         """An instance of :class:`logging.Logger`, but initialized for this plugin."""
         return minqlx.get_logger(self)
 
     # TODO: Document plugin methods.
-    def add_hook(self, event: str, handler: Callable, priority: int = minqlx.PRI_NORMAL) -> None:
+    def add_hook(self, event, handler, priority=minqlx.PRI_NORMAL):
         if not hasattr(self, "_hooks"):
             self._hooks = []
 
         self._hooks.append((event, handler, priority))
         minqlx.EVENT_DISPATCHERS[event].add_hook(self.name, handler, priority)
 
-    def remove_hook(self, event: str, handler: Callable, priority: int = minqlx.PRI_NORMAL) -> None:
+    def remove_hook(self, event, handler, priority=minqlx.PRI_NORMAL):
         if not hasattr(self, "_hooks"):
             self._hooks = []
             return
@@ -126,10 +121,9 @@ class Plugin:
         minqlx.EVENT_DISPATCHERS[event].remove_hook(self.name, handler, priority)
         self._hooks.remove((event, handler, priority))
 
-    def add_command(self, name: Union[str, Tuple[str, ...]], handler: Callable, permission: int = 0,
-                    channels: Optional[Iterable[minqlx.AbstractChannel]] = None,
-                    exclude_channels: Iterable[minqlx.AbstractChannel] = (), priority: int = minqlx.PRI_NORMAL,
-                    client_cmd_pass: bool = False, client_cmd_perm: int = 5, prefix: bool = True, usage: str = ""):
+    def add_command(self, name, handler, permission=0,
+                    channels=None, exclude_channels=(), priority=minqlx.PRI_NORMAL,
+                    client_cmd_pass=False, client_cmd_perm=5, prefix=True, usage=""):
         if not hasattr(self, "_commands"):
             self._commands = []
 
@@ -138,7 +132,7 @@ class Plugin:
         self._commands.append(cmd)
         minqlx.COMMANDS.add_command(cmd, priority)
 
-    def remove_command(self, name: List[str], handler: Callable):
+    def remove_command(self, name, handler):
         if not hasattr(self, "_commands"):
             self._commands = []
             return
@@ -148,43 +142,7 @@ class Plugin:
                 minqlx.COMMANDS.remove_command(cmd)
 
     @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[str] = str) -> Optional[str]:
-        ...
-
-    @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[bool]) -> Optional[bool]:
-        ...
-
-    @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[int]) -> Optional[int]:
-        ...
-
-    @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[float]) -> Optional[float]:
-        ...
-
-    @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[list]) -> Optional[List[str]]:
-        ...
-
-    @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[set]) -> Optional[Set[str]]:
-        ...
-
-    @classmethod
-    @overload
-    def get_cvar(cls, name: str, return_type: Type[tuple]) -> Optional[Tuple[str, ...]]:
-        ...
-
-    @classmethod
-    def get_cvar(cls, name: str, return_type: Type[Union[str, bool, int, float, list, set, tuple]] = str) \
-            -> Optional[Union[str, bool, int, float, List[str], Set[str], Tuple[str, ...]]]:
+    def get_cvar(cls, name, return_type=str):
         """Gets the value of a cvar as a string.
 
         :param: name: The name of the cvar.
@@ -212,7 +170,7 @@ class Plugin:
         raise ValueError(f"Invalid return type: {return_type}")
 
     @classmethod
-    def set_cvar(cls, name: str, value, flags: int = 0) -> bool:
+    def set_cvar(cls, name, value, flags=0):
         """Sets a cvar. If the cvar exists, it will be set as if set from the console,
         otherwise create it.
 
@@ -234,8 +192,7 @@ class Plugin:
         return False
 
     @classmethod
-    def set_cvar_limit(cls, name: str, value: Union[int, float], minimum: Union[int, float],
-                       maximum: Union[int, float], flags: int = 0) -> bool:
+    def set_cvar_limit(cls, name, value, minimum, maximum, flags=0):
         """Sets a cvar with upper and lower limits. If the cvar exists, it will be set
         as if set from the console, otherwise create it.
 
@@ -261,7 +218,7 @@ class Plugin:
         return False
 
     @classmethod
-    def set_cvar_once(cls, name: str, value, flags: int = 0) -> bool:
+    def set_cvar_once(cls, name, value, flags=0):
         """Sets a cvar. If the cvar exists, do nothing.
 
         :param: name: The name of the cvar.
@@ -277,8 +234,7 @@ class Plugin:
         return minqlx.set_cvar_once(name, value, flags)
 
     @classmethod
-    def set_cvar_limit_once(cls, name: str, value: Union[int, float], minimum: Union[int, float],
-                            maximum: Union[int, float], flags: int = 0) -> bool:
+    def set_cvar_limit_once(cls, name, value, minimum, maximum, flags=0):
         """Sets a cvar with upper and lower limits. If the cvar exists, not do anything.
 
         :param: name: The name of the cvar.
@@ -298,13 +254,12 @@ class Plugin:
         return minqlx.set_cvar_limit_once(name, value, minimum, maximum, flags)
 
     @classmethod
-    def players(cls) -> List[minqlx.Player]:
+    def players(cls):
         """Get a list of all the players on the server."""
         return minqlx.Player.all_players()
 
     @classmethod
-    def player(cls, name: Union[str, int, minqlx.Player], player_list: Optional[List[minqlx.Player]] = None) \
-            -> Optional[minqlx.Player]:
+    def player(cls, name, player_list=None):
         """Get a Player instance from the name, client ID,
         or Steam ID. Assumes [0, 64) to be a client ID
         and [64, inf) to be a Steam ID.
@@ -335,7 +290,7 @@ class Plugin:
         return None
 
     @classmethod
-    def msg(cls, msg: str, chat_channel: str = "chat", **kwargs) -> None:
+    def msg(cls, msg, chat_channel="chat", **kwargs):
         """Send a message to the chat, or any other channel."""
         if isinstance(chat_channel, minqlx.AbstractChannel):
             chat_channel.reply(msg, **kwargs)
@@ -351,18 +306,17 @@ class Plugin:
             raise ValueError("Invalid channel.")
 
     @classmethod
-    def console(cls, text: str) -> None:
+    def console(cls, text):
         """Prints text in the console."""
         minqlx.console_print(str(text))
 
     @classmethod
-    def clean_text(cls, text: str) -> str:
+    def clean_text(cls, text):
         """Removes color tags from text."""
         return minqlx.re_color_tag.sub("", text)
 
     @classmethod
-    def colored_name(cls, name: Union[str, minqlx.Player], player_list: Optional[List[minqlx.Player]] = None) \
-            -> Optional[str]:
+    def colored_name(cls, name, player_list=None):
         """Get the colored name of a decolored name."""
         if isinstance(name, minqlx.Player):
             return name.name
@@ -380,8 +334,7 @@ class Plugin:
         return None
 
     @classmethod
-    def client_id(cls, name: Union[str, int, minqlx.Player], player_list: Optional[List[minqlx.Player]] = None) \
-            -> Optional[int]:
+    def client_id(cls, name, player_list=None):
         """Get a player's client id from the name, client ID,
         Player instance, or Steam ID. Assumes [0, 64) to be
         a client ID and [64, inf) to be a Steam ID.
@@ -412,7 +365,7 @@ class Plugin:
         return None
 
     @classmethod
-    def find_player(cls, name: str, player_list: Optional[List[minqlx.Player]] = None) -> List[minqlx.Player]:
+    def find_player(cls, name, player_list=None):
         """Find a player based on part of a players name.
 
         :param: name: A part of someone's name.
@@ -436,14 +389,14 @@ class Plugin:
         return res
 
     @classmethod
-    def teams(cls, player_list: Optional[List[minqlx.Player]] = None) -> Dict[str, List[minqlx.Player]]:
+    def teams(cls, player_list=None):
         """Get a dictionary with the teams as keys and players as values."""
         if not player_list:
             players = cls.players()
         else:
             players = player_list
 
-        res: Dict[str, List[minqlx.Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
+        res: dict[str, list[minqlx.Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
 
         for p in players:
             res[p.team].append(p)
@@ -451,15 +404,15 @@ class Plugin:
         return res
 
     @classmethod
-    def center_print(cls, msg: str, recipient: Optional[Union[str, int, minqlx.Player]] = None) -> None:
-        client_id: Optional[int] = None
+    def center_print(cls, msg, recipient=None):
+        client_id = None
         if recipient:
             client_id = cls.client_id(recipient)
 
         minqlx.send_server_command(client_id, f"cp \"{msg}\"")
 
     @classmethod
-    def tell(cls, msg: str, recipient: Union[str, int, minqlx.Player], **kwargs) -> None:
+    def tell(cls, msg, recipient, **kwargs):
         """Send a tell (private message) to someone.
 
         :param: msg: The message to be sent.
@@ -472,11 +425,11 @@ class Plugin:
         minqlx.TellChannel(recipient).reply(msg, **kwargs)
 
     @classmethod
-    def is_vote_active(cls) -> bool:
+    def is_vote_active(cls):
         return bool(minqlx.get_configstring(9))
 
     @classmethod
-    def current_vote_count(cls) -> Optional[Tuple[int, int]]:
+    def current_vote_count(cls):
         yes = minqlx.get_configstring(10)
         no = minqlx.get_configstring(11)
         if yes and no:
@@ -485,28 +438,29 @@ class Plugin:
         return None
 
     @classmethod
-    def callvote(cls, vote: str, display: str, time: int = 30) -> bool:
+    def callvote(cls, vote, display, time=30):
         if cls.is_vote_active():
             return False
 
         # Tell vote_started's dispatcher that it's a vote called by the server.
+        # noinspection PyUnresolvedReferences
         minqlx.EVENT_DISPATCHERS["vote_started"].caller(None)
         minqlx.callvote(vote, display, time)
         return True
 
     @classmethod
-    def force_vote(cls, pass_it: bool) -> bool:
+    def force_vote(cls, pass_it):
         if pass_it is True or pass_it is False:
             return minqlx.force_vote(pass_it)
 
         raise ValueError("pass_it must be either True or False.")
 
     @classmethod
-    def teamsize(cls, size: int) -> None:
+    def teamsize(cls, size):
         minqlx.Game().teamsize = size
 
     @classmethod
-    def kick(cls, player: Union[str, int, minqlx.Player], reason: str = "") -> None:
+    def kick(cls, player, reason=""):
         cid = cls.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -517,23 +471,23 @@ class Plugin:
             minqlx.kick(cid, reason)
 
     @classmethod
-    def shuffle(cls) -> None:
+    def shuffle(cls):
         minqlx.Game().shuffle()
 
     @classmethod
-    def cointoss(cls) -> None:
+    def cointoss(cls):
         # TODO: Call cointoss directly and implement cointoss().
         pass
 
     @classmethod
-    def change_map(cls, new_map: str, factory: Optional[str] = None) -> None:
+    def change_map(cls, new_map, factory=None):
         if not factory:
             minqlx.Game().map = new_map
         else:
             minqlx.console_command(f"map {new_map} {factory}")
 
     @classmethod
-    def switch(cls, player: minqlx.Player, other_player: minqlx.Player) -> None:
+    def switch(cls, player, other_player):
         p1 = cls.player(player)
         p2 = cls.player(other_player)
 
@@ -552,7 +506,7 @@ class Plugin:
         cls.put(p2, t1)
 
     @classmethod
-    def play_sound(cls, sound_path: str, player: Optional[minqlx.Player] = None) -> bool:
+    def play_sound(cls, sound_path, player=None):
         if not sound_path or "music/" in sound_path.lower():
             return False
 
@@ -563,7 +517,7 @@ class Plugin:
         return True
 
     @classmethod
-    def play_music(cls, music_path: str, player: Optional[minqlx.Player] = None) -> bool:
+    def play_music(cls, music_path, player=None):
         if not music_path or "sound/" in music_path.lower():
             return False
 
@@ -574,15 +528,15 @@ class Plugin:
         return True
 
     @classmethod
-    def stop_sound(cls, player: Optional[minqlx.Player] = None) -> None:
+    def stop_sound(cls, player=None):
         minqlx.send_server_command(player.id if player else None, "clearSounds")
 
     @classmethod
-    def stop_music(cls, player: Optional[minqlx.Player] = None) -> None:
+    def stop_music(cls, player=None):
         minqlx.send_server_command(player.id if player else None, "stopMusic")
 
     @classmethod
-    def slap(cls, player: Union[str, int, minqlx.Player], damage: int = 0) -> None:
+    def slap(cls, player, damage=0):
         cid = cls.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -590,7 +544,7 @@ class Plugin:
         minqlx.console_command(f"slap {cid} {damage}")
 
     @classmethod
-    def slay(cls, player: Union[str, int, minqlx.Player]) -> None:
+    def slay(cls, player):
         cid = cls.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -602,86 +556,86 @@ class Plugin:
     # ====================================================================
 
     @classmethod
-    def timeout(cls) -> None:
+    def timeout(cls):
         minqlx.Game.timeout()
 
     @classmethod
-    def timein(cls) -> None:
+    def timein(cls):
         minqlx.Game.timein()
 
     @classmethod
-    def allready(cls) -> None:
+    def allready(cls):
         minqlx.Game.allready()
 
     @classmethod
-    def pause(cls) -> None:
+    def pause(cls):
         minqlx.Game.pause()
 
     @classmethod
-    def unpause(cls) -> None:
+    def unpause(cls):
         minqlx.Game.unpause()
 
     @classmethod
-    def lock(cls, team: Optional[str] = None) -> None:
+    def lock(cls, team=None):
         minqlx.Game.lock(team)
 
     @classmethod
-    def unlock(cls, team: Optional[str] = None) -> None:
+    def unlock(cls, team=None):
         minqlx.Game.unlock(team)
 
     @classmethod
-    def put(cls, player: minqlx.Player, team: str) -> None:
+    def put(cls, player, team):
         minqlx.Game.put(player, team)
 
     @classmethod
-    def mute(cls, player: minqlx.Player) -> None:
+    def mute(cls, player):
         minqlx.Game.mute(player)
 
     @classmethod
-    def unmute(cls, player: minqlx.Player) -> None:
+    def unmute(cls, player):
         minqlx.Game.unmute(player)
 
     @classmethod
-    def tempban(cls, player: minqlx.Player) -> None:
+    def tempban(cls, player):
         # TODO: Add an optional reason to tempban.
         minqlx.Game.tempban(player)
 
     @classmethod
-    def ban(cls, player: minqlx.Player) -> None:
+    def ban(cls, player):
         minqlx.Game.ban(player)
 
     @classmethod
-    def unban(cls, player: minqlx.Player) -> None:
+    def unban(cls, player):
         minqlx.Game.unban(player)
 
     @classmethod
-    def opsay(cls, msg: str) -> None:
+    def opsay(cls, msg):
         minqlx.Game.opsay(msg)
 
     @classmethod
-    def addadmin(cls, player: minqlx.Player) -> None:
+    def addadmin(cls, player):
         minqlx.Game.addadmin(player)
 
     @classmethod
-    def addmod(cls, player: minqlx.Player) -> None:
+    def addmod(cls, player):
         minqlx.Game.addmod(player)
 
     @classmethod
-    def demote(cls, player: minqlx.Player) -> None:
+    def demote(cls, player):
         minqlx.Game.demote(player)
 
     @classmethod
-    def abort(cls) -> None:
+    def abort(cls):
         minqlx.Game.abort()
 
     @classmethod
-    def addscore(cls, player: minqlx.Player, score: int) -> None:
+    def addscore(cls, player, score):
         minqlx.Game.addscore(player, score)
 
     @classmethod
-    def addteamscore(cls, team: str, score: int) -> None:
+    def addteamscore(cls, team, score):
         minqlx.Game.addteamscore(team, score)
 
     @classmethod
-    def setmatchtime(cls, time: int) -> None:
+    def setmatchtime(cls, time):
         minqlx.Game.setmatchtime(time)

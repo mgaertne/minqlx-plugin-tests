@@ -1,6 +1,3 @@
-import re as _re
-import importlib
-
 from ._minqlx import DEBUG, RET_NONE, RET_STOP, RET_STOP_EVENT, RET_STOP_ALL, RET_USAGE, PRI_HIGHEST, PRI_HIGH, \
     PRI_NORMAL, PRI_LOW, PRI_LOWEST, CVAR_ARCHIVE, CVAR_USERINFO, CVAR_SERVERINFO, CVAR_SYSTEMINFO, CVAR_INIT, \
     CVAR_LATCH, CVAR_ROM, CVAR_USER_CREATED, CVAR_TEMP, CVAR_CHEAT, CVAR_NORESTART, PRIV_NONE, PRIV_MOD, PRIV_ADMIN, \
@@ -18,10 +15,9 @@ from ._minqlx import DEBUG, RET_NONE, RET_STOP, RET_STOP_EVENT, RET_STOP_ALL, RE
     destroy_kamikaze_timers, spawn_item, remove_dropped_items, slay_with_mod, replace_items, dev_print_items, \
     force_weapon_respawn_time, register_handler
 from ._core import PluginLoadError, PluginUnloadError, TEAMS, GAMETYPES, GAMETYPES_SHORT, CONNECTION_STATES, WEAPONS, \
-    DEFAULT_PLUGINS, parse_variables, get_logger, log_exception, handle_exception, threading_excepthook, uptime, \
-    owner, stats_listener, set_cvar_once, set_cvar_limit_once, set_plugins_version, set_map_subtitles, next_frame, \
-    delay, thread, load_preset_plugins, load_plugin, unload_plugin, reload_plugin, initialize_cvars, initialize, \
-    late_init
+    DEFAULT_PLUGINS, parse_variables, get_logger, log_exception, handle_exception, threading_excepthook, uptime, owner, \
+    stats_listener, set_cvar_once, set_cvar_limit_once, set_plugins_version, set_map_subtitles, next_frame, delay, \
+    thread, load_preset_plugins, load_plugin, unload_plugin, reload_plugin, initialize_cvars, initialize, late_init
 from ._game import Game, NonexistentGameError
 from ._player import Player, NonexistentPlayerError, AbstractDummyPlayer, RconDummyPlayer
 from ._plugin import Plugin
@@ -44,32 +40,15 @@ from ._commands import MAX_MSG_LENGTH, re_color_tag, AbstractChannel, ChatChanne
     SPECTATOR_CHAT_CHANNEL, CONSOLE_CHANNEL
 from ._zmq import StatsListener
 
-try:
-    _minqlx = importlib.import_module(name="_minqlx")
-    from _minqlx import *  # type: ignore
-except ModuleNotFoundError:
-    _minqlx = importlib.import_module(name="._minqlx", package="minqlx")
-    from ._minqlx import *  # pylint: disable=unused-wildcard-import, wrong-import-position
+__version__: str
+__plugins_version__: str
 
-__version__ = _minqlx.__version__
-__plugins_version__ = "NOT_SET"
+_map_title: str | None
+_map_subtitle1: str | None
+_map_subtitle2: str | None
 
-_map_title = ""
-_map_subtitle1 = ""
-_map_subtitle2 = ""
+__version_info__: tuple[int, int, int]
 
-temp = _re.search(r"(\d+)\.(\d+)\.(\d+)", __version__)
-if temp is None:
-    __version_info__ = (999, 999, 999)
-else:
-    # noinspection PyBroadException
-    try:
-        __version_info__ = int(temp.group(1)), int(temp.group(2)), int(temp.group(3))
-    except:  # pylint: disable=bare-except
-        __version_info__ = (999, 999, 999)
-del temp
-
-# Put everything into a single module.
 __all__ = [
     "__version__", "__version_info__", "__plugins_version__",
     # _minqlx

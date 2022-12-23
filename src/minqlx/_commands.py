@@ -16,13 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 import re
-from typing import Pattern, Tuple, Union, Callable, List, Optional, Iterable
 
 import minqlx
 
 
-MAX_MSG_LENGTH: int = 1000
-re_color_tag: Pattern[str] = re.compile(r"\^[^\^]")
+MAX_MSG_LENGTH = 1000
+re_color_tag = re.compile(r"\^[^\^]")
 
 
 # ====================================================================
@@ -44,17 +43,17 @@ class AbstractChannel:
     like "webinterface", and then implement a __repr__() to return something like "webinterface user1".
 
     """
-    def __init__(self, name: str):
-        self._name: str = name
+    def __init__(self, name):
+        self._name = name
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.name
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return str(self)
 
     # Equal.
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other):
         if isinstance(other, str):
             # For string comparison, we use self.name. This allows
             # stuff like: if channel == "tell": do_something()
@@ -62,18 +61,18 @@ class AbstractChannel:
         return repr(self) == repr(other)
 
     # Not equal.
-    def __ne__(self, other) -> bool:
+    def __ne__(self, other):
         return not self.__eq__(other)
 
     @property
-    def name(self) -> str:
+    def name(self):
         return self._name
 
-    def reply(self, msg: str, limit: int = 100, delimiter: str = " ") -> None:
+    def reply(self, msg, limit=100, delimiter=" "):
         raise NotImplementedError()
 
     # noinspection PyMethodMayBeStatic
-    def split_long_lines(self, msg: str, limit: int = 100, delimiter: str = " ") -> List[str]:
+    def split_long_lines(self, msg, limit=100, delimiter=" "):
         res = []
 
         while msg:
@@ -104,13 +103,13 @@ class AbstractChannel:
 
 class ChatChannel(AbstractChannel):
     """A channel for chat to and from the server."""
-    def __init__(self, name: str = "chat", fmt: str = "print \"{}\n\"\n"):
+    def __init__(self, name="chat", fmt="print \"{}\n\"\n"):
         super().__init__(name)
-        self.fmt: str = fmt
-        self.team: str = "all"
+        self.fmt = fmt
+        self.team = "all"
 
     @minqlx.next_frame
-    def reply(self, msg: str, limit: int = 100, delimiter: str = " ") -> None:
+    def reply(self, msg, limit=100, delimiter=" "):
         # We convert whatever we got to a string and replace all double quotes
         # to single quotes, since the engine doesn't support escaping them.
         # TODO: rcon can print quotes to clients using NET_OutOfBandPrint. Maybe we should too?
@@ -133,7 +132,7 @@ class ChatChannel(AbstractChannel):
         split_msgs = self.split_long_lines(msg, limit, delimiter)
         # We've split messages, but we can still just join them up to 1000-ish
         # bytes before we need to send multiple server cmds.
-        joined_msgs: List[str] = []
+        joined_msgs: list[str] = []
         for s in split_msgs:
             if len(joined_msgs) == 0:
                 joined_msgs.append(s)
@@ -160,14 +159,14 @@ class RedTeamChatChannel(ChatChannel):
     """A channel for in-game chat to and from the red team."""
     def __init__(self):
         super().__init__(name="red_team_chat", fmt="print \"{}\n\"\n")
-        self.team: str = "red"
+        self.team = "red"
 
 
 class BlueTeamChatChannel(ChatChannel):
     """A channel for in-game chat to and from the blue team."""
     def __init__(self):
         super().__init__(name="blue_team_chat", fmt="print \"{}\n\"\n")
-        self.team: str = "blue"
+        self.team = "blue"
 
 
 class FreeChatChannel(ChatChannel):
@@ -177,7 +176,7 @@ class FreeChatChannel(ChatChannel):
     """
     def __init__(self):
         super().__init__(name="free_chat", fmt="print \"{}\n\"\n")
-        self.team: str = "free"
+        self.team = "free"
 
 
 class SpectatorChatChannel(ChatChannel):
@@ -189,11 +188,11 @@ class SpectatorChatChannel(ChatChannel):
 
 class TellChannel(ChatChannel):
     """A channel for private in-game messages."""
-    def __init__(self, player: Union[str, int, minqlx.Player]):
+    def __init__(self, player):
         super().__init__(name="tell", fmt="print \"{}\n\"\n")
-        self.recipient: Union[str, int, minqlx.Player] = player
+        self.recipient = player
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         player = minqlx.Plugin.player(self.recipient)
         if player is None:
             return ""
@@ -205,25 +204,25 @@ class ConsoleChannel(AbstractChannel):
     def __init__(self):
         super().__init__("console")
 
-    def reply(self, msg: str, limit: int = 100, delimiter: str = " ") -> None:
+    def reply(self, msg, limit=100, delimiter=" "):
         minqlx.console_print(str(msg))
 
 
 class ClientCommandChannel(AbstractChannel):
     """Wraps a TellChannel, but with its own name."""
-    def __init__(self, player: Union[str, int, minqlx.Player]):
+    def __init__(self, player):
         super().__init__("client_command")
-        self.recipient: Union[str, int, minqlx.Player] = player
-        self.tell_channel: ChatChannel = TellChannel(player)
+        self.recipient = player
+        self.tell_channel = TellChannel(player)
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         player = minqlx.Plugin.player(self.recipient)
         if player is None:
             return ""
 
         return f"client_command {player.id}"
 
-    def reply(self, msg: str, limit: int = 100, delimiter: str = " "):
+    def reply(self, msg, limit=100, delimiter=" "):
         self.tell_channel.reply(msg, limit, delimiter)
 
 
@@ -237,37 +236,34 @@ class Command:
     action should be taken.
 
     """
-    def __init__(self, plugin: minqlx.Plugin, name: Union[str, List[str], Tuple[str, ...]], handler: Callable,
-                 permission: int, channels: Optional[Iterable[AbstractChannel]],
-                 exclude_channels: Optional[Iterable[AbstractChannel]], client_cmd_pass: bool, client_cmd_perm: int,
-                 prefix: bool, usage: str):
+    def __init__(self, plugin, name, handler, permission, channels, exclude_channels, client_cmd_pass, client_cmd_perm,
+                 prefix, usage):
         if not (channels is None or hasattr(channels, "__iter__")):
             raise ValueError("'channels' must be a finite iterable or None.")
         if not (channels is None or hasattr(exclude_channels, "__iter__")):
             raise ValueError("'exclude_channels' must be a finite iterable or None.")
-        self.plugin: minqlx.Plugin = plugin  # Instance of the owner.
+        self.plugin = plugin  # Instance of the owner.
 
         # Allow a command to have alternative names.
-        self.name: List[str]
         if isinstance(name, (list, tuple)):
             self.name = [n.lower() for n in name]
         else:
             self.name = [name]
-        self.handler: Callable = handler
-        self.permission: int = permission
-        self.channels: List[AbstractChannel] = list(channels) if channels is not None else []
-        self.exclude_channels: List[AbstractChannel] = list(exclude_channels) if exclude_channels is not None else []
-        self.client_cmd_pass: bool = client_cmd_pass
-        self.client_cmd_perm: int = client_cmd_perm
-        self.prefix: bool = prefix
-        self.usage: str = usage
+        self.handler = handler
+        self.permission = permission
+        self.channels = list(channels) if channels is not None else []
+        self.exclude_channels = list(exclude_channels) if exclude_channels is not None else []
+        self.client_cmd_pass = client_cmd_pass
+        self.client_cmd_perm = client_cmd_perm
+        self.prefix = prefix
+        self.usage = usage
 
-    def execute(self, player: minqlx.Player, msg: str, channel: AbstractChannel) -> Optional[int]:
+    def execute(self, player, msg, channel):
         logger = minqlx.get_logger(self.plugin)
         logger.debug("%s executed: %s @ %s -> %s", player.steam_id, self.name[0], self.plugin.name, channel)
         return self.handler(player, msg.split(), channel)
 
-    def is_eligible_name(self, name: str) -> bool:
+    def is_eligible_name(self, name):
         if self.prefix:
             prefix = minqlx.get_cvar("qlx_commandPrefix")
             if prefix is None:
@@ -278,7 +274,7 @@ class Command:
 
         return name.lower() in self.name
 
-    def is_eligible_channel(self, channel: AbstractChannel) -> bool:
+    def is_eligible_channel(self, channel):
         """Check if a chat channel is one this command should execute in.
 
         Exclude takes precedence.
@@ -288,7 +284,7 @@ class Command:
             return False
         return not self.channels or channel.name in self.channels
 
-    def is_eligible_player(self, player: minqlx.Player, is_client_cmd: bool) -> bool:
+    def is_eligible_player(self, player, is_client_cmd):
         """Check if a player has the rights to execute the command."""
         # Check if config overrides permission.
         perm = self.permission
@@ -322,24 +318,24 @@ class CommandInvoker:
 
     """
     def __init__(self):
-        self._commands: Tuple[List[Command], List[Command], List[Command], List[Command], List[Command]] = \
-            ([], [], [], [], [])
+        self._commands: tuple[list[Command], list[Command], list[Command], list[Command], list[Command]] \
+            = ([], [], [], [], [])
 
     @property
-    def commands(self) -> List[Command]:
+    def commands(self):
         c = []
         for cmds in self._commands:
             c.extend(cmds)
 
         return c
 
-    def add_command(self, command: Command, priority: int) -> None:
+    def add_command(self, command, priority):
         if self.is_registered(command):
             raise ValueError("Attempted to add an already registered command.")
 
         self._commands[priority].append(command)
 
-    def remove_command(self, command: Command) -> None:
+    def remove_command(self, command):
         if not self.is_registered(command):
             raise ValueError("Attempted to remove a command that was never added.")
 
@@ -349,7 +345,7 @@ class CommandInvoker:
                     priority_level.remove(cmd)
                     return
 
-    def is_registered(self, command: Command) -> bool:
+    def is_registered(self, command):
         """Check if a command is already registed.
 
         Commands are unique by (command.name, command.handler).
@@ -362,7 +358,7 @@ class CommandInvoker:
 
         return False
 
-    def handle_input(self, player: minqlx.Player, msg: str, channel: AbstractChannel) -> bool:
+    def handle_input(self, player, msg, channel):
         if not msg.strip():
             return False
 
@@ -404,10 +400,10 @@ class CommandInvoker:
 # ====================================================================
 #                          MODULE CONSTANTS
 # ====================================================================
-COMMANDS: CommandInvoker = CommandInvoker()
-CHAT_CHANNEL: AbstractChannel = ChatChannel()
-RED_TEAM_CHAT_CHANNEL: AbstractChannel = RedTeamChatChannel()
-BLUE_TEAM_CHAT_CHANNEL: AbstractChannel = BlueTeamChatChannel()
-FREE_CHAT_CHANNEL: AbstractChannel = FreeChatChannel()
-SPECTATOR_CHAT_CHANNEL: AbstractChannel = SpectatorChatChannel()
-CONSOLE_CHANNEL: AbstractChannel = ConsoleChannel()
+COMMANDS = CommandInvoker()
+CHAT_CHANNEL = ChatChannel()
+RED_TEAM_CHAT_CHANNEL = RedTeamChatChannel()
+BLUE_TEAM_CHAT_CHANNEL = BlueTeamChatChannel()
+FREE_CHAT_CHANNEL = FreeChatChannel()
+SPECTATOR_CHAT_CHANNEL = SpectatorChatChannel()
+CONSOLE_CHANNEL = ConsoleChannel()

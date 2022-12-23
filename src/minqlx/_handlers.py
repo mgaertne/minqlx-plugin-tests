@@ -19,8 +19,6 @@
 import collections
 import sched
 import re
-from re import Pattern
-from typing import Optional
 
 import minqlx
 
@@ -28,21 +26,20 @@ import minqlx
 #                        REGULAR EXPRESSIONS
 # ====================================================================
 
-_re_say: Pattern = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
-_re_say_team: Pattern = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
-_re_callvote: Pattern = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$",
-                                   flags=re.IGNORECASE)
-_re_vote: Pattern = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
-_re_team: Pattern = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
-_re_vote_ended: Pattern = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
-_re_userinfo: Pattern = re.compile(r"^userinfo \"(?P<vars>.+)\"$")
+_re_say = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
+_re_say_team = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
+_re_callvote = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$", flags=re.IGNORECASE)
+_re_vote = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
+_re_team = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
+_re_vote_ended = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
+_re_userinfo = re.compile(r"^userinfo \"(?P<vars>.+)\"$")
 
 
 # ====================================================================
 #                         LOW-LEVEL HANDLERS
 #        These are all called by the C code, not within Python.
 # ====================================================================
-def handle_rcon(cmd: str):  # pylint: disable=inconsistent-return-statements
+def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
     """Console commands that are to be processed as regular pyminqlx
     commands as if the owner executes it. This allows the owner to
     interact with the Python part of minqlx without having to connect.
@@ -56,7 +53,7 @@ def handle_rcon(cmd: str):  # pylint: disable=inconsistent-return-statements
         return True
 
 
-def handle_client_command(client_id: int, cmd: str):
+def handle_client_command(client_id, cmd):
     """Client commands are commands such as "say", "say_team", "scores",
     "disconnect" and so on. This function parses those and passes it
     on to the event dispatcher.
@@ -106,6 +103,7 @@ def handle_client_command(client_id: int, cmd: str):
             vote = res.group("cmd")
             args = res.group("args") if res.group("args") else ""
             # Set the caller for vote_started in case the vote goes through.
+            # noinspection PyUnresolvedReferences
             minqlx.EVENT_DISPATCHERS["vote_started"].caller(player)
             if minqlx.EVENT_DISPATCHERS["vote_called"].dispatch(player, vote, args) is False:
                 return False
@@ -171,7 +169,7 @@ def handle_client_command(client_id: int, cmd: str):
         return True
 
 
-def handle_server_command(client_id: int, cmd: str):
+def handle_server_command(client_id, cmd):
     # noinspection PyBroadException
     try:
         # Dispatch the "server_command" event before further processing.
@@ -203,7 +201,7 @@ def handle_server_command(client_id: int, cmd: str):
 # weird behavior if you were to use threading. This list will act as a task queue.
 # Tasks can be added by simply adding the @minqlx.next_frame decorator to functions.
 frame_tasks = sched.scheduler()
-next_frame_tasks: collections.deque = collections.deque()
+next_frame_tasks = collections.deque()  # type: ignore
 
 
 def handle_frame():
@@ -239,12 +237,12 @@ def handle_frame():
         pass
 
 
-_zmq_warning_issued: bool = False
-_first_game: bool = True
-_ad_round_number: int = 0
+_zmq_warning_issued = False
+_first_game = True
+_ad_round_number = 0
 
 
-def handle_new_game(is_restart: bool):  # pylint: disable=inconsistent-return-statements
+def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statements
     # This is called early in the launch process, so it's a good place to initialize
     # minqlx stuff that needs QLDS to be initialized.
     global _first_game  # pylint: disable=global-statement
@@ -281,7 +279,7 @@ def handle_new_game(is_restart: bool):  # pylint: disable=inconsistent-return-st
         return True
 
 
-def handle_set_configstring(index: int, value: str):  # pylint: disable=inconsistent-return-statements
+def handle_set_configstring(index, value):  # pylint: disable=inconsistent-return-statements
     """Called whenever the server tries to set a configstring. Can return
     False to stop the event.
 
@@ -360,7 +358,7 @@ def handle_set_configstring(index: int, value: str):  # pylint: disable=inconsis
         return True
 
 
-def handle_player_connect(client_id: int, _is_bot: bool):
+def handle_player_connect(client_id, _is_bot):
     """This will be called whenever a player tries to connect. If the dispatcher
     returns False, it will not allow the player to connect and instead show them
     a message explaining why. The default message is "You are banned from this
@@ -381,7 +379,7 @@ def handle_player_connect(client_id: int, _is_bot: bool):
         return True
 
 
-def handle_player_loaded(client_id: int):
+def handle_player_loaded(client_id):
     """This will be called whenever a player has connected and finished loading,
     meaning it'll go off a bit later than the usual "X connected" messages.
     This will not trigger on bots.
@@ -399,7 +397,7 @@ def handle_player_loaded(client_id: int):
         return True
 
 
-def handle_player_disconnect(client_id: int, reason: Optional[str]):
+def handle_player_disconnect(client_id, reason):
     """This will be called whenever a player disconnects.
 
     :param: client_id: The client identifier.
@@ -417,7 +415,7 @@ def handle_player_disconnect(client_id: int, reason: Optional[str]):
         return True
 
 
-def handle_player_spawn(client_id: int):
+def handle_player_spawn(client_id):
     """Called when a player spawns. Note that a spectator going in free spectate mode
     makes the client spawn, so you'll want to check for that if you only want "actual"
     spawns.
@@ -432,7 +430,7 @@ def handle_player_spawn(client_id: int):
         return True
 
 
-def handle_kamikaze_use(client_id: int):
+def handle_kamikaze_use(client_id):
     """This will be called whenever player uses kamikaze item.
 
     :param: client_id: The client identifier.
@@ -448,7 +446,7 @@ def handle_kamikaze_use(client_id: int):
         return True
 
 
-def handle_kamikaze_explode(client_id: int, is_used_on_demand: bool):
+def handle_kamikaze_explode(client_id, is_used_on_demand):
     """This will be called whenever kamikaze explodes.
 
     :param: client_id: The client identifier.
@@ -467,7 +465,7 @@ def handle_kamikaze_explode(client_id: int, is_used_on_demand: bool):
         return True
 
 
-def handle_console_print(text: Optional[str]):  # pylint: disable=inconsistent-return-statements
+def handle_console_print(text):  # pylint: disable=inconsistent-return-statements
     """Called whenever the server prints something to the console and when rcon is used."""
     if not text:
         return
@@ -494,11 +492,11 @@ def handle_console_print(text: Optional[str]):  # pylint: disable=inconsistent-r
         return True
 
 
-_print_redirection: Optional[minqlx.AbstractChannel] = None
-_print_buffer: str = ""
+_print_redirection = None
+_print_buffer = ""
 
 
-def redirect_print(channel: minqlx.AbstractChannel):
+def redirect_print(channel):
     """Redirects print output to a channel. Useful for commands that execute console commands
     and want to redirect the output to the channel instead of letting it go to the console.
 
@@ -534,7 +532,7 @@ def redirect_print(channel: minqlx.AbstractChannel):
     return PrintRedirector(channel)
 
 
-def register_handlers() -> None:
+def register_handlers():
     minqlx.register_handler("rcon", handle_rcon)
     minqlx.register_handler("client_command", handle_client_command)
     minqlx.register_handler("server_command", handle_server_command)

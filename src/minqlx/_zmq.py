@@ -20,7 +20,6 @@
 we get stats from it. It polls the ZMQ socket approx. every 0.25 seconds."""
 
 import json
-from typing import Optional
 
 import zmq
 import minqlx
@@ -28,22 +27,22 @@ import minqlx
 
 class StatsListener:
     def __init__(self):
-        self.done: bool
+        self.done = False
         if not bool(int(minqlx.get_cvar("zmq_stats_enable"))):
             self.done = True
             return
 
-        stats: Optional[str] = minqlx.get_cvar("zmq_stats_ip")
-        port: Optional[str] = minqlx.get_cvar("zmq_stats_port")
+        stats = minqlx.get_cvar("zmq_stats_ip")
+        port = minqlx.get_cvar("zmq_stats_port")
         if not port:
             port = minqlx.get_cvar("net_port")
         host = "127.0.0.1" if not stats else stats
-        self.address: str = f"tcp://{host}:{port}"
-        self.password: Optional[str] = minqlx.get_cvar("zmq_stats_password")
+        self.address = f"tcp://{host}:{port}"
+        self.password = minqlx.get_cvar("zmq_stats_password")
 
         # Initialize socket, connect, and subscribe.
-        self.context: zmq.Context = zmq.Context()
-        self.socket: zmq.Socket = self.context.socket(zmq.SUB)
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.SUB)
         if self.password:
             self.socket.plain_username = b"stats"
             self.socket.plain_password = self.password.encode()
@@ -52,10 +51,10 @@ class StatsListener:
         self.socket.setsockopt_string(zmq.SUBSCRIBE, "")
 
         self.done = False
-        self._in_progress: bool = False
+        self._in_progress = False
 
     @minqlx.delay(0.25)
-    def keep_receiving(self) -> None:
+    def keep_receiving(self):
         """Receives until 'self.done' is set to True. Works by scheduling this
         to be called every 0.25 seconds. If we get an exception, we try
         to reconnect and continue.
@@ -124,5 +123,5 @@ class StatsListener:
 
         self.keep_receiving()
 
-    def stop(self) -> None:
+    def stop(self):
         self.done = True

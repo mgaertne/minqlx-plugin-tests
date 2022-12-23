@@ -19,10 +19,7 @@
 
 # Since this isn't the actual module, we define it here and export
 # it later so that it can be accessed with minqlx.__doc__ by Sphinx.
-from typing import Optional, Union, List, Iterable
-
 import minqlx
-from ._player import Player
 
 
 class NonexistentGameError(Exception):
@@ -35,27 +32,27 @@ class Game:
     """A class representing the game. That is, stuff like what map is being played,
     if it's in warmup, and so on. It also has methods to call in timeins, aborts,
     pauses, and so on."""
-    def __init__(self, cached: bool = True):
-        self.cached: bool = cached
-        self._valid: bool = True
+    def __init__(self, cached=True):
+        self.cached = cached
+        self._valid = True
         cs = minqlx.get_configstring(0)
         if not cs:
             self._valid = False
             raise NonexistentGameError("Tried to instantiate a game while no game is active.")
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         try:
             return f"{self.__class__.__name__}({self.type}@{self.map})"
         except NonexistentGameError:
             return f"{self.__class__.__name__}(N/A@N/A)"
 
-    def __str__(self) -> str:
+    def __str__(self):
         try:
             return f"{self.type} on {self.map}"
         except NonexistentGameError:
             return "Invalid game"
 
-    def __contains__(self, key: str) -> bool:
+    def __contains__(self, key):
         cs = minqlx.get_configstring(0)
         if not cs:
             self._valid = False
@@ -82,50 +79,50 @@ class Game:
         return minqlx.parse_variables(minqlx.get_configstring(0))
 
     @property
-    def type(self) -> str:
+    def type(self):
         return minqlx.GAMETYPES[int(self["g_gametype"])]
 
     @property
-    def type_short(self) -> str:
+    def type_short(self):
         return minqlx.GAMETYPES_SHORT[int(self["g_gametype"])]
 
     @property
-    def map(self) -> str:
+    def map(self):
         """The short name of the map. Ex.: ``longestyard``."""
         return self["mapname"]
 
     @map.setter
-    def map(self, value: str) -> None:
+    def map(self, value):
         minqlx.console_command(f"map {value}")
 
     @property
-    def map_title(self) -> Optional[str]:
+    def map_title(self):
         """The full name of the map. Ex.: ``Longest Yard``."""
         # noinspection PyProtectedMember
         return minqlx._map_title  # pylint: disable=protected-access
 
     @property
-    def map_subtitle1(self) -> Optional[str]:
+    def map_subtitle1(self):
         """The map's subtitle. Usually either empty or has the author's name."""
         # noinspection PyProtectedMember
         return minqlx._map_subtitle1  # pylint: disable=protected-access
 
     @property
-    def map_subtitle2(self) -> Optional[str]:
+    def map_subtitle2(self):
         """The map's second subtitle. Usually either empty or has the author's name."""
         # noinspection PyProtectedMember
         return minqlx._map_subtitle2  # pylint: disable=protected-access
 
     @property
-    def red_score(self) -> int:
+    def red_score(self):
         return int(minqlx.get_configstring(6))
 
     @property
-    def blue_score(self) -> int:
+    def blue_score(self):
         return int(minqlx.get_configstring(7))
 
     @property
-    def state(self) -> str:
+    def state(self):
         """A string describing the state of the game.
 
         Possible values:
@@ -147,31 +144,31 @@ class Game:
         return s
 
     @property
-    def factory(self) -> str:
+    def factory(self):
         return self["g_factory"]
 
     @factory.setter
-    def factory(self, value: str) -> None:
+    def factory(self, value):
         minqlx.console_command(f"map {self.map} {value}")
 
     @property
-    def factory_title(self) -> str:
+    def factory_title(self):
         return self["g_factoryTitle"]
 
     @property
-    def hostname(self) -> str:
+    def hostname(self):
         return self["sv_hostname"]
 
     @hostname.setter
-    def hostname(self, value: str) -> None:
+    def hostname(self, value):
         minqlx.set_cvar("sv_hostname", str(value))
 
     @property
-    def instagib(self) -> bool:
+    def instagib(self):
         return bool(int(self["g_instaGib"]))
 
     @instagib.setter
-    def instagib(self, value: Union[bool, int]) -> None:
+    def instagib(self, value):
         if isinstance(value, bool):
             minqlx.set_cvar("g_instaGib", str(int(value)))
         elif value in [0, 1]:
@@ -180,11 +177,11 @@ class Game:
             raise ValueError("instagib needs to be 0, 1, or a bool.")
 
     @property
-    def loadout(self) -> bool:
+    def loadout(self):
         return bool(int(self["g_loadout"]))
 
     @loadout.setter
-    def loadout(self, value: Union[bool, int]) -> None:
+    def loadout(self, value):
         if isinstance(value, bool):
             minqlx.set_cvar("g_loadout", str(int(value)))
         elif value in [0, 1]:
@@ -193,78 +190,78 @@ class Game:
             raise ValueError("loadout needs to be 0, 1, or a bool.")
 
     @property
-    def maxclients(self) -> int:
+    def maxclients(self):
         return int(self["sv_maxclients"])
 
     @maxclients.setter
-    def maxclients(self, new_limit: int) -> None:
+    def maxclients(self, new_limit):
         minqlx.set_cvar("sv_maxclients", str(new_limit))
 
     @property
-    def timelimit(self) -> int:
+    def timelimit(self):
         return int(self["timelimit"])
 
     @timelimit.setter
-    def timelimit(self, new_limit: int) -> None:
+    def timelimit(self, new_limit):
         minqlx.set_cvar("timelimit", str(new_limit))
 
     @property
-    def fraglimit(self) -> int:
+    def fraglimit(self):
         return int(self["fraglimit"])
 
     @fraglimit.setter
-    def fraglimit(self, new_limit: int) -> None:
+    def fraglimit(self, new_limit):
         minqlx.set_cvar("fraglimit", str(new_limit))
 
     @property
-    def roundlimit(self) -> int:
+    def roundlimit(self):
         return int(self["roundlimit"])
 
     @roundlimit.setter
-    def roundlimit(self, new_limit: int) -> None:
+    def roundlimit(self, new_limit):
         minqlx.set_cvar("roundlimit", str(new_limit))
 
     @property
-    def roundtimelimit(self) -> int:
+    def roundtimelimit(self):
         return int(self["roundtimelimit"])
 
     @roundtimelimit.setter
-    def roundtimelimit(self, new_limit: int) -> None:
+    def roundtimelimit(self, new_limit):
         minqlx.set_cvar("roundtimelimit", str(new_limit))
 
     @property
-    def scorelimit(self) -> int:
+    def scorelimit(self):
         return int(self["scorelimit"])
 
     @scorelimit.setter
-    def scorelimit(self, new_limit: int) -> None:
+    def scorelimit(self, new_limit):
         minqlx.set_cvar("scorelimit", str(new_limit))
 
     @property
-    def capturelimit(self) -> int:
+    def capturelimit(self):
         return int(self["capturelimit"])
 
     @capturelimit.setter
-    def capturelimit(self, new_limit: int) -> None:
+    def capturelimit(self, new_limit):
         minqlx.set_cvar("capturelimit", str(new_limit))
 
     @property
-    def teamsize(self) -> int:
+    def teamsize(self):
         return int(self["teamsize"])
 
     @teamsize.setter
-    def teamsize(self, new_size: int) -> None:
+    def teamsize(self, new_size):
         minqlx.set_cvar("teamsize", str(new_size))
 
     @property
-    def tags(self) -> List[str]:
+    def tags(self):
         cvar = minqlx.get_cvar("sv_tags")
         if cvar is None:
             return []
         return cvar.split(",")
 
     @tags.setter
-    def tags(self, new_tags: Union[str, Iterable]) -> None:
+    def tags(self, new_tags):
         if isinstance(new_tags, str):
             minqlx.set_cvar("sv_tags", new_tags)
         elif hasattr(new_tags, "__iter__"):
@@ -273,18 +270,18 @@ class Game:
             raise ValueError("tags need to be a string or an iterable returning strings.")
 
     @property
-    def workshop_items(self) -> List[int]:
+    def workshop_items(self):
         return [int(i) for i in minqlx.get_configstring(715).split()]
 
     @workshop_items.setter
-    def workshop_items(self, new_items: Iterable) -> None:
+    def workshop_items(self, new_items):
         if hasattr(new_items, "__iter__"):
             minqlx.set_configstring(715, " ".join([str(i) for i in new_items]) + " ")
         else:
             raise ValueError("The value needs to be an iterable.")
 
     @classmethod
-    def shuffle(cls) -> None:
+    def shuffle(cls):
         minqlx.console_command("forceshuffle")
 
     # ====================================================================
@@ -292,27 +289,27 @@ class Game:
     # ====================================================================
 
     @classmethod
-    def timeout(cls) -> None:
+    def timeout(cls):
         minqlx.console_command("timeout")
 
     @classmethod
-    def timein(cls) -> None:
+    def timein(cls):
         minqlx.console_command("timein")
 
     @classmethod
-    def allready(cls) -> None:
+    def allready(cls):
         minqlx.console_command("allready")
 
     @classmethod
-    def pause(cls) -> None:
+    def pause(cls):
         minqlx.console_command("pause")
 
     @classmethod
-    def unpause(cls) -> None:
+    def unpause(cls):
         minqlx.console_command("unpause")
 
     @classmethod
-    def lock(cls, team: Optional[str] = None) -> None:
+    def lock(cls, team=None):
         if team is None:
             minqlx.console_command("lock")
             return
@@ -322,7 +319,7 @@ class Game:
         minqlx.console_command(f"lock {team.lower()}")
 
     @classmethod
-    def unlock(cls, team: Optional[str] = None) -> None:
+    def unlock(cls, team=None):
         if team is None:
             minqlx.console_command("unlock")
             return
@@ -332,7 +329,7 @@ class Game:
         minqlx.console_command(f"unlock {team.lower()}")
 
     @classmethod
-    def put(cls, player: Player, team: str) -> None:
+    def put(cls, player, team):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -342,7 +339,7 @@ class Game:
         minqlx.console_command(f"put {cid} {team.lower()}")
 
     @classmethod
-    def mute(cls, player: Player) -> None:
+    def mute(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -350,7 +347,7 @@ class Game:
         minqlx.console_command(f"mute {cid}")
 
     @classmethod
-    def unmute(cls, player: Player) -> None:
+    def unmute(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -358,7 +355,7 @@ class Game:
         minqlx.console_command(f"unmute {cid}")
 
     @classmethod
-    def tempban(cls, player: Player) -> None:
+    def tempban(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -366,7 +363,7 @@ class Game:
         minqlx.console_command(f"tempban {cid}")
 
     @classmethod
-    def ban(cls, player: Player) -> None:
+    def ban(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -374,7 +371,7 @@ class Game:
         minqlx.console_command(f"ban {cid}")
 
     @classmethod
-    def unban(cls, player: Player) -> None:
+    def unban(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -382,11 +379,11 @@ class Game:
         minqlx.console_command(f"unban {cid}")
 
     @classmethod
-    def opsay(cls, msg: str) -> None:
+    def opsay(cls, msg):
         minqlx.console_command(f"opsay {msg}")
 
     @classmethod
-    def addadmin(cls, player: Player) -> None:
+    def addadmin(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -394,7 +391,7 @@ class Game:
         minqlx.console_command(f"addadmin {cid}")
 
     @classmethod
-    def addmod(cls, player: Player) -> None:
+    def addmod(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -402,7 +399,7 @@ class Game:
         minqlx.console_command(f"addmod {cid}")
 
     @classmethod
-    def demote(cls, player: Player) -> None:
+    def demote(cls, player):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -410,11 +407,11 @@ class Game:
         minqlx.console_command(f"demote {cid}")
 
     @classmethod
-    def abort(cls) -> None:
+    def abort(cls):
         minqlx.console_command("map_restart")
 
     @classmethod
-    def addscore(cls, player: Player, score: int) -> None:
+    def addscore(cls, player, score):
         cid = minqlx.Plugin.client_id(player)
         if cid is None:
             raise ValueError("Invalid player.")
@@ -422,12 +419,12 @@ class Game:
         minqlx.console_command(f"addscore {cid} {score}")
 
     @classmethod
-    def addteamscore(cls, team: str, score: int) -> None:
+    def addteamscore(cls, team, score):
         if team.lower() not in minqlx.TEAMS.values():
             raise ValueError("Invalid team.")
 
         minqlx.console_command(f"addteamscore {team.lower()} {score}")
 
     @classmethod
-    def setmatchtime(cls, time: int) -> None:
+    def setmatchtime(cls, time):
         minqlx.console_command(f"setmatchtime {time}")

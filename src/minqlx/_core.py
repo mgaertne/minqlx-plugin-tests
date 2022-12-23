@@ -19,9 +19,6 @@
 
 # Since this isn't the actual module, we define it here and export
 # it later so that it can be accessed with minqlx.__doc__ by Sphinx.
-from types import TracebackType, ModuleType
-from typing import Optional, Dict, Any, Union, Type, Callable
-
 import collections
 import subprocess
 import threading
@@ -38,7 +35,6 @@ from logging.handlers import RotatingFileHandler
 
 import minqlx
 import minqlx.database
-from ._plugin import Plugin
 
 # em92: reasons not to support older than 3.5
 # https://docs.python.org/3.5/whatsnew/3.5.html#whatsnew-ordereddict
@@ -110,7 +106,7 @@ DEFAULT_PLUGINS = (
 # ====================================================================
 #                               HELPERS
 # ====================================================================
-def parse_variables(varstr: str, ordered: bool = False) -> Dict[Any, Any]:
+def parse_variables(varstr, ordered=False):
     """
     Parses strings of key-value pairs delimited by "\\" and puts
     them into a dictionary.
@@ -121,7 +117,6 @@ def parse_variables(varstr: str, ordered: bool = False) -> Dict[Any, Any]:
     :type: ordered: bool
     :returns: dict -- A dictionary with the variables added as key-value pairs.
     """
-    res: Dict[Any, Any]
     if ordered:
         res = collections.OrderedDict()
     else:
@@ -141,7 +136,7 @@ def parse_variables(varstr: str, ordered: bool = False) -> Dict[Any, Any]:
     return res
 
 
-def get_logger(plugin: Optional[Union[Plugin, str]] = None) -> logging.Logger:
+def get_logger(plugin=None):
     """
     Provides a logger that should be used by your plugin for debugging, info
     and error reporting. It will automatically output to both the server console
@@ -156,7 +151,7 @@ def get_logger(plugin: Optional[Union[Plugin, str]] = None) -> logging.Logger:
     return logging.getLogger("minqlx")
 
 
-def _configure_logger() -> None:
+def _configure_logger():
     logger = logging.getLogger("minqlx")
     logger.setLevel(logging.DEBUG)
 
@@ -186,7 +181,7 @@ def _configure_logger() -> None:
     logger.info("============================= minqlx run @ %s =============================", datetime.datetime.now())
 
 
-def log_exception(plugin: Optional[Union[Plugin, str]] = None) -> None:
+def log_exception(plugin=None):
     """
     Logs an exception using :func:`get_logger`. Call this in an except block.
 
@@ -200,8 +195,7 @@ def log_exception(plugin: Optional[Union[Plugin, str]] = None) -> None:
         logger.error(line)
 
 
-def handle_exception(exc_type: Type[BaseException], exc_value: BaseException, exc_traceback: Optional[TracebackType]) \
-        -> None:
+def handle_exception(exc_type, exc_value, exc_traceback):
     """A handler for unhandled exceptions."""
     # TODO: If exception was raised within a plugin, detect it and pass to log_exception()
     logger = get_logger(None)
@@ -210,19 +204,19 @@ def handle_exception(exc_type: Type[BaseException], exc_value: BaseException, ex
         logger.error(line)
 
 
-def threading_excepthook(args) -> None:
+def threading_excepthook(args):
     handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
 
 
 _init_time: datetime.datetime = datetime.datetime.now()
 
 
-def uptime() -> datetime.timedelta:
+def uptime():
     """Returns a :class:`datetime.timedelta` instance of the time since initialized."""
     return datetime.datetime.now() - _init_time
 
 
-def owner() -> Optional[int]:  # pylint: disable=inconsistent-return-statements
+def owner():
     """Returns the SteamID64 of the owner. This is set in the config."""
     # noinspection PyBroadException
     try:
@@ -247,7 +241,7 @@ def stats_listener():
     return _stats
 
 
-def set_cvar_once(name: str, value: str, flags: int = 0) -> bool:
+def set_cvar_once(name, value, flags=0):
     if minqlx.get_cvar(name) is None:
         minqlx.set_cvar(name, value, flags)
         return True
@@ -255,8 +249,7 @@ def set_cvar_once(name: str, value: str, flags: int = 0) -> bool:
     return False
 
 
-def set_cvar_limit_once(name: str, value: Union[int, float], minimum: Union[int, float], maximum: Union[int, float],
-                        flags: int = 0) -> bool:
+def set_cvar_limit_once(name, value, minimum, maximum, flags=0):
     if minqlx.get_cvar(name) is None:
         minqlx.set_cvar_limit(name, value, minimum, maximum, flags)
         return True
@@ -264,7 +257,7 @@ def set_cvar_limit_once(name: str, value: Union[int, float], minimum: Union[int,
     return False
 
 
-def set_plugins_version(path: str) -> None:
+def set_plugins_version(path) -> None:
     args_version = shlex.split("git describe --long --tags --dirty --always")
     args_branch = shlex.split("git rev-parse --abbrev-ref HEAD")
 
@@ -318,14 +311,14 @@ def set_map_subtitles() -> None:
 # ====================================================================
 #                              DECORATORS
 # ====================================================================
-def next_frame(func: Callable):
+def next_frame(func):
     def f(*args, **kwargs):
         minqlx.next_frame_tasks.append((func, args, kwargs))
 
     return f
 
 
-def delay(time: float):
+def delay(time):
     """Delay a function call a certain amount of time.
 
     .. note::
@@ -346,11 +339,11 @@ def delay(time: float):
     return wrap
 
 
-_thread_count: int = 0
-_thread_name: str = "minqlxthread"
+_thread_count = 0
+_thread_name = "minqlxthread"
 
 
-def thread(func: Callable, force: bool = False):
+def thread(func, force=False):
     """Starts a thread with the function passed as its target. If a function decorated
     with this is called within a function also decorated, it will **not** create a second
     thread unless told to do so with the *force* keyword.
@@ -381,7 +374,7 @@ def thread(func: Callable, force: bool = False):
 #                       CONFIG AND PLUGIN LOADING
 # ====================================================================
 # We need to keep track of module instances for use with importlib.reload.
-_modules: Dict[str, ModuleType] = {}
+_modules = {}
 
 
 class PluginLoadError(Exception):
@@ -392,7 +385,7 @@ class PluginUnloadError(Exception):
     pass
 
 
-def load_preset_plugins() -> None:
+def load_preset_plugins():
     plugins_temp = []
     plugins_cvar = minqlx.Plugin.get_cvar("qlx_plugins", list)
     if plugins_cvar is None:
@@ -423,7 +416,7 @@ def load_preset_plugins() -> None:
         raise PluginLoadError(f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'.")
 
 
-def load_plugin(plugin: str) -> None:
+def load_plugin(plugin):
     logger = get_logger(None)
     logger.info("Loading plugin '%s'...", plugin)
     # noinspection PyProtectedMember
@@ -458,11 +451,11 @@ def load_plugin(plugin: str) -> None:
         raise
 
 
-def unload_plugin(plugin: str) -> None:
+def unload_plugin(plugin):
     logger = get_logger(None)
     logger.info("Unloading plugin '%s'...", plugin)
     # noinspection PyProtectedMember
-    plugins: Dict[str, Plugin] = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
+    plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
     if plugin in plugins:
         try:
             minqlx.EVENT_DISPATCHERS["unload"].dispatch(plugin)
@@ -483,7 +476,7 @@ def unload_plugin(plugin: str) -> None:
         raise PluginUnloadError("Attempted to unload a plugin that is not loaded.")
 
 
-def reload_plugin(plugin: str) -> None:
+def reload_plugin(plugin):
     try:
         unload_plugin(plugin)
     except PluginUnloadError:
@@ -498,7 +491,7 @@ def reload_plugin(plugin: str) -> None:
         raise
 
 
-def initialize_cvars() -> None:
+def initialize_cvars():
     # Core
     minqlx.set_cvar_once("qlx_owner", "-1")
     minqlx.set_cvar_once("qlx_plugins", ", ".join(DEFAULT_PLUGINS))
@@ -517,11 +510,11 @@ def initialize_cvars() -> None:
 # ====================================================================
 #                                 MAIN
 # ====================================================================
-def initialize() -> None:
+def initialize():
     minqlx.register_handlers()
 
 
-def late_init() -> None:
+def late_init():
     """Initialization that needs to be called after QLDS has finished
     its own initialization.
 

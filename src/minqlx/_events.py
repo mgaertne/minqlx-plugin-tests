@@ -17,7 +17,6 @@
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 
 import re
-from typing import Tuple, Dict, Any, Type, List
 
 import minqlx
 
@@ -32,15 +31,13 @@ class EventDispatcher:
     to hook into events by registering an event handler.
 
     """
-    no_debug: Tuple[str, ...] = \
-        ("frame", "set_configstring", "stats", "server_command", "death", "kill", "command", "console_print")
-    need_zmq_stats_enabled: bool = False
-    name: str
+    no_debug = ("frame", "set_configstring", "stats", "server_command", "death", "kill", "command", "console_print")
+    need_zmq_stats_enabled = False
 
     def __init__(self):
-        self.name: str = type(self).name
-        self.need_zmq_enabled: bool = type(self).need_zmq_stats_enabled
-        self.plugins: Dict[minqlx.Plugin, Tuple[List, List, List, List, List]] = {}
+        self.name = type(self).name
+        self.need_zmq_enabled = type(self).need_zmq_stats_enabled
+        self.plugins = {}
         self.args = None
         self.kwargs = None
         self.return_value = True
@@ -106,7 +103,7 @@ class EventDispatcher:
 
         return self.return_value
 
-    def handle_return(self, handler, value) -> Any:
+    def handle_return(self, handler, value):
         """Handle an unknown return value. If this returns anything but None,
         it will stop execution of the event and pass the return value on
         to the C-level handlers. This method can be useful to override,
@@ -119,7 +116,7 @@ class EventDispatcher:
         logger = minqlx.get_logger()
         logger.warning("Handler '%s' returned unknown value '%s' for event '%s'", handler.__name__, value, self.name)
 
-    def add_hook(self, plugin: minqlx.Plugin, handler, priority: int = minqlx.PRI_NORMAL) -> None:
+    def add_hook(self, plugin, handler, priority=minqlx.PRI_NORMAL):
         """Hook the event, making the handler get called with relevant arguments
         whenever the event is takes place.
 
@@ -151,7 +148,7 @@ class EventDispatcher:
 
         self.plugins[plugin][priority].append(handler)
 
-    def remove_hook(self, plugin: minqlx.Plugin, handler, priority: int = minqlx.PRI_NORMAL) -> None:
+    def remove_hook(self, plugin, handler, priority=minqlx.PRI_NORMAL):
         """Removes a previously hooked event.
 
         :param: plugin: The plugin that hooked the event.
@@ -178,15 +175,15 @@ class EventDispatcherManager:
 
     """
     def __init__(self):
-        self._dispatchers: Dict[str, EventDispatcher] = {}
+        self._dispatchers = {}
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key):
         return self._dispatchers[key]
 
-    def __contains__(self, key: str):
+    def __contains__(self, key):
         return key in self._dispatchers
 
-    def add_dispatcher(self, dispatcher: Type[EventDispatcher]) -> None:
+    def add_dispatcher(self, dispatcher):
         if dispatcher.name in self:
             raise ValueError("Event name already taken.")
         if not issubclass(dispatcher, EventDispatcher):
@@ -194,13 +191,13 @@ class EventDispatcherManager:
 
         self._dispatchers[dispatcher.name] = dispatcher()
 
-    def remove_dispatcher(self, dispatcher: Type[EventDispatcher]) -> None:
+    def remove_dispatcher(self, dispatcher) -> None:
         if dispatcher.name not in self:
             raise ValueError("Event name not found.")
 
         del self._dispatchers[dispatcher.name]
 
-    def remove_dispatcher_by_name(self, event_name: str) -> None:
+    def remove_dispatcher_by_name(self, event_name) -> None:
         if event_name not in self:
             raise ValueError("Event name not found.")
 
@@ -459,6 +456,10 @@ class VoteEndedDispatcher(EventDispatcher):
             return
 
         res = _re_vote.match(cs)
+        if not res:
+            minqlx.get_logger().warning(f"invalid vote called: {cs}")
+            return
+
         vote = res.group("cmd")
         args = res.group("args") if res.group("args") else ""
         votes = (int(minqlx.get_configstring(10)), int(minqlx.get_configstring(11)))
@@ -651,7 +652,7 @@ class PlayerItemsTossDispatcher(EventDispatcher):
             return super().handle_return(handler, value)
 
 
-EVENT_DISPATCHERS: EventDispatcherManager = EventDispatcherManager()
+EVENT_DISPATCHERS = EventDispatcherManager()
 EVENT_DISPATCHERS.add_dispatcher(ConsolePrintDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(CommandDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(ClientCommandDispatcher)
