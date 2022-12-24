@@ -49,18 +49,16 @@ class TestQlstatsPrivacyPolicy:
             "balance"
         ] = mock({"player_info": player_info})
 
-    # noinspection PyMethodMayBeStatic
-    def qlstats_response(self, status_code=200):
+    @pytest.fixture
+    def qlstats_response(self):
         spy2(minqlx.console_command)
         response = mock(Response)
-        response.status_code = status_code
+        response.status_code = 200
         response.text = ""
-        return response
-
-    # noinspection PyMethodMayBeStatic
-    def setup_qlstats_response(self, response):
         spy2(requests.get)
         when2(requests.get, any_(), timeout=any_()).thenReturn(response)
+        yield response
+        unstub(response)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_plugin_disable(self):
@@ -139,7 +137,6 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_postpones_connect_if_there_equal_tono_result(self):
-        self.setup_qlstats_response(None)
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -160,7 +157,9 @@ class TestQlstatsPrivacyPolicy:
     def test_handle_player_connect_dispatches_fetching_of_privacy_settings_from_qlstats(
         self,
     ):
-        self.setup_qlstats_response(None)
+        spy2(requests.get)
+        when2(requests.get, any_(), timeout=any_()).thenReturn(None)
+
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -180,10 +179,9 @@ class TestQlstatsPrivacyPolicy:
         )
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_logs_error_if_result_status_not_ok(self):
-        result = self.qlstats_response(status_code=500)
+    def test_handle_player_connect_logs_error_if_result_status_not_ok(self, qlstats_response):
+        qlstats_response.status_code = 500
 
-        self.setup_qlstats_response(result)
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -203,11 +201,9 @@ class TestQlstatsPrivacyPolicy:
         )
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_logs_error_if_playerinfo_not_included(self):
-        result = self.qlstats_response()
-        when(result).json().thenReturn({})
+    def test_handle_player_connect_logs_error_if_playerinfo_not_included(self, qlstats_response):
+        when(qlstats_response).json().thenReturn({})
 
-        self.setup_qlstats_response(result)
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -227,11 +223,9 @@ class TestQlstatsPrivacyPolicy:
         )
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_logs_error_if_steam_id_not_included(self):
-        result = self.qlstats_response()
-        when(result).json().thenReturn({"playerinfo": {}})
+    def test_handle_player_connect_logs_error_if_steam_id_not_included(self, qlstats_response):
+        when(qlstats_response).json().thenReturn({"playerinfo": {}})
 
-        self.setup_qlstats_response(result)
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -253,7 +247,7 @@ class TestQlstatsPrivacyPolicy:
         )
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_logs_error_if_privacy_information_not_included(self):
+    def test_handle_player_connect_logs_error_if_privacy_information_not_included(self, qlstats_response):
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -266,12 +260,9 @@ class TestQlstatsPrivacyPolicy:
 
         connecting_player = fake_player(123, "Connecting Player")
 
-        result = self.qlstats_response()
-        when(result).json().thenReturn(
+        when(qlstats_response).json().thenReturn(
             {"playerinfo": {str(connecting_player.steam_id): {}}}
         )
-
-        self.setup_qlstats_response(result)
 
         self.plugin.handle_player_connect(connecting_player)
 
@@ -283,7 +274,7 @@ class TestQlstatsPrivacyPolicy:
         )
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_disallows_connect_with_wrong_privacy_settings(self):
+    def test_handle_player_connect_disallows_connect_with_wrong_privacy_settings(self, qlstats_response):
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -296,12 +287,9 @@ class TestQlstatsPrivacyPolicy:
 
         connecting_player = fake_player(123, "Connecting Player")
 
-        result = self.qlstats_response()
-        when(result).json().thenReturn(
+        when(qlstats_response).json().thenReturn(
             {"playerinfo": {str(connecting_player.steam_id): {"privacy": "private"}}}
         )
-
-        self.setup_qlstats_response(result)
 
         returned = self.plugin.handle_player_connect(connecting_player)
 
@@ -314,7 +302,7 @@ class TestQlstatsPrivacyPolicy:
         )
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_allows_connect_with_right_privacy_settings(self):
+    def test_handle_player_connect_allows_connect_with_right_privacy_settings(self, qlstats_response):
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -328,12 +316,9 @@ class TestQlstatsPrivacyPolicy:
         connecting_player = fake_player(123, "Connecting Player")
         self.setup_balance_playerprivacy([(connecting_player, "public")])
 
-        result = self.qlstats_response()
-        when(result).json().thenReturn(
+        when(qlstats_response).json().thenReturn(
             {"playerinfo": {str(connecting_player.steam_id): {"privacy": "public"}}}
         )
-
-        self.setup_qlstats_response(result)
 
         returned = self.plugin.handle_player_connect(connecting_player)
 
