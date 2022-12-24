@@ -279,7 +279,7 @@ class auto_rebalance(Plugin):
         :return True if the team is on a winning streak or False if not
         """
         return self.winning_teams[
-            -self.winning_streak_suggestion_threshold :
+            -self.winning_streak_suggestion_threshold:
         ] == self.winning_streak_suggestion_threshold * [team]
 
     def announced_often_enough(self, winning_team):

@@ -127,7 +127,7 @@ class EventDispatcher:
                         if res == minqlx.RET_STOP_ALL:
                             return False
                         # Got an unknown return value.
-                        return_handler = self.handle_return( # pylint: disable=assignment-from-no-return
+                        return_handler = self.handle_return(  # pylint: disable=assignment-from-no-return
                             handler, res
                         )
                         if return_handler is not None:

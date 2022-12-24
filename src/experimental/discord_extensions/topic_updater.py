@@ -212,7 +212,7 @@ class TopicUpdater(Cog):
             # preserve the original channel's topic.
             position = previous_topic.find(topic_ending)
             topic_suffix = (
-                previous_topic[position + len(topic_ending) :]
+                previous_topic[position + len(topic_ending):]
                 if position != -1
                 else previous_topic
             )
