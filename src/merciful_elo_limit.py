@@ -1,11 +1,7 @@
 import time
-from logging import Logger
-from typing import Any, Dict, List, Optional
 
 import minqlx
-from minqlx import Plugin, CHAT_CHANNEL, AbstractChannel, Player
-
-SteamId = int
+from minqlx import Plugin, CHAT_CHANNEL, AbstractChannel, AbstractDummyPlayer
 
 APPLICATION_GAMES_KEY = "minqlx:players:{}:minelo:freegames"
 ABOVE_GAMES_KEY = "minqlx:players:{}:minelo:abovegames"
@@ -25,7 +21,7 @@ class merciful_elo_limit(Plugin):
     * qlx_mercifulelo_daysbanned (default: 30) The number of days a low elo player gets banned after using up his
     application games
     """
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self.set_cvar_once("qlx_mercifulelo_minelo", "800")
         self.set_cvar_once("qlx_mercifulelo_applicationgames", "10")
@@ -37,8 +33,8 @@ class merciful_elo_limit(Plugin):
         self.above_games = self.get_cvar("qlx_mercifulelo_abovegames", int) or 10
         self.banned_days = self.get_cvar("qlx_mercifulelo_daysbanned", int) or 30
 
-        self.tracked_player_sids: List[SteamId] = []
-        self.announced_player_elos: List[SteamId] = []
+        self.tracked_player_sids = []
+        self.announced_player_elos = []
 
         self.add_hook("map", self.handle_map_change)
         self.add_hook("player_connect", self.handle_player_connect)
@@ -47,15 +43,15 @@ class merciful_elo_limit(Plugin):
 
         self.add_command("mercis", self.cmd_mercis, permission=1)
 
-    def handle_map_change(self, _mapname: str, _factory: str) -> None:
+    def handle_map_change(self, _mapname, _factory):
         self.tracked_player_sids = []
         self.announced_player_elos = []
         self.fetch_elos_of_players(Plugin.players())
 
-    def handle_player_connect(self, player: Player) -> None:
+    def handle_player_connect(self, player):
         self.fetch_elos_of_players([player])
 
-    def fetch_elos_of_players(self, players: List[Player]) -> None:
+    def fetch_elos_of_players(self, players):
         if not self.game:
             return
 
@@ -74,14 +70,14 @@ class merciful_elo_limit(Plugin):
         # noinspection PyUnresolvedReferences
         balance_plugin.add_request(player_ratings, self.callback_ratings, CHAT_CHANNEL)  # type: ignore
 
-    def handle_round_countdown(self, _round_number: int) -> None:
+    def handle_round_countdown(self, _round_number):
         if not self.game:
             return
 
         teams = Plugin.teams()
         self.fetch_elos_of_players(teams["red"] + teams["blue"])
 
-    def callback_ratings(self, _players: List[Player], _channel: AbstractChannel) -> None:
+    def callback_ratings(self, _players, _channel):
         if not self.game:
             return
 
@@ -89,9 +85,9 @@ class merciful_elo_limit(Plugin):
         for player in teams["red"] + teams["blue"]:
             self.handle_player_after_fetching_ratings(player)
 
-    def handle_player_after_fetching_ratings(self, player: Player) -> None:
+    def handle_player_after_fetching_ratings(self, player):
         @minqlx.next_frame
-        def ban_player(_player: Player, duration: str, msg: str) -> None:
+        def ban_player(_player, duration, msg):
             minqlx.COMMANDS.handle_input(DummyOwner(self.logger),
                                          f"!ban {_player.steam_id} {duration} {msg}",
                                          DummyChannel(self.logger))
@@ -119,7 +115,7 @@ class merciful_elo_limit(Plugin):
             self.warn_lowelo_player(player)
 
     # noinspection PyMethodMayBeStatic
-    def is_player_in_exception_list(self, player: Player) -> bool:
+    def is_player_in_exception_list(self, player):
         if 'mybalance' not in Plugin._loaded_plugins:
             return False
 
@@ -127,7 +123,7 @@ class merciful_elo_limit(Plugin):
         # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions  # type: ignore
 
-    def get_value_from_db_or_zero(self, key: str) -> int:
+    def get_value_from_db_or_zero(self, key):
         if not self.db:
             return 0
 
@@ -136,7 +132,7 @@ class merciful_elo_limit(Plugin):
             return 0
         return int(value)
 
-    def elo_for_player(self, player: Player) -> Optional[int]:
+    def elo_for_player(self, player):
         if not self.game:
             return None
 
@@ -154,7 +150,7 @@ class merciful_elo_limit(Plugin):
 
         return ratings[player.steam_id][gametype]["elo"]
 
-    def warn_lowelo_player(self, player: Player) -> None:
+    def warn_lowelo_player(self, player):
         matches_played = self.get_value_from_db_or_zero(APPLICATION_GAMES_KEY.format(player.steam_id))
         remaining_matches = self.application_games - matches_played
         self.blink2(player, f"^1Skill warning, read console! ^3{remaining_matches} ^1matches left.")
@@ -172,9 +168,9 @@ class merciful_elo_limit(Plugin):
             self.announced_player_elos.append(player.steam_id)
 
     @minqlx.thread
-    def blink2(self, player: Player, message: str, count: int = 12, interval: float = .12) -> None:
+    def blink2(self, player, message, count=12, interval=.12):
         @minqlx.next_frame
-        def logic(target: Player, msg: str) -> None:
+        def logic(target, msg):
             target.center_print(f"^3{msg}")
 
         for msg_number in range(count):
@@ -183,12 +179,12 @@ class merciful_elo_limit(Plugin):
             logic(player, "")
             time.sleep(interval)
 
-    def handle_round_start(self, _round_number: int) -> None:
+    def handle_round_start(self, _round_number):
         teams = Plugin.teams()
         for player in teams["red"] + teams["blue"]:
             self.handle_player_at_round_start(player)
 
-    def handle_player_at_round_start(self, player: Player) -> None:
+    def handle_player_at_round_start(self, player):
         if not self.db:
             return
 
@@ -218,7 +214,7 @@ class merciful_elo_limit(Plugin):
                 self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
                 self.db.delete(APPLICATION_GAMES_KEY.format(player.steam_id))
 
-    def cmd_mercis(self, _player: Player, _msg: str, channel: AbstractChannel) -> None:
+    def cmd_mercis(self, _player, _msg, channel):
         reply_channel = self.identify_reply_channel(channel)
         players = self.players()
 
@@ -249,7 +245,7 @@ class merciful_elo_limit(Plugin):
                     f"^2{above_games}^7 matches above {self.min_elo}")
 
     # noinspection PyMethodMayBeStatic
-    def identify_reply_channel(self, channel: AbstractChannel) -> AbstractChannel:
+    def identify_reply_channel(self, channel):
         if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
                        minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
             return minqlx.CHAT_CHANNEL
@@ -258,26 +254,26 @@ class merciful_elo_limit(Plugin):
 
 
 class DummyChannel(AbstractChannel):
-    def __init__(self, logger: Logger) -> None:
+    def __init__(self, logger):
         super().__init__("merciful_elo_limit")
         self.logger = logger
 
-    def reply(self, msg: str, limit: int = 100, delimiter: str = " ") -> None:
+    def reply(self, msg, limit=100, delimiter=" "):
         self.logger.info(msg)
 
 
-class DummyOwner(minqlx.AbstractDummyPlayer):
-    def __init__(self, logger: Logger) -> None:
+class DummyOwner(AbstractDummyPlayer):
+    def __init__(self, logger):
         super().__init__(name="Owner")
         self.logger = logger
 
     @property
-    def steam_id(self) -> Optional[SteamId]:
+    def steam_id(self):
         return minqlx.owner()
 
     @property
-    def channel(self) -> AbstractChannel:
+    def channel(self):
         return DummyChannel(self.logger)
 
-    def tell(self, msg: str, **_kwargs: Dict[Any, Any]) -> None:
+    def tell(self, msg, **_kwargs):
         self.logger.info(msg)
