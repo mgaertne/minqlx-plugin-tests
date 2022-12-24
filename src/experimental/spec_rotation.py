@@ -1,13 +1,10 @@
 from operator import itemgetter
-from typing import Optional
 
-import minqlx  # type: ignore
-from minqlx import Player
-
-SteamId = int
+import minqlx
+from minqlx import Player, Plugin
 
 
-def other_team(team: str) -> str:
+def other_team(team):
     if team == "red":
         return "blue"
     if team == "blue":
@@ -15,7 +12,7 @@ def other_team(team: str) -> str:
     return "draw"
 
 
-def color_format_team(team: str) -> str:
+def color_format_team(team):
     if team == "red":
         return f"^1{team}^7"
 
@@ -25,7 +22,7 @@ def color_format_team(team: str) -> str:
     return team
 
 
-def damage_this_round(damages: dict[SteamId, int], steam_id: int):
+def damage_this_round(damages, steam_id):
     if steam_id not in damages:
         return 0
 
@@ -33,7 +30,7 @@ def damage_this_round(damages: dict[SteamId, int], steam_id: int):
 
 
 # noinspection PyPep8Naming
-class spec_rotation(minqlx.Plugin):
+class spec_rotation(Plugin):
     def __init__(self):
         super().__init__()
 
@@ -49,15 +46,15 @@ class spec_rotation(minqlx.Plugin):
         self.add_hook("round_start", self.handle_round_start)
         self.add_hook("round_end", self.handle_round_end)
 
-        self.stats_snapshot: dict[SteamId, int] = {}
-        self.scheduled_switches: list[SteamId] = []
-        self.spec_rotation: list[SteamId] = []
-        self.team_score_snapshots: dict[SteamId, int] = {}
-        self.score_snapshots: dict[SteamId, int] = {}
+        self.stats_snapshot = {}
+        self.scheduled_switches = []
+        self.spec_rotation = []
+        self.team_score_snapshots = {}
+        self.score_snapshots = {}
 
-        self.in_countdown: bool = False
+        self.in_countdown = False
 
-    def handle_map_change(self, _mapname: str, _factory: str) -> None:
+    def handle_map_change(self, _mapname, _factory):
         self.in_countdown = False
         self.stats_snapshot = {}
         self.scheduled_switches = []
@@ -65,7 +62,7 @@ class spec_rotation(minqlx.Plugin):
         self.team_score_snapshots = {}
         self.score_snapshots = {}
 
-    def handle_client_command(self, player: Player, command: str):
+    def handle_client_command(self, player, command):
         @minqlx.thread
         def handler():
             if command == "team s":
@@ -78,21 +75,19 @@ class spec_rotation(minqlx.Plugin):
 
         handler()
 
-    def spec_rotation_plugin_is_enabled(self) -> bool:
+    def spec_rotation_plugin_is_enabled(self):
         for autospec_plugin in ["balancetwo", "mybalance"]:
             if autospec_plugin in self.plugins:
+                # noinspection PyProtectedMember
                 plugin = minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
                     autospec_plugin
                 ]
-                # noinspection PyUnresolvedReferences
                 if plugin.last_action == "ignore":  # type: ignore
                     return False
 
         return True
 
-    def handle_team_switch_attempt(
-        self, player: Player, _old_team: str, new_team: str
-    ) -> int:
+    def handle_team_switch_attempt(self, player, _old_team, new_team):
         if not self.spec_rotation_plugin_is_enabled():
             return minqlx.RET_NONE
 
@@ -119,7 +114,7 @@ class spec_rotation(minqlx.Plugin):
 
         return minqlx.RET_STOP_ALL
 
-    def handle_team_switch(self, player: Player, old_team: str, new_team: str) -> None:
+    def handle_team_switch(self, player, old_team, new_team):
         if not self.spec_rotation_plugin_is_enabled():
             return
 
@@ -180,9 +175,7 @@ class spec_rotation(minqlx.Plugin):
             next_steam_id = self.spec_rotation.pop(0)
             self.switch_player(next_steam_id, player.team)
 
-    def switch_player(
-        self, steam_id: SteamId, team: str, msg: Optional[str] = None
-    ) -> None:
+    def switch_player(self, steam_id, team, msg=None) -> None:
         switching_player = self.player(steam_id)
         if not switching_player:
             return
@@ -199,7 +192,7 @@ class spec_rotation(minqlx.Plugin):
         switching_player.score = self.score_snapshots[steam_id]
 
     @minqlx.delay(3)
-    def handle_player_loaded(self, player: Player) -> None:
+    def handle_player_loaded(self, player):
         if not self.spec_rotation_plugin_is_enabled():
             return
 
@@ -218,7 +211,7 @@ class spec_rotation(minqlx.Plugin):
             f"Player with fewest damage on losing team will be rotated with you."
         )
 
-    def handle_player_disconnect(self, player: Player, _reason: str) -> None:
+    def handle_player_disconnect(self, player, _reason):
         if not self.spec_rotation_plugin_is_enabled():
             return
 
@@ -237,7 +230,7 @@ class spec_rotation(minqlx.Plugin):
             self.switch_player(next_steam_id, player.team)
 
     @minqlx.delay(10)
-    def handle_game_countdown(self) -> None:
+    def handle_game_countdown(self):
         self.in_countdown = True
 
         self.team_score_snapshots = {}
@@ -252,7 +245,7 @@ class spec_rotation(minqlx.Plugin):
         for player in teams["red"] + teams["blue"]:
             self.spec_rotation.append(player.steam_id)
 
-    def handle_game_start(self, _data: dict) -> None:
+    def handle_game_start(self, _data):
         self.in_countdown = False
 
         teams = self.teams()
@@ -260,7 +253,7 @@ class spec_rotation(minqlx.Plugin):
             if player.steam_id in self.spec_rotation:
                 self.spec_rotation.remove(player.steam_id)
 
-    def handle_round_countdown(self, _round_number: int) -> None:
+    def handle_round_countdown(self, _round_number):
         if not self.spec_rotation_plugin_is_enabled():
             return
 
@@ -287,7 +280,7 @@ class spec_rotation(minqlx.Plugin):
             f"with the weakest player on the losing team."
         )
 
-    def find_player_to_spec(self, players: list[Player]) -> Player:
+    def find_player_to_spec(self, players):
         return min(players, key=self.find_games_here)
 
     def find_games_here(self, player: Player) -> int:
@@ -298,14 +291,14 @@ class spec_rotation(minqlx.Plugin):
 
         return int(self.db[completed_key])
 
-    def handle_round_start(self, _round_number: int) -> None:
+    def handle_round_start(self, _round_number):
         teams = self.teams()
         self.stats_snapshot = {
             player.steam_id: player.stats.damage_dealt
             for player in teams["red"] + teams["blue"]
         }
 
-    def handle_round_end(self, data: dict) -> None:
+    def handle_round_end(self, data):
         if not self.spec_rotation_plugin_is_enabled():
             return
 
@@ -397,7 +390,7 @@ class spec_rotation(minqlx.Plugin):
             f"on the losing team next round.",
         )
 
-    def print_scores(self) -> None:
+    def print_scores(self):
         self.msg("DuelArena results:")
         place = 0
         prev_score = -1
@@ -411,7 +404,7 @@ class spec_rotation(minqlx.Plugin):
             if player and len(player.name) != 0:
                 self.msg(f"Place ^3{place}.^7 {player.name} ^7(Wins:^2{score}^7)")
 
-    def calculate_damage_deltas(self) -> dict[SteamId, int]:
+    def calculate_damage_deltas(self):
         returned = {}
 
         for steam_id in self.stats_snapshot:
@@ -426,7 +419,7 @@ class spec_rotation(minqlx.Plugin):
 
         return returned
 
-    def player_to_replace(self, losing_team: str) -> Player:
+    def player_to_replace(self, losing_team):
         round_damage = self.calculate_damage_deltas()
 
         teams = self.teams()
