@@ -2,6 +2,7 @@ import functools
 from typing import Dict, Optional, Union, Any
 
 from mockito import spy2, when2, verify, mock, when  # type: ignore
+
 # noinspection PyProtectedMember
 from mockito.matchers import any_, Matcher  # type: ignore
 
@@ -65,8 +66,9 @@ def setup_cvars(cvars: Dict[str, str]) -> None:
         when2(minqlx.get_cvar, cvar).thenReturn(value)
 
 
-def assert_plugin_sent_to_console(matcher: Union[str, Matcher, Any], *, times: int = 1, atleast: Optional[int] = None) \
-        -> None:
+def assert_plugin_sent_to_console(
+    matcher: Union[str, Matcher, Any], *, times: int = 1, atleast: Optional[int] = None
+) -> None:
     """Verify that a certain text was sent to the console.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
@@ -82,7 +84,9 @@ def assert_plugin_sent_to_console(matcher: Union[str, Matcher, Any], *, times: i
     verify(Plugin, times=times, atleast=atleast).msg(matcher)
 
 
-def assert_plugin_center_printed(matcher: Union[str, Matcher], *, times: int = 1) -> None:
+def assert_plugin_center_printed(
+    matcher: Union[str, Matcher], *, times: int = 1
+) -> None:
     """Verify that a certain text was printed for each player to see.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
@@ -98,7 +102,9 @@ def assert_plugin_center_printed(matcher: Union[str, Matcher], *, times: int = 1
     verify(Plugin, times=times).center_print(matcher)
 
 
-def assert_plugin_played_sound(matcher: Union[str, Matcher, Any], *, times: int = 1) -> None:
+def assert_plugin_played_sound(
+    matcher: Union[str, Matcher, Any], *, times: int = 1
+) -> None:
     """Verify that a certain sound was played for all players.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
@@ -114,8 +120,9 @@ def assert_plugin_played_sound(matcher: Union[str, Matcher, Any], *, times: int 
     verify(Plugin, times=times).play_sound(matcher)
 
 
-def assert_players_switched(player1: Union[Player, Matcher], player2: Union[Player, Matcher], *, times: int = 1) \
-        -> None:
+def assert_players_switched(
+    player1: Union[Player, Matcher], player2: Union[Player, Matcher], *, times: int = 1
+) -> None:
     """Verify that two players were switched with each other.
 
     This function differs from :func:`.assert_player_was_put_on` in that the two players were switched with each other
@@ -161,8 +168,12 @@ def mocked_channel() -> minqlx.AbstractChannel:
     return channel
 
 
-def assert_channel_was_replied(channel: minqlx.AbstractChannel, matcher: Union[str, Matcher, Any], *, times: int = 1)\
-        -> None:
+def assert_channel_was_replied(
+    channel: minqlx.AbstractChannel,
+    matcher: Union[str, Matcher, Any],
+    *,
+    times: int = 1
+) -> None:
     """Verify that a mocked channel was replied to with the given matcher.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the

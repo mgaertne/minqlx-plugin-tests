@@ -21,6 +21,7 @@ class merciful_elo_limit(Plugin):
     * qlx_mercifulelo_daysbanned (default: 30) The number of days a low elo player gets banned after using up his
     application games
     """
+
     def __init__(self):
         super().__init__()
         self.set_cvar_once("qlx_mercifulelo_minelo", "800")
@@ -29,7 +30,9 @@ class merciful_elo_limit(Plugin):
         self.set_cvar_once("qlx_mercifulelo_daysbanned", "30")
 
         self.min_elo = self.get_cvar("qlx_mercifulelo_minelo", int) or 800
-        self.application_games = self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
+        self.application_games = (
+            self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
+        )
         self.above_games = self.get_cvar("qlx_mercifulelo_abovegames", int) or 10
         self.banned_days = self.get_cvar("qlx_mercifulelo_daysbanned", int) or 30
 
@@ -59,12 +62,14 @@ class merciful_elo_limit(Plugin):
         if gametype not in SUPPORTED_GAMETYPES:
             return
 
-        if 'balance' not in Plugin._loaded_plugins:
-            self.logger.warning("Balance plugin not found. Merciful elo limits just work with the elos "
-                                "from the balance plugin")
+        if "balance" not in Plugin._loaded_plugins:
+            self.logger.warning(
+                "Balance plugin not found. Merciful elo limits just work with the elos "
+                "from the balance plugin"
+            )
             return
 
-        balance_plugin = Plugin._loaded_plugins['balance']
+        balance_plugin = Plugin._loaded_plugins["balance"]
 
         player_ratings = {p.steam_id: gametype for p in players}
         # noinspection PyUnresolvedReferences
@@ -88,9 +93,11 @@ class merciful_elo_limit(Plugin):
     def handle_player_after_fetching_ratings(self, player):
         @minqlx.next_frame
         def ban_player(_player, duration, msg):
-            minqlx.COMMANDS.handle_input(DummyOwner(self.logger),
-                                         f"!ban {_player.steam_id} {duration} {msg}",
-                                         DummyChannel(self.logger))
+            minqlx.COMMANDS.handle_input(
+                DummyOwner(self.logger),
+                f"!ban {_player.steam_id} {duration} {msg}",
+                DummyChannel(self.logger),
+            )
 
         if not self.db:
             return
@@ -103,11 +110,16 @@ class merciful_elo_limit(Plugin):
             return
 
         if elo < self.min_elo:
-            application_games_played = self.get_value_from_db_or_zero(APPLICATION_GAMES_KEY.format(player.steam_id))
+            application_games_played = self.get_value_from_db_or_zero(
+                APPLICATION_GAMES_KEY.format(player.steam_id)
+            )
 
             if application_games_played > self.application_games:
-                ban_player(player, f"{self.banned_days} days",
-                           f"Automatically banned after using up {self.application_games} application matches")
+                ban_player(
+                    player,
+                    f"{self.banned_days} days",
+                    f"Automatically banned after using up {self.application_games} application matches",
+                )
                 self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
                 self.db.delete(APPLICATION_GAMES_KEY.format(player.steam_id))
                 return
@@ -116,10 +128,10 @@ class merciful_elo_limit(Plugin):
 
     # noinspection PyMethodMayBeStatic
     def is_player_in_exception_list(self, player):
-        if 'mybalance' not in Plugin._loaded_plugins:
+        if "mybalance" not in Plugin._loaded_plugins:
             return False
 
-        mybalance_plugin = Plugin._loaded_plugins['mybalance']
+        mybalance_plugin = Plugin._loaded_plugins["mybalance"]
         # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions  # type: ignore
 
@@ -136,11 +148,13 @@ class merciful_elo_limit(Plugin):
         if not self.game:
             return None
 
-        if 'balance' not in Plugin._loaded_plugins:
-            self.logger.warning("Balance plugin not found. Merciful elo limits just work with the elos "
-                                "from the balance plugin")
+        if "balance" not in Plugin._loaded_plugins:
+            self.logger.warning(
+                "Balance plugin not found. Merciful elo limits just work with the elos "
+                "from the balance plugin"
+            )
             return None
-        balance_plugin = Plugin._loaded_plugins['balance']
+        balance_plugin = Plugin._loaded_plugins["balance"]
         # noinspection PyUnresolvedReferences
         ratings = balance_plugin.ratings  # type: ignore
 
@@ -151,24 +165,33 @@ class merciful_elo_limit(Plugin):
         return ratings[player.steam_id][gametype]["elo"]
 
     def warn_lowelo_player(self, player):
-        matches_played = self.get_value_from_db_or_zero(APPLICATION_GAMES_KEY.format(player.steam_id))
+        matches_played = self.get_value_from_db_or_zero(
+            APPLICATION_GAMES_KEY.format(player.steam_id)
+        )
         remaining_matches = self.application_games - matches_played
-        self.blink2(player, f"^1Skill warning, read console! ^3{remaining_matches} ^1matches left.")
+        self.blink2(
+            player,
+            f"^1Skill warning, read console! ^3{remaining_matches} ^1matches left.",
+        )
         player.tell(
             f"{player.clean_name}, this is a ^1Skill Warning! ^7Your qlstats.net glicko is below {self.min_elo}. "
             f"You have ^3{remaining_matches} ^7of {self.application_games} application matches left, before server "
-            f"will automatically ban you for {self.banned_days} days")
+            f"will automatically ban you for {self.banned_days} days"
+        )
         player.tell(
             f"You will get {self.application_games} new application matches after the {self.banned_days} days ban. "
             f"Please improve your skill! Tip: Practice the Elevate and Accelerate training from the Quake Live menu "
-            f"and some Free For All on other servers.")
+            f"and some Free For All on other servers."
+        )
         if player.steam_id not in self.announced_player_elos:
-            self.msg(f"{player.clean_name} is below {self.min_elo}, "
-                     f"but has ^3{remaining_matches}^7 application matches left.")
+            self.msg(
+                f"{player.clean_name} is below {self.min_elo}, "
+                f"but has ^3{remaining_matches}^7 application matches left."
+            )
             self.announced_player_elos.append(player.steam_id)
 
     @minqlx.thread
-    def blink2(self, player, message, count=12, interval=.12):
+    def blink2(self, player, message, count=12, interval=0.12):
         @minqlx.next_frame
         def logic(target, msg):
             target.center_print(f"^3{msg}")
@@ -209,7 +232,9 @@ class merciful_elo_limit(Plugin):
         if self.db.exists(APPLICATION_GAMES_KEY.format(player.steam_id)):
             self.tracked_player_sids.append(player.steam_id)
             self.db.incr(ABOVE_GAMES_KEY.format(player.steam_id))
-            above_games = self.get_value_from_db_or_zero(ABOVE_GAMES_KEY.format(player.steam_id))
+            above_games = self.get_value_from_db_or_zero(
+                ABOVE_GAMES_KEY.format(player.steam_id)
+            )
             if above_games > self.above_games:
                 self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
                 self.db.delete(APPLICATION_GAMES_KEY.format(player.steam_id))
@@ -233,21 +258,30 @@ class merciful_elo_limit(Plugin):
         reply_channel.reply("Players currently within their application period:")
         for player in reported_players:
             elo = self.elo_for_player(player)
-            remaining_matches = self.application_games - int(self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id)))
+            remaining_matches = self.application_games - int(
+                self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id))
+            )
             if not elo or elo <= self.min_elo:
-                reply_channel.reply(f"{player.clean_name} (elo: {elo}): "
-                                    f"^3{remaining_matches}^7 application matches left")
+                reply_channel.reply(
+                    f"{player.clean_name} (elo: {elo}): "
+                    f"^3{remaining_matches}^7 application matches left"
+                )
             else:
                 above_games = self.db.get(ABOVE_GAMES_KEY.format(player.steam_id))
                 reply_channel.reply(
                     f"{player.clean_name} (elo: {elo}): "
                     f"^3{remaining_matches}^7 application matches left, "
-                    f"^2{above_games}^7 matches above {self.min_elo}")
+                    f"^2{above_games}^7 matches above {self.min_elo}"
+                )
 
     # noinspection PyMethodMayBeStatic
     def identify_reply_channel(self, channel):
-        if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
-                       minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
+        if channel in [
+            minqlx.RED_TEAM_CHAT_CHANNEL,
+            minqlx.BLUE_TEAM_CHAT_CHANNEL,
+            minqlx.SPECTATOR_CHAT_CHANNEL,
+            minqlx.FREE_CHAT_CHANNEL,
+        ]:
             return minqlx.CHAT_CHANNEL
 
         return channel

@@ -2,8 +2,10 @@ from typing import Union
 
 # noinspection PyPackageRequirements
 from discord import Interaction, Member, User, Embed, Color
+
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot
+
 # noinspection PyPackageRequirements
 from discord import app_commands
 

@@ -20,10 +20,12 @@ import re
 
 import minqlx
 
-_DUMMY_USERINFO = ("ui_singlePlayerActive\\0\\cg_autoAction\\1\\cg_autoHop\\0"
-                   "\\cg_predictItems\\1\\model\\bitterman/sport_blue\\headmodel\\crash/red"
-                   "\\handicap\\100\\cl_anonymous\\0\\color1\\4\\color2\\23\\sex\\male"
-                   "\\teamtask\\0\\rate\\25000\\country\\NO")
+_DUMMY_USERINFO = (
+    "ui_singlePlayerActive\\0\\cg_autoAction\\1\\cg_autoHop\\0"
+    "\\cg_predictItems\\1\\model\\bitterman/sport_blue\\headmodel\\crash/red"
+    "\\handicap\\100\\cl_anonymous\\0\\color1\\4\\color2\\23\\sex\\male"
+    "\\teamtask\\0\\rate\\25000\\country\\NO"
+)
 
 
 class NonexistentPlayerError(Exception):
@@ -43,6 +45,7 @@ class Player:
     :exc:`minqlx.NonexistentPlayerError` exception.
 
     """
+
     __slots__ = ("_valid", "_id", "_info", "_userinfo", "_steam_id", "_name")
 
     def __init__(self, client_id, info=None):
@@ -56,7 +59,9 @@ class Player:
             self._id = client_id
             self._info = minqlx.player_info(client_id)
             if not self._info:
-                self._invalidate(f"Tried to initialize a Player instance of nonexistant player {client_id}.")
+                self._invalidate(
+                    f"Tried to initialize a Player instance of nonexistant player {client_id}."
+                )
 
         self._userinfo = None
         self._steam_id = self._info.steam_id
@@ -76,7 +81,9 @@ class Player:
         if not self._valid:
             return f"{self.__class__.__name__}(INVALID:'{self.clean_name}':{self.steam_id})"
 
-        return f"{self.__class__.__name__}({self._id}:'{self.clean_name}':{self.steam_id})"
+        return (
+            f"{self.__class__.__name__}({self._id}:'{self.clean_name}':{self.steam_id})"
+        )
 
     def __str__(self):
         return self.name
@@ -120,7 +127,9 @@ class Player:
             else:
                 self._name = ""
 
-    def _invalidate(self, e="The player does not exist anymore. Did the player disconnect?"):
+    def _invalidate(
+        self, e="The player does not exist anymore. Did the player disconnect?"
+    ):
         self._valid = False
         raise NonexistentPlayerError(e)
 
@@ -137,7 +146,7 @@ class Player:
     @cvars.setter
     def cvars(self, new_cvars):
         new = "".join([f"\\{key}\\{new_cvars[key]}" for key in new_cvars])
-        minqlx.client_command(self.id, f"userinfo \"{new}\"")
+        minqlx.client_command(self.id, f'userinfo "{new}"')
 
     @property
     def steam_id(self):
@@ -395,8 +404,12 @@ class Player:
         hmg = weaps.hmg if "hmg" not in kwargs else kwargs["hmg"]
         hands = weaps.hands if "hands" not in kwargs else kwargs["hands"]
 
-        return minqlx.set_weapons(self.id,
-                                  minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)))
+        return minqlx.set_weapons(
+            self.id,
+            minqlx.Weapons(
+                (g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)
+            ),
+        )
 
     def weapon(self, new_weapon=None):
         if new_weapon is None:
@@ -433,8 +446,12 @@ class Player:
         hmg = a.hmg if "hmg" not in kwargs else kwargs["hmg"]
         hands = a.hands if "hands" not in kwargs else kwargs["hands"]
 
-        return minqlx.set_ammo(self.id,
-                               minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)))
+        return minqlx.set_ammo(
+            self.id,
+            minqlx.Weapons(
+                (g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)
+            ),
+        )
 
     def powerups(self, reset=False, **kwargs):
         if reset:
@@ -445,15 +462,32 @@ class Player:
         if not kwargs:
             return pu
 
-        quad = pu.quad if "quad" not in kwargs else round(kwargs["quad"]*1000)
-        bs = pu.battlesuit if "battlesuit" not in kwargs else round(kwargs["battlesuit"]*1000)
-        haste = pu.haste if "haste" not in kwargs else round(kwargs["haste"]*1000)
-        invis = pu.invisibility if "invisibility" not in kwargs else round(kwargs["invisibility"]*1000)
-        regen = pu.regeneration if "regeneration" not in kwargs else round(kwargs["regeneration"]*1000)
-        invul = pu.invulnerability if "invulnerability" not in kwargs else round(kwargs["invulnerability"]*1000)
+        quad = pu.quad if "quad" not in kwargs else round(kwargs["quad"] * 1000)
+        bs = (
+            pu.battlesuit
+            if "battlesuit" not in kwargs
+            else round(kwargs["battlesuit"] * 1000)
+        )
+        haste = pu.haste if "haste" not in kwargs else round(kwargs["haste"] * 1000)
+        invis = (
+            pu.invisibility
+            if "invisibility" not in kwargs
+            else round(kwargs["invisibility"] * 1000)
+        )
+        regen = (
+            pu.regeneration
+            if "regeneration" not in kwargs
+            else round(kwargs["regeneration"] * 1000)
+        )
+        invul = (
+            pu.invulnerability
+            if "invulnerability" not in kwargs
+            else round(kwargs["invulnerability"] * 1000)
+        )
 
-        return minqlx.set_powerups(self.id,
-                                   minqlx.Powerups((quad, bs, haste, invis, regen, invul)))
+        return minqlx.set_powerups(
+            self.id, minqlx.Powerups((quad, bs, haste, invis, regen, invul))
+        )
 
     @property
     def holdable(self):
@@ -499,7 +533,9 @@ class Player:
         thrust = fl.thrust if "thrust" not in kwargs else kwargs["thrust"]
         refuel = fl.refuel if "refuel" not in kwargs else kwargs["refuel"]
 
-        return minqlx.set_flight(self.id, minqlx.Flight((fuel, max_fuel, thrust, refuel)))
+        return minqlx.set_flight(
+            self.id, minqlx.Flight((fuel, max_fuel, thrust, refuel))
+        )
 
     @property
     def noclip(self):
@@ -558,7 +594,7 @@ class Player:
         return minqlx.TellChannel(self)
 
     def center_print(self, msg):
-        minqlx.send_server_command(self.id, f"cp \"{msg}\"")
+        minqlx.send_server_command(self.id, f'cp "{msg}"')
 
     def tell(self, msg, **kwargs):
         return minqlx.Plugin.tell(msg, self, **kwargs)
@@ -607,13 +643,24 @@ class Player:
 
     @classmethod
     def all_players(cls):
-        return [cls(i, info=info) for i, info in enumerate(minqlx.players_info()) if info]
+        return [
+            cls(i, info=info) for i, info in enumerate(minqlx.players_info()) if info
+        ]
 
 
 class AbstractDummyPlayer(Player):
     def __init__(self, name="DummyPlayer"):
-        info = minqlx.PlayerInfo((-1, name, minqlx.CS_CONNECTED,
-                                  _DUMMY_USERINFO, -1, minqlx.TEAM_SPECTATOR, minqlx.PRIV_NONE))
+        info = minqlx.PlayerInfo(
+            (
+                -1,
+                name,
+                minqlx.CS_CONNECTED,
+                _DUMMY_USERINFO,
+                -1,
+                minqlx.TEAM_SPECTATOR,
+                minqlx.PRIV_NONE,
+            )
+        )
         super().__init__(-1, info=info)
 
     @property

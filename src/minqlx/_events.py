@@ -31,7 +31,17 @@ class EventDispatcher:
     to hook into events by registering an event handler.
 
     """
-    no_debug = ("frame", "set_configstring", "stats", "server_command", "death", "kill", "command", "console_print")
+
+    no_debug = (
+        "frame",
+        "set_configstring",
+        "stats",
+        "server_command",
+        "death",
+        "kill",
+        "command",
+        "console_print",
+    )
     need_zmq_stats_enabled = False
 
     def __init__(self):
@@ -117,7 +127,9 @@ class EventDispatcher:
                         if res == minqlx.RET_STOP_ALL:
                             return False
                         # Got an unknown return value.
-                        return_handler = self.handle_return(handler, res)  # pylint: disable=assignment-from-no-return
+                        return_handler = self.handle_return( # pylint: disable=assignment-from-no-return
+                            handler, res
+                        )
                         if return_handler is not None:
                             return return_handler
                     except:  # pylint: disable=bare-except
@@ -137,7 +149,12 @@ class EventDispatcher:
         event isn't stopped later along the road.
         """
         logger = minqlx.get_logger()
-        logger.warning("Handler '%s' returned unknown value '%s' for event '%s'", handler.__name__, value, self.name)
+        logger.warning(
+            "Handler '%s' returned unknown value '%s' for event '%s'",
+            handler.__name__,
+            value,
+            self.name,
+        )
 
     def add_hook(self, plugin, handler, priority=minqlx.PRI_NORMAL):
         """Hook the event, making the handler get called with relevant arguments
@@ -156,8 +173,12 @@ class EventDispatcher:
             raise ValueError(f"'{priority}' is an invalid priority level.")
 
         stats_enable_cvar = minqlx.get_cvar("zmq_stats_enable")
-        if self.need_zmq_stats_enabled and (stats_enable_cvar is None or not bool(int(stats_enable_cvar))):
-            raise AssertionError(f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value")
+        if self.need_zmq_stats_enabled and (
+            stats_enable_cvar is None or not bool(int(stats_enable_cvar))
+        ):
+            raise AssertionError(
+                f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value"
+            )
 
         if plugin not in self.plugins:
             # Initialize tuple.
@@ -167,7 +188,9 @@ class EventDispatcher:
             for i in range(len(self.plugins[plugin])):
                 for hook in self.plugins[plugin][i]:
                     if handler == hook:
-                        raise ValueError("The event has already been hooked with the same handler and priority.")
+                        raise ValueError(
+                            "The event has already been hooked with the same handler and priority."
+                        )
 
         self.plugins[plugin][priority].append(handler)
 
@@ -197,6 +220,7 @@ class EventDispatcherManager:
     Only one dispatcher can be used per event.
 
     """
+
     def __init__(self):
         self._dispatchers = {}
 
@@ -210,7 +234,9 @@ class EventDispatcherManager:
         if dispatcher.name in self:
             raise ValueError("Event name already taken.")
         if not issubclass(dispatcher, EventDispatcher):
-            raise ValueError("Cannot add an event dispatcher not based on EventDispatcher.")
+            raise ValueError(
+                "Cannot add an event dispatcher not based on EventDispatcher."
+            )
 
         self._dispatchers[dispatcher.name] = dispatcher()
 
@@ -235,12 +261,15 @@ class ConsolePrintDispatcher(EventDispatcher):
     those with :func:`minqlx.console_print`.
 
     """
+
     name = "console_print"
 
     def dispatch(self, text):  # pylint: disable=useless-super-delegation
         return super().dispatch(text)
 
-    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
+    def handle_return(  # pylint: disable=inconsistent-return-statements
+        self, handler, value
+    ):
         """If a string was returned, continue execution, but we edit the
         string that's being printed along the chain of handlers.
 
@@ -257,9 +286,12 @@ class CommandDispatcher(EventDispatcher):
     to for instance keep a log of all the commands admins have used.
 
     """
+
     name = "command"
 
-    def dispatch(self, caller, command, args):  # pylint: disable=useless-super-delegation
+    def dispatch(
+        self, caller, command, args
+    ):  # pylint: disable=useless-super-delegation
         super().dispatch(caller, command, args)
 
 
@@ -268,6 +300,7 @@ class ClientCommandDispatcher(EventDispatcher):
     other events, such as "chat".
 
     """
+
     name = "client_command"
 
     def dispatch(self, player, cmd):
@@ -275,13 +308,17 @@ class ClientCommandDispatcher(EventDispatcher):
         if ret is False:
             return False
 
-        ret = minqlx.COMMANDS.handle_input(player, cmd, minqlx.ClientCommandChannel(player))
+        ret = minqlx.COMMANDS.handle_input(
+            player, cmd, minqlx.ClientCommandChannel(player)
+        )
         if ret is False:
             return False
 
         return self.return_value
 
-    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
+    def handle_return(  # pylint: disable=inconsistent-return-statements
+        self, handler, value
+    ):
         """If a string was returned, continue execution, but we edit the
         command that's being executed along the chain of handlers.
 
@@ -299,12 +336,15 @@ class ServerCommandDispatcher(EventDispatcher):
     including :func:`minqlx.send_server_command`. Can be cancelled.
 
     """
+
     name = "server_command"
 
     def dispatch(self, player, cmd):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, cmd)
 
-    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
+    def handle_return(  # pylint: disable=inconsistent-return-statements
+        self, handler, value
+    ):
         """If a string was returned, continue execution, but we edit the
         command that's being sent along the chain of handlers.
 
@@ -318,9 +358,8 @@ class ServerCommandDispatcher(EventDispatcher):
 
 
 class FrameEventDispatcher(EventDispatcher):
-    """Event that triggers every frame. Cannot be cancelled.
+    """Event that triggers every frame. Cannot be cancelled."""
 
-    """
     name = "frame"
 
     def dispatch(self):  # pylint: disable=useless-super-delegation
@@ -334,12 +373,15 @@ class SetConfigstringDispatcher(EventDispatcher):
     the handler, and the modified one will go down the plugin chain instead.
 
     """
+
     name = "set_configstring"
 
     def dispatch(self, index, value):  # pylint: disable=useless-super-delegation
         return super().dispatch(index, value)
 
-    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
+    def handle_return(  # pylint: disable=inconsistent-return-statements
+        self, handler, value
+    ):
         """If a string was returned, continue execution, but we edit the
         configstring to the returned string. This allows multiple handlers
         to edit the configstring along the way before it's actually
@@ -359,6 +401,7 @@ class ChatEventDispatcher(EventDispatcher):
     the message will also be cancelled.
 
     """
+
     name = "chat"
 
     def dispatch(self, player, msg, channel):
@@ -371,6 +414,7 @@ class ChatEventDispatcher(EventDispatcher):
 
 class UnloadDispatcher(EventDispatcher):
     """Event that triggers whenever a plugin is unloaded. Cannot be cancelled."""
+
     name = "unload"
 
     def dispatch(self, plugin):  # pylint: disable=useless-super-delegation
@@ -384,6 +428,7 @@ class PlayerConnectDispatcher(EventDispatcher):
     by the handler.
 
     """
+
     name = "player_connect"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
@@ -406,6 +451,7 @@ class PlayerLoadedDispatcher(EventDispatcher):
     and it will also trigger when a map changes and players finish loading it.
 
     """
+
     name = "player_loaded"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
@@ -414,6 +460,7 @@ class PlayerLoadedDispatcher(EventDispatcher):
 
 class PlayerDisonnectDispatcher(EventDispatcher):
     """Event that triggers whenever a player disconnects. Cannot be cancelled."""
+
     name = "player_disconnect"
 
     def dispatch(self, player, reason):  # pylint: disable=useless-super-delegation
@@ -422,6 +469,7 @@ class PlayerDisonnectDispatcher(EventDispatcher):
 
 class PlayerSpawnDispatcher(EventDispatcher):
     """Event that triggers when a player spawns. Cannot be cancelled."""
+
     name = "player_spawn"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
@@ -430,6 +478,7 @@ class PlayerSpawnDispatcher(EventDispatcher):
 
 class StatsDispatcher(EventDispatcher):
     """Event that triggers whenever the server sends stats over ZMQ."""
+
     name = "stats"
     need_zmq_stats_enabled = True
 
@@ -443,6 +492,7 @@ class VoteCalledDispatcher(EventDispatcher):
     if you only need votes that actually go through. Use this one for custom votes.
 
     """
+
     name = "vote_called"
 
     def dispatch(self, player, vote, args):  # pylint: disable=useless-super-delegation
@@ -454,6 +504,7 @@ class VoteStartedDispatcher(EventDispatcher):
     will have the caller set to None.
 
     """
+
     name = "vote_started"
 
     def __init__(self):
@@ -469,6 +520,7 @@ class VoteStartedDispatcher(EventDispatcher):
 
 class VoteEndedDispatcher(EventDispatcher):
     """Event that goes off whenever a vote either passes or fails."""
+
     name = "vote_ended"
 
     def dispatch(self, passed):
@@ -491,6 +543,7 @@ class VoteEndedDispatcher(EventDispatcher):
 
 class VoteDispatcher(EventDispatcher):
     """Event that goes off whenever someone tries to vote either yes or no."""
+
     name = "vote"
 
     def dispatch(self, player, yes):  # pylint: disable=useless-super-delegation
@@ -499,6 +552,7 @@ class VoteDispatcher(EventDispatcher):
 
 class GameCountdownDispatcher(EventDispatcher):
     """Event that goes off when the countdown before a game starts."""
+
     name = "game_countdown"
 
     def dispatch(self):  # pylint: disable=useless-super-delegation
@@ -507,6 +561,7 @@ class GameCountdownDispatcher(EventDispatcher):
 
 class GameStartDispatcher(EventDispatcher):
     """Event that goes off when a game starts."""
+
     name = "game_start"
     need_zmq_stats_enabled = True
 
@@ -516,6 +571,7 @@ class GameStartDispatcher(EventDispatcher):
 
 class GameEndDispatcher(EventDispatcher):
     """Event that goes off when a game ends."""
+
     name = "game_end"
     need_zmq_stats_enabled = True
 
@@ -525,6 +581,7 @@ class GameEndDispatcher(EventDispatcher):
 
 class RoundCountdownDispatcher(EventDispatcher):
     """Event that goes off when the countdown before a round starts."""
+
     name = "round_countdown"
 
     def dispatch(self, round_number):  # pylint: disable=useless-super-delegation
@@ -533,6 +590,7 @@ class RoundCountdownDispatcher(EventDispatcher):
 
 class RoundStartDispatcher(EventDispatcher):
     """Event that goes off when a round starts."""
+
     name = "round_start"
 
     def dispatch(self, round_number):  # pylint: disable=useless-super-delegation
@@ -541,6 +599,7 @@ class RoundStartDispatcher(EventDispatcher):
 
 class RoundEndDispatcher(EventDispatcher):
     """Event that goes off when a round ends."""
+
     name = "round_end"
     need_zmq_stats_enabled = True
 
@@ -554,10 +613,13 @@ class TeamSwitchDispatcher(EventDispatcher):
 
     If possible, consider using team_switch_attempt for a cleaner
     solution if you need to cancel the event."""
+
     name = "team_switch"
     need_zmq_stats_enabled = True
 
-    def dispatch(self, player, old_team, new_team):  # pylint: disable=useless-super-delegation
+    def dispatch(
+        self, player, old_team, new_team
+    ):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, old_team, new_team)
 
 
@@ -569,14 +631,18 @@ class TeamSwitchAttemptDispatcher(EventDispatcher):
     other teams.
 
     """
+
     name = "team_switch_attempt"
 
-    def dispatch(self, player, old_team, new_team):  # pylint: disable=useless-super-delegation
+    def dispatch(
+        self, player, old_team, new_team
+    ):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, old_team, new_team)
 
 
 class MapDispatcher(EventDispatcher):
     """Event that goes off when a map is loaded, even if the same map is loaded again."""
+
     name = "map"
 
     def dispatch(self, mapname, factory):  # pylint: disable=useless-super-delegation
@@ -588,6 +654,7 @@ class NewGameDispatcher(EventDispatcher):
     a game is aborted, a game ends but stays on the same map, or when the game itself starts.
 
     """
+
     name = "new_game"
 
     def dispatch(self):  # pylint: disable=useless-super-delegation
@@ -596,30 +663,39 @@ class NewGameDispatcher(EventDispatcher):
 
 class KillDispatcher(EventDispatcher):
     """Event that goes off when someone is killed."""
+
     name = "kill"
     need_zmq_stats_enabled = True
 
-    def dispatch(self, victim, killer, data):  # pylint: disable=useless-super-delegation
+    def dispatch(
+        self, victim, killer, data
+    ):  # pylint: disable=useless-super-delegation
         return super().dispatch(victim, killer, data)
 
 
 class DeathDispatcher(EventDispatcher):
     """Event that goes off when someone dies."""
+
     name = "death"
     need_zmq_stats_enabled = True
 
-    def dispatch(self, victim, killer, data):  # pylint: disable=useless-super-delegation
+    def dispatch(
+        self, victim, killer, data
+    ):  # pylint: disable=useless-super-delegation
         return super().dispatch(victim, killer, data)
 
 
 class UserinfoDispatcher(EventDispatcher):
     """Event for clients changing their userinfo."""
+
     name = "userinfo"
 
     def dispatch(self, player, changed):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, changed)
 
-    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
+    def handle_return(  # pylint: disable=inconsistent-return-statements
+        self, handler, value
+    ):
         """Takes a returned dictionary and applies it to the current userinfo."""
         if isinstance(value, dict):
             player, changed = self.args
@@ -631,6 +707,7 @@ class UserinfoDispatcher(EventDispatcher):
 
 class KamikazeUseDispatcher(EventDispatcher):
     """Event that goes off when player uses kamikaze item."""
+
     name = "kamikaze_use"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
@@ -639,14 +716,18 @@ class KamikazeUseDispatcher(EventDispatcher):
 
 class KamikazeExplodeDispatcher(EventDispatcher):
     """Event that goes off when kamikaze explodes."""
+
     name = "kamikaze_explode"
 
-    def dispatch(self, player, is_used_on_demand):  # pylint: disable=useless-super-delegation
+    def dispatch(
+        self, player, is_used_on_demand
+    ):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, is_used_on_demand)
 
 
 class PlayerInactivityKickDispatcher(EventDispatcher):
     """Event that goes off when inactive player is going to be kicked."""
+
     name = "player_inactivity_kick"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
@@ -655,6 +736,7 @@ class PlayerInactivityKickDispatcher(EventDispatcher):
 
 class PlayerInactivityKickWarningDispatcher(EventDispatcher):
     """Event that goes off when inactive player is going to be warned to be kicked."""
+
     name = "player_inactivity_kick_warning"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
@@ -663,12 +745,15 @@ class PlayerInactivityKickWarningDispatcher(EventDispatcher):
 
 class PlayerItemsTossDispatcher(EventDispatcher):
     """Event that goes off when player's items are dropeed (on death or disconnects)."""
+
     name = "player_items_toss"
 
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
         return super().dispatch(player)
 
-    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
+    def handle_return(  # pylint: disable=inconsistent-return-statements
+        self, handler, value
+    ):
         if isinstance(value, (int, list, str)):
             self.return_value = value
         else:

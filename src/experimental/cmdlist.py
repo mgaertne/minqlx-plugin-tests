@@ -7,31 +7,43 @@ from minqlx import Plugin
 
 # noinspection PyPep8Naming
 class cmdlist(Plugin):
-
     def __init__(self):
         super().__init__()
 
         self.add_command("cmdlist", self.cmd_cmdlist)
 
-    def cmd_cmdlist(self, player: minqlx.Player, _msg: str, _channel: minqlx.AbstractChannel) -> None:
+    def cmd_cmdlist(
+        self, player: minqlx.Player, _msg: str, _channel: minqlx.AbstractChannel
+    ) -> None:
         self.thread_reply(player)
 
     @minqlx.thread
     def thread_reply(self, player: minqlx.Player) -> None:
-        available_commands: dict[int, list[str]] = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+        available_commands: dict[int, list[str]] = {
+            0: [],
+            1: [],
+            2: [],
+            3: [],
+            4: [],
+            5: [],
+        }
 
         for command in minqlx.COMMANDS.commands:
             if not command.is_eligible_player(player, False):
                 continue
             if isinstance(command.name, str):
                 if command.usage is not None:
-                    available_commands[command.permission].append(f"{command.name} {command.usage}".strip())
+                    available_commands[command.permission].append(
+                        f"{command.name} {command.usage}".strip()
+                    )
                 else:
                     available_commands[command.permission].append(command.name.strip())
             else:
                 for name in command.name:
                     if command.usage is not None:
-                        available_commands[command.permission].append(f"{name} {command.usage}".strip())
+                        available_commands[command.permission].append(
+                            f"{name} {command.usage}".strip()
+                        )
                     else:
                         available_commands[command.permission].append(name.strip())
 
@@ -41,7 +53,11 @@ class cmdlist(Plugin):
 
             level_colorcode = level % 6 + 1
             player.tell(f"^{level_colorcode}Permission level {level}^7 commands:")
-            formatted_commands = f"^7, ^{level_colorcode}".join(available_commands[level])
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_commands, delimiter=","):
+            formatted_commands = f"^7, ^{level_colorcode}".join(
+                available_commands[level]
+            )
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(
+                formatted_commands, delimiter=","
+            ):
                 player.tell(f"^{level_colorcode}  {line}")
                 time.sleep(0.005)

@@ -6,8 +6,10 @@ from typing import Optional, Set, Dict
 
 # noinspection PyPackageRequirements
 import discord.utils
+
 # noinspection PyPackageRequirements
 from discord import app_commands, Embed, Color, ChannelType, Interaction, Message, User
+
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot, Command, Context
 
@@ -19,6 +21,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
     """
     a minqlx channel class to respond to from within minqlx for interactions with discord
     """
+
     def __init__(self, user: User, message: Message, *, loop: AbstractEventLoop):
         self.user: User = user
         self.message: Message = message
@@ -42,7 +45,9 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         if self.embed.description is None:
             self.embed.description = content
         else:
-            self.embed.description = f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
+            self.embed.description = (
+                f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
+            )
 
         await self.message.edit(embed=self.embed)
 
@@ -53,8 +58,8 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         :param: msg: the msg to send to this player
         """
         asyncio.run_coroutine_threadsafe(
-            self.expand_original_reply(content=Plugin.clean_text(msg)),
-            loop=self.loop)
+            self.expand_original_reply(content=Plugin.clean_text(msg)), loop=self.loop
+        )
 
     def reply(self, msg: str, _limit: int = 100, _delimiter: str = " ") -> None:
         """
@@ -63,8 +68,8 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         :param: msg: the message to send to this channel
         """
         asyncio.run_coroutine_threadsafe(
-            self.expand_original_reply(content=Plugin.clean_text(msg)),
-            loop=self.loop)
+            self.expand_original_reply(content=Plugin.clean_text(msg)), loop=self.loop
+        )
 
 
 class AdminCog(Cog):
@@ -77,6 +82,7 @@ class AdminCog(Cog):
     * qlx_discordExecPrefix (default: "qlx") command for authenticated users to execute server commands from discord
 
     """
+
     def __init__(self, bot: Bot):
         Plugin.set_cvar_once("qlx_discordAdminPassword", "supersecret")
         Plugin.set_cvar_once("qlx_discordAuthCommand", "auth")
@@ -87,29 +93,47 @@ class AdminCog(Cog):
         self.authed_discord_ids: Set[int] = set()
         self.auth_attempts: Dict[int, int] = {}
 
-        self.discord_admin_password: str = Plugin.get_cvar("qlx_discordAdminPassword") or ""
+        self.discord_admin_password: str = (
+            Plugin.get_cvar("qlx_discordAdminPassword") or ""
+        )
         self.discord_auth_command: str = Plugin.get_cvar("qlx_discordAuthCommand") or ""
         self.discord_exec_prefix: str = Plugin.get_cvar("qlx_discordExecPrefix") or ""
 
-        self.bot.add_command(Command(self.auth, name=self.discord_auth_command,
-                                     checks=[self.is_private_message, lambda ctx: not self.is_authed(ctx),
-                                             lambda ctx: not self.is_barred_from_auth(ctx)],
-                                     hidden=True,
-                                     pass_context=True,
-                                     help="auth with the bot",
-                                     require_var_positional=True))
-        self.bot.add_command(Command(self.qlx, name=self.discord_exec_prefix,
-                                     checks=[self.is_private_message, self.is_authed],
-                                     hidden=True,
-                                     pass_context=True,
-                                     help="execute minqlx commands on the server",
-                                     require_var_positional=True))
+        self.bot.add_command(
+            Command(
+                self.auth,
+                name=self.discord_auth_command,
+                checks=[
+                    self.is_private_message,
+                    lambda ctx: not self.is_authed(ctx),
+                    lambda ctx: not self.is_barred_from_auth(ctx),
+                ],
+                hidden=True,
+                pass_context=True,
+                help="auth with the bot",
+                require_var_positional=True,
+            )
+        )
+        self.bot.add_command(
+            Command(
+                self.qlx,
+                name=self.discord_exec_prefix,
+                checks=[self.is_private_message, self.is_authed],
+                hidden=True,
+                pass_context=True,
+                help="execute minqlx commands on the server",
+                require_var_positional=True,
+            )
+        )
         self.bot.tree.add_command(
-            app_commands.Command(name=self.discord_exec_prefix,
-                                 description="execute minqlx commands on the server",
-                                 callback=self.slash_qlx,
-                                 parent=None,
-                                 nsfw=False))
+            app_commands.Command(
+                name=self.discord_exec_prefix,
+                description="execute minqlx commands on the server",
+                callback=self.slash_qlx,
+                parent=None,
+                nsfw=False,
+            )
+        )
 
         super().__init__()
 
@@ -136,7 +160,10 @@ class AdminCog(Cog):
 
         :param: ctx: the context the trigger happened in
         """
-        return ctx.message.author.id in self.auth_attempts and self.auth_attempts[ctx.message.author.id] <= 0
+        return (
+            ctx.message.author.id in self.auth_attempts
+            and self.auth_attempts[ctx.message.author.id] <= 0
+        )
 
     async def auth(self, ctx: Context, *_args, **_kwargs) -> None:
         """
@@ -152,8 +179,10 @@ class AdminCog(Cog):
     def auth_reply_for(self, discord_id: int, password: str) -> str:
         if password == self.discord_admin_password:
             self.authed_discord_ids.add(discord_id)
-            return f"You have been successfully authenticated. " \
-                   f"You can now use {self.discord_exec_prefix} to execute commands."
+            return (
+                f"You have been successfully authenticated. "
+                f"You can now use {self.discord_exec_prefix} to execute commands."
+            )
 
         # Allow up to 3 attempts for the user's discord id to authenticate.
         if discord_id not in self.auth_attempts:
@@ -169,8 +198,10 @@ class AdminCog(Cog):
             del self.auth_attempts[discord_id]
 
         threading.Timer(bar_delay, f).start()
-        return f"Maximum authentication attempts reached. " \
-               f"You will be barred from authentication for {bar_delay} seconds."
+        return (
+            f"Maximum authentication attempts reached. "
+            f"You will be barred from authentication for {bar_delay} seconds."
+        )
 
     @staticmethod
     def command_length(ctx: Context) -> int:
@@ -185,14 +216,22 @@ class AdminCog(Cog):
         """
         command_length = self.command_length(ctx)
         qlx_command = ctx.message.content[command_length:]
-        message = await ctx.reply(content=f"executing command `{qlx_command}`", ephemeral=False)
+        message = await ctx.reply(
+            content=f"executing command `{qlx_command}`", ephemeral=False
+        )
         self.execute_qlx_command(ctx.author, message, qlx_command)
 
     @minqlx.next_frame
-    def execute_qlx_command(self, user: discord.User, message: Message, qlx_command: str):
-        discord_interaction = DiscordInteractionChannel(user, message, loop=self.bot.loop)
+    def execute_qlx_command(
+        self, user: discord.User, message: Message, qlx_command: str
+    ):
+        discord_interaction = DiscordInteractionChannel(
+            user, message, loop=self.bot.loop
+        )
         try:
-            minqlx.COMMANDS.handle_input(discord_interaction, qlx_command, discord_interaction)
+            minqlx.COMMANDS.handle_input(
+                discord_interaction, qlx_command, discord_interaction
+            )
         except Exception as e:  # pylint: disable=broad-except
             send_message = message.edit(content=f"{e.__class__.__name__}: {e}")
             asyncio.run_coroutine_threadsafe(send_message, loop=self.bot.loop)
@@ -201,14 +240,18 @@ class AdminCog(Cog):
     @app_commands.describe(command="minqlx ommand to execute on the server")
     async def slash_qlx(self, interaction: Interaction, command: str):
         if interaction.user.id not in self.authed_discord_ids:
-            await interaction.response.send_message(content="Sorry, you are not authed with the bot",
-                                                    ephemeral=interaction.channel is not None and
-                                                            interaction.channel.guild is not None)
+            await interaction.response.send_message(
+                content="Sorry, you are not authed with the bot",
+                ephemeral=interaction.channel is not None
+                and interaction.channel.guild is not None,
+            )
             return
 
-        await interaction.response.send_message(content=f"executing command `{command}`",
-                                                ephemeral=interaction.channel is not None and
-                                                        interaction.channel.guild is not None)
+        await interaction.response.send_message(
+            content=f"executing command `{command}`",
+            ephemeral=interaction.channel is not None
+            and interaction.channel.guild is not None,
+        )
         message = await interaction.original_response()
         self.execute_qlx_command(interaction.user, message, command)
 

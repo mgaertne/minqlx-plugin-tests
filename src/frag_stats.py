@@ -9,13 +9,23 @@ COLLECTED_SOULZ_KEY = "minqlx:players:{}:soulz"
 REAPERZ_KEY = "minqlx:players:{}:reaperz"
 _name_key = "minqlx:players:{}:last_used_name"
 
-SPECIAL_KILLERS = ["lava", "void", "acid", "drowning", "squished", "unknown", "grenade", "grenade_splash",
-                   "rocket", "rocket_splash", "telefrag"]
+SPECIAL_KILLERS = [
+    "lava",
+    "void",
+    "acid",
+    "drowning",
+    "squished",
+    "unknown",
+    "grenade",
+    "grenade_splash",
+    "rocket",
+    "rocket_splash",
+    "telefrag",
+]
 
 
 # noinspection PyPep8Naming
 class frag_stats(Plugin):
-
     def __init__(self):
         super().__init__()
 
@@ -29,7 +39,9 @@ class frag_stats(Plugin):
 
         self.add_command("mapsoulz", self.cmd_mapsoulz)
         self.add_command("mapreaperz", self.cmd_mapreaperz)
-        self.add_command(("soulz", "reaperz", "soulzbalance", "fragbalance"), self.cmd_soulzbalance)
+        self.add_command(
+            ("soulz", "reaperz", "soulzbalance", "fragbalance"), self.cmd_soulzbalance
+        )
 
         self.frag_log = []
 
@@ -48,7 +60,11 @@ class frag_stats(Plugin):
         if data["MOD"] == "SWITCHTEAM":
             return
 
-        if killer is not None and victim is not None and victim.steam_id == killer.steam_id:
+        if (
+            killer is not None
+            and victim is not None
+            and victim.steam_id == killer.steam_id
+        ):
             return
         if victim is None:
             return
@@ -66,7 +82,7 @@ class frag_stats(Plugin):
         if self.db is None:
             return
 
-        if redis.VERSION >= (3, ):
+        if redis.VERSION >= (3,):
             self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), 1, victim)
             self.db.zincrby(REAPERZ_KEY.format(victim), 1, recorded_killer)
         else:
@@ -107,17 +123,30 @@ class frag_stats(Plugin):
             reply_channel.reply(f"{fragger_name}^7 didn't reap any soulz, yet.")
             return
 
-        formatted_stats = ", ".join(f"{victim}^7 ({kill_count})"
-                                    for victim, kill_count in fragged_statistics.most_common(self.toplimit))
-        reply_channel.reply(f"Top {self.toplimit} reaped soulz for {fragger_name}^7: {formatted_stats}")
+        formatted_stats = ", ".join(
+            f"{victim}^7 ({kill_count})"
+            for victim, kill_count in fragged_statistics.most_common(self.toplimit)
+        )
+        reply_channel.reply(
+            f"Top {self.toplimit} reaped soulz for {fragger_name}^7: {formatted_stats}"
+        )
 
     def identify_target(self, player, target):
         if isinstance(target, minqlx.Player):
             return target.name, target.steam_id
 
         if isinstance(target, str) and target in [
-            "!lava", "!void", "!acid", "!drowning", "!squished", "!unknown", "!grenade", "!grenade_splash",
-            "!rocket", "!rocket_splash", "!telefrag"
+            "!lava",
+            "!void",
+            "!acid",
+            "!drowning",
+            "!squished",
+            "!unknown",
+            "!grenade",
+            "!grenade_splash",
+            "!rocket",
+            "!rocket_splash",
+            "!telefrag",
         ]:
             return target[1:], target[1:]
 
@@ -135,7 +164,9 @@ class frag_stats(Plugin):
         return fragging_player.name, fragging_player.steam_id
 
     def mapfrag_statistics_for(self, fragger_identifier):
-        player_fragged_log = [killed for killer, killed in self.frag_log if killer == fragger_identifier]
+        player_fragged_log = [
+            killed for killer, killed in self.frag_log if killer == fragger_identifier
+        ]
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
         return Counter(resolved_fragged_log)
@@ -150,15 +181,23 @@ class frag_stats(Plugin):
 
         reply_channel = self.identify_reply_channel(channel)
         if len(fragged_statistics) == 0:
-            reply_channel.reply(f"{fragged_name}^7's soul was not reaped by anyone, yet.")
+            reply_channel.reply(
+                f"{fragged_name}^7's soul was not reaped by anyone, yet."
+            )
             return
 
-        formatted_stats = ", ".join(f"{victim}^7 ({kill_count})"
-                                    for victim, kill_count in fragged_statistics.most_common(self.toplimit))
-        reply_channel.reply(f"Top {self.toplimit} reaperz of {fragged_name}^7's soul: {formatted_stats}")
+        formatted_stats = ", ".join(
+            f"{victim}^7 ({kill_count})"
+            for victim, kill_count in fragged_statistics.most_common(self.toplimit)
+        )
+        reply_channel.reply(
+            f"Top {self.toplimit} reaperz of {fragged_name}^7's soul: {formatted_stats}"
+        )
 
     def mapfraggers_of(self, fragged_identifier):
-        player_fragged_log = [killer for killer, killed in self.frag_log if killed == fragged_identifier]
+        player_fragged_log = [
+            killer for killer, killed in self.frag_log if killed == fragged_identifier
+        ]
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
         return Counter(resolved_fragged_log)
@@ -167,7 +206,10 @@ class frag_stats(Plugin):
         if len(entries) == 0:
             return []
         if isinstance(entries[0], tuple):
-            return {self.resolve_player_name(steam_id): int(value) for steam_id, value in entries}
+            return {
+                self.resolve_player_name(steam_id): int(value)
+                for steam_id, value in entries
+            }
         return [self.resolve_player_name(item) for item in entries]
 
     def resolve_player_name(self, item):
@@ -226,8 +268,14 @@ class frag_stats(Plugin):
     def overall_frag_statistics_for(self, fragger_identifier):
         if self.db is None:
             return Counter([])
-        player_fragged_log = self.db.zrevrangebyscore(COLLECTED_SOULZ_KEY.format(fragger_identifier),
-                                                      "+INF", "-INF", start=0, num=self.toplimit, withscores=True)
+        player_fragged_log = self.db.zrevrangebyscore(
+            COLLECTED_SOULZ_KEY.format(fragger_identifier),
+            "+INF",
+            "-INF",
+            start=0,
+            num=self.toplimit,
+            withscores=True,
+        )
 
         resolved_fragged_log = self.resolve_player_names(player_fragged_log)
         return Counter(resolved_fragged_log)
@@ -235,16 +283,26 @@ class frag_stats(Plugin):
     def overall_fraggers_of(self, fragger_identifier):
         if self.db is None:
             return Counter([])
-        player_fragger_log = self.db.zrevrangebyscore(REAPERZ_KEY.format(fragger_identifier),
-                                                      "+INF", "-INF", start=0, num=self.toplimit, withscores=True)
+        player_fragger_log = self.db.zrevrangebyscore(
+            REAPERZ_KEY.format(fragger_identifier),
+            "+INF",
+            "-INF",
+            start=0,
+            num=self.toplimit,
+            withscores=True,
+        )
 
         resolved_fragger_log = self.resolve_player_names(player_fragger_log)
         return Counter(resolved_fragger_log)
 
     # noinspection PyMethodMayBeStatic
     def identify_reply_channel(self, channel):
-        if channel in [minqlx.RED_TEAM_CHAT_CHANNEL, minqlx.BLUE_TEAM_CHAT_CHANNEL,
-                       minqlx.SPECTATOR_CHAT_CHANNEL, minqlx.FREE_CHAT_CHANNEL]:
+        if channel in [
+            minqlx.RED_TEAM_CHAT_CHANNEL,
+            minqlx.BLUE_TEAM_CHAT_CHANNEL,
+            minqlx.SPECTATOR_CHAT_CHANNEL,
+            minqlx.FREE_CHAT_CHANNEL,
+        ]:
             return minqlx.CHAT_CHANNEL
 
         return channel
@@ -277,20 +335,27 @@ class frag_stats(Plugin):
 
         if len(soulz_statistics) == 0:
             reply_channel.reply(
-                f"{fragger_name}^7 didn't reap any soulz, and {fragger_name}^7's soul wasn't reaped, yet.")
+                f"{fragger_name}^7 didn't reap any soulz, and {fragger_name}^7's soul wasn't reaped, yet."
+            )
             return
 
         formatted_souls = ", ".join(
             f"{self.resolve_player_name(victim)}^7({self.color_coded_balance_diff(soulz_statistics[victim])})"
             f"({fragged_statistics[victim]}/{reaper_statistics[victim]})"
-            for victim, kill_count in soulz_statistics.most_common(self.toplimit // 2))
-        reply_channel.reply(f"Best {self.toplimit // 2} soul balance for {fragger_name}^7: {formatted_souls}")
+            for victim, kill_count in soulz_statistics.most_common(self.toplimit // 2)
+        )
+        reply_channel.reply(
+            f"Best {self.toplimit // 2} soul balance for {fragger_name}^7: {formatted_souls}"
+        )
 
         formatted_reapers = ", ".join(
             f"{self.resolve_player_name(victim)}^7({self.color_coded_balance_diff(soulz_statistics[victim])})"
             f"({fragged_statistics[victim]}/{reaper_statistics[victim]})"
-            for victim, kill_count in reaped_statistics.most_common(self.toplimit // 2))
-        reply_channel.reply(f"Worst {self.toplimit // 2} soul balance for {fragger_name}^7: {formatted_reapers}")
+            for victim, kill_count in reaped_statistics.most_common(self.toplimit // 2)
+        )
+        reply_channel.reply(
+            f"Worst {self.toplimit // 2} soul balance for {fragger_name}^7: {formatted_reapers}"
+        )
 
     def report_single_soulzbalance(self, player, opponent, channel):
         reply_channel = self.identify_reply_channel(channel)
@@ -301,19 +366,25 @@ class frag_stats(Plugin):
         if opponent_name is None and opponent_identifier is None:
             return
 
-        soulz = self.db.zscore(COLLECTED_SOULZ_KEY.format(fragger_identifier), opponent_identifier)
+        soulz = self.db.zscore(
+            COLLECTED_SOULZ_KEY.format(fragger_identifier), opponent_identifier
+        )
         soulz = int(soulz) if soulz is not None else 0
-        reapz = self.db.zscore(REAPERZ_KEY.format(fragger_identifier), opponent_identifier)
+        reapz = self.db.zscore(
+            REAPERZ_KEY.format(fragger_identifier), opponent_identifier
+        )
         reapz = int(reapz) if reapz is not None else 0
 
         if soulz > reapz:
-            reply_message = \
-                f"{fragger_name}^7 leads by ^2{soulz - reapz}^7 soulz vs. {opponent_name}^7 ({soulz}/{reapz})"
+            reply_message = f"{fragger_name}^7 leads by ^2{soulz - reapz}^7 soulz vs. " \
+                            f"{opponent_name}^7 ({soulz}/{reapz})"
         elif reapz > soulz:
-            reply_message =  \
-                f"{opponent_name}^7 leads by ^1{reapz - soulz}^7 soulz vs. {fragger_name}^7 ({reapz}/{soulz})"
+            reply_message = f"{opponent_name}^7 leads by ^1{reapz - soulz}^7 soulz vs. " \
+                            f"{fragger_name}^7 ({reapz}/{soulz})"
         else:
-            reply_message = f"{fragger_name}^7 is even with {opponent_name}^7 ({soulz}/{reapz})"
+            reply_message = (
+                f"{fragger_name}^7 is even with {opponent_name}^7 ({soulz}/{reapz})"
+            )
 
         reply_channel.reply(reply_message)
 

@@ -2,8 +2,10 @@ from typing import Optional, Set, List
 
 # noinspection PyPackageRequirements
 import discord
+
 # noinspection PyPackageRequirements
 from discord import app_commands, Interaction
+
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot, Context, Command
 
@@ -23,7 +25,11 @@ def get_game_info(game: minqlx.Game) -> str:
         return "Warmup"
     if game.state == "countdown":
         return "Match starting"
-    if game.roundlimit in [game.blue_score, game.red_score] or game.red_score < 0 or game.blue_score < 0:
+    if (
+        game.roundlimit in [game.blue_score, game.red_score]
+        or game.red_score < 0
+        or game.blue_score < 0
+    ):
         return f"Match ended: **{game.red_score}** - **{game.blue_score}**"
     if game.state == "in_progress":
         return f"Match in progress: **{game.red_score}** - **{game.blue_score}**"
@@ -50,8 +56,10 @@ def game_status_information(game: minqlx.Game) -> str:
     # CAUTION: if you change anything on the next line, you may need to change the topic_ending logic in
     #          :func:`TopicUpdater.update_topic_on_triggered_channels(self, topic)` to keep the right portion
     #          of the triggered relay channels' topics!
-    return f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) " \
-           f"with **{num_players}/{max_players}** players. "
+    return (
+        f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) "
+        f"with **{num_players}/{max_players}** players. "
+    )
 
 
 def player_data() -> str:
@@ -63,11 +71,13 @@ def player_data() -> str:
     """
     _player_data = ""
     teams = Plugin.teams()
-    if len(teams['red']) > 0:
+    if len(teams["red"]) > 0:
         _player_data += f"\n**R:** {team_data(teams['red'])}"
-    if len(teams['blue']) > 0:
+    if len(teams["blue"]) > 0:
         _player_data += f"\n**B:** {team_data(teams['blue'])}"
-    show_specs: bool = Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool) or False
+    show_specs: bool = (
+        Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool) or False
+    )
     if show_specs and len(teams["spectator"]) > 0:
         _player_data += f"\n**S:** {team_data(teams['spectator'])}"
     return _player_data
@@ -90,7 +100,9 @@ def team_data(player_list: List[minqlx.Player], limit: Optional[int] = None) -> 
 
     _team_data = ""
     for player in players_by_score:
-        _team_data += f"**{discord.utils.escape_markdown(player.clean_name)}**({player.score}) "
+        _team_data += (
+            f"**{discord.utils.escape_markdown(player.clean_name)}**({player.score}) "
+        )
 
     return _team_data
 
@@ -109,8 +121,10 @@ def game_status_with_teams() -> str:
     maptitle = game.map_title if game.map_title else game.map
     gametype = game.type_short.upper()
 
-    return f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) " \
-           f"with **{num_players}/{max_players}** players. {player_data()}"
+    return (
+        f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) "
+        f"with **{num_players}/{max_players}** players. {player_data()}"
+    )
 
 
 def int_set(string_set: Optional[Set[str]]) -> Set[int]:
@@ -120,7 +134,7 @@ def int_set(string_set: Optional[Set[str]]) -> Set[int]:
         return returned
 
     for item in string_set:
-        if item == '':
+        if item == "":
             continue
         value = int(item)
         returned.add(value)
@@ -140,6 +154,7 @@ class Status(Cog):
     * qlx_discordTriggeredChatMessagePrefix (default: "") Prefix any triggered message from QL with this text portion.
     Useful when running multiple servers on the same host with the same discord connected to.
     """
+
     def __init__(self, bot: Bot):
         self.bot = bot
 
@@ -149,25 +164,38 @@ class Status(Cog):
         Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
 
-        self.discord_trigger_status: str = Plugin.get_cvar("qlx_discordTriggerStatus") or "status"
-        self.discord_triggered_channel_message_prefix: str = \
+        self.discord_trigger_status: str = (
+            Plugin.get_cvar("qlx_discordTriggerStatus") or "status"
+        )
+        self.discord_triggered_channel_message_prefix: str = (
             Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
-        self.discord_relay_channel_ids: Set[int] = \
-            int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+        )
+        self.discord_relay_channel_ids: Set[int] = int_set(
+            Plugin.get_cvar("qlx_discordRelayChannelIds", set)
+        )
         self.discord_triggered_channel_ids: Set[int] = int_set(
-            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
+            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
+        )
 
-        self.bot.add_command(Command(self.trigger_status, name=self.discord_trigger_status,
-                                     checks=[self.is_message_in_relay_or_triggered_channel],
-                                     pass_context=True,
-                                     ignore_extra=False,
-                                     help="display current game status information"))
+        self.bot.add_command(
+            Command(
+                self.trigger_status,
+                name=self.discord_trigger_status,
+                checks=[self.is_message_in_relay_or_triggered_channel],
+                pass_context=True,
+                ignore_extra=False,
+                help="display current game status information",
+            )
+        )
 
         # noinspection PyTypeChecker
-        slash_status_command: app_commands.Command = \
-            app_commands.Command(name=self.discord_trigger_status,
-                                 description="display current game status information",
-                                 callback=self.slash_trigger_status, parent=None, nsfw=False)
+        slash_status_command: app_commands.Command = app_commands.Command(
+            name=self.discord_trigger_status,
+            description="display current game status information",
+            callback=self.slash_trigger_status,
+            parent=None,
+            nsfw=False,
+        )
         slash_status_command.guild_only = True
         self.bot.tree.add_command(slash_status_command)
 
@@ -179,7 +207,10 @@ class Status(Cog):
 
         :param: ctx: the context the trigger happened in
         """
-        return ctx.message.channel.id in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        return (
+            ctx.message.channel.id
+            in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        )
 
     async def trigger_status(self, ctx: Context, *_args, **_kwargs) -> None:
         """

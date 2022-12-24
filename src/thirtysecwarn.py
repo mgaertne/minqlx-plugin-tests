@@ -10,17 +10,18 @@ from minqlx import Plugin
 class thirtysecwarn(Plugin):
     """Created by Thomas Jones on 01/09/2016 - thomas@tomtecsolutions.com
 
-thirtysecwarn.py - a minqlx plugin to play unused VO when a CA game is nearing the round time limit.
+    thirtysecwarn.py - a minqlx plugin to play unused VO when a CA game is nearing the round time limit.
 
-This plugin is released to everyone, for any purpose. It comes with no warranty, no guarantee it works, it's
-released AS IS.
+    This plugin is released to everyone, for any purpose. It comes with no warranty, no guarantee it works, it's
+    released AS IS.
 
-You can modify everything, except for lines 1-4 and the !tomtec_versions code. They're there to indicate I whacked this
-together originally. Please make it better :D
+    You can modify everything, except for lines 1-4 and the !tomtec_versions code.
+    They're there to indicate I whacked this together originally. Please make it better :D
 
-Completely rebuild by iouonegirl and Gelenkbusfahrer on 25/09/2017, customization of sounds and unit tests added by
-ShiN0 somewhen in October 2017
+    Completely rebuild by iouonegirl and Gelenkbusfahrer on 25/09/2017, customization of sounds and unit tests added by
+    ShiN0 somewhen in October 2017
     """
+
     def __init__(self):
         super().__init__()
 
@@ -33,7 +34,7 @@ ShiN0 somewhen in October 2017
         self.announcerMap = {
             "standard": "sound/vo/30_second_warning.ogg",
             "female": "sound/vo_female/30_second_warning.ogg",
-            "evil": "sound/vo_evil/30_second_warning.ogg"
+            "evil": "sound/vo_evil/30_second_warning.ogg",
         }
 
         self.warner_thread_name = None
@@ -71,7 +72,9 @@ ShiN0 somewhen in October 2017
         Plugin.play_sound(self.get_announcer_sound())
 
     def get_announcer_sound(self):
-        qlx_thirty_second_warn_announcer = self.get_cvar("qlx_thirtySecondWarnAnnouncer")
+        qlx_thirty_second_warn_announcer = self.get_cvar(
+            "qlx_thirtySecondWarnAnnouncer"
+        )
 
         if qlx_thirty_second_warn_announcer == "random":
             return self.random_announcer()

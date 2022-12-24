@@ -15,11 +15,19 @@ def setup_no_game():
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
     """
-    when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
+    when2(minqlx.Game).thenRaise(
+        NonexistentGameError("Tried to instantiate a game while no game is active.")
+    )
 
 
-def setup_game_in_warmup(*, game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
-                         roundlimit: int = 8, maxclients: int = 16) -> None:
+def setup_game_in_warmup(
+    *,
+    game_type: str = "ca",
+    mapname: str = "campgrounds",
+    map_title: Optional[str] = None,
+    roundlimit: int = 8,
+    maxclients: int = 16
+) -> None:
     """Set up the server with a game currently in warmup mode.
 
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
@@ -39,11 +47,21 @@ def setup_game_in_warmup(*, game_type: str = "ca", mapname: str = "campgrounds",
     mock_game.map_title = map_title
     mock_game.roundlimit = roundlimit
     mock_game.maxclients = maxclients
-    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
+    mock_game.assert_addteamscore = functools.partial(
+        assert_game_addteamscore, mock_game
+    )
 
 
-def setup_game_in_progress(*, game_type: str = "ca", mapname: str = "campgrounds", map_title: Optional[str] = None,
-                           roundlimit: int = 8, red_score: int = 0, blue_score: int = 0, maxclients: int = 16) -> None:
+def setup_game_in_progress(
+    *,
+    game_type: str = "ca",
+    mapname: str = "campgrounds",
+    map_title: Optional[str] = None,
+    roundlimit: int = 8,
+    red_score: int = 0,
+    blue_score: int = 0,
+    maxclients: int = 16
+) -> None:
     """Set up the server with a game currently in progress. You may specify the game_type, roundlimit, and score for
     the red and blue teams with the optional parameters.
 

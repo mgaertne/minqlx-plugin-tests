@@ -14,12 +14,9 @@ from thirtysecwarn import thirtysecwarn
 
 
 class TestThirtySecondWarnPlugin:
-
     def setup_method(self):
         self.warner = thirtysecwarn()
-        setup_cvars({
-            "qlx_thirtySecondWarnAnnouncer": "standard"
-        })
+        setup_cvars({"qlx_thirtySecondWarnAnnouncer": "standard"})
 
     @staticmethod
     def teardown_method():
@@ -27,19 +24,31 @@ class TestThirtySecondWarnPlugin:
 
     def test_standard(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "standard")
-        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo/30_second_warning.ogg"))
+        assert_that(
+            self.warner.get_announcer_sound(),
+            equal_to("sound/vo/30_second_warning.ogg"),
+        )
 
     def test_female(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "female")
-        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo_female/30_second_warning.ogg"))
+        assert_that(
+            self.warner.get_announcer_sound(),
+            equal_to("sound/vo_female/30_second_warning.ogg"),
+        )
 
     def test_evil(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "evil")
-        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo_evil/30_second_warning.ogg"))
+        assert_that(
+            self.warner.get_announcer_sound(),
+            equal_to("sound/vo_evil/30_second_warning.ogg"),
+        )
 
     def test_non_existing_reverts_to_standard(self):
         setup_cvar("qlx_thirtySecondWarnAnnouncer", "invalid")
-        assert_that(self.warner.get_announcer_sound(), equal_to("sound/vo/30_second_warning.ogg"))
+        assert_that(
+            self.warner.get_announcer_sound(),
+            equal_to("sound/vo/30_second_warning.ogg"),
+        )
 
     # noinspection PyMethodMayBeStatic
     def hardcoded_choice(self, _seq):
@@ -73,7 +82,9 @@ class TestThirtySecondWarnPlugin:
         calling_round_number = 4
         self.warner.timer_round_number = calling_round_number + 1
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
+        undecorated(self.warner.play_thirty_second_warning)(
+            self.warner, calling_round_number
+        )
 
         assert_plugin_played_sound(any_(str), times=0)
 
@@ -82,12 +93,16 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
+        undecorated(self.warner.play_thirty_second_warning)(
+            self.warner, warner_thread_name
+        )
 
         assert_plugin_played_sound(any_(str))
 
     def test_game_start_initializes_timer_round_number(self):
-        self.warner.warner_thread_name = "test_game_start_initializes_timer_round_number1"
+        self.warner.warner_thread_name = (
+            "test_game_start_initializes_timer_round_number1"
+        )
 
         self.warner.handle_game_start(None)
 

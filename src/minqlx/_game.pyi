@@ -2,9 +2,7 @@ from typing import Iterable, Mapping
 
 from minqlx import Player
 
-
 class NonexistentGameError(Exception): ...
-
 
 class Game:
     cached: bool
@@ -15,7 +13,6 @@ class Game:
     def __str__(self) -> str: ...
     def __contains__(self, key: str) -> bool: ...
     def __getitem__(self, key: str) -> str: ...
-
     @property
     def cvars(self) -> Mapping[str, str]: ...
     @property

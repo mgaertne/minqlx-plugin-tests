@@ -1,4 +1,4 @@
-__version__ = 'NOT_SET'
+__version__ = "NOT_SET"
 DEBUG = False
 
 
@@ -87,14 +87,16 @@ MOD_RAILGUN_HEADSHOT = 33
 
 # classes
 class Vector3(tuple):
-    """ A three-dimensional vector. """
+    """A three-dimensional vector."""
+
     x: int
     y: int
     z: int
 
 
 class Flight(tuple):
-    """ A struct sequence containing parameters for the flight holdable item. """
+    """A struct sequence containing parameters for the flight holdable item."""
+
     fuel: int
     max_fuel: int
     thrust: int
@@ -102,7 +104,8 @@ class Flight(tuple):
 
 
 class Powerups(tuple):
-    """ A struct sequence containing all the powerups in the game. """
+    """A struct sequence containing all the powerups in the game."""
+
     quad: int
     battlesuit: int
     haste: int
@@ -112,7 +115,8 @@ class Powerups(tuple):
 
 
 class Weapons(tuple):
-    """ A struct sequence containing all the weapons in the game. """
+    """A struct sequence containing all the weapons in the game."""
+
     g: int
     mg: int
     sg: int
@@ -131,7 +135,7 @@ class Weapons(tuple):
 
 
 class PlayerInfo(tuple):
-    """ Information about a player, such as Steam ID, name, client ID, and whatnot. """
+    """Information about a player, such as Steam ID, name, client ID, and whatnot."""
 
     @property
     def client_id(self):
@@ -170,7 +174,7 @@ class PlayerInfo(tuple):
 
 
 class PlayerState(tuple):
-    """ Information about a player's state in the game. """
+    """Information about a player's state in the game."""
 
     is_alive: bool
     """Whether the player's alive or not."""
@@ -213,7 +217,8 @@ class PlayerState(tuple):
 
 
 class PlayerStats(tuple):
-    """ A player's score and some basic stats. """
+    """A player's score and some basic stats."""
+
     score: int
     """The player's primary score."""
 
@@ -238,172 +243,172 @@ class PlayerStats(tuple):
 
 # functions
 def player_info(_client_id):
-    """ Returns a dictionary with information about a player by ID. """
+    """Returns a dictionary with information about a player by ID."""
 
 
 def players_info():
-    """ Returns a list with dictionaries with information about all the players on the server. """
+    """Returns a list with dictionaries with information about all the players on the server."""
 
 
 def get_userinfo(_client_id):
-    """ Returns a string with a player's userinfo. """
+    """Returns a string with a player's userinfo."""
 
 
 def send_server_command(_client_id, _cmd):
-    """ Sends a server command to either one specific client or all the clients. """
+    """Sends a server command to either one specific client or all the clients."""
 
 
 def client_command(_client_id, _cmd):
-    """ Tells the server to process a command from a specific client. """
+    """Tells the server to process a command from a specific client."""
 
 
 def console_command(_cmd):
-    """ Executes a command as if it was executed from the server console. """
+    """Executes a command as if it was executed from the server console."""
 
 
 def get_cvar(_cvar):
-    """ Gets a cvar. """
+    """Gets a cvar."""
 
 
 def set_cvar(_cvar, _value, _flags=None):
-    """ Sets a cvar. """
+    """Sets a cvar."""
 
 
 def set_cvar_limit(_name, _value, _min, _max, _flags):
-    """ Sets a non-string cvar with a minimum and maximum value. """
+    """Sets a non-string cvar with a minimum and maximum value."""
 
 
 def kick(_client_id, _reason=None):
-    """ Kick a player and allowing the admin to supply a reason for it. """
+    """Kick a player and allowing the admin to supply a reason for it."""
 
 
 def console_print(_text: str):
-    """ Prints text on the console. If used during an RCON command, it will be printed in the player's console. """
+    """Prints text on the console. If used during an RCON command, it will be printed in the player's console."""
 
 
 def get_configstring(_config_id):
-    """ Get a configstring. """
+    """Get a configstring."""
 
 
 def set_configstring(_config_id, _value):
-    """ Sets a configstring and sends it to all the players on the server. """
+    """Sets a configstring and sends it to all the players on the server."""
 
 
 def force_vote(_pass):
-    """ Forces the current vote to either fail or pass. """
+    """Forces the current vote to either fail or pass."""
 
 
 def add_console_command(_command):
-    """ Adds a console command that will be handled by Python code. """
+    """Adds a console command that will be handled by Python code."""
 
 
 def register_handler(_event, _handler=None):
-    """ Register an event handler. Can be called more than once per event, but only the last one will work. """
+    """Register an event handler. Can be called more than once per event, but only the last one will work."""
 
 
 def player_state(_client_id):
-    """ Get information about the player's state in the game. """
+    """Get information about the player's state in the game."""
 
 
 def player_stats(_client_id):
-    """ Get some player stats. """
+    """Get some player stats."""
 
 
 def set_position(_client_id, _position):
-    """ Sets a player's position vector. """
+    """Sets a player's position vector."""
 
 
 def set_velocity(_client_id, _velocity):
-    """ Sets a player's velocity vector. """
+    """Sets a player's velocity vector."""
 
 
 def noclip(_client_id, _activate):
-    """ Sets noclip for a player. """
+    """Sets noclip for a player."""
 
 
 def set_health(_client_id, _health):
-    """ Sets a player's health. """
+    """Sets a player's health."""
 
 
 def set_armor(_client_id, _armor):
-    """ Sets a player's armor. """
+    """Sets a player's armor."""
 
 
 def set_weapons(_client_id, _weapons):
-    """ Sets a player's weapons. """
+    """Sets a player's weapons."""
 
 
 def set_weapon(_client_id, _weapon):
-    """ Sets a player's current weapon. """
+    """Sets a player's current weapon."""
 
 
 def set_ammo(_client_id, _ammo):
-    """ Sets a player's ammo. """
+    """Sets a player's ammo."""
 
 
 def set_powerups(_client_id, _powerups):
-    """ Sets a player's powerups. """
+    """Sets a player's powerups."""
 
 
 def set_holdable(_client_id, _powerup):
-    """ Sets a player's holdable item. """
+    """Sets a player's holdable item."""
 
 
 def drop_holdable(_client_id):
-    """ Drops player's holdable item. """
+    """Drops player's holdable item."""
 
 
 def set_flight(_client_id, _flight):
-    """ Sets a player's flight parameters, such as current fuel, max fuel and, so on. """
+    """Sets a player's flight parameters, such as current fuel, max fuel and, so on."""
 
 
 def set_invulnerability(_client_id, _time):
-    """ Makes player invulnerable for limited time. """
+    """Makes player invulnerable for limited time."""
 
 
 def set_score(_client_id, _score):
-    """ Sets a player's score. """
+    """Sets a player's score."""
 
 
 def callvote(_vote, _vote_display, _vote_time=None):
-    """ Calls a vote as if started by the server and not a player. """
+    """Calls a vote as if started by the server and not a player."""
 
 
 def allow_single_player(_allow):
-    """ Allows or disallows a game with only a single player in it to go on without forfeiting. Useful for race. """
+    """Allows or disallows a game with only a single player in it to go on without forfeiting. Useful for race."""
 
 
 def player_spawn(_client_id):
-    """ Allows or disallows a game with only a single player in it to go on without forfeiting. Useful for race. """
+    """Allows or disallows a game with only a single player in it to go on without forfeiting. Useful for race."""
 
 
 def set_privileges(_client_id, _privileges):
-    """ Sets a player's privileges. Does not persist. """
+    """Sets a player's privileges. Does not persist."""
 
 
 def destroy_kamikaze_timers():
-    """ Removes all current kamikaze timers. """
+    """Removes all current kamikaze timers."""
 
 
 def spawn_item(_item_id, _x, _y, _z):
-    """ Spawns item with specified coordinates. """
+    """Spawns item with specified coordinates."""
 
 
 def remove_dropped_items():
-    """ Removes all dropped items. """
+    """Removes all dropped items."""
 
 
 def slay_with_mod(_client_id, _mod):
-    """ Slay player with mean of death. """
+    """Slay player with mean of death."""
 
 
 def replace_items(_item1, _item2):
-    """ Replaces target entity's item with specified one. """
+    """Replaces target entity's item with specified one."""
 
 
 def dev_print_items():
-    """ Prints all items and entity numbers to server console. """
+    """Prints all items and entity numbers to server console."""
 
 
 def force_weapon_respawn_time(_respawn_time):
-    """ Force all weapons to have a specified respawn time, overriding custom map respawn times set for them. """
+    """Force all weapons to have a specified respawn time, overriding custom map respawn times set for them."""

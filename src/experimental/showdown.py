@@ -29,13 +29,19 @@ class showdown(minqlx.Plugin):
         self.add_command(("hurry", "showdown"), self.cmd_showdown)
 
         self.vote_showdown = self.get_cvar("qlx_showdown_vote", bool)
-        self.vote_showdown_teamsize = self.get_cvar("qlx_showdown_vote_teamsize", int) or 2
+        self.vote_showdown_teamsize = (
+            self.get_cvar("qlx_showdown_vote_teamsize", int) or 2
+        )
         self.min_opp = self.get_cvar("qlx_showdown_min", int) or 2
         self.max_opp = self.get_cvar("qlx_showdown_max", int) or 4
-        self.showdown_random_weapons = self.get_cvar("qlx_showdown_random_weapons", list)
+        self.showdown_random_weapons = self.get_cvar(
+            "qlx_showdown_random_weapons", list
+        )
         self.random_weapons_iter = random_iterator(self.showdown_random_weapons)
 
-        self.showdown_overwrite_permission_level = self.get_cvar("qlx_showdown_overwrite_permission_level", int) or 1
+        self.showdown_overwrite_permission_level = (
+            self.get_cvar("qlx_showdown_overwrite_permission_level", int) or 1
+        )
         self.between_rounds = True
 
         self.last_standing_steam_id = None
@@ -74,7 +80,10 @@ class showdown(minqlx.Plugin):
 
         teams = self.teams()
 
-        if len(teams["red"]) < self.vote_showdown_teamsize or len(teams["blue"]) < self.vote_showdown_teamsize:
+        if (
+            len(teams["red"]) < self.vote_showdown_teamsize
+            or len(teams["blue"]) < self.vote_showdown_teamsize
+        ):
             return
 
         alive_r = self.alive_players(teams["red"])
@@ -88,7 +97,9 @@ class showdown(minqlx.Plugin):
 
         if self.last_standing_time is None:
             self.last_standing_time = time.time()
-            self.last_standing_steam_id = alive_r[0].steam_id if len(alive_r) == 1 else alive_b[0].steam_id
+            self.last_standing_steam_id = (
+                alive_r[0].steam_id if len(alive_r) == 1 else alive_b[0].steam_id
+            )
 
         self.handle_automatic_showdown(alive_r, alive_b)
 
@@ -136,15 +147,19 @@ class showdown(minqlx.Plugin):
 
         self.showdown_votes = {"hurry": [], "showdown": []}
 
-        vote_now_sound = random.choice(["sound/vo/vote_now", "sound/vo_evil/vote_now", "sound/vo_female/vote_now"])
+        vote_now_sound = random.choice(
+            ["sound/vo/vote_now", "sound/vo_evil/vote_now", "sound/vo_female/vote_now"]
+        )
         for player in teams[voting_team]:
             if player.is_alive:
                 continue
 
             self.play_sound(vote_now_sound, player)
-            player.tell(f"Have a say in your team mate's fate:\n"
-                        f"  ^5!showdown^7 for a random weapon showdown^7\n"
-                        f"  ^5!hurry^7 to punish ^7{showdown_player.name}")
+            player.tell(
+                f"Have a say in your team mate's fate:\n"
+                f"  ^5!showdown^7 for a random weapon showdown^7\n"
+                f"  ^5!hurry^7 to punish ^7{showdown_player.name}"
+            )
 
     def should_allow_automatic_showdown(self):
         if self.showdown_is_counting_down:
@@ -194,18 +209,37 @@ class showdown(minqlx.Plugin):
 
         self.showdown_activated = False
         for p in self.players():
-            p.weapons(g=False, mg=False, sg=False, gl=False, rl=False, lg=False, rg=False, pg=False, bfg=False,
-                      gh=False, ng=False, pl=False, cg=False, hmg=False, hands=False)
+            p.weapons(
+                g=False,
+                mg=False,
+                sg=False,
+                gl=False,
+                rl=False,
+                lg=False,
+                rg=False,
+                pg=False,
+                bfg=False,
+                gh=False,
+                ng=False,
+                pl=False,
+                cg=False,
+                hmg=False,
+                hands=False,
+            )
             p.weapon(15)
 
         minqlx.console_command("g_guidedRocket 0")
 
         r = "^3Restoring weapons in "
-        self.blink([r + "5", r + "4", r + "3", r + "2", r + "1", "^2FIGHT!"],
-                   interval=1, sound="sound/items/regen", callback=self.restore_original_weapons)
+        self.blink(
+            [r + "5", r + "4", r + "3", r + "2", r + "1", "^2FIGHT!"],
+            interval=1,
+            sound="sound/items/regen",
+            callback=self.restore_original_weapons,
+        )
 
     @minqlx.thread
-    def blink(self, messages, interval=.12, sound=None, callback=None):
+    def blink(self, messages, interval=0.12, sound=None, callback=None):
         @minqlx.next_frame
         def logic(_m):
             self.center_print(f"^3{_m}")
@@ -267,17 +301,36 @@ class showdown(minqlx.Plugin):
         for p in self.players():
             if not p.is_alive:
                 continue
-            p.weapons(g=False, mg=False, sg=False, gl=False, rl=False, lg=False, rg=False, pg=False, bfg=False,
-                      gh=False, ng=False, pl=False, cg=False, hmg=False, hands=False)
+            p.weapons(
+                g=False,
+                mg=False,
+                sg=False,
+                gl=False,
+                rl=False,
+                lg=False,
+                rg=False,
+                pg=False,
+                bfg=False,
+                gh=False,
+                ng=False,
+                pl=False,
+                cg=False,
+                hmg=False,
+                hands=False,
+            )
             p.weapon(15)
 
         self.showdown_is_counting_down = True
 
         amount_alive_red = len(alive_r)
         amount_alive_blue = len(alive_b)
-        self.blink([self.showdown_weapon.countdown_announcement, ""] * 9 +
-                   [f"^2{amount_alive_red}vs{amount_alive_blue} - {self.showdown_weapon.start_announcement}"],
-                   callback=self.start_showdown)
+        self.blink(
+            [self.showdown_weapon.countdown_announcement, ""] * 9
+            + [
+                f"^2{amount_alive_red}vs{amount_alive_blue} - {self.showdown_weapon.start_announcement}"
+            ],
+            callback=self.start_showdown,
+        )
         self.play_sound("sound/world/turksquish22.wav")
 
         if random.random() < 0.25:
@@ -291,9 +344,12 @@ class showdown(minqlx.Plugin):
             restore_opponents = self.min_opp + 1
             self.msg(
                 f"^7{self.showdown_weapon.longname} showdown! Weapons will be restored when ^6{restore_opponents}^7 "
-                f"players are left standing.")
+                f"players are left standing."
+            )
         else:
-            self.msg(f"^7{self.showdown_weapon.longname} showdown! Weapons will be restored next round.")
+            self.msg(
+                f"^7{self.showdown_weapon.longname} showdown! Weapons will be restored next round."
+            )
 
     def start_showdown(self):
         @minqlx.next_frame
@@ -309,9 +365,24 @@ class showdown(minqlx.Plugin):
         if self.showdown_weapon is None:
             return
 
-        weapons = {"g": False, "mg": False, "sg": False, "gl": False, "rl": False, "lg": False, "rg": False,
-                   "pg": False, "bfg": False, "gh": False, "ng": False, "pl": False, "cg": False, "hmg": False,
-                   "hands": True, self.showdown_weapon.shortname: True}
+        weapons = {
+            "g": False,
+            "mg": False,
+            "sg": False,
+            "gl": False,
+            "rl": False,
+            "lg": False,
+            "rg": False,
+            "pg": False,
+            "bfg": False,
+            "gh": False,
+            "ng": False,
+            "pl": False,
+            "cg": False,
+            "hmg": False,
+            "hands": True,
+            self.showdown_weapon.shortname: True,
+        }
         for p in self.players():
             if not p.is_alive:
                 continue
@@ -350,13 +421,22 @@ class showdown(minqlx.Plugin):
             enemies_left_for_restoring = len(alive_b + alive_r) - 1 - self.min_opp
             self.msg(
                 f"^7{self.showdown_weapon.longname} showdown! Kill ^6{enemies_left_for_restoring}^7 "
-                f"more enemies to restore weapons")
+                f"more enemies to restore weapons"
+            )
         else:
             enemies_left = len(alive_b + alive_r) - 1
-            self.msg(f"^7{self.showdown_weapon.longname} showdown! Kill ^6{enemies_left}^7 more enemies")
+            self.msg(
+                f"^7{self.showdown_weapon.longname} showdown! Kill ^6{enemies_left}^7 more enemies"
+            )
 
         if self.showdown_weapon.shortname == "g":
-            sound = random.choice(["sound/vo/humiliation1", "sound/vo/humiliation2", "sound/vo/humiliation3"])
+            sound = random.choice(
+                [
+                    "sound/vo/humiliation1",
+                    "sound/vo/humiliation2",
+                    "sound/vo/humiliation3",
+                ]
+            )
             self.play_sound(sound)
 
         if self.last_standing_steam_id is None:
@@ -409,7 +489,7 @@ class showdown(minqlx.Plugin):
             last_standing_time = int(time.time() - self.last_standing_time)
             # noinspection PyUnresolvedReferences
             if self.db:
-                if redis.VERSION >= (3, ):
+                if redis.VERSION >= (3,):
                     self.db.zadd(base_key, {timestamp: last_standing_time})
                 else:
                     self.db.zadd(base_key, last_standing_time, timestamp)
@@ -421,8 +501,11 @@ class showdown(minqlx.Plugin):
 
         self.showdown_activated = False
 
-        if self.music_started and self.game is not None and \
-                self.game.roundlimit not in [self.game.red_score, self.game.blue_score]:
+        if (
+            self.music_started
+            and self.game is not None
+            and self.game.roundlimit not in [self.game.red_score, self.game.blue_score]
+        ):
             self.stop_sound()
         self.music_started = False
 
@@ -436,7 +519,9 @@ class showdown(minqlx.Plugin):
         if self.showdown_activated:
             return
 
-        if self.is_player_eligible_to_trigger_showdown(player) and self.is_showdown_trigger_attempt(player, msg):
+        if self.is_player_eligible_to_trigger_showdown(
+            player
+        ) and self.is_showdown_trigger_attempt(player, msg):
             if len(msg) < 2 or msg[1] == "random":
                 self.logger.debug("random showdown")
                 self.weapon_showdown()
@@ -448,9 +533,13 @@ class showdown(minqlx.Plugin):
                     self.weapon_showdown(weapon.shortname)
                     return
 
-            available_weapons = sorted([weapon.shortname.lower() for weapon in ALL_WEAPONS] + ["random"])
+            available_weapons = sorted(
+                [weapon.shortname.lower() for weapon in ALL_WEAPONS] + ["random"]
+            )
             formatted_showdown_weapons = "^7, ^5".join(available_weapons)
-            player.tell(f"Weapon ^5{msg[1]}^7 not available. Available weapons: ^5{formatted_showdown_weapons}")
+            player.tell(
+                f"Weapon ^5{msg[1]}^7 not available. Available weapons: ^5{formatted_showdown_weapons}"
+            )
             return
 
         if self.showdown_votes is None:
@@ -494,7 +583,9 @@ class showdown(minqlx.Plugin):
             self.showdown_votes["hurry"].remove(player.steam_id)
 
         if player.steam_id in self.showdown_votes["showdown"]:
-            player.tell(f"Changing your vote from ^5random weapon showdown^7 to ^5{voted_showdown}^7")
+            player.tell(
+                f"Changing your vote from ^5random weapon showdown^7 to ^5{voted_showdown}^7"
+            )
             self.showdown_votes["showdown"].remove(player.steam_id)
 
         self.showdown_votes[voted_showdown].append(player.steam_id)
@@ -504,7 +595,8 @@ class showdown(minqlx.Plugin):
         votes_needed = math.floor((len(teams[showdown_player.team]) - 1) / 2) + 1
         self.msg(
             f"{player.name}^7 voted for {voted_showdown}. ^5{votes_for_showdown}^7/^5{votes_needed}^7 "
-            f"voted for showdown, ^5{votes_for_hurry}^7/^5{votes_needed}^7 voted to punish {showdown_player.name}^7.")
+            f"voted for showdown, ^5{votes_for_hurry}^7/^5{votes_needed}^7 voted to punish {showdown_player.name}^7."
+        )
 
         self.evaluate_votes()
 
@@ -515,7 +607,9 @@ class showdown(minqlx.Plugin):
         if not self.db:
             return False
 
-        return self.db.has_permission(player.steam_id, self.showdown_overwrite_permission_level)
+        return self.db.has_permission(
+            player.steam_id, self.showdown_overwrite_permission_level
+        )
 
     def is_showdown_trigger_attempt(self, player, msg):
         if len(msg) < 1:
@@ -527,7 +621,10 @@ class showdown(minqlx.Plugin):
         if len(msg) > 1:
             return True
 
-        return self.showdown_votes is not None and player.steam_id in self.showdown_votes["showdown"]
+        return (
+            self.showdown_votes is not None
+            and player.steam_id in self.showdown_votes["showdown"]
+        )
 
     def punish_last_standing_player(self):
         if self.last_standing_steam_id is None:
@@ -583,11 +680,17 @@ class showdown(minqlx.Plugin):
 
         if self.showdown_votes is None:
             return
-        if "hurry" in self.showdown_votes and (self.showdown_votes["hurry"]) >= votes_needed:
+        if (
+            "hurry" in self.showdown_votes
+            and (self.showdown_votes["hurry"]) >= votes_needed
+        ):
             self.punish_last_standing_player()
             return
 
-        if "showdown" in self.showdown_votes and (self.showdown_votes["showdown"]) >= votes_needed:
+        if (
+            "showdown" in self.showdown_votes
+            and (self.showdown_votes["showdown"]) >= votes_needed
+        ):
             self.weapon_showdown()
 
 
@@ -611,7 +714,15 @@ class random_iterator:
 
 
 class Weapon:
-    def __init__(self, ql_id, shortname, longname, aliases, countdown_announcement, start_announcement):
+    def __init__(
+        self,
+        ql_id,
+        shortname,
+        longname,
+        aliases,
+        countdown_announcement,
+        start_announcement,
+    ):
         self.ql_id = ql_id
         self.shortname = shortname
         self.longname = longname
@@ -643,9 +754,11 @@ ALL_WEAPONS = [
     Weapon(7, "rg", "Rail", [], "Lube your rails...", "Go railing!"),
     Weapon(8, "pg", "Plasma", [], "Lube your plasma...", "Plasma them down!"),
     Weapon(9, "bfg", "BFG", [], "Lube your BFGs...", "Go gettem!"),
-    Weapon(10, "gh", "Grappling", ["grapple"], "Lube your grapples...", "Grapple them!"),
+    Weapon(
+        10, "gh", "Grappling", ["grapple"], "Lube your grapples...", "Grapple them!"
+    ),
     Weapon(11, "ng", "Nail", [], "Lube your nails...", "Nail them!"),
     Weapon(12, "pl", "Mining", ["mine", "mines"], "Lube your mines...", "Let's mine!"),
     Weapon(13, "cg", "Chain", ["chaingun"], "Lube your chains...", "Let's chain some!"),
-    Weapon(14, "hmg", "Heavy machine gun", [], "Lube your guns...", "Go hunting!")
+    Weapon(14, "hmg", "Heavy machine gun", [], "Lube your guns...", "Go hunting!"),
 ]

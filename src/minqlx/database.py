@@ -180,7 +180,9 @@ class Redis(AbstractDatabase):
         elif isinstance(player, str):
             steam_id = int(player)
         else:
-            raise ValueError("Invalid player. Use either a minqlx.Player instance or a SteamID64.")
+            raise ValueError(
+                "Invalid player. Use either a minqlx.Player instance or a SteamID64."
+            )
 
         # If it's the owner, treat it like a 5.
         if steam_id == minqlx.owner():
@@ -280,17 +282,28 @@ class Redis(AbstractDatabase):
                     raise ValueError("cvar qlx_redisPassword misconfigured")
                 Redis._pass = password_cvar
                 if cvar_unixsocket:
-                    Redis._conn = redis.StrictRedis(unix_socket_path=cvar_host, db=cvar_db, password=Redis._pass,
-                                                    decode_responses=True)
+                    Redis._conn = redis.StrictRedis(
+                        unix_socket_path=cvar_host,
+                        db=cvar_db,
+                        password=Redis._pass,
+                        decode_responses=True,
+                    )
                 else:
                     split_host = cvar_host.split(":")
                     if len(split_host) > 1:
                         port = int(split_host[1])
                     else:
                         port = 6379  # Default port.
-                    Redis._pool = redis.ConnectionPool(host=split_host[0], port=port, db=cvar_db,
-                                                       password=Redis._pass, decode_responses=True)
-                    Redis._conn = redis.StrictRedis(connection_pool=Redis._pool, decode_responses=True)
+                    Redis._pool = redis.ConnectionPool(
+                        host=split_host[0],
+                        port=port,
+                        db=cvar_db,
+                        password=Redis._pass,
+                        decode_responses=True,
+                    )
+                    Redis._conn = redis.StrictRedis(
+                        connection_pool=Redis._pool, decode_responses=True
+                    )
                     # TODO: Why does self._conn get set when doing Redis._conn?
                     self._conn = None
             return Redis._conn
@@ -304,12 +317,23 @@ class Redis(AbstractDatabase):
                 port = 6379  # Default port.
 
             if unix_socket:
-                self._conn = redis.StrictRedis(unix_socket_path=host, db=database, password=password,
-                                               decode_responses=True)
+                self._conn = redis.StrictRedis(
+                    unix_socket_path=host,
+                    db=database,
+                    password=password,
+                    decode_responses=True,
+                )
             else:
-                self._pool = redis.ConnectionPool(host=split_host[0], port=port, db=database, password=password,
-                                                  decode_responses=True)
-                self._conn = redis.StrictRedis(connection_pool=self._pool, decode_responses=True)
+                self._pool = redis.ConnectionPool(
+                    host=split_host[0],
+                    port=port,
+                    db=database,
+                    password=password,
+                    decode_responses=True,
+                )
+                self._conn = redis.StrictRedis(
+                    connection_pool=self._pool, decode_responses=True
+                )
         return self._conn
 
     def close(self):

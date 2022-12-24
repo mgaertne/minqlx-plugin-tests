@@ -32,13 +32,16 @@ class Game:
     """A class representing the game. That is, stuff like what map is being played,
     if it's in warmup, and so on. It also has methods to call in timeins, aborts,
     pauses, and so on."""
+
     def __init__(self, cached=True):
         self.cached = cached
         self._valid = True
         cs = minqlx.get_configstring(0)
         if not cs:
             self._valid = False
-            raise NonexistentGameError("Tried to instantiate a game while no game is active.")
+            raise NonexistentGameError(
+                "Tried to instantiate a game while no game is active."
+            )
 
     def __repr__(self):
         try:
@@ -267,7 +270,9 @@ class Game:
         elif hasattr(new_tags, "__iter__"):
             minqlx.set_cvar("sv_tags", ",".join(new_tags))
         else:
-            raise ValueError("tags need to be a string or an iterable returning strings.")
+            raise ValueError(
+                "tags need to be a string or an iterable returning strings."
+            )
 
     @property
     def workshop_items(self):

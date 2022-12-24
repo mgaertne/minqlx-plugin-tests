@@ -42,8 +42,9 @@ class Plugin:
         like :func:`minqlx.thread` can be useful.
 
     """
+
     # Static dictionary of plugins currently loaded for the purpose of inter-plugin communication.
-    _loaded_plugins: ClassVar[Dict[str, 'minqlx.Plugin']] = {}
+    _loaded_plugins: ClassVar[Dict[str, "minqlx.Plugin"]] = {}
     # The database driver class the plugin should use.
     database = None
 
@@ -121,14 +122,34 @@ class Plugin:
         minqlx.EVENT_DISPATCHERS[event].remove_hook(self.name, handler, priority)
         self._hooks.remove((event, handler, priority))
 
-    def add_command(self, name, handler, permission=0,
-                    channels=None, exclude_channels=(), priority=minqlx.PRI_NORMAL,
-                    client_cmd_pass=False, client_cmd_perm=5, prefix=True, usage=""):
+    def add_command(
+        self,
+        name,
+        handler,
+        permission=0,
+        channels=None,
+        exclude_channels=(),
+        priority=minqlx.PRI_NORMAL,
+        client_cmd_pass=False,
+        client_cmd_perm=5,
+        prefix=True,
+        usage="",
+    ):
         if not hasattr(self, "_commands"):
             self._commands = []
 
-        cmd = minqlx.Command(self, name, handler, permission, channels, exclude_channels, client_cmd_pass,
-                             client_cmd_perm, prefix, usage)
+        cmd = minqlx.Command(
+            self,
+            name,
+            handler,
+            permission,
+            channels,
+            exclude_channels,
+            client_cmd_pass,
+            client_cmd_perm,
+            prefix,
+            usage,
+        )
         self._commands.append(cmd)
         minqlx.COMMANDS.add_command(cmd, priority)
 
@@ -188,7 +209,7 @@ class Plugin:
             minqlx.set_cvar(name, value, flags)
             return True
 
-        minqlx.console_command(f"{name} \"{value}\"")
+        minqlx.console_command(f'{name} "{value}"')
         return False
 
     @classmethod
@@ -396,7 +417,9 @@ class Plugin:
         else:
             players = player_list
 
-        res: dict[str, list[minqlx.Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
+        res: dict[str, list[minqlx.Player]] = {
+            team_value: [] for team_value in minqlx.TEAMS.values()
+        }
 
         for p in players:
             res[p.team].append(p)
@@ -409,7 +432,7 @@ class Plugin:
         if recipient:
             client_id = cls.client_id(recipient)
 
-        minqlx.send_server_command(client_id, f"cp \"{msg}\"")
+        minqlx.send_server_command(client_id, f'cp "{msg}"')
 
     @classmethod
     def tell(cls, msg, recipient, **kwargs):

@@ -79,20 +79,17 @@ MOD_LIGHTNING_DISCHARGE: int
 MOD_HMG: int
 MOD_RAILGUN_HEADSHOT: int
 
-
 # classes
 class Vector3(tuple):
     x: int
     y: int
     z: int
 
-
 class Flight(tuple):
     fuel: int
     max_fuel: int
     thrust: int
     refuel: int
-
 
 class Powerups(tuple):
     quad: int
@@ -101,7 +98,6 @@ class Powerups(tuple):
     invisibility: int
     regeneration: int
     invulnerability: int
-
 
 class Weapons(tuple):
     g: int
@@ -120,7 +116,6 @@ class Weapons(tuple):
     hmg: int
     hands: int
 
-
 class PlayerInfo(tuple):
     @property
     def client_id(self) -> int: ...
@@ -137,7 +132,6 @@ class PlayerInfo(tuple):
     @property
     def privileges(self) -> int: ...
 
-
 class PlayerState(tuple):
     is_alive: bool
     position: Vector3
@@ -153,7 +147,6 @@ class PlayerState(tuple):
     flight: Flight
     is_frozen: bool
 
-
 class PlayerStats(tuple):
     score: int
     kills: int
@@ -163,7 +156,6 @@ class PlayerStats(tuple):
     time: int
     ping: int
 
-
 def player_info(_client_id: int) -> PlayerInfo | None: ...
 def players_info() -> Iterable[PlayerInfo]: ...
 def get_userinfo(_client_id: int) -> str | None: ...
@@ -172,15 +164,18 @@ def client_command(_client_id: int, _cmd: str) -> bool | None: ...
 def console_command(_cmd: str) -> None: ...
 def get_cvar(_cvar: str) -> str | None: ...
 def set_cvar(_cvar: str, _value: str, _flags: int | None = ...) -> bool: ...
-def set_cvar_limit(_name: str, _value: int | float, _min: int | float, _max: int | float,
-                   _flags: int) -> None: ...
+def set_cvar_limit(
+    _name: str, _value: int | float, _min: int | float, _max: int | float, _flags: int
+) -> None: ...
 def kick(_client_id: int, _reason: str | None = None) -> None: ...
 def console_print(_text: str) -> None: ...
 def get_configstring(_config_id: int) -> str: ...
 def set_configstring(_config_id: int, _value: str) -> None: ...
 def force_vote(_pass: bool) -> bool: ...
 def add_console_command(_command: str) -> None: ...
-def register_handler(_event: str, _handler: Callable[[Any], Any] | None = ...) -> None: ...
+def register_handler(
+    _event: str, _handler: Callable[[Any], Any] | None = ...
+) -> None: ...
 def player_state(_client_id: int) -> PlayerState | None: ...
 def player_stats(_client_id: int) -> PlayerStats | None: ...
 def set_position(_client_id: int, _position: Vector3) -> bool: ...

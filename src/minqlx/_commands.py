@@ -43,6 +43,7 @@ class AbstractChannel:
     like "webinterface", and then implement a __repr__() to return something like "webinterface user1".
 
     """
+
     def __init__(self, name):
         self._name = name
 
@@ -79,7 +80,7 @@ class AbstractChannel:
             i = msg.find("\n")
             if 0 <= i <= limit:
                 res.append(msg[:i])
-                msg = msg[i+1:]
+                msg = msg[i + 1 :]
                 continue
 
             if len(msg) < limit:
@@ -90,20 +91,21 @@ class AbstractChannel:
             length = 0
             while True:
                 i = msg[length:].find(delimiter)
-                if i == -1 or i+length > limit:
+                if i == -1 or i + length > limit:
                     if not length:
-                        length = limit+1
-                    res.append(msg[:length-1])
-                    msg = msg[length+len(delimiter)-1:]
+                        length = limit + 1
+                    res.append(msg[: length - 1])
+                    msg = msg[length + len(delimiter) - 1 :]
                     break
-                length += i+1
+                length += i + 1
 
         return res
 
 
 class ChatChannel(AbstractChannel):
     """A channel for chat to and from the server."""
-    def __init__(self, name="chat", fmt="print \"{}\n\"\n"):
+
+    def __init__(self, name="chat", fmt='print "{}\n"\n'):
         super().__init__(name)
         self.fmt = fmt
         self.team = "all"
@@ -113,7 +115,7 @@ class ChatChannel(AbstractChannel):
         # We convert whatever we got to a string and replace all double quotes
         # to single quotes, since the engine doesn't support escaping them.
         # TODO: rcon can print quotes to clients using NET_OutOfBandPrint. Maybe we should too?
-        msg = str(msg).replace("\"", "'")
+        msg = str(msg).replace('"', "'")
         # Can deal with all the below ChatChannel subclasses.
         last_color = ""
         targets = None
@@ -157,15 +159,17 @@ class ChatChannel(AbstractChannel):
 
 class RedTeamChatChannel(ChatChannel):
     """A channel for in-game chat to and from the red team."""
+
     def __init__(self):
-        super().__init__(name="red_team_chat", fmt="print \"{}\n\"\n")
+        super().__init__(name="red_team_chat", fmt='print "{}\n"\n')
         self.team = "red"
 
 
 class BlueTeamChatChannel(ChatChannel):
     """A channel for in-game chat to and from the blue team."""
+
     def __init__(self):
-        super().__init__(name="blue_team_chat", fmt="print \"{}\n\"\n")
+        super().__init__(name="blue_team_chat", fmt='print "{}\n"\n')
         self.team = "blue"
 
 
@@ -174,22 +178,25 @@ class FreeChatChannel(ChatChannel):
     is the team all FFA players are in.
 
     """
+
     def __init__(self):
-        super().__init__(name="free_chat", fmt="print \"{}\n\"\n")
+        super().__init__(name="free_chat", fmt='print "{}\n"\n')
         self.team = "free"
 
 
 class SpectatorChatChannel(ChatChannel):
     """A channel for in-game chat to and from the spectator team."""
+
     def __init__(self):
-        super().__init__(name="spectator_chat", fmt="print \"{}\n\"\n")
+        super().__init__(name="spectator_chat", fmt='print "{}\n"\n')
         self.team: str = "spectator"
 
 
 class TellChannel(ChatChannel):
     """A channel for private in-game messages."""
+
     def __init__(self, player):
-        super().__init__(name="tell", fmt="print \"{}\n\"\n")
+        super().__init__(name="tell", fmt='print "{}\n"\n')
         self.recipient = player
 
     def __repr__(self):
@@ -201,6 +208,7 @@ class TellChannel(ChatChannel):
 
 class ConsoleChannel(AbstractChannel):
     """A channel that prints to the console."""
+
     def __init__(self):
         super().__init__("console")
 
@@ -210,6 +218,7 @@ class ConsoleChannel(AbstractChannel):
 
 class ClientCommandChannel(AbstractChannel):
     """Wraps a TellChannel, but with its own name."""
+
     def __init__(self, player):
         super().__init__("client_command")
         self.recipient = player
@@ -236,8 +245,20 @@ class Command:
     action should be taken.
 
     """
-    def __init__(self, plugin, name, handler, permission, channels, exclude_channels, client_cmd_pass, client_cmd_perm,
-                 prefix, usage):
+
+    def __init__(
+        self,
+        plugin,
+        name,
+        handler,
+        permission,
+        channels,
+        exclude_channels,
+        client_cmd_pass,
+        client_cmd_perm,
+        prefix,
+        usage,
+    ):
         if not (channels is None or hasattr(channels, "__iter__")):
             raise ValueError("'channels' must be a finite iterable or None.")
         if not (channels is None or hasattr(exclude_channels, "__iter__")):
@@ -252,7 +273,9 @@ class Command:
         self.handler = handler
         self.permission = permission
         self.channels = list(channels) if channels is not None else []
-        self.exclude_channels = list(exclude_channels) if exclude_channels is not None else []
+        self.exclude_channels = (
+            list(exclude_channels) if exclude_channels is not None else []
+        )
         self.client_cmd_pass = client_cmd_pass
         self.client_cmd_perm = client_cmd_perm
         self.prefix = prefix
@@ -260,7 +283,13 @@ class Command:
 
     def execute(self, player, msg, channel):
         logger = minqlx.get_logger(self.plugin)
-        logger.debug("%s executed: %s @ %s -> %s", player.steam_id, self.name[0], self.plugin.name, channel)
+        logger.debug(
+            "%s executed: %s @ %s -> %s",
+            player.steam_id,
+            self.name[0],
+            self.plugin.name,
+            channel,
+        )
         return self.handler(player, msg.split(), channel)
 
     def is_eligible_name(self, name):
@@ -270,7 +299,7 @@ class Command:
                 return False
             if not name.startswith(prefix):
                 return False
-            name = name[len(prefix):]
+            name = name[len(prefix) :]
 
         return name.lower() in self.name
 
@@ -299,9 +328,11 @@ class Command:
             if cvar:
                 perm = int(cvar)
 
-        if (player.steam_id == minqlx.owner() or
-                (not is_client_cmd and perm == 0) or
-                (is_client_cmd and client_cmd_perm == 0)):
+        if (
+            player.steam_id == minqlx.owner()
+            or (not is_client_cmd and perm == 0)
+            or (is_client_cmd and client_cmd_perm == 0)
+        ):
             return True
 
         if self.plugin.db is None:
@@ -314,12 +345,12 @@ class Command:
 
 
 class CommandInvoker:
-    """Holds all commands and executes them whenever we get input and should execute.
+    """Holds all commands and executes them whenever we get input and should execute."""
 
-    """
     def __init__(self):
-        self._commands: tuple[list[Command], list[Command], list[Command], list[Command], list[Command]] \
-            = ([], [], [], [], [])
+        self._commands: tuple[
+            list[Command], list[Command], list[Command], list[Command], list[Command]
+        ] = ([], [], [], [], [])
 
     @property
     def commands(self):
@@ -368,15 +399,21 @@ class CommandInvoker:
 
         for priority_level in self._commands:
             for cmd in priority_level:
-                if cmd.is_eligible_name(name) and cmd.is_eligible_channel(channel) and \
-                        cmd.is_eligible_player(player, is_client_cmd):
+                if (
+                    cmd.is_eligible_name(name)
+                    and cmd.is_eligible_channel(channel)
+                    and cmd.is_eligible_player(player, is_client_cmd)
+                ):
                     # Client commands will not pass through to the engine unless told to explicitly.
                     # This is to avoid having to return RET_STOP_EVENT just to not get the "unknown cmd" msg.
                     if is_client_cmd:
                         pass_through = cmd.client_cmd_pass
 
                     # Dispatch "command" and allow people to stop it from being executed.
-                    if minqlx.EVENT_DISPATCHERS["command"].dispatch(player, cmd, msg) is False:
+                    if (
+                        minqlx.EVENT_DISPATCHERS["command"].dispatch(player, cmd, msg)
+                        is False
+                    ):
                         return True
 
                     res = cmd.execute(player, msg, channel)
@@ -391,8 +428,12 @@ class CommandInvoker:
                         channel.reply(f"^7Usage: ^6{name} {cmd.usage}")
                     elif res is not None and res != minqlx.RET_NONE:
                         logger = minqlx.get_logger(None)
-                        logger.warning("Command '%s' with handler '%s' returned an unknown return value: %s",
-                                       cmd.name, cmd.handler.__name__, res)
+                        logger.warning(
+                            "Command '%s' with handler '%s' returned an unknown return value: %s",
+                            cmd.name,
+                            cmd.handler.__name__,
+                            res,
+                        )
 
         return pass_through
 

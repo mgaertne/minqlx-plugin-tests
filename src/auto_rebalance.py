@@ -33,6 +33,7 @@ class auto_rebalance(Plugin):
     * qlx_rebalanceNumAnnouncements (default: "2") The number of announcements the plugin will make for a current
     switch suggestion at round end
     """
+
     def __init__(self):
         """
         default constructor, adds the plugin hooks and initializes variables used
@@ -44,12 +45,20 @@ class auto_rebalance(Plugin):
         Plugin.set_cvar_once("qlx_rebalanceWinningStreakThreshold", "3")
         Plugin.set_cvar_once("qlx_rebalanceNumAnnouncements", "2")
 
-        self.score_diff_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int) or 3
-        self.winning_streak_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int) or 3
-        self.num_announcements = Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int) or 2
+        self.score_diff_suggestion_threshold = (
+            Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int) or 3
+        )
+        self.winning_streak_suggestion_threshold = (
+            Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int) or 3
+        )
+        self.num_announcements = (
+            Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int) or 2
+        )
 
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
-        self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
+        self.add_hook(
+            "round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST
+        )
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
         for event in ["map", "game_countdown"]:
             self.add_hook(event, self.handle_reset_winning_teams)
@@ -79,11 +88,13 @@ class auto_rebalance(Plugin):
         if self.game.state != "in_progress":
             return minqlx.RET_NONE
 
-        if old not in ["spectator", "free"] or new not in ['red', 'blue', 'any']:
+        if old not in ["spectator", "free"] or new not in ["red", "blue", "any"]:
             return minqlx.RET_NONE
 
         if "balance" not in self.plugins:
-            Plugin.msg("^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible.")
+            Plugin.msg(
+                "^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible."
+            )
             return minqlx.RET_NONE
 
         gametype = self.game.type_short
@@ -105,27 +116,36 @@ class auto_rebalance(Plugin):
 
         other_than_last_players_team = self.other_team(last_new_player.team)
         new_player_team = teams[other_than_last_players_team].copy() + [player]
-        proposed_diff = self.calculate_player_average_difference(gametype,
-                                                                 teams[last_new_player.team].copy(),
-                                                                 new_player_team)
+        proposed_diff = self.calculate_player_average_difference(
+            gametype, teams[last_new_player.team].copy(), new_player_team
+        )
 
-        alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + \
-                             [player]
-        alternative_team_b = teams[other_than_last_players_team].copy() + [last_new_player]
-        alternative_diff = self.calculate_player_average_difference(gametype,
-                                                                    alternative_team_a,
-                                                                    alternative_team_b)
+        alternative_team_a = [
+            player
+            for player in teams[last_new_player.team]
+            if player != last_new_player
+        ] + [player]
+        alternative_team_b = teams[other_than_last_players_team].copy() + [
+            last_new_player
+        ]
+        alternative_diff = self.calculate_player_average_difference(
+            gametype, alternative_team_a, alternative_team_b
+        )
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
-            last_new_player.tell(f"{last_new_player.clean_name}, you have been moved to "
-                                 f"{self.format_team(other_than_last_players_team)} to maintain team balance.")
+            last_new_player.tell(
+                f"{last_new_player.clean_name}, you have been moved to "
+                f"{self.format_team(other_than_last_players_team)} to maintain team balance."
+            )
             last_new_player.put(other_than_last_players_team)
             if new in [last_new_player.team]:
                 return minqlx.RET_NONE
             if new not in ["any"]:
-                player.tell(f"{player.clean_name}, you have been moved to {self.format_team(last_new_player.team)} "
-                            f"to maintain team balance.")
+                player.tell(
+                    f"{player.clean_name}, you have been moved to {self.format_team(last_new_player.team)} "
+                    f"to maintain team balance."
+                )
             player.put(last_new_player.team)
             return minqlx.RET_STOP_ALL
 
@@ -221,12 +241,18 @@ class auto_rebalance(Plugin):
         if gametype not in SUPPORTED_GAMETYPES:
             return minqlx.RET_NONE
 
-        if self.game.roundlimit in [self.game.blue_score, self.game.red_score] or \
-                self.game.blue_score < 0 or self.game.red_score < 0:
+        if (
+            self.game.roundlimit in [self.game.blue_score, self.game.red_score]
+            or self.game.blue_score < 0
+            or self.game.red_score < 0
+        ):
             return minqlx.RET_NONE
 
-        if abs(self.game.red_score - self.game.blue_score) < self.score_diff_suggestion_threshold and \
-                not self.team_is_on_a_winning_streak(winning_team):
+        if abs(
+            self.game.red_score - self.game.blue_score
+        ) < self.score_diff_suggestion_threshold and not self.team_is_on_a_winning_streak(
+            winning_team
+        ):
             return minqlx.RET_NONE
 
         if self.announced_often_enough(winning_team):
@@ -236,8 +262,10 @@ class auto_rebalance(Plugin):
         if len(teams["red"]) != len(teams["blue"]):
             return minqlx.RET_NONE
 
-        if 'balance' in minqlx.Plugin._loaded_plugins:  # pylint: disable=protected-access
-            b = Plugin._loaded_plugins['balance']  # pylint: disable=protected-access
+        if (
+            "balance" in minqlx.Plugin._loaded_plugins
+        ):  # pylint: disable=protected-access
+            b = Plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
             players = {p.steam_id: gametype for p in teams["red"] + teams["blue"]}
             # noinspection PyUnresolvedReferences
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)
@@ -250,18 +278,25 @@ class auto_rebalance(Plugin):
         :param: team: the team to check for a winning streak
         :return True if the team is on a winning streak or False if not
         """
-        return self.winning_teams[-self.winning_streak_suggestion_threshold:] == \
-            self.winning_streak_suggestion_threshold * [team]
+        return self.winning_teams[
+            -self.winning_streak_suggestion_threshold :
+        ] == self.winning_streak_suggestion_threshold * [team]
 
     def announced_often_enough(self, winning_team):
         if not self.game:
             return False
 
-        maximum_announcements = self.winning_streak_suggestion_threshold + self.num_announcements
+        maximum_announcements = (
+            self.winning_streak_suggestion_threshold + self.num_announcements
+        )
 
-        return abs(self.game.red_score - self.game.blue_score) > \
-            self.score_diff_suggestion_threshold + self.num_announcements or \
-            self.winning_teams[-maximum_announcements:] == maximum_announcements * [winning_team]
+        return abs(
+            self.game.red_score - self.game.blue_score
+        ) > self.score_diff_suggestion_threshold + self.num_announcements or self.winning_teams[
+            -maximum_announcements:
+        ] == maximum_announcements * [
+            winning_team
+        ]
 
     def handle_reset_winning_teams(self, *_args, **_kwargs):
         """

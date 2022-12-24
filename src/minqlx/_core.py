@@ -44,63 +44,72 @@ if sys.version_info < (3, 5):
     raise AssertionError("Only python 3.5 and later is supported by minqlx")
 
 # Team number -> string
-TEAMS = {0: 'free', 1: 'red', 2: 'blue', 3: 'spectator'}
+TEAMS = {0: "free", 1: "red", 2: "blue", 3: "spectator"}
 
 # Game type number -> string
 GAMETYPES = {
-    0: 'Free for All',
-    1: 'Duel',
-    2: 'Race',
-    3: 'Team Deathmatch',
-    4: 'Clan Arena',
-    5: 'Capture the Flag',
-    6: 'One Flag',
-    8: 'Harvester',
-    9: 'Freeze Tag',
-    10: 'Domination',
-    11: 'Attack and Defend',
-    12: 'Red Rover'
+    0: "Free for All",
+    1: "Duel",
+    2: "Race",
+    3: "Team Deathmatch",
+    4: "Clan Arena",
+    5: "Capture the Flag",
+    6: "One Flag",
+    8: "Harvester",
+    9: "Freeze Tag",
+    10: "Domination",
+    11: "Attack and Defend",
+    12: "Red Rover",
 }
 
 # Game type number -> short string
 GAMETYPES_SHORT = {
-    0: 'ffa',
-    1: 'duel',
-    2: 'race',
-    3: 'tdm',
-    4: 'ca',
-    5: 'ctf',
-    6: '1f',
-    8: 'har',
-    9: 'ft',
-    10: 'dom',
-    11: 'ad',
-    12: 'rr'
+    0: "ffa",
+    1: "duel",
+    2: "race",
+    3: "tdm",
+    4: "ca",
+    5: "ctf",
+    6: "1f",
+    8: "har",
+    9: "ft",
+    10: "dom",
+    11: "ad",
+    12: "rr",
 }
 
 # Connection states.
-CONNECTION_STATES = {0: 'free', 1: 'zombie', 2: 'connected', 3: 'primed', 4: 'active'}
+CONNECTION_STATES = {0: "free", 1: "zombie", 2: "connected", 3: "primed", 4: "active"}
 
 WEAPONS = {
-    1: 'g',
-    2: 'mg',
-    3: 'sg',
-    4: 'gl',
-    5: 'rl',
-    6: 'lg',
-    7: 'rg',
-    8: 'pg',
-    9: 'bfg',
-    10: 'gh',
-    11: 'ng',
-    12: 'pl',
-    13: 'cg',
-    14: 'hmg',
-    15: 'hands'
+    1: "g",
+    2: "mg",
+    3: "sg",
+    4: "gl",
+    5: "rl",
+    6: "lg",
+    7: "rg",
+    8: "pg",
+    9: "bfg",
+    10: "gh",
+    11: "ng",
+    12: "pl",
+    13: "cg",
+    14: "hmg",
+    15: "hands",
 }
 
 DEFAULT_PLUGINS = (
-    "plugin_manager", "essentials", "motd", "permission", "ban", "silence", "clan", "names", "log", "workshop"
+    "plugin_manager",
+    "essentials",
+    "motd",
+    "permission",
+    "ban",
+    "silence",
+    "clan",
+    "names",
+    "log",
+    "workshop",
 )
 
 
@@ -158,7 +167,9 @@ def _configure_logger():
     logger.setLevel(logging.DEBUG)
 
     # Console
-    console_fmt = logging.Formatter("[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S")
+    console_fmt = logging.Formatter(
+        "[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S"
+    )
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(console_fmt)
@@ -175,12 +186,19 @@ def _configure_logger():
     maxlogsize = minqlx.Plugin.get_cvar("qlx_logsSize", int)
     if maxlogsize is None:
         return
-    file_fmt = logging.Formatter("(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s", "%H:%M:%S")
-    file_handler = RotatingFileHandler(file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs)
+    file_fmt = logging.Formatter(
+        "(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s", "%H:%M:%S"
+    )
+    file_handler = RotatingFileHandler(
+        file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs
+    )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_fmt)
     logger.addHandler(file_handler)
-    logger.info("============================= minqlx run @ %s =============================", datetime.datetime.now())
+    logger.info(
+        "============================= minqlx run @ %s =============================",
+        datetime.datetime.now(),
+    )
 
 
 def log_exception(plugin=None):
@@ -201,7 +219,9 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     """A handler for unhandled exceptions."""
     # TODO: If exception was raised within a plugin, detect it and pass to log_exception()
     logger = get_logger(None)
-    e = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback)).rstrip("\n")
+    e = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback)).rstrip(
+        "\n"
+    )
     for line in e.split("\n"):
         logger.error(line)
 
@@ -231,7 +251,9 @@ def owner():
         return sid
     except:  # pylint: disable=bare-except
         logger = minqlx.get_logger()
-        logger.error("Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format.")
+        logger.error(
+            "Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format."
+        )
     return None
 
 
@@ -268,7 +290,13 @@ def set_plugins_version(path) -> None:
     del env["LD_PRELOAD"]
     try:
         # Get the version using git describe.
-        with subprocess.Popen(args_version, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env) as p:
+        with subprocess.Popen(
+            args_version,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=path,
+            env=env,
+        ) as p:
             p.wait(timeout=1)
             if p.returncode != 0:
                 setattr(minqlx, "__plugins_version__", "NOT_SET")
@@ -278,7 +306,13 @@ def set_plugins_version(path) -> None:
                 version = p.stdout.read().decode().strip()
 
         # Get the branch using git rev-parse.
-        with subprocess.Popen(args_branch, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path, env=env) as p:
+        with subprocess.Popen(
+            args_branch,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=path,
+            env=env,
+        ) as p:
             p.wait(timeout=1)
             if p.returncode != 0:
                 setattr(minqlx, "__plugins_version__", version)
@@ -302,12 +336,17 @@ def set_map_subtitles() -> None:
     cs = minqlx.get_configstring(678)
     if cs:
         cs += " - "
-    minqlx.set_configstring(678, cs + f"Running minqlx ^6{minqlx.__version__}^7 "
-                                      f"with plugins ^6{getattr(minqlx, '__plugins_version__', 'NOT_SET')}^7.")
+    minqlx.set_configstring(
+        678,
+        cs + f"Running minqlx ^6{minqlx.__version__}^7 "
+        f"with plugins ^6{getattr(minqlx, '__plugins_version__', 'NOT_SET')}^7.",
+    )
     cs = minqlx.get_configstring(679)
     if cs:
         cs += " - "
-    minqlx.set_configstring(679, cs + "Check ^6http://github.com/MinoMino/minqlx^7 for more details.")
+    minqlx.set_configstring(
+        679, cs + "Check ^6http://github.com/MinoMino/minqlx^7 for more details."
+    )
 
 
 # ====================================================================
@@ -334,10 +373,13 @@ def delay(time):
     :type: time: float
 
     """
+
     def wrap(func):
         def f(*args, **kwargs):
             minqlx.frame_tasks.enter(time, 0, func, args, kwargs)
+
         return f
+
     return wrap
 
 
@@ -357,13 +399,16 @@ def thread(func, force=False):
     :returns: threading.Thread
 
     """
+
     def f(*args, **kwargs):  # pylint: disable=inconsistent-return-statements
         if not force and threading.current_thread().name.endswith(_thread_name):
             func(*args, **kwargs)
         else:
             global _thread_count  # pylint: disable=global-statement
             name = func.__name__ + f"-{str(_thread_count)}-{_thread_name}"
-            t = threading.Thread(target=func, name=name, args=args, kwargs=kwargs, daemon=True)
+            t = threading.Thread(
+                target=func, name=name, args=args, kwargs=kwargs, daemon=True
+            )
             t.start()
             _thread_count += 1
 
@@ -415,7 +460,9 @@ def load_preset_plugins():
         for p in plugins:
             load_plugin(p)
     else:
-        raise PluginLoadError(f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'.")
+        raise PluginLoadError(
+            f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'."
+        )
 
 
 def load_plugin(plugin):
@@ -441,13 +488,17 @@ def load_plugin(plugin):
         _modules[plugin] = module
 
         if not hasattr(module, plugin):
-            raise PluginLoadError("The plugin needs to have a class with the exact name as the file, minus the .py.")
+            raise PluginLoadError(
+                "The plugin needs to have a class with the exact name as the file, minus the .py."
+            )
 
         plugin_class = getattr(module, plugin)
         if issubclass(plugin_class, minqlx.Plugin):
             plugins[plugin] = plugin_class()
         else:
-            raise PluginLoadError("Attempted to load a plugin that is not a subclass of 'minqlx.Plugin'.")
+            raise PluginLoadError(
+                "Attempted to load a plugin that is not a subclass of 'minqlx.Plugin'."
+            )
     except:
         log_exception(plugin)
         raise
@@ -501,7 +552,7 @@ def initialize_cvars():
     minqlx.set_cvar_once("qlx_database", "Redis")
     minqlx.set_cvar_once("qlx_commandPrefix", "!")
     minqlx.set_cvar_once("qlx_logs", "2")
-    minqlx.set_cvar_once("qlx_logsSize", str(3 * 10 ** 6))  # 3 MB
+    minqlx.set_cvar_once("qlx_logsSize", str(3 * 10**6))  # 3 MB
     # Redis
     minqlx.set_cvar_once("qlx_redisAddress", "127.0.0.1")
     minqlx.set_cvar_once("qlx_redisDatabase", "0")

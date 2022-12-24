@@ -12,7 +12,7 @@ from minqlx import Plugin
 THIRTY_SECOND_WARNINGS = [
     "sound/vo/30_second_warning.ogg",
     "sound/vo_female/30_second_warning.ogg",
-    "sound/vo_evil/30_second_warning.ogg"
+    "sound/vo_evil/30_second_warning.ogg",
 ]
 
 
@@ -28,10 +28,14 @@ class autoready(Plugin):
         self.set_cvar_once("qlx_autoready_disable_manual_readyup", "0")
 
         self.min_players = self.get_cvar("qlx_autoready_min_players", int) or 10
-        self.autostart_delay = self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        self.autostart_delay = (
+            self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        )
         self.min_counter = self.get_cvar("qlx_autoready_min_seconds", int) or 30
         self.timer_visible = self.get_cvar("qlx_autoready_timer_visible", int) or 60
-        self.disable_player_ready = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
+        self.disable_player_ready = (
+            self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
+        )
 
         self.timer = None
         self.current_timer = -1
@@ -98,7 +102,7 @@ class autoready(Plugin):
             10: shuffle_double_blink,
             9: double_blink,
             1: wear_off_double_blink,
-            0: allready
+            0: allready,
         }
 
     def handle_game_countdown(self):
@@ -160,7 +164,8 @@ class CountdownThread(Thread):
         self._remaining = -1
         self._lock = RLock()
         self.timed_actions = {
-            duration: timed_actions[duration] for duration in sorted(timed_actions.keys(), reverse=True)
+            duration: timed_actions[duration]
+            for duration in sorted(timed_actions.keys(), reverse=True)
         }
         self._now = None
 
@@ -183,8 +188,8 @@ class CountdownThread(Thread):
 
         with self._lock:
             self._remaining = max(
-                int((self._target_time - self._determine_now()).total_seconds()),
-                0)
+                int((self._target_time - self._determine_now()).total_seconds()), 0
+            )
 
     def run(self):
         self._target_time = self.calculate_target_time()
@@ -198,10 +203,14 @@ class CountdownThread(Thread):
 
         remaining = int((self._target_time - self._determine_now()).total_seconds())
 
-        remaining_function = self.determine_timed_action_for_remaining_seconds(remaining)
+        remaining_function = self.determine_timed_action_for_remaining_seconds(
+            remaining
+        )
         remaining_function(remaining)
 
-        sleep_delay = self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        sleep_delay = (
+            self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        )
         if sleep_delay < timedelta(seconds=0.0):
             return
 
@@ -225,9 +234,11 @@ class CountdownThread(Thread):
 def display_countdown(remaining):
     time_color_format = "^1" if remaining <= 30 else "^3"
     remaining_minutes, remaining_seconds = divmod(remaining, 60)
-    Plugin.center_print(f"Match will ^2auto-start^7 in\n"
-                        f"{time_color_format}{int(remaining_minutes):01}^7:"
-                        f"{time_color_format}{int(remaining_seconds):02}")
+    Plugin.center_print(
+        f"Match will ^2auto-start^7 in\n"
+        f"{time_color_format}{int(remaining_minutes):01}^7:"
+        f"{time_color_format}{int(remaining_seconds):02}"
+    )
 
 
 def blink(remaining, *, sleep=0.4):

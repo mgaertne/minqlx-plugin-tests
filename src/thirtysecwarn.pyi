@@ -1,6 +1,5 @@
 from minqlx import Plugin
 
-
 # noinspection PyPep8Naming
 class thirtysecwarn(Plugin):
     announcerMap: dict[str, str]

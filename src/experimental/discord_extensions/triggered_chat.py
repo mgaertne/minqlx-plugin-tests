@@ -2,8 +2,10 @@ from typing import Set, Optional
 
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
+
 # noinspection PyPackageRequirements
 from discord import app_commands, Interaction, Color, Embed, Member
+
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot, Context, Command
 
@@ -18,7 +20,7 @@ def int_set(string_set: Optional[Set[str]]) -> Set[int]:
         return returned
 
     for item in string_set:
-        if item == '':
+        if item == "":
             continue
         value = int(item)
         returned.add(value)
@@ -35,6 +37,7 @@ class TriggeredChat(Cog):
     prefix
     * qlx_discordTriggeredChannelIds (default: "") Comma separated list of channel ids for triggered relay.
     """
+
     def __init__(self, bot: Bot):
         self.bot = bot
 
@@ -42,23 +45,35 @@ class TriggeredChat(Cog):
         Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
         Plugin.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
 
-        self.discord_trigger_triggered_channel_chat: str = \
+        self.discord_trigger_triggered_channel_chat: str = (
             Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat") or "quakelive"
-        self.discord_message_prefix: str = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
+        )
+        self.discord_message_prefix: str = (
+            Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
+        )
         self.discord_triggered_channel_ids: Set[int] = int_set(
-            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
+            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
+        )
 
-        self.bot.add_command(Command(self.triggered_chat, name=self.discord_trigger_triggered_channel_chat,
-                                     checks=[self.is_message_in_triggered_channel],
-                                     pass_context=True,
-                                     help="send [message...] to the Quake Live server",
-                                     require_var_positional=True))
+        self.bot.add_command(
+            Command(
+                self.triggered_chat,
+                name=self.discord_trigger_triggered_channel_chat,
+                checks=[self.is_message_in_triggered_channel],
+                pass_context=True,
+                help="send [message...] to the Quake Live server",
+                require_var_positional=True,
+            )
+        )
 
         # noinspection PyTypeChecker
-        slash_triggered_chat_command: app_commands.Command = \
-            app_commands.Command(name=self.discord_trigger_triggered_channel_chat,
-                                 description="send a message to the Quake Live server",
-                                 callback=self.slash_triggered_chat, parent=None, nsfw=False)
+        slash_triggered_chat_command: app_commands.Command = app_commands.Command(
+            name=self.discord_trigger_triggered_channel_chat,
+            description="send a message to the Quake Live server",
+            callback=self.slash_triggered_chat,
+            parent=None,
+            nsfw=False,
+        )
         slash_triggered_chat_command.guild_only = True
         self.bot.tree.add_command(slash_triggered_chat_command)
 
@@ -83,42 +98,57 @@ class TriggeredChat(Cog):
         """
         channel = ctx.channel
         if not isinstance(channel, GuildChannel):
-            await ctx.reply(content="tried to send a message from the wrong channel",
-                            ephemeral=True)
+            await ctx.reply(
+                content="tried to send a message from the wrong channel", ephemeral=True
+            )
             return
 
         author = ctx.author
         if not isinstance(author, Member):
-            await ctx.reply(content="tried to send a message from a private message",
-                            ephemeral=True)
+            await ctx.reply(
+                content="tried to send a message from a private message", ephemeral=True
+            )
             return
 
         prefix_length = self.command_length(ctx)
         minqlx.CHAT_CHANNEL.reply(
-            self._format_message_to_quake(channel, author,
-                                          ctx.message.clean_content[prefix_length:]))
+            self._format_message_to_quake(
+                channel, author, ctx.message.clean_content[prefix_length:]
+            )
+        )
 
     @app_commands.describe(message="message to send to the server")
-    async def slash_triggered_chat(self, interaction: Interaction, message: str) -> None:
+    async def slash_triggered_chat(
+        self, interaction: Interaction, message: str
+    ) -> None:
         channel = interaction.channel
         if not isinstance(channel, GuildChannel):
-            await interaction.response.send_message(content="tried to send a message from the wrong channel",
-                                                    ephemeral=True)
+            await interaction.response.send_message(
+                content="tried to send a message from the wrong channel", ephemeral=True
+            )
             return
 
         author = interaction.user
         if not isinstance(author, Member):
-            await interaction.response.send_message(content="tried to send a message from a private message",
-                                                    ephemeral=True)
+            await interaction.response.send_message(
+                content="tried to send a message from a private message", ephemeral=True
+            )
             return
 
         minqlx.CHAT_CHANNEL.reply(
-            self._format_message_to_quake(channel, author, message))
+            self._format_message_to_quake(channel, author, message)
+        )
 
-        embed = Embed(color=Color.red(), title="sent message to Quake Live server", description=message)
+        embed = Embed(
+            color=Color.red(),
+            title="sent message to Quake Live server",
+            description=message,
+        )
         await interaction.response.send_message(embed=embed)
 
-    def _format_message_to_quake(self, channel: GuildChannel, author: Member, content: str) -> str:
+    def _format_message_to_quake(
+        self, channel: GuildChannel, author: Member, content: str
+    ) -> str:
         """
         Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
         console.
@@ -133,7 +163,9 @@ class TriggeredChat(Cog):
         if author.nick is not None:
             sender = author.nick
 
-        return f"{self.discord_message_prefix} ^5#{channel.name} ^6{sender}^7:^2 {content}"
+        return (
+            f"{self.discord_message_prefix} ^5#{channel.name} ^6{sender}^7:^2 {content}"
+        )
 
 
 async def setup(bot: Bot):

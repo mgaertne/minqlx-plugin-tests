@@ -1,6 +1,5 @@
 from zmq import Context, Socket
 
-
 class StatsListener:
     done: bool
     address: str
@@ -11,6 +10,5 @@ class StatsListener:
     _in_progress: bool
 
     def __init__(self): ...
-
     def keep_receiving(self) -> None: ...
     def stop(self) -> None: ...

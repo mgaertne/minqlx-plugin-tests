@@ -5,7 +5,6 @@ from minqlx import Player, Plugin
 MAX_MSG_LENGTH: int
 re_color_tag: Pattern
 
-
 class AbstractChannel:
     _name: str
 
@@ -14,22 +13,19 @@ class AbstractChannel:
     def __repr__(self) -> str: ...
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
-
     @property
     def name(self) -> str: ...
-
     def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
-    def split_long_lines(self, msg: str, limit: int = ..., delimiter: str = ...) -> list[str]: ...
-
+    def split_long_lines(
+        self, msg: str, limit: int = ..., delimiter: str = ...
+    ) -> list[str]: ...
 
 class ChatChannel(AbstractChannel):
     fmt: str
     team: str
 
     def __init__(self, name: str = ..., fmt: str = ...) -> None: ...
-
     def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
-
 
 class RedTeamChatChannel(ChatChannel):
     def __init__(self) -> None: ...
@@ -37,14 +33,11 @@ class RedTeamChatChannel(ChatChannel):
 class BlueTeamChatChannel(ChatChannel):
     def __init__(self) -> None: ...
 
-
 class FreeChatChannel(ChatChannel):
     def __init__(self) -> None: ...
 
-
 class SpectatorChatChannel(ChatChannel):
     def __init__(self) -> None: ...
-
 
 class TellChannel(ChatChannel):
     recipient: str | int | Player
@@ -52,12 +45,9 @@ class TellChannel(ChatChannel):
     def __init__(self, player: str | int | Player) -> None: ...
     def __repr__(self) -> str: ...
 
-
 class ConsoleChannel(AbstractChannel):
     def __init__(self) -> None: ...
-
     def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
-
 
 class ClientCommandChannel(AbstractChannel):
     recipient: Player
@@ -65,9 +55,7 @@ class ClientCommandChannel(AbstractChannel):
 
     def __init__(self, player: Player) -> None: ...
     def __repr__(self) -> str: ...
-
     def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
-
 
 class Command:
     name: list[str]
@@ -81,29 +69,40 @@ class Command:
     prefix: bool
     usage: str
 
-    def __init__(self, plugin: Plugin, name: str | list[str] | tuple[str], handler: Callable, permission: int,
-                 channels: Iterable[AbstractChannel] | None, exclude_channels: Iterable[AbstractChannel] | None,
-                 client_cmd_pass: bool, client_cmd_perm: int, prefix: bool, usage: str) -> None: ...
-
-    def execute(self, player: Player, msg: str, channel: AbstractChannel) -> int | None: ...
+    def __init__(
+        self,
+        plugin: Plugin,
+        name: str | list[str] | tuple[str],
+        handler: Callable,
+        permission: int,
+        channels: Iterable[AbstractChannel] | None,
+        exclude_channels: Iterable[AbstractChannel] | None,
+        client_cmd_pass: bool,
+        client_cmd_perm: int,
+        prefix: bool,
+        usage: str,
+    ) -> None: ...
+    def execute(
+        self, player: Player, msg: str, channel: AbstractChannel
+    ) -> int | None: ...
     def is_eligible_name(self, name: str) -> bool: ...
     def is_eligible_channel(self, channel: AbstractChannel) -> bool: ...
     def is_eligible_player(self, player: Player, is_client_cmd: bool) -> bool: ...
 
-
 class CommandInvoker:
-    _commands: tuple[list[Command], list[Command], list[Command], list[Command], list[Command]]
+    _commands: tuple[
+        list[Command], list[Command], list[Command], list[Command], list[Command]
+    ]
 
     def __init__(self) -> None: ...
-
     @property
     def commands(self) -> list[Command]: ...
-
     def add_command(self, command: Command, priority: int) -> None: ...
     def remove_command(self, command: Command) -> None: ...
     def is_registered(self, command: Command) -> bool: ...
-    def handle_input(self, player: Player, msg: str, channel: AbstractChannel) -> bool: ...
-
+    def handle_input(
+        self, player: Player, msg: str, channel: AbstractChannel
+    ) -> bool: ...
 
 COMMANDS: CommandInvoker
 CHAT_CHANNEL: AbstractChannel
