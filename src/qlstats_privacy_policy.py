@@ -1,20 +1,16 @@
-from typing import Optional, Set, Dict, Union
-import threading
+from threading import Thread
 
 import requests
-from requests import Response
 
 import minqlx
-from minqlx import Player, AbstractChannel
-
-SteamId = int
+from minqlx import Plugin
 
 COLORED_QLSTATS_INSTRUCTIONS = "Error: Open qlstats.net, click Login/Sign-up, set privacy settings to ^6{}^7, " \
                                "click save and reconnect!"
 
 
 # noinspection PyPep8Naming
-class qlstats_privacy_policy(minqlx.Plugin):
+class qlstats_privacy_policy(Plugin):
     """
     Plugin that restricts playing on the server to certain QLStats.net privacy settings.
 
@@ -26,7 +22,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
         if privacyKick is disabled. Set to -1 to disable kicking of players for their join attempts.
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self.set_cvar_once("qlx_qlstatsPrivacyBlock", "1")
         self.set_cvar_once("qlx_qlstatsPrivacyKick", "0")
@@ -38,11 +34,11 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list) or ["public", "private", "untracked"]
         self.max_num_join_attempts = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int) or 5
 
-        self.exceptions: Set[SteamId] = set()
-        self.join_attempts: Dict[SteamId, int] = {}
+        self.exceptions = set()
+        self.join_attempts = {}
 
         # Collection of threads looking up elo of players {steam_id: thread }
-        self.connectthreads: Dict[SteamId, ConnectThread] = {}
+        self.connectthreads = {}
 
         self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST)
         self.add_hook("player_disconnect", self.handle_player_disconnect)
@@ -51,13 +47,13 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.add_command(("except", "e"), self.cmd_policy_exception, permission=5, usage="<player>")
         self.add_command("privacy", self.cmd_switch_plugin, permission=1, usage="[status]")
 
-    def check_balance_plugin_loaded(self) -> bool:
+    def check_balance_plugin_loaded(self):
         return 'balance' in self.plugins
 
-    def check_for_right_version_of_balance_plugin(self) -> bool:
+    def check_for_right_version_of_balance_plugin(self):
         return hasattr(self.plugins["balance"], "player_info")
 
-    def check_for_correct_balance_plugin(self) -> bool:
+    def check_for_correct_balance_plugin(self):
         if not self.check_balance_plugin_loaded():
             self.logger.info("Balance plugin not loaded. "
                              "This plugin just works with the balance plugin in place.")
@@ -70,7 +66,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         return True
 
-    def handle_player_connect(self, player: Player) -> Union[int, str]:
+    def handle_player_connect(self, player):
         if not self.plugin_enabled:
             return minqlx.RET_NONE
 
@@ -129,7 +125,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
 
         return minqlx.RET_NONE
 
-    def callback_connect(self, players: Dict[SteamId, str], _channel: AbstractChannel) -> None:
+    def callback_connect(self, players, _channel):
         if not self.plugin_enabled:
             return
 
@@ -149,21 +145,21 @@ class qlstats_privacy_policy(minqlx.Plugin):
             if player_info[sid]["privacy"] not in self.allowed_privacy:
                 self.delayed_kick(sid, minqlx.Plugin.clean_text(self.colored_qlstats_instructions()))
 
-    def colored_qlstats_instructions(self) -> str:
+    def colored_qlstats_instructions(self):
         return COLORED_QLSTATS_INSTRUCTIONS.format("^7, ^6".join(self.allowed_privacy))
 
     @minqlx.delay(5)
-    def delayed_kick(self, sid: SteamId, reason: str) -> None:
+    def delayed_kick(self, sid, reason):
         self.kick(sid, reason)
 
-    def handle_player_disconnect(self, player: Player, _reason: str) -> None:
+    def handle_player_disconnect(self, player, _reason):
         if player.steam_id in self.exceptions:
             self.exceptions.remove(player.steam_id)
 
         if player.steam_id in self.join_attempts:
             del self.join_attempts[player.steam_id]
 
-    def handle_team_switch_attempt(self, player: Player, old: str, new: str) -> int:
+    def handle_team_switch_attempt(self, player, old, new):
         if not self.plugin_enabled:
             return minqlx.RET_NONE
 
@@ -214,7 +210,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 player.put("spectator")
         return minqlx.RET_NONE
 
-    def cmd_policy_exception(self, player: Player, msg: str, channel: AbstractChannel) -> int:
+    def cmd_policy_exception(self, player, msg, channel):
         if len(msg) != 2:
             return minqlx.RET_USAGE
 
@@ -237,7 +233,7 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.exceptions.add(except_player[0].steam_id)
         return minqlx.RET_NONE
 
-    def cmd_switch_plugin(self, _player: Player, msg: str, channel: AbstractChannel) -> int:
+    def cmd_switch_plugin(self, _player, msg, channel):
         if len(msg) > 2:
             return minqlx.RET_USAGE
 
@@ -256,11 +252,11 @@ class qlstats_privacy_policy(minqlx.Plugin):
         self.disable_policy_check(channel)
         return minqlx.RET_NONE
 
-    def disable_policy_check(self, channel: AbstractChannel) -> None:
+    def disable_policy_check(self, channel):
         self.plugin_enabled = False
         channel.reply("^7QLStats policy check disabled. Everyone will be able to join.")
 
-    def enable_policy_check(self, channel: AbstractChannel) -> None:
+    def enable_policy_check(self, channel):
         if not self.check_for_correct_balance_plugin():
             return
 
@@ -295,19 +291,19 @@ class qlstats_privacy_policy(minqlx.Plugin):
                 player.put("spectator")
 
     @minqlx.delay(30)  # 30 seconds
-    def remove_thread(self, sid: SteamId) -> None:
+    def remove_thread(self, sid):
         if sid in self.connectthreads:
             del self.connectthreads[sid]
 
 
-class ConnectThread(threading.Thread):
+class ConnectThread(Thread):
 
-    def __init__(self, steam_id: SteamId, balance_api: str) -> None:
+    def __init__(self, steam_id, balance_api):
         super().__init__()
         self._balance_api = balance_api
         self._steam_id = steam_id
-        self._result: Optional[Response] = None
+        self._result = None
 
-    def run(self) -> None:
+    def run(self):
         url = f"http://qlstats.net/{self._balance_api}/{self._steam_id}"
         self._result = requests.get(url, timeout=15)
