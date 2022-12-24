@@ -12,14 +12,12 @@ class cmdlist(Plugin):
 
         self.add_command("cmdlist", self.cmd_cmdlist)
 
-    def cmd_cmdlist(
-        self, player: minqlx.Player, _msg: str, _channel: minqlx.AbstractChannel
-    ) -> None:
+    def cmd_cmdlist(self, player, _msg, _channel):
         self.thread_reply(player)
 
     @minqlx.thread
-    def thread_reply(self, player: minqlx.Player) -> None:
-        available_commands: dict[int, list[str]] = {
+    def thread_reply(self, player):
+        available_commands = {  # type: ignore
             0: [],
             1: [],
             2: [],

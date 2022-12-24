@@ -1,0 +1,9 @@
+from minqlx import Plugin, Player, AbstractChannel
+
+# noinspection PyPep8Naming
+class cmdlist(Plugin):
+    def __init__(self) -> None: ...
+    def cmd_cmdlist(
+        self, player: Player, _msg: str, _channel: AbstractChannel
+    ) -> None: ...
+    def thread_reply(self, player: Player) -> None: ...
