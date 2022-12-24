@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Union
 
 import minqlx
+from minqlx import Plugin
 from minqlx.database import Redis
 
 BDAY_KEY = "minqlx:players:{0}:bday"
@@ -12,7 +12,7 @@ LONG_MAP_NAMES_KEY = "minqlx:maps:longnames"
 
 
 # noinspection PyPep8Naming
-class bday(minqlx.Plugin):
+class bday(Plugin):
     database = Redis
 
     def __init__(self):
@@ -43,9 +43,7 @@ class bday(minqlx.Plugin):
         self.number_of_bday_maps = self.get_cvar("qlx_bday_mapscount", int) or 1
         self.pending_bday_confirmations = {}
 
-    def cmd_bday(
-        self, player: minqlx.Player, msg: str, _channel: minqlx.AbstractChannel
-    ):
+    def cmd_bday(self, player, msg, _channel):
         if self.db is None:
             return minqlx.RET_NONE
 
@@ -63,7 +61,7 @@ class bday(minqlx.Plugin):
         return minqlx.RET_NONE
 
     @minqlx.thread
-    def parse_date(self, player: minqlx.Player, msg: str):
+    def parse_date(self, player, msg):
         try:
             birthday = datetime.strptime(msg[1], "%d.%m.")
         except ValueError:
@@ -81,14 +79,12 @@ class bday(minqlx.Plugin):
         return minqlx.RET_NONE
 
     @minqlx.delay(120)
-    def delayed_removal_of_pending_registration(self, steam_id: int):
+    def delayed_removal_of_pending_registration(self, steam_id):
         if steam_id not in self.pending_bday_confirmations:
             return
         del self.pending_bday_confirmations[steam_id]
 
-    def cmd_confirmbday(
-        self, player: minqlx.Player, _msg: str, _channel: minqlx.AbstractChannel
-    ):
+    def cmd_confirmbday(self, player, _msg, _channel):
         if player.steam_id not in self.pending_bday_confirmations:
             player.tell(
                 "^7No pending confirmation for your birthday found. Use ^6!bday [dd.mm.]^7 to register your "
@@ -104,9 +100,7 @@ class bday(minqlx.Plugin):
         del self.pending_bday_confirmations[player.steam_id]
         player.tell(f"^7Your birthday was stored as ^6{_bday}^7.")
 
-    def cmd_bmap(
-        self, player: minqlx.Player, msg: str, _channel: minqlx.AbstractChannel
-    ):
+    def cmd_bmap(self, player, msg, _channel):
         if not self.has_birthday_set(player):
             player.tell(
                 "^7You did ^1not^7 set your birthday, yet. Please use ^2!bday^7 to set up your birthday"
@@ -143,9 +137,7 @@ class bday(minqlx.Plugin):
         self.delay_change_map(bday_map)
         return minqlx.RET_NONE
 
-    def cmd_bdayedit(
-        self, player: minqlx.Player, msg: str, _channel: minqlx.AbstractChannel
-    ):
+    def cmd_bdayedit(self, player, msg, _channel):
         if len(msg) != 3:
             return minqlx.RET_USAGE
 
@@ -153,7 +145,7 @@ class bday(minqlx.Plugin):
         return minqlx.RET_NONE
 
     @minqlx.thread
-    def parse_admin_date(self, admin: minqlx.Player, msg: str):
+    def parse_admin_date(self, admin, msg):
         player_name, player_sid = self.identify_target(admin, msg[1])
         if player_sid is None:
             return minqlx.RET_NONE
@@ -171,9 +163,7 @@ class bday(minqlx.Plugin):
         self.db[BDAY_KEY.format(player_sid)] = f"{_bday.day}.{_bday.month}."
         return minqlx.RET_NONE
 
-    def identify_target(
-        self, player: minqlx.Player, target: Union[str, int, minqlx.Player]
-    ):
+    def identify_target(self, player, target):
         if isinstance(target, minqlx.Player):
             return target.name, target.steam_id
 
@@ -207,9 +197,7 @@ class bday(minqlx.Plugin):
 
         return item
 
-    def find_target_player_or_list_alternatives(
-        self, player: minqlx.Player, target: Union[str, int]
-    ):
+    def find_target_player_or_list_alternatives(self, player, target):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
             amount_alternatives = len(players)
@@ -249,9 +237,7 @@ class bday(minqlx.Plugin):
         # By now there can only be one person left
         return target_players.pop()
 
-    def cmd_when(
-        self, player: minqlx.Player, msg: str, _channel: minqlx.AbstractChannel
-    ):
+    def cmd_when(self, player, msg, _channel):
         if len(msg) != 2:
             return minqlx.RET_USAGE
 
@@ -271,15 +257,13 @@ class bday(minqlx.Plugin):
         self.msg(f"{player_name}^7's birthday is on ^6{birthday}^7.")
         return minqlx.RET_NONE
 
-    def cmd_nextbday(
-        self, _player: minqlx.Player, _msg: str, channel: minqlx.AbstractChannel
-    ):
+    def cmd_nextbday(self, _player, _msg, channel):
         reply_channel = self.identify_reply_channel(channel)
 
         self.report_next_birthday(reply_channel)
 
     @minqlx.thread
-    def report_next_birthday(self, channel: minqlx.AbstractChannel):
+    def report_next_birthday(self, channel):
         if self.db is None:
             return
 
@@ -326,7 +310,7 @@ class bday(minqlx.Plugin):
         )
 
     # noinspection PyMethodMayBeStatic
-    def next_birthdate(self, birthday: datetime):
+    def next_birthdate(self, birthday):
         today = datetime.now()
         if today > birthday.replace(year=today.year):
             return birthday.replace(year=today.year + 1)
@@ -345,7 +329,7 @@ class bday(minqlx.Plugin):
         return channel
 
     @minqlx.delay(5)
-    def handle_player_connected(self, player: minqlx.Player):
+    def handle_player_connected(self, player):
         if self.has_birthday_today(player) and self.can_still_pick_bday_map(player):
             self.msg(f"It's {player.name}^7's birthday today! Congratulate her/him!")
             player.tell(
@@ -363,7 +347,7 @@ class bday(minqlx.Plugin):
         self.bmap_steamid = None
         self.bmap_map = None
 
-    def handle_map(self, mapname: str, _factory: str):
+    def handle_map(self, mapname, _factory):
         if self.bmap_steamid is None and self.bmap_map is None:
             return
 
@@ -373,7 +357,7 @@ class bday(minqlx.Plugin):
         self.bmap_steamid = None
         self.bmap_map = None
 
-    def handle_team_switch(self, player: minqlx.Player, _old: str, new: str):
+    def handle_team_switch(self, player, _old, new):
         if not self.game:
             return
 
@@ -396,18 +380,21 @@ class bday(minqlx.Plugin):
 
     def play_birthday_song(self):
         if "karaoke" in self.plugins:
-            karaoke_plugin = minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                "karaoke"
-            ]
-            karaoke_plugin.double = True  # type: ignore
-            karaoke_plugin.currentsong = "happybirthday"  # type: ignore
-            # noinspection PyUnresolvedReferences  # type: ignore
-            karaoke_plugin.clrdouble(66, "_")  # type: ignore
+            # noinspection PyProtectedMember
+            karaoke_plugin = (
+                minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
+                    "karaoke"
+                ]
+            )
+            karaoke_plugin.double = True
+            karaoke_plugin.currentsong = "happybirthday"
+            # noinspection PyUnresolvedReferences
+            karaoke_plugin.clrdouble(66, "_")
 
         self.stop_sound()
         self.play_sound("sound/karaoke4/happybirthday.ogg")
 
-    def has_birthday_today(self, player: minqlx.Player):
+    def has_birthday_today(self, player):
         if self.db is None:
             return False
 
@@ -421,13 +408,13 @@ class bday(minqlx.Plugin):
 
         return birthday.day == today.day and birthday.month == today.month
 
-    def has_birthday_set(self, player: minqlx.Player):
+    def has_birthday_set(self, player):
         if self.db is None:
             return False
 
         return BDAY_KEY.format(player.steam_id) in self.db
 
-    def can_still_pick_bday_map(self, player: minqlx.Player):
+    def can_still_pick_bday_map(self, player):
         if self.db is None:
             return False
 
@@ -442,7 +429,7 @@ class bday(minqlx.Plugin):
         )
         return maps_picked_this_year < self.number_of_bday_maps
 
-    def resolve_short_mapname(self, mapstring: str, player: minqlx.Player):
+    def resolve_short_mapname(self, mapstring, player):
         logged_maps = self.determine_installed_maps()
         if mapstring in logged_maps:
             return mapstring
@@ -507,9 +494,9 @@ class bday(minqlx.Plugin):
         return []
 
     # noinspection PyMethodMayBeStatic
-    def cleaned_up_longmapname(self, longmapname: str):
+    def cleaned_up_longmapname(self, longmapname):
         return longmapname.translate(str.maketrans("", "", " ,.-!\"'_&()")).lower()
 
     @minqlx.delay(3)
-    def delay_change_map(self, _mapname: str):
+    def delay_change_map(self, _mapname):
         self.change_map(f"{_mapname} ca")
