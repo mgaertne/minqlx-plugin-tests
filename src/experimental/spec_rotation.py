@@ -79,9 +79,11 @@ class spec_rotation(Plugin):
         for autospec_plugin in ["balancetwo", "mybalance"]:
             if autospec_plugin in self.plugins:
                 # noinspection PyProtectedMember
-                plugin = minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                    autospec_plugin
-                ]
+                plugin = (
+                    minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
+                        autospec_plugin
+                    ]
+                )
                 if plugin.last_action == "ignore":  # type: ignore
                     return False
 
