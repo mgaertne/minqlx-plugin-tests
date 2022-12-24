@@ -5,12 +5,13 @@ import math
 import redis
 
 import minqlx
+from minqlx import Plugin
 
 LAST_STANDING_LOG = "minqlx:players:{}:last_standings"
 
 
 # noinspection PyPep8Naming
-class showdown(minqlx.Plugin):
+class showdown(Plugin):
     def __init__(self):
         super().__init__()
 
@@ -682,14 +683,14 @@ class showdown(minqlx.Plugin):
             return
         if (
             "hurry" in self.showdown_votes
-            and (self.showdown_votes["hurry"]) >= votes_needed
+            and len(self.showdown_votes["hurry"]) >= votes_needed
         ):
             self.punish_last_standing_player()
             return
 
         if (
             "showdown" in self.showdown_votes
-            and (self.showdown_votes["showdown"]) >= votes_needed
+            and len(self.showdown_votes["showdown"]) >= votes_needed
         ):
             self.weapon_showdown()
 
