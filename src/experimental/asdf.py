@@ -1,17 +1,13 @@
 import math
 
-from typing import Union
-
-import minqlx  # type: ignore
-from minqlx import AbstractChannel, Player, Plugin
+import minqlx
+from minqlx import Plugin, Player, NonexistentPlayerError
 
 WEAPON_STATS_KEY = "minqlx:{}:weaponstats"
 _name_key = "minqlx:players:{}:last_used_name"
 
-SteamId = int
 
-
-def identify_reply_channel(channel: AbstractChannel) -> AbstractChannel:
+def identify_reply_channel(channel):
     if channel in [
         minqlx.RED_TEAM_CHAT_CHANNEL,
         minqlx.BLUE_TEAM_CHAT_CHANNEL,
@@ -41,14 +37,12 @@ class asdf(Plugin):
         self.add_command("weaponstats", self.cmd_weaponstats, usage="[player or id]")
 
         self.stats_snapshot = {}
-        self.red_overall_damage: int = 0
-        self.blue_overall_damage: int = 0
+        self.red_overall_damage = 0
+        self.blue_overall_damage = 0
 
-        self.min_ammo_rate: float = (
-            self.get_cvar("qlx_asdf_minammo_rate", float) or 0.25
-        )
+        self.min_ammo_rate = self.get_cvar("qlx_asdf_minammo_rate", float) or 0.25
 
-    def handle_player_spawn(self, player: Player):
+    def handle_player_spawn(self, player):
         if not self.game or self.game.state != "in_progress":
             return
 
@@ -75,7 +69,7 @@ class asdf(Plugin):
         self.adjust_ammo_for_player(player)
 
     @minqlx.thread
-    def adjust_ammo_for_player(self, player: Player):
+    def adjust_ammo_for_player(self, player):
         weapon_stats = self.weapon_stats_for(player.steam_id)
 
         total_team_damage = (
@@ -136,7 +130,7 @@ class asdf(Plugin):
             f"{player.name}, your team is dominating right now. Some of your ammo was reduced:{ammo_info}"
         )
 
-    def handle_stats(self, stats: dict):
+    def handle_stats(self, stats):
         if stats["TYPE"] != "PLAYER_STATS":
             return
 
@@ -152,7 +146,7 @@ class asdf(Plugin):
         self.store_weapon_stats(stats)
 
     @minqlx.thread
-    def store_weapon_stats(self, stats: dict):
+    def store_weapon_stats(self, stats):
         if not self.db:
             return
 
@@ -204,14 +198,14 @@ class asdf(Plugin):
         self.red_overall_damage = 0
         self.blue_overall_damage = 0
 
-    def handle_round_start(self, _round_number: int):
+    def handle_round_start(self, _round_number):
         teams = self.teams()
         self.stats_snapshot = {
             player.steam_id: player.stats.damage_dealt
             for player in teams["red"] + teams["blue"]
         }
 
-    def handle_round_end(self, _data: dict):
+    def handle_round_end(self, _data):
         if self.game is None:
             return
 
@@ -256,7 +250,7 @@ class asdf(Plugin):
 
         return returned
 
-    def cmd_weaponstats(self, player: Player, msg: str, channel: AbstractChannel):
+    def cmd_weaponstats(self, player, msg, channel):
         if len(msg) == 1:
             player_name, player_identifier = self.identify_target(player, player)
         else:
@@ -297,7 +291,7 @@ class asdf(Plugin):
             f"Weapon statistics for player {player_name}^7: {stats_string}"
         )
 
-    def weapon_stats_for(self, steam_id: SteamId):
+    def weapon_stats_for(self, steam_id):
         if not self.db:
             return {}
 
@@ -320,7 +314,7 @@ class asdf(Plugin):
 
         return returned
 
-    def identify_target(self, player: Player, target: Union[SteamId, str, Player]):
+    def identify_target(self, player, target):
         if isinstance(target, Player):
             return target.name, target.steam_id
 
@@ -337,7 +331,7 @@ class asdf(Plugin):
 
         return target_player.name, target_player.steam_id
 
-    def resolve_player_name(self, item: Union[SteamId, str]):
+    def resolve_player_name(self, item):
         if not isinstance(item, int) and not item.isdigit():
             return item
 
@@ -353,11 +347,9 @@ class asdf(Plugin):
 
         return item
 
-    def find_target_player_or_list_alternatives(
-        self, player: Player, target: Union[int, str]
-    ):
+    def find_target_player_or_list_alternatives(self, player, target):
         # Tell a player which players matched
-        def list_alternatives(players: list[Player], indent: int = 2):
+        def list_alternatives(players, indent=2):
             amount_alternatives = len(players)
             player.tell(
                 f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
@@ -377,7 +369,7 @@ class asdf(Plugin):
 
         except ValueError:
             pass
-        except minqlx.NonexistentPlayerError:
+        except NonexistentPlayerError:
             pass
 
         target_players = self.find_player(str(target))
