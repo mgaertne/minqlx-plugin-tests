@@ -5,10 +5,7 @@ Copyright (c) 2020 ShiN0
 
 You are free to modify this plugin to your own one.
 """
-from __future__ import annotations
-
 import asyncio
-from typing import Optional, Any, Callable, Tuple, Dict, List
 
 import aiohttp
 from aiohttp import ClientTimeout
@@ -19,11 +16,8 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
 import minqlx
-from minqlx import Player, AbstractChannel, Plugin
+from minqlx import Plugin, NonexistentPlayerError
 from minqlx.database import Redis
-
-
-SteamId = int
 
 
 PLAYER_BASE = "minqlx:players:{0}"
@@ -31,11 +25,11 @@ IPS_BASE = "minqlx:ips"
 
 
 def requests_retry_session(
-    retries: int = 3,
-    backoff_factor: float = 0.1,
-    status_forcelist: Tuple[int, int, int] = (500, 502, 504),
-    session: Optional[Session] = None,
-) -> Session:
+    retries=3,
+    backoff_factor=0.1,
+    status_forcelist=(500, 502, 504),
+    session=None,
+):
     session = session or Session()
     retry = Retry(
         total=retries,
@@ -50,7 +44,7 @@ def requests_retry_session(
     return session
 
 
-def identify_reply_channel(channel: AbstractChannel) -> AbstractChannel:
+def identify_reply_channel(channel):
     if channel in [
         minqlx.RED_TEAM_CHAT_CHANNEL,
         minqlx.BLUE_TEAM_CHAT_CHANNEL,
@@ -62,7 +56,7 @@ def identify_reply_channel(channel: AbstractChannel) -> AbstractChannel:
     return channel
 
 
-def remove_trailing_color_code(text: str) -> str:
+def remove_trailing_color_code(text):
     if text.endswith("^7"):
         return remove_trailing_color_code(text[:-2])
 
@@ -82,7 +76,7 @@ class elocheck(Plugin):
     * qlx_elocheckShowSteamids (default: "0") Also lists the steam ids of the players checked
     """
 
-    database = Redis  # type: ignore
+    database = Redis
 
     __slots__ = (
         "reply_channel",
@@ -103,12 +97,10 @@ class elocheck(Plugin):
         self.set_cvar_once("qlx_elocheckReplyChannel", "public")
         self.set_cvar_once("qlx_elocheckShowSteamids", "0")
 
-        self.reply_channel: str = self.get_cvar("qlx_elocheckReplyChannel") or "public"
+        self.reply_channel = self.get_cvar("qlx_elocheckReplyChannel") or "public"
         if self.reply_channel != "private":
             self.reply_channel = "public"
-        self.show_steam_ids: bool = (
-            self.get_cvar("qlx_elocheckShowSteamids", bool) or False
-        )
+        self.show_steam_ids = self.get_cvar("qlx_elocheckShowSteamids", bool) or False
 
         elocheck_permission_level = self.get_cvar("qlx_elocheckPermission", int) or 0
         self.add_command(
@@ -134,24 +126,22 @@ class elocheck(Plugin):
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("game_end", self.handle_game_end)
 
-        self.balance_api: str = self.get_cvar("qlx_balanceApi") or "elo"
+        self.balance_api = self.get_cvar("qlx_balanceApi") or "elo"
 
-        self.previous_map: Optional[str] = None
-        self.previous_gametype: Optional[str] = None
-        self.previous_ratings: Dict[str, RatingProvider] = {}
-        self.ratings: Dict[str, RatingProvider] = {}
-        self.rating_diffs: Dict[str, Dict[SteamId, Any]] = {}
+        self.previous_map = None
+        self.previous_gametype = None
+        self.previous_ratings = {}
+        self.ratings = {}
+        self.rating_diffs = {}
         self.fetch_elos_from_all_players()
 
-        self.informed_players: List[SteamId] = []
+        self.informed_players = []
 
     @minqlx.thread
     def fetch_elos_from_all_players(self):
         asyncio.run(self.fetch_ratings([player.steam_id for player in self.players()]))
 
-    async def fetch_ratings(
-        self, steam_ids: List[SteamId], mapname: Optional[str] = None
-    ) -> None:
+    async def fetch_ratings(self, steam_ids, mapname=None):
         async_requests = []
 
         for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
@@ -184,9 +174,7 @@ class elocheck(Plugin):
                 continue
             self.append_ratings(rating_provider_name, rating_results)
 
-    def fetch_mapbased_ratings(
-        self, steam_ids: List[SteamId], mapname: Optional[str] = None
-    ):
+    def fetch_mapbased_ratings(self, steam_ids, mapname=None):
         if mapname is None:
             if self.game is None or self.game.map is None:
                 return None, None
@@ -207,9 +195,7 @@ class elocheck(Plugin):
             missing_steam_ids, headers={"X-QuakeLive-Map": mapname}
         )
 
-    def append_ratings(
-        self, rating_provider_name: str, json_result: Dict[str, Any]
-    ) -> None:
+    def append_ratings(self, rating_provider_name, json_result):
         if json_result is None:
             return
 
@@ -226,7 +212,7 @@ class elocheck(Plugin):
         self.fetch_and_diff_ratings(mapname.lower())
 
     @minqlx.thread
-    def fetch_and_diff_ratings(self, mapname: str) -> None:
+    def fetch_and_diff_ratings(self, mapname):
         async def _fetch_and_diff_ratings():
             rating_providers_fetched = []
             async_requests = []
@@ -266,7 +252,7 @@ class elocheck(Plugin):
                     - self.previous_ratings[rating_provider_name]
                 )
 
-        async def fetch_ratings_from_newmap(_mapname) -> None:
+        async def fetch_ratings_from_newmap(_mapname):
             steam_ids = [player.steam_id for player in self.players()]
             (
                 mapbased_rating_provider_name,
@@ -325,8 +311,8 @@ class elocheck(Plugin):
         )
 
     def format_rating_diffs_for_rating_provider_name_and_player(
-        self, rating_provider_name: str, steam_id: SteamId
-    ) -> Optional[str]:
+        self, rating_provider_name, steam_id
+    ):
         if (
             rating_provider_name not in self.rating_diffs
             or steam_id not in self.rating_diffs[rating_provider_name]
@@ -375,9 +361,7 @@ class elocheck(Plugin):
         self.previous_map = data["MAP"].lower()
         self.previous_gametype = data["GAME_TYPE"].lower()
 
-    def cmd_elocheck(
-        self, player: Player, msg: str, channel: AbstractChannel
-    ) -> Optional[int]:
+    def cmd_elocheck(self, player, msg, channel):
         if len(msg) > 2:
             return minqlx.RET_USAGE
 
@@ -390,9 +374,7 @@ class elocheck(Plugin):
         return minqlx.RET_NONE
 
     @minqlx.thread
-    def do_elocheck(
-        self, player: Player, target: str, channel: AbstractChannel
-    ) -> None:
+    def do_elocheck(self, player, target, channel):
         async def _async_elocheck():
             target_players = self.find_target_player(target)
 
@@ -513,7 +495,7 @@ class elocheck(Plugin):
 
         asyncio.run(_async_elocheck())
 
-    def find_target_player(self, target: str) -> List[Player]:
+    def find_target_player(self, target):
         try:
             steam_id = int(target)
 
@@ -522,19 +504,17 @@ class elocheck(Plugin):
                 return [target_player]
         except ValueError:
             pass
-        except minqlx.NonexistentPlayerError:
+        except NonexistentPlayerError:
             pass
 
         return self.find_player(target)
 
-    def reply_func(
-        self, player: Player, channel: AbstractChannel
-    ) -> Callable[[str], None]:
+    def reply_func(self, player, channel):
         if self.reply_channel == "private":
             return player.tell
         return identify_reply_channel(channel).reply
 
-    def used_steam_ids_for(self, steam_id: SteamId) -> List[int]:
+    def used_steam_ids_for(self, steam_id):
         if not self.db or not self.db.exists(PLAYER_BASE.format(steam_id) + ":ips"):
             return [steam_id]
 
@@ -549,7 +529,7 @@ class elocheck(Plugin):
 
         return [int(_steam_id) for _steam_id in used_steam_ids]
 
-    def fetch_aliases(self, steam_ids: List[SteamId]) -> Dict[SteamId, List[str]]:
+    def fetch_aliases(self, steam_ids):
         formatted_steam_ids = "+".join([str(steam_id) for steam_id in steam_ids])
         url_template = f"{A_ELO.url_base}aliases/{formatted_steam_ids}.json"
 
@@ -563,7 +543,7 @@ class elocheck(Plugin):
             return {}
         js = result.json()
 
-        aliases: Dict[SteamId, List[str]] = {}
+        aliases = {}  # type: ignore
         for steam_id in steam_ids:
             if str(steam_id) not in js:
                 continue
@@ -579,14 +559,14 @@ class elocheck(Plugin):
 
     def format_player_elos(
         self,
-        a_elo: Optional[RatingProvider],
-        b_elo: Optional[RatingProvider],
-        truskill: Optional[RatingProvider],
-        map_based_truskill: Optional[RatingProvider],
-        steam_id: SteamId,
-        indent: int = 0,
-        aliases: Optional[List[str]] = None,
-    ) -> str:
+        a_elo,
+        b_elo,
+        truskill,
+        map_based_truskill,
+        steam_id,
+        indent=0,
+        aliases=None,
+    ):
         display_name = self.resolve_player_name(steam_id)
         formatted_player_name = self.format_player_name(steam_id)
         result = [" " * indent + f"{formatted_player_name}^7"]
@@ -650,7 +630,7 @@ class elocheck(Plugin):
 
         return "\n".join(result)
 
-    def format_player_name(self, steam_id: SteamId) -> str:
+    def format_player_name(self, steam_id):
         result = ""
 
         player_name = self.resolve_player_name(steam_id)
@@ -661,7 +641,7 @@ class elocheck(Plugin):
 
         return result
 
-    def resolve_player_name(self, steam_id: SteamId) -> str:
+    def resolve_player_name(self, steam_id):
         player = self.player(steam_id)
         if player is not None:
             return remove_trailing_color_code(player.name)
@@ -673,9 +653,7 @@ class elocheck(Plugin):
 
         return "unknown"
 
-    def cmd_aliases(
-        self, player: Player, msg: str, channel: AbstractChannel
-    ) -> Optional[int]:
+    def cmd_aliases(self, player, msg, channel):
         if len(msg) != 2:
             return minqlx.RET_USAGE
 
@@ -683,7 +661,7 @@ class elocheck(Plugin):
         return minqlx.RET_NONE
 
     @minqlx.thread
-    def do_aliases(self, player: Player, target: str, channel: AbstractChannel) -> None:
+    def do_aliases(self, player, target, channel):
         target_players = self.find_target_player(target)
 
         target_steam_id = None
@@ -734,14 +712,12 @@ class elocheck(Plugin):
         )
         reply_func(f"{formatted_aliases}^7")
 
-    def format_player_aliases(self, steam_id: SteamId, aliases: List[str]) -> str:
+    def format_player_aliases(self, steam_id, aliases):
         formatted_player_name = self.format_player_name(steam_id)
         formatted_aliseses = "^7, ".join(aliases)
         return f"{formatted_player_name}^7\nAliases used: {formatted_aliseses}"
 
-    def cmd_switch_elo_changes_notifications(
-        self, player: Player, _msg: str, _channel: AbstractChannel
-    ) -> Optional[int]:
+    def cmd_switch_elo_changes_notifications(self, player, _msg, _channel):
         if not self.db:
             return minqlx.RET_STOP_ALL
         flag = self.wants_to_be_informed(player.steam_id)
@@ -768,15 +744,13 @@ FILTERED_OUT_GAMETYPE_RESPONSES = ["steamid"]
 class SkillRatingProvider:
     __slots__ = ("name", "url_base", "balance_api", "timeout")
 
-    def __init__(self, name: str, url_base: str, balance_api: str, timeout: int = 7):
-        self.name: str = name
-        self.url_base: str = url_base
-        self.balance_api: str = balance_api
-        self.timeout: int = timeout
+    def __init__(self, name, url_base, balance_api, timeout=7):
+        self.name = name
+        self.url_base = url_base
+        self.balance_api = balance_api
+        self.timeout = timeout
 
-    async def fetch_elos(
-        self, steam_ids: List[SteamId], *, headers: Optional[Dict[str, str]] = None
-    ):
+    async def fetch_elos(self, steam_ids, *, headers=None):
         if len(steam_ids) == 0:
             return None
 
@@ -815,7 +789,7 @@ class RatingProvider:
     def __iter__(self):
         return iter(self.rated_steam_ids())
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item):
         if not isinstance(item, int) and not isinstance(item, str):
             return False
 
@@ -892,19 +866,19 @@ class RatingProvider:
         return returned
 
     @staticmethod
-    def from_json(json_response) -> RatingProvider:
+    def from_json(json_response):
         return RatingProvider(json_response)
 
-    def append_ratings(self, json_response) -> None:
+    def append_ratings(self, json_response):
         self.jsons.append(json_response)
 
-    def player_data_for(self, steam_id: SteamId):
+    def player_data_for(self, steam_id):
         if steam_id not in self:
             return None
 
         return self[steam_id]
 
-    def gametype_data_for(self, steam_id: SteamId, gametype: str):
+    def gametype_data_for(self, steam_id, gametype):
         player_data = self.player_data_for(steam_id)
         if player_data is None:
             return None
@@ -914,7 +888,7 @@ class RatingProvider:
 
         return player_data[gametype]
 
-    def rating_for(self, steam_id: SteamId, gametype: str):
+    def rating_for(self, steam_id, gametype):
         gametype_data = self.gametype_data_for(steam_id, gametype)
         if gametype_data is None:
             return None
@@ -923,7 +897,7 @@ class RatingProvider:
             return None
         return gametype_data["elo"]
 
-    def games_for(self, steam_id: SteamId, gametype: str) -> int:
+    def games_for(self, steam_id, gametype):
         gametype_data = self.gametype_data_for(steam_id, gametype)
         if gametype_data is None:
             return 0
@@ -933,7 +907,7 @@ class RatingProvider:
 
         return gametype_data["games"]
 
-    def rated_gametypes_for(self, steam_id: SteamId) -> List[str]:
+    def rated_gametypes_for(self, steam_id):
         player_data = self[steam_id]
 
         if player_data is None:
@@ -945,7 +919,7 @@ class RatingProvider:
             if gametype not in FILTERED_OUT_GAMETYPE_RESPONSES
         ]
 
-    def privacy_for(self, steam_id: SteamId) -> Optional[str]:
+    def privacy_for(self, steam_id):
         player_data = self[steam_id]
 
         if player_data is None:
@@ -956,8 +930,8 @@ class RatingProvider:
 
         return player_data.privacy
 
-    def rated_steam_ids(self) -> List[SteamId]:
-        returned: List[SteamId] = []
+    def rated_steam_ids(self):
+        returned = []  # type: ignore
         for json_rating in self.jsons:
             if "playerinfo" not in json_rating:
                 continue
@@ -968,7 +942,7 @@ class RatingProvider:
 
         return list(set(returned))
 
-    def format_elos(self, steam_id: SteamId) -> str:
+    def format_elos(self, steam_id):
         result = ""
 
         for gametype in self.rated_gametypes_for(steam_id):
@@ -983,10 +957,10 @@ class RatingProvider:
 class PlayerRating:
     __slots__ = ("ratings", "time", "local")
 
-    def __init__(self, ratings, _time: int = -1, local: bool = False):
+    def __init__(self, ratings, _time=-1, local=False):
         self.ratings = ratings
-        self.time: int = _time
-        self.local: bool = local
+        self.time = _time
+        self.local = local
 
     def __iter__(self):
         return iter(self.ratings["ratings"])
