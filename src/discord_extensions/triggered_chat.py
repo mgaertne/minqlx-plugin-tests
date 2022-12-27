@@ -1,20 +1,18 @@
-from typing import Set, Optional
-
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
 
 # noinspection PyPackageRequirements
-from discord import app_commands, Interaction, Color, Embed, Member
+from discord import app_commands, Color, Embed, Member
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Cog, Bot, Context, Command
+from discord.ext.commands import Cog, Command
 
 import minqlx
 from minqlx import Plugin
 
 
-def int_set(string_set: Optional[Set[str]]) -> Set[int]:
-    returned: Set[int] = set()
+def int_set(string_set):
+    returned = set()  # type: ignore
 
     if string_set is None:
         return returned
@@ -38,20 +36,20 @@ class TriggeredChat(Cog):
     * qlx_discordTriggeredChannelIds (default: "") Comma separated list of channel ids for triggered relay.
     """
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot):
         self.bot = bot
 
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggerTriggeredChannelChat", "quakelive")
         Plugin.set_cvar_once("qlx_discordMessagePrefix", "[DISCORD]")
 
-        self.discord_trigger_triggered_channel_chat: str = (
+        self.discord_trigger_triggered_channel_chat = (
             Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat") or "quakelive"
         )
-        self.discord_message_prefix: str = (
+        self.discord_message_prefix = (
             Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
         )
-        self.discord_triggered_channel_ids: Set[int] = int_set(
+        self.discord_triggered_channel_ids = int_set(
             Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
         )
 
@@ -67,7 +65,7 @@ class TriggeredChat(Cog):
         )
 
         # noinspection PyTypeChecker
-        slash_triggered_chat_command: app_commands.Command = app_commands.Command(
+        slash_triggered_chat_command = app_commands.Command(  # type: ignore
             name=self.discord_trigger_triggered_channel_chat,
             description="send a message to the Quake Live server",
             callback=self.slash_triggered_chat,
@@ -77,7 +75,7 @@ class TriggeredChat(Cog):
         slash_triggered_chat_command.guild_only = True
         self.bot.tree.add_command(slash_triggered_chat_command)
 
-    def is_message_in_triggered_channel(self, ctx: Context) -> bool:
+    def is_message_in_triggered_channel(self, ctx):
         """
         Checks whether the message originate in a configured triggered channel
 
@@ -86,10 +84,10 @@ class TriggeredChat(Cog):
         return ctx.message.channel.id in self.discord_triggered_channel_ids
 
     @staticmethod
-    def command_length(ctx: Context) -> int:
+    def command_length(ctx):
         return len(f"{ctx.prefix}{ctx.invoked_with} ")
 
-    async def triggered_chat(self, ctx: Context, *_args, **_kwargs) -> None:
+    async def triggered_chat(self, ctx, *_args, **_kwargs):
         """
         Relays a message from the triggered channels to minqlx
 
@@ -118,9 +116,7 @@ class TriggeredChat(Cog):
         )
 
     @app_commands.describe(message="message to send to the server")
-    async def slash_triggered_chat(
-        self, interaction: Interaction, message: str
-    ) -> None:
+    async def slash_triggered_chat(self, interaction, message: str):
         channel = interaction.channel
         if not isinstance(channel, GuildChannel):
             await interaction.response.send_message(
@@ -146,9 +142,7 @@ class TriggeredChat(Cog):
         )
         await interaction.response.send_message(embed=embed)
 
-    def _format_message_to_quake(
-        self, channel: GuildChannel, author: Member, content: str
-    ) -> str:
+    def _format_message_to_quake(self, channel, author, content):
         """
         Format the channel, author, and content of a message so that it will be displayed nicely in the Quake Live
         console.
@@ -168,5 +162,5 @@ class TriggeredChat(Cog):
         )
 
 
-async def setup(bot: Bot):
+async def setup(bot):
     await bot.add_cog(TriggeredChat(bot))

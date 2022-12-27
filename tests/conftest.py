@@ -1,4 +1,5 @@
 import functools
+import sys
 from typing import Union, Any
 
 import pytest
@@ -12,6 +13,10 @@ from mockito.matchers import Matcher
 
 import minqlx
 from minqlx import Game, NonexistentGameError, Plugin
+
+if sys.version_info < (3, 8):
+    collect_ignore = ["test_mydiscordbot.py"]
+    collect_ignore_glob = ["discord_extensions"]
 
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)
@@ -85,7 +90,7 @@ def game(request: FixtureRequest):
 
     when2(minqlx.Game).thenReturn(mock_game)
     yield mock_game
-    unstub()
+    unstub(mock_game)
 
 
 def parse_game_fixture_params(request, minqlx_game):
@@ -156,4 +161,4 @@ def _mocked_channel():
     when(channel).reply(any_).thenReturn(None)
     channel.assert_was_replied = functools.partial(assert_channel_was_replied, channel)
     yield channel
-    unstub()
+    unstub(channel)
