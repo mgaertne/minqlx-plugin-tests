@@ -1,3 +1,6 @@
+import time
+from threading import Condition
+
 import pytest
 from mockito import unstub, mock, spy2, verify, when, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
@@ -20,6 +23,18 @@ from minqlx_plugin_test import (
 
 import minqlx
 from qlstats_privacy_policy import qlstats_privacy_policy, ConnectThread
+
+
+class ThreadContextManager:
+    def __init__(self, plugin):
+        self.plugin = plugin
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for thread in self.plugin.connectthreads.values():
+            thread.join()
 
 
 # noinspection PyPep8Naming
@@ -56,7 +71,7 @@ class TestQlstatsPrivacyPolicy:
         response.status_code = 200
         response.text = ""
         spy2(requests.get)
-        when2(requests.get, any_(), timeout=any_()).thenReturn(response)
+        when(requests).get(any_(), timeout=any_()).thenReturn(response)
         yield response
         unstub(response)
 
@@ -103,7 +118,8 @@ class TestQlstatsPrivacyPolicy:
     def test_handle_player_connect(self):
         connecting_player = fake_player(123, "Connecting Player")
 
-        self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            self.plugin.handle_player_connect(connecting_player)
 
         verify(self.plugin.plugins["balance"]).add_request(
             {connecting_player.steam_id: "ca"},
@@ -136,7 +152,7 @@ class TestQlstatsPrivacyPolicy:
         assert_that(result, equal_to("Fetching your qlstats settings..."))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_player_connect_postpones_connect_if_there_equal_tono_result(self):
+    def test_handle_player_connect_postpones_connect_with_no_result(self):
         setup_cvars(
             {
                 "qlx_qlstatsPrivacyKick": "0",
@@ -172,7 +188,8 @@ class TestQlstatsPrivacyPolicy:
 
         connecting_player = fake_player(123, "Connecting Player")
 
-        self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            self.plugin.handle_player_connect(connecting_player)
 
         verify(requests).get(
             f"http://qlstats.net/belo/{connecting_player.steam_id}", timeout=any_()
@@ -191,10 +208,12 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_balanceApi": "belo",
             }
         )
+        self.plugin = qlstats_privacy_policy()
 
         connecting_player = fake_player(123, "Connecting Player")
 
-        self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            self.plugin.handle_player_connect(connecting_player)
 
         verify(minqlx).console_command(
             matches(".*QLStatsPrivacyError.*Invalid response code.*")
@@ -202,7 +221,7 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_logs_error_if_playerinfo_not_included(self, qlstats_response):
-        when(qlstats_response).json().thenReturn({})
+        when(qlstats_response).json().thenReturn({"invlied_response"})
 
         setup_cvars(
             {
@@ -216,7 +235,8 @@ class TestQlstatsPrivacyPolicy:
 
         connecting_player = fake_player(123, "Connecting Player")
 
-        self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            self.plugin.handle_player_connect(connecting_player)
 
         verify(minqlx).console_command(
             matches(".*QLStatsPrivacyError.*Invalid response content.*")
@@ -238,7 +258,8 @@ class TestQlstatsPrivacyPolicy:
 
         connecting_player = fake_player(123, "Connecting Player")
 
-        self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            self.plugin.handle_player_connect(connecting_player)
 
         verify(minqlx).console_command(
             matches(
@@ -264,7 +285,8 @@ class TestQlstatsPrivacyPolicy:
             {"playerinfo": {str(connecting_player.steam_id): {}}}
         )
 
-        self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            self.plugin.handle_player_connect(connecting_player)
 
         verify(minqlx).console_command(
             matches(
@@ -291,7 +313,8 @@ class TestQlstatsPrivacyPolicy:
             {"playerinfo": {str(connecting_player.steam_id): {"privacy": "private"}}}
         )
 
-        returned = self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            returned = self.plugin.handle_player_connect(connecting_player)
 
         assert_that(
             returned,
@@ -320,7 +343,8 @@ class TestQlstatsPrivacyPolicy:
             {"playerinfo": {str(connecting_player.steam_id): {"privacy": "public"}}}
         )
 
-        returned = self.plugin.handle_player_connect(connecting_player)
+        with ThreadContextManager(self.plugin):
+            returned = self.plugin.handle_player_connect(connecting_player)
 
         assert_that(returned, equal_to(minqlx.RET_NONE))
 

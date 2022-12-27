@@ -95,8 +95,8 @@ class qlstats_privacy_policy(Plugin):
             self.disable_policy_check(minqlx.CHAT_CHANNEL)
             return minqlx.RET_NONE
 
+        # noinspection PyProtectedMember
         b = minqlx.Plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
-        # noinspection PyUnresolvedReferences
         b.add_request(  # type: ignore
             {player.steam_id: self.game.type_short},
             self.callback_connect,
