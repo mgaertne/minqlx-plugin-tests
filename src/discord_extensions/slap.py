@@ -1,27 +1,24 @@
 import random
-from typing import Optional, Set
 
 # noinspection PyPackageRequirements
 from discord import (
     app_commands,
-    Interaction,
-    Member,
     PartialMessageable,
-    InteractionMessage,
 )
-
-# noinspection PyPackageRequirements
-from discord.ext.commands import Bot
 
 from minqlx import Plugin
 
 
 @app_commands.context_menu(name="slap")
 @app_commands.guild_only()
-async def slap(interaction: Interaction, member: Member):
+async def slap(interaction, member):
+    await _slap(interaction, member)
+
+
+async def _slap(interaction, member):
     if interaction.client.user is None:
         await send_to_discord_and_quake(
-            interaction, f"_{member.mention} is slapped from the hidden."
+            interaction, f"_{member.mention} is slapped from the hidden._"
         )
         return
 
@@ -50,8 +47,8 @@ async def slap(interaction: Interaction, member: Member):
     await send_to_discord_and_quake(interaction, random.choice(slaps))
 
 
-def int_set(string_set: Optional[Set[str]]) -> Set[int]:
-    returned: Set[int] = set()
+def int_set(string_set):
+    returned = set()  # type: ignore
 
     if string_set is None:
         return returned
@@ -65,17 +62,17 @@ def int_set(string_set: Optional[Set[str]]) -> Set[int]:
     return returned
 
 
-async def send_to_discord_and_quake(interaction: Interaction, message: str) -> None:
+async def send_to_discord_and_quake(interaction, message):
     await interaction.response.send_message(message)
 
-    discord_relay_channel_ids: Set[int] = int_set(
+    discord_relay_channel_ids = int_set(
         Plugin.get_cvar("qlx_discordRelayChannelIds", set)
     )
 
     if interaction.channel_id not in discord_relay_channel_ids:
         return
 
-    interaction_response: InteractionMessage = await interaction.original_response()
+    interaction_response = await interaction.original_response()
     mentioned_users = interaction_response.mentions
     quake_message = message.lstrip("_").rstrip("_")
     for user in mentioned_users:
@@ -84,9 +81,7 @@ async def send_to_discord_and_quake(interaction: Interaction, message: str) -> N
     show_channel_name = (
         Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool) or False
     )
-    discord_message_prefix: str = (
-        Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
-    )
+    discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
     if (
         not show_channel_name
         or interaction.channel is None
@@ -100,5 +95,5 @@ async def send_to_discord_and_quake(interaction: Interaction, message: str) -> N
     )
 
 
-async def setup(bot: Bot):
+async def setup(bot):
     bot.tree.add_command(slap)

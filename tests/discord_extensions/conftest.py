@@ -9,7 +9,7 @@ else:
     from unittest.mock import AsyncMock
 
     # noinspection PyPackageRequirements
-    from discord import User, Member
+    from discord import User, Member, Client
 
     # noinspection PyPackageRequirements
     from discord.abc import GuildChannel, PrivateChannel
@@ -17,7 +17,18 @@ else:
 
 @pytest.fixture(name="bot")
 def _bot(event_loop):
-    bot = mock({"add_command": mock(), "tree": mock(), "add_cog": AsyncMock(), "loop": event_loop})
+    bot = mock(
+        {
+            "add_command": mock(),
+            "tree": mock(),
+            "add_cog": AsyncMock(),
+            "loop": event_loop,
+            "client": mock(spec=Client),
+        }
+    )
+    bot.client.user = mock(spec=User)
+    bot.client.user.id = 666
+    bot.client.user.mention = "@DiscordBotUser"
     bot.tree.add_command = mock()
 
     yield bot
@@ -56,8 +67,11 @@ def _user():
 @pytest.fixture(name="member")
 def _member():
     member = mock(spec=Member)
+    member.id = 42
     member.name = "DiscordMember"
+    member.display_name = "DiscordMember"
     member.nick = None
+    member.mention = "@DiscordMember"
 
     yield member
     unstub(member)
