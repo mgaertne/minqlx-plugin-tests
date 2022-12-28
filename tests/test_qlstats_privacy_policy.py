@@ -1,6 +1,3 @@
-import time
-from threading import Condition
-
 import pytest
 from mockito import unstub, mock, spy2, verify, when, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
