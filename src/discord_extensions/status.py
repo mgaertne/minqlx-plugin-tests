@@ -7,7 +7,8 @@ from discord import app_commands
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot, Command
 
-from minqlx import Plugin, Game, NonexistentGameError
+import minqlx
+from minqlx import Plugin, NonexistentGameError
 
 
 def get_game_info(game):
@@ -79,7 +80,7 @@ def team_data(player_list):
 
 def game_status_with_teams():
     try:
-        game = Game()
+        game = minqlx.Game()
     except NonexistentGameError:
         return "Currently no game running."
 
