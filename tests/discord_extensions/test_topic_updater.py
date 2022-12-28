@@ -5,7 +5,7 @@ import pytest
 
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
-from hamcrest import assert_that, is_, matches_regexp
+from hamcrest import assert_that, equal_to, matches_regexp
 
 # noinspection PyProtectedMember
 from mockito import when, mock, unstub, verify, when2, spy2, any_
@@ -57,12 +57,12 @@ class TestTopicUpdater:
     def test_get_game_info_in_warmup(self, game_in_warmup):
         game_info = topic_updater.get_game_info(game_in_warmup)
 
-        assert_that(game_info, is_("Warmup"))
+        assert_that(game_info, equal_to("Warmup"))
 
     def test_get_game_info_in_countdown(self, game_in_countdown):
         game_info = topic_updater.get_game_info(game_in_countdown)
 
-        assert_that(game_info, is_("Match starting"))
+        assert_that(game_info, equal_to("Match starting"))
 
     def test_get_game_info_in_progress(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -71,7 +71,7 @@ class TestTopicUpdater:
 
         game_info = topic_updater.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match in progress: **1** - **2**"))
+        assert_that(game_info, equal_to("Match in progress: **1** - **2**"))
 
     def test_get_game_info_red_hit_roundlimit(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -80,7 +80,7 @@ class TestTopicUpdater:
 
         game_info = topic_updater.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **8** - **2**"))
+        assert_that(game_info, equal_to("Match ended: **8** - **2**"))
 
     def test_get_game_info_blue_hit_roundlimit(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -89,7 +89,7 @@ class TestTopicUpdater:
 
         game_info = topic_updater.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **5** - **8**"))
+        assert_that(game_info, equal_to("Match ended: **5** - **8**"))
 
     def test_get_game_info_red_player_dropped_out(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -98,7 +98,7 @@ class TestTopicUpdater:
 
         game_info = topic_updater.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **-999** - **3**"))
+        assert_that(game_info, equal_to("Match ended: **-999** - **3**"))
 
     def test_get_game_info_blue_player_dropped_out(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -107,7 +107,7 @@ class TestTopicUpdater:
 
         game_info = topic_updater.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **5** - **-999**"))
+        assert_that(game_info, equal_to("Match ended: **5** - **-999**"))
 
     def test_get_game_info_unknown_game_state(self, minqlx_game):
         minqlx_game.state = "unknown"
@@ -117,7 +117,7 @@ class TestTopicUpdater:
 
         game_info = topic_updater.get_game_info(minqlx_game)
 
-        assert_that(game_info, is_("Warmup"))
+        assert_that(game_info, equal_to("Warmup"))
 
     def test_game_status_information(self, game_in_progress):
         connected_players(
@@ -180,7 +180,7 @@ class TestTopicUpdater:
         extension = TopicUpdater(bot)
         extension.bot = None
 
-        assert_that(extension.is_discord_logged_in(), is_(False))
+        assert_that(extension.is_discord_logged_in(), equal_to(False))
 
     @pytest.mark.asyncio
     async def test_update_topics_on_relay_and_triggered_channels_discord_not_logged_in(
@@ -241,4 +241,6 @@ class TestTopicUpdater:
         await topic_updater.setup(bot)
 
         bot.add_cog.assert_awaited_once()
-        assert_that(isinstance(bot.add_cog.call_args.args[0], TopicUpdater), is_(True))
+        assert_that(
+            isinstance(bot.add_cog.call_args.args[0], TopicUpdater), equal_to(True)
+        )

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from hamcrest import assert_that, is_, matches_regexp
+from hamcrest import assert_that, equal_to, matches_regexp
 
 from mockito import when, mock, unstub
 
@@ -54,12 +54,12 @@ class TestStatus:
     def test_get_game_info_in_warmup(self, game_in_warmup):
         game_info = status.get_game_info(game_in_warmup)
 
-        assert_that(game_info, is_("Warmup"))
+        assert_that(game_info, equal_to("Warmup"))
 
     def test_get_game_info_in_countdown(self, game_in_countdown):
         game_info = status.get_game_info(game_in_countdown)
 
-        assert_that(game_info, is_("Match starting"))
+        assert_that(game_info, equal_to("Match starting"))
 
     def test_get_game_info_in_progress(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -68,7 +68,7 @@ class TestStatus:
 
         game_info = status.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match in progress: **1** - **2**"))
+        assert_that(game_info, equal_to("Match in progress: **1** - **2**"))
 
     def test_get_game_info_red_hit_roundlimit(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -77,7 +77,7 @@ class TestStatus:
 
         game_info = status.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **8** - **2**"))
+        assert_that(game_info, equal_to("Match ended: **8** - **2**"))
 
     def test_get_game_info_blue_hit_roundlimit(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -86,7 +86,7 @@ class TestStatus:
 
         game_info = status.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **5** - **8**"))
+        assert_that(game_info, equal_to("Match ended: **5** - **8**"))
 
     def test_get_game_info_red_player_dropped_out(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -95,7 +95,7 @@ class TestStatus:
 
         game_info = status.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **-999** - **3**"))
+        assert_that(game_info, equal_to("Match ended: **-999** - **3**"))
 
     def test_get_game_info_blue_player_dropped_out(self, game_in_progress):
         game_in_progress.roundlimit = 8
@@ -104,7 +104,7 @@ class TestStatus:
 
         game_info = status.get_game_info(game_in_progress)
 
-        assert_that(game_info, is_("Match ended: **5** - **-999**"))
+        assert_that(game_info, equal_to("Match ended: **5** - **-999**"))
 
     def test_get_game_info_unknown_game_state(self, minqlx_game):
         minqlx_game.state = "unknown"
@@ -114,14 +114,14 @@ class TestStatus:
 
         game_info = status.get_game_info(minqlx_game)
 
-        assert_that(game_info, is_("Warmup"))
+        assert_that(game_info, equal_to("Warmup"))
 
     def test_game_status_information_when_no_game_is_running(self, no_minqlx_game):
         game_status = status.game_status_with_teams()
 
         assert_that(
             game_status,
-            is_("Currently no game running."),
+            equal_to("Currently no game running."),
         )
 
     def test_game_status_information(self, game_in_progress):
@@ -206,7 +206,8 @@ class TestStatus:
         context.message.channel = guild_channel
 
         assert_that(
-            extension.is_message_in_relay_or_triggered_channel(context), is_(expected)
+            extension.is_message_in_relay_or_triggered_channel(context),
+            equal_to(expected),
         )
 
     @pytest.mark.asyncio
@@ -242,11 +243,13 @@ class TestStatus:
         context.message = mock(spec=Message)
         context.message.channel = guild_channel
 
-        assert_that(extension.is_message_in_triggered_channel(context), is_(expected))
+        assert_that(
+            extension.is_message_in_triggered_channel(context), equal_to(expected)
+        )
 
     @pytest.mark.asyncio
     async def test_bot_setup_called(self, bot):
         await status.setup(bot)
 
         bot.add_cog.assert_awaited_once()
-        assert_that(isinstance(bot.add_cog.call_args.args[0], Status), is_(True))
+        assert_that(isinstance(bot.add_cog.call_args.args[0], Status), equal_to(True))

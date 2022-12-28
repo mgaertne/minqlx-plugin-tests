@@ -12,7 +12,7 @@ from discord import (
     ScheduledEvent,
     EventStatus,
 )
-from hamcrest import assert_that, is_, has_entries
+from hamcrest import assert_that, equal_to, has_entries
 
 # noinspection PyProtectedMember
 from mockito import mock, any_, when2, spy2, verify, unstub
@@ -182,7 +182,7 @@ class TestEvent:
         bot.intents.guild_scheduled_events = False
         with pytest.raises(ValueError) as exception:
             await event.setup(bot)
-            assert_that(exception.value, is_("client needs guild_scheduled_events for this extension"))  # type: ignore
+            assert_that(exception.value, equal_to("client needs guild_scheduled_events for this extension"))
 
     @pytest.mark.asyncio
     async def test_bot_setup_called_with_right_intentions(self, bot):

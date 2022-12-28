@@ -1,7 +1,5 @@
-from unittest.mock import AsyncMock
-
 import pytest
-from hamcrest import assert_that, is_
+from hamcrest import assert_that, equal_to
 from mockito import verify, mock
 
 # noinspection PyPackageRequirements
@@ -164,11 +162,15 @@ class TestTriggeredChat:
         context.message = mock(spec=Message)
         context.message.channel = guild_channel
 
-        assert_that(extension.is_message_in_triggered_channel(context), is_(expected))
+        assert_that(
+            extension.is_message_in_triggered_channel(context), equal_to(expected)
+        )
 
     @pytest.mark.asyncio
     async def test_bot_setup_called(self, bot):
         await triggered_chat.setup(bot)
 
         bot.add_cog.assert_awaited_once()
-        assert_that(isinstance(bot.add_cog.call_args.args[0], TriggeredChat), is_(True))
+        assert_that(
+            isinstance(bot.add_cog.call_args.args[0], TriggeredChat), equal_to(True)
+        )
