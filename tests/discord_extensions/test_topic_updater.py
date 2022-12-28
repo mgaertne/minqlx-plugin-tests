@@ -1,4 +1,4 @@
-import asyncio
+import threading
 from unittest.mock import AsyncMock
 
 import pytest
@@ -8,7 +8,7 @@ from discord.abc import GuildChannel
 from hamcrest import assert_that, is_, matches_regexp
 
 # noinspection PyProtectedMember
-from mockito import when, mock, unstub
+from mockito import when, mock, unstub, verify, when2, spy2, any_
 
 from minqlx_plugin_test import setup_cvars, connected_players, fake_player
 
@@ -49,6 +49,10 @@ class TestTopicUpdater:
                 "qlx_discordKeptTopicSuffixes": "{5678: ' | kept suffix'}",
             }
         )
+
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
+        unstub()
 
     def test_get_game_info_in_warmup(self, game_in_warmup):
         game_info = topic_updater.get_game_info(game_in_warmup)
@@ -139,6 +143,46 @@ class TestTopicUpdater:
         )
 
     @pytest.mark.asyncio
+    async def test_timer_is_started_on_cog_load(self, bot, game_in_warmup):
+        timer_mock = mock(spec=threading.Timer)
+        timer_mock.start = mock()
+        spy2(threading.Timer)
+        when2(threading.Timer, any_, any_).thenReturn(timer_mock)
+
+        game_in_warmup.maxclients = 16
+        game_in_warmup.map_title = None
+        connected_players()
+
+        extension = TopicUpdater(bot)
+
+        await extension.cog_load()
+
+        verify(threading).Timer(305, extension._topic_updater)  # pylint: disable=W0212
+        verify(timer_mock.start).__call__()  # pylint: disable=C2801
+
+    @pytest.mark.asyncio
+    async def test_timer_is_started_on_cog_load_no_game_running(
+        self, bot, no_minqlx_game
+    ):
+        timer_mock = mock(spec=threading.Timer)
+        timer_mock.start = mock()
+        spy2(threading.Timer)
+        when2(threading.Timer, any_, any_).thenReturn(timer_mock)
+
+        extension = TopicUpdater(bot)
+
+        await extension.cog_load()
+
+        verify(threading).Timer(305, extension._topic_updater)  # pylint: disable=W0212
+        verify(timer_mock.start).__call__()  # pylint: disable=C2801
+
+    def test_when_bot_is_none_discord_is_not_logged_in(self, bot):
+        extension = TopicUpdater(bot)
+        extension.bot = None
+
+        assert_that(extension.is_discord_logged_in(), is_(False))
+
+    @pytest.mark.asyncio
     async def test_update_topics_on_relay_and_triggered_channels_discord_not_logged_in(
         self, bot, relay_channel
     ):
@@ -161,9 +205,6 @@ class TestTopicUpdater:
 
         extension.update_topics_on_relay_and_triggered_channels("new topic")
 
-        all_tasks = asyncio.all_tasks()
-        for task in all_tasks:
-            print(task.get_name())
         relay_channel.edit.assert_called_once_with(topic="new topic")
 
     @pytest.mark.asyncio
@@ -177,15 +218,13 @@ class TestTopicUpdater:
 
         extension.update_topics_on_relay_and_triggered_channels("new topic")
 
-        all_tasks = asyncio.all_tasks()
-        for task in all_tasks:
-            print(task.get_name())
         triggered_channel.edit.assert_called_once_with(topic="new topic | kept suffix")
 
     @pytest.mark.asyncio
     async def test_update_topics_on_relay_channels_but_not_on_triggered_channel(
         self, bot, relay_channel, triggered_channel
     ):
+        setup_cvars({"qlx_discordUpdateTopicOnTriggeredChannels": "0"})
         when(bot).is_ready().thenReturn(True)
         when(bot).is_closed().thenReturn(False)
 

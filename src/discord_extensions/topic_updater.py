@@ -5,7 +5,7 @@ from ast import literal_eval
 from discord.ext.commands import Cog
 
 import minqlx
-from minqlx import Plugin, Game, NonexistentGameError
+from minqlx import Plugin, NonexistentGameError
 
 
 def get_game_info(game):
@@ -113,7 +113,7 @@ class TopicUpdater(Cog):
 
     def _topic_updater(self):
         try:
-            game = Game()
+            game = minqlx.Game()
             topic = game_status_information(game)
             self.update_topics_on_relay_and_triggered_channels(topic)
         except NonexistentGameError:
