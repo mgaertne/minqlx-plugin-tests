@@ -1,8 +1,5 @@
 # noinspection PyPackageRequirements
-from discord import TextChannel as TextChannel
-
-# noinspection PyPackageRequirements
-from discord.ext.commands import Bot as Bot, Cog
+from discord.ext.commands import Bot, Cog
 from minqlx import Game
 
 def get_game_info(game: Game) -> str: ...
