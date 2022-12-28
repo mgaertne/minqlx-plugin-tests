@@ -1,19 +1,16 @@
-from typing import Optional, Set, List
-
 # noinspection PyPackageRequirements
 import discord
 
 # noinspection PyPackageRequirements
-from discord import app_commands, Interaction
+from discord import app_commands
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Cog, Bot, Context, Command
+from discord.ext.commands import Cog, Bot, Command
 
-import minqlx
-from minqlx import Plugin
+from minqlx import Plugin, Game, NonexistentGameError
 
 
-def get_game_info(game: minqlx.Game) -> str:
+def get_game_info(game):
     """
     Helper to format the current ```game.state``` that may be used in status messages and setting of channel topics.
 
@@ -37,32 +34,7 @@ def get_game_info(game: minqlx.Game) -> str:
     return "Warmup"
 
 
-def game_status_information(game: minqlx.Game) -> str:
-    """
-    Generate the text for the topic set on discord channels.
-
-    :param: game: the game to derive the status information from
-
-    :return: the topic that represents the current game state.
-    """
-    ginfo = get_game_info(game)
-
-    num_players = len(Plugin.players())
-    max_players = game.maxclients
-
-    maptitle = game.map_title if game.map_title else game.map
-    gametype = game.type_short.upper()
-
-    # CAUTION: if you change anything on the next line, you may need to change the topic_ending logic in
-    #          :func:`TopicUpdater.update_topic_on_triggered_channels(self, topic)` to keep the right portion
-    #          of the triggered relay channels' topics!
-    return (
-        f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) "
-        f"with **{num_players}/{max_players}** players. "
-    )
-
-
-def player_data() -> str:
+def player_data():
     """
     Formats the top 5 scorers connected to the server in a string. The return value may be used for status messages
     and used in topics to indicate reveal more data about the server and its current game.
@@ -83,7 +55,7 @@ def player_data() -> str:
     return _player_data
 
 
-def team_data(player_list: List[minqlx.Player], limit: Optional[int] = None) -> str:
+def team_data(player_list):
     """
     generates a sorted output of the team's player by their score
 
@@ -95,8 +67,6 @@ def team_data(player_list: List[minqlx.Player], limit: Optional[int] = None) -> 
         return ""
 
     players_by_score = sorted(player_list, key=lambda k: k.score, reverse=True)
-    if limit:
-        players_by_score = players_by_score[:limit]
 
     _team_data = ""
     for player in players_by_score:
@@ -107,10 +77,10 @@ def team_data(player_list: List[minqlx.Player], limit: Optional[int] = None) -> 
     return _team_data
 
 
-def game_status_with_teams() -> str:
+def game_status_with_teams():
     try:
-        game = minqlx.Game()
-    except minqlx.NonexistentGameError:
+        game = Game()
+    except NonexistentGameError:
         return "Currently no game running."
 
     ginfo = get_game_info(game)
@@ -127,8 +97,8 @@ def game_status_with_teams() -> str:
     )
 
 
-def int_set(string_set: Optional[Set[str]]) -> Set[int]:
-    returned: Set[int] = set()
+def int_set(string_set):
+    returned = set()  # type: ignore
 
     if string_set is None:
         return returned
@@ -164,16 +134,16 @@ class Status(Cog):
         Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
 
-        self.discord_trigger_status: str = (
+        self.discord_trigger_status = (
             Plugin.get_cvar("qlx_discordTriggerStatus") or "status"
         )
-        self.discord_triggered_channel_message_prefix: str = (
+        self.discord_triggered_channel_message_prefix = (
             Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
         )
-        self.discord_relay_channel_ids: Set[int] = int_set(
+        self.discord_relay_channel_ids = int_set(
             Plugin.get_cvar("qlx_discordRelayChannelIds", set)
         )
-        self.discord_triggered_channel_ids: Set[int] = int_set(
+        self.discord_triggered_channel_ids = int_set(
             Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
         )
 
@@ -201,7 +171,7 @@ class Status(Cog):
 
         super().__init__()
 
-    def is_message_in_relay_or_triggered_channel(self, ctx: Context) -> bool:
+    def is_message_in_relay_or_triggered_channel(self, ctx):
         """
         Checks whether a message was either sent in a configured relay or triggered channel
 
@@ -212,7 +182,7 @@ class Status(Cog):
             in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
         )
 
-    async def trigger_status(self, ctx: Context, *_args, **_kwargs) -> None:
+    async def trigger_status(self, ctx, *_args, **_kwargs):
         """
         Triggers game status information sent towards the originating channel
 
@@ -226,7 +196,7 @@ class Status(Cog):
         await ctx.reply(reply)
 
     # noinspection PyMethodMayBeStatic
-    async def slash_trigger_status(self, interaction: Interaction) -> None:
+    async def slash_trigger_status(self, interaction):
         """
         Triggers game status information sent towards the originating channel
 
@@ -236,7 +206,7 @@ class Status(Cog):
 
         await interaction.response.send_message(content=reply)
 
-    def is_message_in_triggered_channel(self, ctx: Context) -> bool:
+    def is_message_in_triggered_channel(self, ctx):
         """
         Checks whether the message originate in a configured triggered channel
 
@@ -245,5 +215,5 @@ class Status(Cog):
         return ctx.message.channel.id in self.discord_triggered_channel_ids
 
 
-async def setup(bot: Bot):
+async def setup(bot):
     await bot.add_cog(Status(bot))
