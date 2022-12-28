@@ -12,6 +12,10 @@ from minqlx import Plugin
 @app_commands.context_menu(name="qlstats")
 @app_commands.guild_only()
 async def qlstats(interaction, _item: Union[Member, User]):
+    await _qlstats(interaction)
+
+
+async def _qlstats(interaction):
     embed = Embed(color=Color.blurple())
     url = Plugin.get_cvar("qlx_discord_ext_qlstats_url")
     embed.url = url
