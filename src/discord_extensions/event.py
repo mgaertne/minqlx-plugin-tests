@@ -9,15 +9,12 @@ from discord import PrivacyLevel, EntityType, EventStatus
 # noinspection PyPackageRequirements
 from discord.utils import utcnow
 
-# noinspection PyPackageRequirements
-from discord.ext.commands import Bot
-
 import schedule  # type: ignore
 
 from minqlx import Plugin
 
 
-async def create_and_start_event(bot: Bot):
+async def create_and_start_event(bot):
     event_name = Plugin.get_cvar("qlx_discord_ext_event_name")
     if event_name is None:
         return
@@ -45,7 +42,7 @@ async def create_and_start_event(bot: Bot):
     )
 
 
-async def end_event(bot: Bot):
+async def end_event(bot):
     event_name = Plugin.get_cvar("qlx_discord_ext_event_name")
     if event_name is None:
         return
@@ -61,15 +58,15 @@ async def end_event(bot: Bot):
     await asyncio.gather(*end_events)
 
 
-def check_playing_activity(bot: Bot) -> None:
+def check_playing_activity(bot):
     players = Plugin.players()
     if len(players) == 0:
-        asyncio.run_coroutine_threadsafe(end_event(bot), loop=bot.loop)
+        bot.loop.create_task(end_event(bot))
     else:
-        asyncio.run_coroutine_threadsafe(create_and_start_event(bot), loop=bot.loop)
+        bot.loop.create_task(create_and_start_event(bot))
 
 
-async def setup(bot: Bot):
+async def setup(bot):
     if not bot.intents.guild_scheduled_events:
         raise ValueError("client needs guild_scheduled_events for this extension")
 
