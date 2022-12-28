@@ -18,6 +18,7 @@ else:
 @pytest.fixture(name="bot")
 def _bot(event_loop):
     bot = mock({"add_command": mock(), "tree": mock(), "add_cog": AsyncMock(), "loop": event_loop})
+    bot.tree.add_command = mock()
 
     yield bot
     unstub(bot)

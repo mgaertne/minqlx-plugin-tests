@@ -1,10 +1,7 @@
 from typing import Union
 
 # noinspection PyPackageRequirements
-from discord import Interaction, Member, User, Embed, Color
-
-# noinspection PyPackageRequirements
-from discord.ext.commands import Bot
+from discord import Member, User, Embed, Color
 
 # noinspection PyPackageRequirements
 from discord import app_commands
@@ -14,7 +11,7 @@ from minqlx import Plugin
 
 @app_commands.context_menu(name="qlstats")
 @app_commands.guild_only()
-async def qlstats(interaction: Interaction, _item: Union[Member, User]) -> None:
+async def qlstats(interaction, _item: Union[Member, User]):
     embed = Embed(color=Color.blurple())
     url = Plugin.get_cvar("qlx_discord_ext_qlstats_url")
     embed.url = url
@@ -22,5 +19,5 @@ async def qlstats(interaction: Interaction, _item: Union[Member, User]) -> None:
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-async def setup(bot: Bot):
+async def setup(bot):
     bot.tree.add_command(qlstats)
