@@ -1,8 +1,8 @@
 # noinspection PyPackageRequirements
-from discord import Interaction as Interaction
+from discord import Interaction
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot as Bot, Cog, Context as Context
+from discord.ext.commands import Bot, Cog, Context
 
 from minqlx import Game, Player
 

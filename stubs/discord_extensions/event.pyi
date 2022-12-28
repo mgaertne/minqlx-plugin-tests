@@ -1,7 +1,7 @@
 from typing import NoReturn
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot as Bot
+from discord.ext.commands import Bot
 
 async def create_and_start_event(bot: Bot): ...
 async def end_event(bot: Bot) -> None: ...

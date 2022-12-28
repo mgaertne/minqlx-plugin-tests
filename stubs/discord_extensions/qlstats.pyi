@@ -1,8 +1,8 @@
 # noinspection PyPackageRequirements
-from discord import Interaction as Interaction, Member as Member, User as User
+from discord import Interaction, Member, User
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot as Bot
+from discord.ext.commands import Bot
 
 async def qlstats(interaction: Interaction, _item: Member | User) -> None: ...
 async def _qlstats(interaction: Interaction) -> None: ...
