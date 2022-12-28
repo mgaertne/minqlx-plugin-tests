@@ -1,17 +1,14 @@
 import random
 
 # noinspection PyPackageRequirements
-from discord import (
-    app_commands,
-    PartialMessageable,
-)
+from discord import app_commands, PartialMessageable, Member
 
 from minqlx import Plugin
 
 
 @app_commands.context_menu(name="slap")
 @app_commands.guild_only()
-async def slap(interaction, member):
+async def slap(interaction, member: Member):
     await _slap(interaction, member)
 
 
