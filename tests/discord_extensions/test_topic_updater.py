@@ -5,10 +5,10 @@ import pytest
 
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
-from hamcrest import assert_that, is_
+from hamcrest import assert_that, is_, matches_regexp
 
 # noinspection PyProtectedMember
-from mockito import matches, when, mock, unstub
+from mockito import when, mock, unstub
 
 from minqlx_plugin_test import setup_cvars, connected_players, fake_player
 
@@ -133,8 +133,8 @@ class TestTopicUpdater:
 
         assert_that(
             game_status,
-            matches(
-                "Match in progress: .*0.* - .*0.* on .*Campgrounds.* (CA) with .*5/16.* players."
+            matches_regexp(
+                r"Match in progress: .*5.* - .*3.* on .*Campgrounds.* \(CA\) with .*5/16.* players\. "
             ),
         )
 
