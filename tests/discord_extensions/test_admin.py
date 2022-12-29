@@ -1,11 +1,12 @@
 import functools
 import threading
 import time
+from unittest.mock import AsyncMock
 
 import pytest
 
 # noinspection PyPackageRequirements
-from discord import ChannelType
+from discord import ChannelType, InteractionResponse
 from hamcrest import assert_that, equal_to, matches_regexp, has_key, not_
 from mockito import unstub, patch, spy2, when2, mock, verify
 from undecorated import undecorated
@@ -14,7 +15,7 @@ from minqlx_plugin_test import setup_cvars
 import minqlx
 
 from discord_extensions import admin
-from discord_extensions.admin import AdminCog
+from discord_extensions.admin import AdminCog, DiscordInteractionChannel
 
 
 class ThreadContextManager:
@@ -372,3 +373,75 @@ class TestAdmin:
 
         bot.add_cog.assert_awaited_once()
         assert_that(isinstance(bot.add_cog.call_args.args[0], AdminCog), equal_to(True))
+
+
+class TestDiscordInteractionChannel:
+    @pytest.fixture(name="message")
+    def message(self):
+        message = mock(spec=InteractionResponse)
+        message.edit = AsyncMock()
+
+        yield message
+
+        unstub(message)
+
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
+        unstub()
+
+    def test_steam_id(self, user, event_loop, message):
+        setup_cvars({"qlx_owner": "42"})
+
+        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+
+        assert_that(channel.steam_id, equal_to(42))
+
+    def test_channel(self, user, event_loop, message):
+        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+
+        assert_that(channel.channel, equal_to(channel))
+
+    @pytest.mark.asyncio
+    async def test_expand_original_reply_fills_initial_description(
+        self, user, event_loop, message
+    ):
+        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+
+        await channel.expand_original_reply(content="Hi there")
+
+        message.edit.assert_awaited_once()
+        assert_that(
+            message.edit.await_args.kwargs["embed"].description,  # type: ignore
+            equal_to("Hi there"),
+        )
+
+    @pytest.mark.asyncio
+    async def test_expand_original_reply_extends_original_reply(
+        self, user, event_loop, message
+    ):
+        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        channel.embed.description = "initial text"
+
+        await channel.expand_original_reply(content="Hi there")
+
+        message.edit.assert_awaited_once()
+        assert_that(
+            message.edit.await_args.kwargs["embed"].description,  # type: ignore
+            equal_to("initial text\nHi there"),
+        )
+
+    def test_tell(self, user, event_loop, message):
+        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        spy2(channel.expand_original_reply)
+
+        channel.tell("Hi there")
+
+        verify(channel).expand_original_reply(content="Hi there")
+
+    def test_reply(self, user, event_loop, message):
+        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        spy2(channel.expand_original_reply)
+
+        channel.reply("Hi there")
+
+        verify(channel).expand_original_reply(content="Hi there")

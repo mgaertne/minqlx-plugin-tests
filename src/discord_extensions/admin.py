@@ -37,7 +37,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
     def channel(self):
         return self
 
-    async def expand_original_reply(self, content):
+    async def expand_original_reply(self, *, content):
         if self.embed.description is None:
             self.embed.description = content
         else:
