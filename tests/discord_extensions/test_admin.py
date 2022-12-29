@@ -26,7 +26,7 @@ class ThreadContextManager:
         pass
 
     def __exit__(self, exc_type, exc_value, traceback):
-        time.sleep(0.0001)
+        time.sleep(0.1)
         for thread in threading.enumerate():
             if thread != threading.current_thread():
                 thread.join()
