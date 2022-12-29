@@ -12,6 +12,11 @@ from discord_extensions.triggered_chat import TriggeredChat
 
 
 class TestTriggeredChat:
+    @pytest.fixture(name="chat_context")
+    def chat_context(self, context):
+        context.invoked_with = "quakelive"
+        yield context
+
     # noinspection PyMethodMayBeStatic
     def setup_method(self):
         setup_cvars(
@@ -24,45 +29,45 @@ class TestTriggeredChat:
 
     @pytest.mark.asyncio
     async def test_message_from_wrong_channel_is_not_forwarded(
-        self, bot, context, private_channel
+        self, bot, chat_context, private_channel
     ):
-        context.channel = private_channel
+        chat_context.channel = private_channel
 
         extension = TriggeredChat(bot)
 
-        await extension.triggered_chat(context)
+        await extension.triggered_chat(chat_context)
 
-        context.reply.assert_awaited_with(
+        chat_context.reply.assert_awaited_with(
             content="tried to send a message from the wrong channel", ephemeral=True
         )
 
     @pytest.mark.asyncio
     async def test_direct_message_is_not_forwarded(
-        self, bot, context, user, guild_channel
+        self, bot, chat_context, user, guild_channel
     ):
-        context.channel = guild_channel
-        context.author = user
+        chat_context.channel = guild_channel
+        chat_context.author = user
 
         extension = TriggeredChat(bot)
 
-        await extension.triggered_chat(context)
+        await extension.triggered_chat(chat_context)
 
-        context.reply.assert_awaited_with(
+        chat_context.reply.assert_awaited_with(
             content="tried to send a message from a private message", ephemeral=True
         )
 
     @pytest.mark.asyncio
     async def test_text_triggered_chat_is_forwarded_to_ql(
-        self, bot, context, member, guild_channel, mock_channel
+        self, bot, chat_context, member, guild_channel, mock_channel
     ):
         minqlx.CHAT_CHANNEL = mock_channel
-        context.channel = guild_channel
-        context.author = member
-        context.message.clean_content = "!quakelive message from discord to quake"
+        chat_context.channel = guild_channel
+        chat_context.author = member
+        chat_context.message.clean_content = "!quakelive message from discord to quake"
 
         extension = TriggeredChat(bot)
 
-        await extension.triggered_chat(context)
+        await extension.triggered_chat(chat_context)
 
         verify(minqlx.CHAT_CHANNEL).reply(
             "[DISCORD] ^5#DiscordGuildChannel ^6DiscordMember^7:^2 message from discord to quake"
@@ -70,17 +75,17 @@ class TestTriggeredChat:
 
     @pytest.mark.asyncio
     async def test_forwarded_message_uses_nick(
-        self, bot, context, member, guild_channel, mock_channel
+        self, bot, chat_context, member, guild_channel, mock_channel
     ):
         minqlx.CHAT_CHANNEL = mock_channel
         member.nick = "MemberNick"
-        context.channel = guild_channel
-        context.author = member
-        context.message.clean_content = "!quakelive message from discord to quake"
+        chat_context.channel = guild_channel
+        chat_context.author = member
+        chat_context.message.clean_content = "!quakelive message from discord to quake"
 
         extension = TriggeredChat(bot)
 
-        await extension.triggered_chat(context)
+        await extension.triggered_chat(chat_context)
 
         verify(minqlx.CHAT_CHANNEL).reply(
             "[DISCORD] ^5#DiscordGuildChannel ^6MemberNick^7:^2 message from discord to quake"
@@ -154,16 +159,16 @@ class TestTriggeredChat:
 
     @pytest.mark.parametrize("channel_id,expected", [(1234, True), (5678, False)])
     def test_is_message_inconfigured_triggered_channel(
-        self, channel_id, expected, context, bot, guild_channel
+        self, channel_id, expected, chat_context, bot, guild_channel
     ):
         extension = TriggeredChat(bot)
 
         guild_channel.id = channel_id
-        context.message = mock(spec=Message)
-        context.message.channel = guild_channel
+        chat_context.message = mock(spec=Message)
+        chat_context.message.channel = guild_channel
 
         assert_that(
-            extension.is_message_in_triggered_channel(context), equal_to(expected)
+            extension.is_message_in_triggered_channel(chat_context), equal_to(expected)
         )
 
     @pytest.mark.asyncio

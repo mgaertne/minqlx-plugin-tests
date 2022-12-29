@@ -9,7 +9,7 @@ else:
     from unittest.mock import AsyncMock
 
     # noinspection PyPackageRequirements
-    from discord import User, Member, Client
+    from discord import User, Member, Client, ChannelType
 
     # noinspection PyPackageRequirements
     from discord.abc import GuildChannel, PrivateChannel
@@ -37,9 +37,11 @@ def _bot(event_loop):
 
 @pytest.fixture(name="context")
 def _context():
-    context = mock({"message": mock(), "reply": AsyncMock()})
+    context = mock({"message": mock(), "reply": AsyncMock(), "send": AsyncMock()})
+    replied_message = AsyncMock()
+    replied_message.edit = AsyncMock()
+    context.reply.return_value = replied_message
     context.prefix = "!"
-    context.invoked_with = "quakelive"
 
     yield context
     unstub(context)
@@ -47,7 +49,8 @@ def _context():
 
 @pytest.fixture(name="interaction")
 def _interaction():
-    interaction = mock()
+    interaction = mock({"original_response": AsyncMock()})
+    interaction.original_response.reply = AsyncMock()
     interaction.response = mock({"send_message": AsyncMock()})
 
     yield interaction
@@ -57,7 +60,9 @@ def _interaction():
 @pytest.fixture(name="user")
 def _user():
     user = mock(spec=User)
+    user.id = 42
     user.name = "DisordUser"
+    user.display_name = user.name
     user.nick = None
 
     yield user
@@ -81,6 +86,7 @@ def _member():
 def _guild_channel():
     channel = mock(spec=GuildChannel)
     channel.name = "DiscordGuildChannel"
+    channel.type = ChannelType.text
 
     yield channel
     unstub(channel)
