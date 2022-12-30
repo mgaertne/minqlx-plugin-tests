@@ -430,7 +430,8 @@ class TestDiscordInteractionChannel:
             equal_to("initial text\nHi there"),
         )
 
-    def test_tell(self, user, event_loop, message):
+    @pytest.mark.asyncio
+    async def test_tell(self, user, event_loop, message):
         channel = DiscordInteractionChannel(user, message, loop=event_loop)
         spy2(channel.expand_original_reply)
 
@@ -438,7 +439,8 @@ class TestDiscordInteractionChannel:
 
         verify(channel).expand_original_reply(content="Hi there")
 
-    def test_reply(self, user, event_loop, message):
+    @pytest.mark.asyncio
+    async def test_reply(self, user, event_loop, message):
         channel = DiscordInteractionChannel(user, message, loop=event_loop)
         spy2(channel.expand_original_reply)
 
