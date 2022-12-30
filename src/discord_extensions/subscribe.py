@@ -1,31 +1,23 @@
 import asyncio
 import threading
 import time
-from typing import Dict, List, Optional, Union
 
 import schedule
 
 # noinspection PyPackageRequirements
 from discord import (
-    Activity,
     ActivityType,
     app_commands,
     Color,
-    CustomActivity,
     Embed,
-    Game,
-    Interaction,
     Member,
-    Spotify,
-    Streaming,
-    User,
 )
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot, Cog, GroupCog
+from discord.ext.commands import Cog, GroupCog
 
 import minqlx
-from minqlx import Player, Plugin
+from minqlx import Plugin, NonexistentGameError
 from minqlx.database import Redis
 
 DISCORD_MAP_SUBSCRIPTION_KEY = "minqlx:discord:{}:subscribed_maps"
@@ -48,25 +40,25 @@ class SubscriberCog(Cog):
         description="unsubscribe from maps, players, or members",
     )
 
-    def __init__(self, bot: Bot, db: Redis):
-        self.bot: Bot = bot
-        self.db: Redis = db
+    def __init__(self, bot, db):
+        self.bot = bot
+        self.db = db
 
-        self.long_map_names_lookup: Dict[str, str] = {}
+        self.long_map_names_lookup = {}
         if self.db.exists(LONG_MAP_NAMES_KEY):
             self.long_map_names_lookup = self.db.hgetall(LONG_MAP_NAMES_KEY)
 
-        self.installed_maps: List[str] = []
+        self.installed_maps = []
         # noinspection PyProtectedMember
         if "maps_manager" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
             self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps  # type: ignore
-            # noinspection PyProtectedMember
+        # noinspection PyProtectedMember
         elif "maps" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
             self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps  # type: ignore
 
-        self.formatted_installed_maps: Dict[str, str] = {
+        self.formatted_installed_maps = {
             mapname: mapname for mapname in self.installed_maps
         }
         for mapname, long_map_name in self.long_map_names_lookup.items():
@@ -76,10 +68,10 @@ class SubscriberCog(Cog):
             ):
                 self.formatted_installed_maps[mapname] = f"{long_map_name} ({mapname})"
 
-        self.known_players: Dict[int, str] = self.gather_known_players()
+        self.known_players = self.gather_known_players()
 
-        self.last_notified_map: Optional[str] = None
-        self.notified_steam_ids: List[int] = []
+        self.last_notified_map = None
+        self.notified_steam_ids = []
 
         if not self.bot.intents.presences:
             self.subscribe_group.remove_command("member")
@@ -88,11 +80,11 @@ class SubscriberCog(Cog):
 
         super().__init__()
 
-    def gather_known_players(self) -> Dict[int, str]:
+    def gather_known_players(self):
         returned = {}
+        prefix = LAST_USED_NAME_KEY.rsplit("{", maxsplit=1)[0]
+        suffix = LAST_USED_NAME_KEY.rsplit("}", maxsplit=1)[-1]
         for key in self.db.keys(LAST_USED_NAME_KEY.format("*")):
-            prefix = LAST_USED_NAME_KEY.rsplit("{", maxsplit=1)[0]
-            suffix = LAST_USED_NAME_KEY.rsplit("}", maxsplit=1)[-1]
             steam_id_candidate = key.replace(prefix, "").replace(suffix, "")
             if not steam_id_candidate.isdigit():
                 continue
@@ -108,7 +100,10 @@ class SubscriberCog(Cog):
     )
     @app_commands.describe(mapname="the name of the map to subscribe to")
     @app_commands.guild_only()
-    async def subscribe_map(self, interaction: Interaction, mapname: str):
+    async def subscribe_map(self, interaction, mapname: str):
+        await self._subscribe_map(interaction, mapname)
+
+    async def _subscribe_map(self, interaction, mapname):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
         stripped_mapname = mapname.strip(" ")
@@ -149,10 +144,10 @@ class SubscriberCog(Cog):
         )
         await interaction.edit_original_response(embed=reply_embed)
 
-    def subscribed_maps_of(self, user_id: int) -> List[str]:
+    def subscribed_maps_of(self, user_id):
         return self.db.smembers(DISCORD_MAP_SUBSCRIPTION_KEY.format(user_id))
 
-    def format_mapname(self, mapname: str) -> str:
+    def format_mapname(self, mapname):
         if mapname in self.formatted_installed_maps:
             return self.formatted_installed_maps[mapname]
 
@@ -162,9 +157,7 @@ class SubscriberCog(Cog):
         return mapname
 
     @subscribe_map.autocomplete(name="mapname")
-    async def subscribe_map_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> list[app_commands.Choice[str]]:
+    async def subscribe_map_autocomplete(self, interaction, current):
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
         filtered_candidates = [
             mapname
@@ -187,7 +180,10 @@ class SubscriberCog(Cog):
     )
     @app_commands.describe(player="Name of the player you want to subscribe to")
     @app_commands.guild_only()
-    async def subscribe_player(self, interaction: Interaction, player: str):
+    async def subscribe_player(self, interaction, player: str):
+        await self._subscribe_player(interaction, player)
+
+    async def _subscribe_player(self, interaction, player):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
         stripped_player_name = player.strip(" ")
@@ -248,7 +244,7 @@ class SubscriberCog(Cog):
         )
         await interaction.edit_original_response(embed=reply_embed)
 
-    def find_matching_players(self, player: str) -> List[int]:
+    def find_matching_players(self, player):
         if player.isdigit() and int(player) in self.known_players:
             return [int(player)]
 
@@ -259,23 +255,21 @@ class SubscriberCog(Cog):
 
         return matching_steam_ids
 
-    def formatted_last_used_name(self, steam_id: int) -> str:
+    def formatted_last_used_name(self, steam_id):
         if not self.db.exists(LAST_USED_NAME_KEY.format(steam_id)):
             return str(steam_id)
         return Plugin.clean_text(
             self.db.get(LAST_USED_NAME_KEY.format(steam_id))
         ).replace("`", r"\`")
 
-    def subscribed_players_of(self, user_id: int) -> List[int]:
+    def subscribed_players_of(self, user_id):
         player_subscriptions = self.db.smembers(
             DISCORD_PLAYER_SUBSCRIPTION_KEY.format(user_id)
         )
         return [int(player_steam_id) for player_steam_id in player_subscriptions]
 
     @subscribe_player.autocomplete(name="player")
-    async def subscribe_player_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    async def subscribe_player_autocomplete(self, interaction, current):
         subscribed_players = self.subscribed_players_of(interaction.user.id)
         filtered_candidates = [
             candidate_steam_id
@@ -297,7 +291,10 @@ class SubscriberCog(Cog):
     )
     @app_commands.describe(member="Discord user you want to subscribe to")
     @app_commands.guild_only()
-    async def subscribe_member(self, interaction: Interaction, member: Member):
+    async def subscribe_member(self, interaction, member: Member):
+        await self._subscribe_member(interaction, member)
+
+    async def _subscribe_member(self, interaction, member):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
         db_return_value = self.db.sadd(
@@ -319,7 +316,7 @@ class SubscriberCog(Cog):
         )
         await interaction.edit_original_response(embed=reply_embed)
 
-    def subscribed_users_of(self, user_id: int) -> List[User]:
+    def subscribed_users_of(self, user_id):
         subscribed_users = []
         for discord_str_id in self.db.smembers(
             DISCORD_MEMBER_SUBSCRIPTION_KEY.format(user_id)
@@ -337,7 +334,10 @@ class SubscriberCog(Cog):
     )
     @app_commands.describe(mapname="the name of the map to subscribe from")
     @app_commands.guild_only()
-    async def unsubscribe_map(self, interaction: Interaction, mapname: str):
+    async def unsubscribe_map(self, interaction, mapname: str):
+        await self._unsubscribe_map(interaction, mapname)
+
+    async def _unsubscribe_map(self, interaction, mapname):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
         stripped_mapname = mapname.strip(" ")
@@ -379,9 +379,7 @@ class SubscriberCog(Cog):
         await interaction.edit_original_response(embed=reply_embed)
 
     @unsubscribe_map.autocomplete("mapname")
-    async def unsubscribe_map_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    async def unsubscribe_map_autocomplete(self, interaction, current):
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
         candidates = [
             mapname
@@ -400,7 +398,10 @@ class SubscriberCog(Cog):
     )
     @app_commands.describe(player="Name of the player you want to unsubscribe from")
     @app_commands.guild_only()
-    async def unsubscribe_player(self, interaction: Interaction, player: str):
+    async def unsubscribe_player(self, interaction, player: str):
+        await self._unsubscribe_player(interaction, player)
+
+    async def _unsubscribe_player(self, interaction, player):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
         stripped_player_name = player.strip(" ")
@@ -439,11 +440,11 @@ class SubscriberCog(Cog):
         last_used_name = self.formatted_last_used_name(matching_steam_id)
         if not db_return_value:
             immediate_reply_message = (
-                f"You were not subscribed to player `{last_used_name}`. "
+                f"You were not subscribed to player `{last_used_name}`."
             )
         else:
             immediate_reply_message = (
-                f"You have been unsubscribed from player `{last_used_name}`. "
+                f"You have been unsubscribed from player `{last_used_name}`."
             )
         reply_embed.description = immediate_reply_message
         await interaction.edit_original_response(embed=reply_embed)
@@ -468,9 +469,7 @@ class SubscriberCog(Cog):
         await interaction.edit_original_response(embed=reply_embed)
 
     @unsubscribe_player.autocomplete("player")
-    async def unsubscribe_player_autocomplete(
-        self, interaction: Interaction, current: str
-    ) -> List[app_commands.Choice[str]]:
+    async def unsubscribe_player_autocomplete(self, interaction, current):
         subscribed_players = self.subscribed_players_of(interaction.user.id)
 
         candidates = [
@@ -492,7 +491,10 @@ class SubscriberCog(Cog):
     )
     @app_commands.describe(member="Discord user you want to unsubscribe from")
     @app_commands.guild_only()
-    async def unsubscribe_member(self, interaction: Interaction, member: Member):
+    async def unsubscribe_member(self, interaction, member: Member):
+        await self._unsubscribe_member(interaction, member)
+
+    async def _unsubscribe_member(self, interaction, member):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
         db_return_value = self.db.srem(
@@ -525,12 +527,13 @@ class SubscriberCog(Cog):
         )
         await interaction.edit_original_response(embed=reply_embed)
 
-    async def notify_map_change(self, mapname: str) -> None:
+    async def notify_map_change(self, mapname):
+        prefix = DISCORD_MAP_SUBSCRIPTION_KEY.split("{", maxsplit=1)[0]
+        suffix = DISCORD_MAP_SUBSCRIPTION_KEY.rsplit("}", maxsplit=1)[-1]
+
         notifications = []
         for key in self.db.keys(DISCORD_MAP_SUBSCRIPTION_KEY.format("*")):
             if self.db.sismember(key, mapname):
-                prefix = DISCORD_MAP_SUBSCRIPTION_KEY.split("{", maxsplit=1)[0]
-                suffix = DISCORD_MAP_SUBSCRIPTION_KEY.rsplit("}", maxsplit=1)[-1]
                 discord_id = int(key.replace(prefix, "").replace(suffix, ""))
                 subscribed_discord_user = self.bot.get_user(discord_id)
                 if subscribed_discord_user is None:
@@ -544,12 +547,13 @@ class SubscriberCog(Cog):
 
         await asyncio.gather(*notifications)
 
-    async def notify_player_connected(self, player: Player) -> None:
+    async def notify_player_connected(self, player):
+        prefix = DISCORD_PLAYER_SUBSCRIPTION_KEY.split("{", maxsplit=1)[0]
+        suffix = DISCORD_PLAYER_SUBSCRIPTION_KEY.rsplit("}", maxsplit=1)[-1]
+
         notifications = []
         for key in self.db.keys(DISCORD_PLAYER_SUBSCRIPTION_KEY.format("*")):
             if self.db.sismember(key, player.steam_id):
-                prefix = DISCORD_PLAYER_SUBSCRIPTION_KEY.split("{", maxsplit=1)[0]
-                suffix = DISCORD_PLAYER_SUBSCRIPTION_KEY.rsplit("}", maxsplit=1)[-1]
                 discord_id = int(key.replace(prefix, "").replace(suffix, ""))
                 subscribed_discord_user = self.bot.get_user(discord_id)
 
@@ -570,7 +574,7 @@ class SubscriberCog(Cog):
         game = None
         try:
             game = minqlx.Game()
-        except minqlx.NonexistentGameError:
+        except NonexistentGameError:
             pass
 
         if game is not None and game.map != self.last_notified_map:
@@ -592,9 +596,7 @@ class SubscriberCog(Cog):
         await asyncio.gather(*notification_actions)
 
     # noinspection PyMethodMayBeStatic
-    def find_relevant_activity(
-        self, member: Member
-    ) -> Optional[Union[Activity, Game, CustomActivity, Streaming, Spotify]]:
+    def find_relevant_activity(self, member):
         for activity in member.activities:
             if activity.type != ActivityType.playing:
                 continue
@@ -605,7 +607,7 @@ class SubscriberCog(Cog):
         return None
 
     @GroupCog.listener()
-    async def on_presence_update(self, before: Member, after: Member):
+    async def on_presence_update(self, before, after):
         relevant_activity = self.find_relevant_activity(before)
         if relevant_activity is not None:
             return
@@ -614,11 +616,12 @@ class SubscriberCog(Cog):
         if relevant_activity is None:
             return
 
+        prefix = DISCORD_MEMBER_SUBSCRIPTION_KEY.split("{", maxsplit=1)[0]
+        suffix = DISCORD_MEMBER_SUBSCRIPTION_KEY.rsplit("}", maxsplit=1)[-1]
+
         notifications = []
         for key in self.db.keys(DISCORD_MEMBER_SUBSCRIPTION_KEY.format("*")):
             if self.db.sismember(key, str(after.id)):
-                prefix = DISCORD_MEMBER_SUBSCRIPTION_KEY.split("{", maxsplit=1)[0]
-                suffix = DISCORD_MEMBER_SUBSCRIPTION_KEY.rsplit("}", maxsplit=1)[-1]
                 discord_id = int(key.replace(prefix, "").replace(suffix, ""))
                 informed_user = self.bot.get_user(discord_id)
                 if informed_user is None:
@@ -634,11 +637,12 @@ class SubscriberCog(Cog):
         await asyncio.gather(*notifications)
 
 
-def check_subscriptions(cog: SubscriberCog) -> None:
-    asyncio.run_coroutine_threadsafe(cog.check_subscriptions(), loop=cog.bot.loop)
+def check_subscriptions(cog):
+    cog.bot.loop.create_task(cog.check_subscriptions())
 
 
-async def setup(bot: Bot) -> None:
+async def setup(bot):
+    # noinspection PyTypeChecker
     subscriber_cog = SubscriberCog(bot, Redis("mydiscordbot"))
     await bot.add_cog(subscriber_cog)
     schedule.every(1).minute.do(check_subscriptions, subscriber_cog)

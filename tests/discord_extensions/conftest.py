@@ -49,9 +49,9 @@ def _context():
 
 @pytest.fixture(name="interaction")
 def _interaction():
-    interaction = mock({"original_response": AsyncMock()})
+    interaction = mock({"original_response": AsyncMock(), "edit_original_response": AsyncMock()})
     interaction.original_response.reply = AsyncMock()
-    interaction.response = mock({"send_message": AsyncMock()})
+    interaction.response = mock({"send_message": AsyncMock(), "defer": AsyncMock()})
 
     yield interaction
     unstub(interaction)
@@ -64,6 +64,7 @@ def _user():
     user.name = "DisordUser"
     user.display_name = user.name
     user.nick = None
+    user.send = AsyncMock()
 
     yield user
     unstub(user)
