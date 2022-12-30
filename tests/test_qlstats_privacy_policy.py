@@ -1,3 +1,5 @@
+import time
+
 import pytest
 from mockito import unstub, mock, spy2, verify, when, when2  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
@@ -30,6 +32,7 @@ class ThreadContextManager:
         pass
 
     def __exit__(self, exc_type, exc_value, traceback):
+        time.sleep(0.1)
         for thread in self.plugin.connectthreads.values():
             thread.join()
 
