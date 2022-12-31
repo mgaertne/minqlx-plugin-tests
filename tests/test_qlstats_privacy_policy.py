@@ -32,7 +32,7 @@ class ThreadContextManager:
         pass
 
     def __exit__(self, exc_type, exc_value, traceback):
-        time.sleep(0.1)
+        time.sleep(0.25)
         for thread in self.plugin.connectthreads.values():
             thread.join()
 
