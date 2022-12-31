@@ -62,6 +62,7 @@ class merciful_elo_limit(Plugin):
         if gametype not in SUPPORTED_GAMETYPES:
             return
 
+        # noinspection PyProtectedMember
         if "balance" not in Plugin._loaded_plugins:
             self.logger.warning(
                 "Balance plugin not found. Merciful elo limits just work with the elos "
@@ -69,6 +70,7 @@ class merciful_elo_limit(Plugin):
             )
             return
 
+        # noinspection PyProtectedMember
         balance_plugin = Plugin._loaded_plugins["balance"]
 
         player_ratings = {p.steam_id: gametype for p in players}
@@ -128,9 +130,11 @@ class merciful_elo_limit(Plugin):
 
     # noinspection PyMethodMayBeStatic
     def is_player_in_exception_list(self, player):
+        # noinspection PyProtectedMember
         if "mybalance" not in Plugin._loaded_plugins:
             return False
 
+        # noinspection PyProtectedMember
         mybalance_plugin = Plugin._loaded_plugins["mybalance"]
         # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions  # type: ignore
@@ -148,12 +152,14 @@ class merciful_elo_limit(Plugin):
         if not self.game:
             return None
 
+        # noinspection PyProtectedMember
         if "balance" not in Plugin._loaded_plugins:
             self.logger.warning(
                 "Balance plugin not found. Merciful elo limits just work with the elos "
                 "from the balance plugin"
             )
             return None
+        # noinspection PyProtectedMember
         balance_plugin = Plugin._loaded_plugins["balance"]
         # noinspection PyUnresolvedReferences
         ratings = balance_plugin.ratings  # type: ignore
