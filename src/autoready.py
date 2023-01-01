@@ -120,8 +120,8 @@ class autoready(Plugin):
 
     @minqlx.thread
     def make_sure_game_really_starts(self, mapname):
-        while self.timer is not None:
-            time.sleep(1)
+        if self.timer is not None:
+            time.sleep(10)
             if self.timer is None:
                 return
 
@@ -129,9 +129,13 @@ class autoready(Plugin):
                 return
 
             if self.game and self.game.state == "warmup":
-                self.shuffle()
-                time.sleep(2)
-                self.allready()
+                pending_players = [player for player in self.players()
+                                   if player.stats.ping == -1 and player.team in ["red", "blue"]]
+                for player in pending_players:
+                    player.put("spectator")
+
+        self.timer = CountdownThread(self.min_counter, timed_actions=self.timed_actions())  # type: ignore
+        self.timer.start()  # type: ignore
 
     def handle_game_start(self, _data):
         if self.timer is None:
