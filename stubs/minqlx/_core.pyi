@@ -1,10 +1,16 @@
+import threading
 from types import TracebackType, ModuleType
-from typing import Type, Callable, Mapping
+from typing import Type, Callable, Mapping, Protocol
 
 from datetime import datetime, timedelta
 from logging import Logger
 
 from minqlx import StatsListener, Plugin
+
+class ExceptHookArgs(Protocol):
+    exc_traceback: TracebackType
+    exc_type: Type[BaseException]
+    exc_value: BaseException
 
 class PluginLoadError(Exception): ...
 class PluginUnloadError(Exception): ...
@@ -31,7 +37,7 @@ def handle_exception(
     exc_value: BaseException,
     exc_traceback: TracebackType | None,
 ) -> None: ...
-def threading_excepthook(args) -> None: ...
+def threading_excepthook(args: ExceptHookArgs) -> None: ...
 def uptime() -> timedelta: ...
 def owner() -> int | None: ...
 def stats_listener() -> StatsListener: ...
