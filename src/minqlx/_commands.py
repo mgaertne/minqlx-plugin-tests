@@ -273,9 +273,7 @@ class Command:
         self.handler = handler
         self.permission = permission
         self.channels = list(channels) if channels is not None else []
-        self.exclude_channels = (
-            list(exclude_channels) if exclude_channels is not None else []
-        )
+        self.exclude_channels = list(exclude_channels) if exclude_channels is not None else []
         self.client_cmd_pass = client_cmd_pass
         self.client_cmd_perm = client_cmd_perm
         self.prefix = prefix
@@ -348,9 +346,13 @@ class CommandInvoker:
     """Holds all commands and executes them whenever we get input and should execute."""
 
     def __init__(self):
-        self._commands: tuple[
-            list[Command], list[Command], list[Command], list[Command], list[Command]
-        ] = ([], [], [], [], [])
+        self._commands: tuple[list[Command], list[Command], list[Command], list[Command], list[Command]] = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
 
     @property
     def commands(self):
@@ -410,10 +412,7 @@ class CommandInvoker:
                         pass_through = cmd.client_cmd_pass
 
                     # Dispatch "command" and allow people to stop it from being executed.
-                    if (
-                        minqlx.EVENT_DISPATCHERS["command"].dispatch(player, cmd, msg)
-                        is False
-                    ):
+                    if minqlx.EVENT_DISPATCHERS["command"].dispatch(player, cmd, msg) is False:
                         return True
 
                     res = cmd.execute(player, msg, channel)

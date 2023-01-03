@@ -20,10 +20,7 @@ async def create_and_start_event(bot):
         return
 
     for scheduled_event in bot.guilds[0].scheduled_events:
-        if (
-            event_name in scheduled_event.name
-            and scheduled_event.status == EventStatus.active
-        ):
+        if event_name in scheduled_event.name and scheduled_event.status == EventStatus.active:
             return
 
     event_location = Plugin.get_cvar("qlx_discord_ext_event_location")
@@ -49,10 +46,7 @@ async def end_event(bot):
 
     end_events = []
     for scheduled_event in bot.guilds[0].scheduled_events:
-        if (
-            event_name in scheduled_event.name
-            and scheduled_event.status == EventStatus.active
-        ):
+        if event_name in scheduled_event.name and scheduled_event.status == EventStatus.active:
             end_events.append(scheduled_event.end())
 
     await asyncio.gather(*end_events)

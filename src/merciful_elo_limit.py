@@ -30,9 +30,7 @@ class merciful_elo_limit(Plugin):
         self.set_cvar_once("qlx_mercifulelo_daysbanned", "30")
 
         self.min_elo = self.get_cvar("qlx_mercifulelo_minelo", int) or 800
-        self.application_games = (
-            self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
-        )
+        self.application_games = self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
         self.above_games = self.get_cvar("qlx_mercifulelo_abovegames", int) or 10
         self.banned_days = self.get_cvar("qlx_mercifulelo_daysbanned", int) or 30
 
@@ -65,8 +63,7 @@ class merciful_elo_limit(Plugin):
         # noinspection PyProtectedMember
         if "balance" not in Plugin._loaded_plugins:
             self.logger.warning(
-                "Balance plugin not found. Merciful elo limits just work with the elos "
-                "from the balance plugin"
+                "Balance plugin not found. Merciful elo limits just work with the elos from the balance plugin"
             )
             return
 
@@ -112,9 +109,7 @@ class merciful_elo_limit(Plugin):
             return
 
         if elo < self.min_elo:
-            application_games_played = self.get_value_from_db_or_zero(
-                APPLICATION_GAMES_KEY.format(player.steam_id)
-            )
+            application_games_played = self.get_value_from_db_or_zero(APPLICATION_GAMES_KEY.format(player.steam_id))
 
             if application_games_played > self.application_games:
                 ban_player(
@@ -155,8 +150,7 @@ class merciful_elo_limit(Plugin):
         # noinspection PyProtectedMember
         if "balance" not in Plugin._loaded_plugins:
             self.logger.warning(
-                "Balance plugin not found. Merciful elo limits just work with the elos "
-                "from the balance plugin"
+                "Balance plugin not found. Merciful elo limits just work with the elos from the balance plugin"
             )
             return None
         # noinspection PyProtectedMember
@@ -171,9 +165,7 @@ class merciful_elo_limit(Plugin):
         return ratings[player.steam_id][gametype]["elo"]
 
     def warn_lowelo_player(self, player):
-        matches_played = self.get_value_from_db_or_zero(
-            APPLICATION_GAMES_KEY.format(player.steam_id)
-        )
+        matches_played = self.get_value_from_db_or_zero(APPLICATION_GAMES_KEY.format(player.steam_id))
         remaining_matches = self.application_games - matches_played
         self.blink2(
             player,
@@ -238,9 +230,7 @@ class merciful_elo_limit(Plugin):
         if self.db.exists(APPLICATION_GAMES_KEY.format(player.steam_id)):
             self.tracked_player_sids.append(player.steam_id)
             self.db.incr(ABOVE_GAMES_KEY.format(player.steam_id))
-            above_games = self.get_value_from_db_or_zero(
-                ABOVE_GAMES_KEY.format(player.steam_id)
-            )
+            above_games = self.get_value_from_db_or_zero(ABOVE_GAMES_KEY.format(player.steam_id))
             if above_games > self.above_games:
                 self.db.delete(ABOVE_GAMES_KEY.format(player.steam_id))
                 self.db.delete(APPLICATION_GAMES_KEY.format(player.steam_id))
@@ -264,13 +254,10 @@ class merciful_elo_limit(Plugin):
         reply_channel.reply("Players currently within their application period:")
         for player in reported_players:
             elo = self.elo_for_player(player)
-            remaining_matches = self.application_games - int(
-                self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id))
-            )
+            remaining_matches = self.application_games - int(self.db.get(APPLICATION_GAMES_KEY.format(player.steam_id)))
             if not elo or elo <= self.min_elo:
                 reply_channel.reply(
-                    f"{player.clean_name} (elo: {elo}): "
-                    f"^3{remaining_matches}^7 application matches left"
+                    f"{player.clean_name} (elo: {elo}): " f"^3{remaining_matches}^7 application matches left"
                 )
             else:
                 above_games = self.db.get(ABOVE_GAMES_KEY.format(player.steam_id))

@@ -127,9 +127,7 @@ class EventDispatcher:
                         if res == minqlx.RET_STOP_ALL:
                             return False
                         # Got an unknown return value.
-                        return_handler = self.handle_return(  # pylint: disable=assignment-from-no-return
-                            handler, res
-                        )
+                        return_handler = self.handle_return(handler, res)  # pylint: disable=assignment-from-no-return
                         if return_handler is not None:
                             return return_handler
                     except:  # pylint: disable=bare-except
@@ -173,12 +171,8 @@ class EventDispatcher:
             raise ValueError(f"'{priority}' is an invalid priority level.")
 
         stats_enable_cvar = minqlx.get_cvar("zmq_stats_enable")
-        if self.need_zmq_stats_enabled and (
-            stats_enable_cvar is None or not bool(int(stats_enable_cvar))
-        ):
-            raise AssertionError(
-                f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value"
-            )
+        if self.need_zmq_stats_enabled and (stats_enable_cvar is None or not bool(int(stats_enable_cvar))):
+            raise AssertionError(f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value")
 
         if plugin not in self.plugins:
             # Initialize tuple.
@@ -188,9 +182,7 @@ class EventDispatcher:
             for i in range(len(self.plugins[plugin])):
                 for hook in self.plugins[plugin][i]:
                     if handler == hook:
-                        raise ValueError(
-                            "The event has already been hooked with the same handler and priority."
-                        )
+                        raise ValueError("The event has already been hooked with the same handler and priority.")
 
         self.plugins[plugin][priority].append(handler)
 
@@ -234,9 +226,7 @@ class EventDispatcherManager:
         if dispatcher.name in self:
             raise ValueError("Event name already taken.")
         if not issubclass(dispatcher, EventDispatcher):
-            raise ValueError(
-                "Cannot add an event dispatcher not based on EventDispatcher."
-            )
+            raise ValueError("Cannot add an event dispatcher not based on EventDispatcher.")
 
         self._dispatchers[dispatcher.name] = dispatcher()
 
@@ -267,9 +257,7 @@ class ConsolePrintDispatcher(EventDispatcher):
     def dispatch(self, text):  # pylint: disable=useless-super-delegation
         return super().dispatch(text)
 
-    def handle_return(  # pylint: disable=inconsistent-return-statements
-        self, handler, value
-    ):
+    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
         """If a string was returned, continue execution, but we edit the
         string that's being printed along the chain of handlers.
 
@@ -289,9 +277,7 @@ class CommandDispatcher(EventDispatcher):
 
     name = "command"
 
-    def dispatch(
-        self, caller, command, args
-    ):  # pylint: disable=useless-super-delegation
+    def dispatch(self, caller, command, args):  # pylint: disable=useless-super-delegation
         super().dispatch(caller, command, args)
 
 
@@ -308,17 +294,13 @@ class ClientCommandDispatcher(EventDispatcher):
         if ret is False:
             return False
 
-        ret = minqlx.COMMANDS.handle_input(
-            player, cmd, minqlx.ClientCommandChannel(player)
-        )
+        ret = minqlx.COMMANDS.handle_input(player, cmd, minqlx.ClientCommandChannel(player))
         if ret is False:
             return False
 
         return self.return_value
 
-    def handle_return(  # pylint: disable=inconsistent-return-statements
-        self, handler, value
-    ):
+    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
         """If a string was returned, continue execution, but we edit the
         command that's being executed along the chain of handlers.
 
@@ -342,9 +324,7 @@ class ServerCommandDispatcher(EventDispatcher):
     def dispatch(self, player, cmd):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, cmd)
 
-    def handle_return(  # pylint: disable=inconsistent-return-statements
-        self, handler, value
-    ):
+    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
         """If a string was returned, continue execution, but we edit the
         command that's being sent along the chain of handlers.
 
@@ -379,9 +359,7 @@ class SetConfigstringDispatcher(EventDispatcher):
     def dispatch(self, index, value):  # pylint: disable=useless-super-delegation
         return super().dispatch(index, value)
 
-    def handle_return(  # pylint: disable=inconsistent-return-statements
-        self, handler, value
-    ):
+    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
         """If a string was returned, continue execution, but we edit the
         configstring to the returned string. This allows multiple handlers
         to edit the configstring along the way before it's actually
@@ -617,9 +595,7 @@ class TeamSwitchDispatcher(EventDispatcher):
     name = "team_switch"
     need_zmq_stats_enabled = True
 
-    def dispatch(
-        self, player, old_team, new_team
-    ):  # pylint: disable=useless-super-delegation
+    def dispatch(self, player, old_team, new_team):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, old_team, new_team)
 
 
@@ -634,9 +610,7 @@ class TeamSwitchAttemptDispatcher(EventDispatcher):
 
     name = "team_switch_attempt"
 
-    def dispatch(
-        self, player, old_team, new_team
-    ):  # pylint: disable=useless-super-delegation
+    def dispatch(self, player, old_team, new_team):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, old_team, new_team)
 
 
@@ -667,9 +641,7 @@ class KillDispatcher(EventDispatcher):
     name = "kill"
     need_zmq_stats_enabled = True
 
-    def dispatch(
-        self, victim, killer, data
-    ):  # pylint: disable=useless-super-delegation
+    def dispatch(self, victim, killer, data):  # pylint: disable=useless-super-delegation
         return super().dispatch(victim, killer, data)
 
 
@@ -679,9 +651,7 @@ class DeathDispatcher(EventDispatcher):
     name = "death"
     need_zmq_stats_enabled = True
 
-    def dispatch(
-        self, victim, killer, data
-    ):  # pylint: disable=useless-super-delegation
+    def dispatch(self, victim, killer, data):  # pylint: disable=useless-super-delegation
         return super().dispatch(victim, killer, data)
 
 
@@ -693,9 +663,7 @@ class UserinfoDispatcher(EventDispatcher):
     def dispatch(self, player, changed):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, changed)
 
-    def handle_return(  # pylint: disable=inconsistent-return-statements
-        self, handler, value
-    ):
+    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
         """Takes a returned dictionary and applies it to the current userinfo."""
         if isinstance(value, dict):
             player, changed = self.args
@@ -719,9 +687,7 @@ class KamikazeExplodeDispatcher(EventDispatcher):
 
     name = "kamikaze_explode"
 
-    def dispatch(
-        self, player, is_used_on_demand
-    ):  # pylint: disable=useless-super-delegation
+    def dispatch(self, player, is_used_on_demand):  # pylint: disable=useless-super-delegation
         return super().dispatch(player, is_used_on_demand)
 
 
@@ -751,9 +717,7 @@ class PlayerItemsTossDispatcher(EventDispatcher):
     def dispatch(self, player):  # pylint: disable=useless-super-delegation
         return super().dispatch(player)
 
-    def handle_return(  # pylint: disable=inconsistent-return-statements
-        self, handler, value
-    ):
+    def handle_return(self, handler, value):  # pylint: disable=inconsistent-return-statements
         if isinstance(value, (int, list, str)):
             self.return_value = value
         else:

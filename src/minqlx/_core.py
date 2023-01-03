@@ -167,9 +167,7 @@ def _configure_logger():
     logger.setLevel(logging.DEBUG)
 
     # Console
-    console_fmt = logging.Formatter(
-        "[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S"
-    )
+    console_fmt = logging.Formatter("[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S")
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(console_fmt)
@@ -186,12 +184,8 @@ def _configure_logger():
     maxlogsize = minqlx.Plugin.get_cvar("qlx_logsSize", int)
     if maxlogsize is None:
         return
-    file_fmt = logging.Formatter(
-        "(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s", "%H:%M:%S"
-    )
-    file_handler = RotatingFileHandler(
-        file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs
-    )
+    file_fmt = logging.Formatter("(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s", "%H:%M:%S")
+    file_handler = RotatingFileHandler(file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs)
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(file_fmt)
     logger.addHandler(file_handler)
@@ -219,9 +213,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     """A handler for unhandled exceptions."""
     # TODO: If exception was raised within a plugin, detect it and pass to log_exception()
     logger = get_logger(None)
-    e = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback)).rstrip(
-        "\n"
-    )
+    e = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback)).rstrip("\n")
     for line in e.split("\n"):
         logger.error(line)
 
@@ -251,9 +243,7 @@ def owner():
         return sid
     except:  # pylint: disable=bare-except
         logger = minqlx.get_logger()
-        logger.error(
-            "Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format."
-        )
+        logger.error("Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format.")
     return None
 
 
@@ -344,9 +334,7 @@ def set_map_subtitles() -> None:
     cs = minqlx.get_configstring(679)
     if cs:
         cs += " - "
-    minqlx.set_configstring(
-        679, cs + "Check ^6http://github.com/MinoMino/minqlx^7 for more details."
-    )
+    minqlx.set_configstring(679, cs + "Check ^6http://github.com/MinoMino/minqlx^7 for more details.")
 
 
 # ====================================================================
@@ -406,9 +394,7 @@ def thread(func, force=False):
         else:
             global _thread_count  # pylint: disable=global-statement
             name = func.__name__ + f"-{str(_thread_count)}-{_thread_name}"
-            t = threading.Thread(
-                target=func, name=name, args=args, kwargs=kwargs, daemon=True
-            )
+            t = threading.Thread(target=func, name=name, args=args, kwargs=kwargs, daemon=True)
             t.start()
             _thread_count += 1
 
@@ -460,9 +446,7 @@ def load_preset_plugins():
         for p in plugins:
             load_plugin(p)
     else:
-        raise PluginLoadError(
-            f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'."
-        )
+        raise PluginLoadError(f"Cannot find the plugins directory '{os.path.abspath(plugins_path)}'.")
 
 
 def load_plugin(plugin):
@@ -488,17 +472,13 @@ def load_plugin(plugin):
         _modules[plugin] = module
 
         if not hasattr(module, plugin):
-            raise PluginLoadError(
-                "The plugin needs to have a class with the exact name as the file, minus the .py."
-            )
+            raise PluginLoadError("The plugin needs to have a class with the exact name as the file, minus the .py.")
 
         plugin_class = getattr(module, plugin)
         if issubclass(plugin_class, minqlx.Plugin):
             plugins[plugin] = plugin_class()
         else:
-            raise PluginLoadError(
-                "Attempted to load a plugin that is not a subclass of 'minqlx.Plugin'."
-            )
+            raise PluginLoadError("Attempted to load a plugin that is not a subclass of 'minqlx.Plugin'.")
     except:
         log_exception(plugin)
         raise

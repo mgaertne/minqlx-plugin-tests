@@ -14,9 +14,7 @@ async def slap(interaction, member: Member):
 
 async def _slap(interaction, member):
     if interaction.client.user is None:
-        await send_to_discord_and_quake(
-            interaction, f"_{member.mention} is slapped from the hidden._"
-        )
+        await send_to_discord_and_quake(interaction, f"_{member.mention} is slapped from the hidden._")
         return
 
     if member.id == interaction.client.user.id:
@@ -62,9 +60,7 @@ def int_set(string_set):
 async def send_to_discord_and_quake(interaction, message):
     await interaction.response.send_message(message)
 
-    discord_relay_channel_ids = int_set(
-        Plugin.get_cvar("qlx_discordRelayChannelIds", set)
-    )
+    discord_relay_channel_ids = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
 
     if interaction.channel_id not in discord_relay_channel_ids:
         return
@@ -75,21 +71,13 @@ async def send_to_discord_and_quake(interaction, message):
     for user in mentioned_users:
         quake_message = quake_message.replace(user.mention, f"@{user.display_name}")
 
-    show_channel_name = (
-        Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool) or False
-    )
+    show_channel_name = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool) or False
     discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
-    if (
-        not show_channel_name
-        or interaction.channel is None
-        or isinstance(interaction.channel, PartialMessageable)
-    ):
+    if not show_channel_name or interaction.channel is None or isinstance(interaction.channel, PartialMessageable):
         Plugin.msg(f"{discord_message_prefix}^2 {quake_message}")
         return
 
-    Plugin.msg(
-        f"{discord_message_prefix} ^5#{interaction.channel.name}^7:^2 {quake_message}"
-    )
+    Plugin.msg(f"{discord_message_prefix} ^5#{interaction.channel.name}^7:^2 {quake_message}")
 
 
 async def setup(bot):

@@ -39,9 +39,7 @@ class Game:
         cs = minqlx.get_configstring(0)
         if not cs:
             self._valid = False
-            raise NonexistentGameError(
-                "Tried to instantiate a game while no game is active."
-            )
+            raise NonexistentGameError("Tried to instantiate a game while no game is active.")
 
     def __repr__(self):
         try:
@@ -270,9 +268,7 @@ class Game:
         elif hasattr(new_tags, "__iter__"):
             minqlx.set_cvar("sv_tags", ",".join(new_tags))
         else:
-            raise ValueError(
-                "tags need to be a string or an iterable returning strings."
-            )
+            raise ValueError("tags need to be a string or an iterable returning strings.")
 
     @property
     def workshop_items(self):

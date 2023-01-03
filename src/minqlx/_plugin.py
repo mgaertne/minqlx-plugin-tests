@@ -417,9 +417,7 @@ class Plugin:
         else:
             players = player_list
 
-        res: dict[str, list[minqlx.Player]] = {
-            team_value: [] for team_value in minqlx.TEAMS.values()
-        }
+        res: dict[str, list[minqlx.Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
 
         for p in players:
             res[p.team].append(p)

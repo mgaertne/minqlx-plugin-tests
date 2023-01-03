@@ -115,14 +115,10 @@ class elocheck(Plugin):
             permission=elocheck_permission_level,
             usage="[player or steam_id]",
         )
-        self.add_command(
-            "eloupdates", self.cmd_switch_elo_changes_notifications, usage="<0/1>"
-        )
+        self.add_command("eloupdates", self.cmd_switch_elo_changes_notifications, usage="<0/1>")
 
         self.add_hook("map", self.handle_map_change)
-        self.add_hook(
-            "player_connect", self.handle_player_connect, priority=minqlx.PRI_LOWEST
-        )
+        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_LOWEST)
         self.add_hook("team_switch", self.handle_team_switch)
         self.add_hook("game_end", self.handle_game_end)
 
@@ -148,17 +144,11 @@ class elocheck(Plugin):
             missing_steam_ids = steam_ids
             if rating_provider.name in self.ratings:
                 rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
-                missing_steam_ids = [
-                    steam_id
-                    for steam_id in steam_ids
-                    if steam_id not in rated_steam_ids
-                ]
+                missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
 
             async_requests.append(rating_provider.fetch_elos(missing_steam_ids))
 
-        mapbased_rating_provider_name, mapbased_fetching = self.fetch_mapbased_ratings(
-            steam_ids, mapname
-        )
+        mapbased_rating_provider_name, mapbased_fetching = self.fetch_mapbased_ratings(steam_ids, mapname)
 
         fetched_rating_providers = [TRUSKILLS.name, A_ELO.name, B_ELO.name]
         if mapbased_rating_provider_name is not None:
@@ -167,9 +157,7 @@ class elocheck(Plugin):
 
         results = await asyncio.gather(*async_requests, return_exceptions=True)
 
-        for rating_provider_name, rating_results in zip(
-            fetched_rating_providers, results
-        ):
+        for rating_provider_name, rating_results in zip(fetched_rating_providers, results):
             if isinstance(rating_results, BaseException):
                 continue
             self.append_ratings(rating_provider_name, rating_results)
@@ -184,16 +172,12 @@ class elocheck(Plugin):
         missing_steam_ids = steam_ids
         if rating_provider_name in self.ratings:
             rated_steam_ids = self.ratings[rating_provider_name].rated_steam_ids()
-            missing_steam_ids = [
-                steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids
-            ]
+            missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
 
         if len(missing_steam_ids) == 0:
             return None, None
 
-        return rating_provider_name, TRUSKILLS.fetch_elos(
-            missing_steam_ids, headers={"X-QuakeLive-Map": mapname}
-        )
+        return rating_provider_name, TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
 
     def append_ratings(self, rating_provider_name, json_result):
         if json_result is None:
@@ -220,11 +204,7 @@ class elocheck(Plugin):
                 if rating_provider.name in self.previous_ratings:
                     rating_providers_fetched.append(rating_provider.name)
                     async_requests.append(
-                        rating_provider.fetch_elos(
-                            self.previous_ratings[
-                                rating_provider.name
-                            ].rated_steam_ids()
-                        )
+                        rating_provider.fetch_elos(self.previous_ratings[rating_provider.name].rated_steam_ids())
                     )
 
             if self.previous_map is not None:
@@ -233,23 +213,18 @@ class elocheck(Plugin):
                     rating_providers_fetched.append(mapbased_rating_provider_name)
                     async_requests.append(
                         TRUSKILLS.fetch_elos(
-                            self.previous_ratings[
-                                mapbased_rating_provider_name
-                            ].rated_steam_ids(),
+                            self.previous_ratings[mapbased_rating_provider_name].rated_steam_ids(),
                             headers={"X-QuakeLive-Map": self.previous_map},
                         )
                     )
 
             results = await asyncio.gather(*async_requests, return_exceptions=True)
-            for rating_provider_name, rating_results in zip(
-                rating_providers_fetched, results
-            ):
+            for rating_provider_name, rating_results in zip(rating_providers_fetched, results):
                 if isinstance(rating_results, BaseException):
                     continue
                 self.append_ratings(rating_provider_name, rating_results)
                 self.rating_diffs[rating_provider_name] = (
-                    RatingProvider.from_json(rating_results)
-                    - self.previous_ratings[rating_provider_name]
+                    RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
                 )
 
         async def fetch_ratings_from_newmap(_mapname):
@@ -294,10 +269,8 @@ class elocheck(Plugin):
             A_ELO.name,
             B_ELO.name,
         ]:
-            formatted_diffs = (
-                self.format_rating_diffs_for_rating_provider_name_and_player(
-                    rating_provider_name, player.steam_id
-                )
+            formatted_diffs = self.format_rating_diffs_for_rating_provider_name_and_player(
+                rating_provider_name, player.steam_id
             )
             if formatted_diffs is not None:
                 changed_ratings.append(formatted_diffs)
@@ -306,18 +279,13 @@ class elocheck(Plugin):
             return
 
         formatted_rating_changes = ", ".join(changed_ratings)
-        player.tell(
-            f"Your ratings changed since the last map: {formatted_rating_changes}"
-        )
+        player.tell(f"Your ratings changed since the last map: {formatted_rating_changes}")
 
-    def format_rating_diffs_for_rating_provider_name_and_player(
-        self, rating_provider_name, steam_id
-    ):
+    def format_rating_diffs_for_rating_provider_name_and_player(self, rating_provider_name, steam_id):
         if (
             rating_provider_name not in self.rating_diffs
             or steam_id not in self.rating_diffs[rating_provider_name]
-            or self.previous_gametype
-            not in self.rating_diffs[rating_provider_name][steam_id]
+            or self.previous_gametype not in self.rating_diffs[rating_provider_name][steam_id]
             or rating_provider_name not in self.ratings
             or steam_id not in self.ratings[rating_provider_name]
         ):
@@ -326,12 +294,8 @@ class elocheck(Plugin):
         if self.previous_gametype is None:
             return None
 
-        current_rating = self.ratings[rating_provider_name].rating_for(
-            steam_id, self.previous_gametype
-        )
-        rating_diff = self.rating_diffs[rating_provider_name][steam_id][
-            self.previous_gametype
-        ]
+        current_rating = self.ratings[rating_provider_name].rating_for(steam_id, self.previous_gametype)
+        rating_diff = self.rating_diffs[rating_provider_name][steam_id][self.previous_gametype]
         if rating_provider_name.endswith(TRUSKILLS.name):
             if rating_diff < 0.0:
                 return f"^3{rating_provider_name}^7: ^4{current_rating:.02f}^7 (^1{rating_diff:+.02f}^7)"
@@ -384,12 +348,8 @@ class elocheck(Plugin):
                 try:
                     target_steam_id = int(target)
 
-                    if not self.db or not self.db.exists(
-                        PLAYER_BASE.format(target_steam_id)
-                    ):
-                        player.tell(
-                            f"Sorry, player with steam id {target_steam_id} never played here."
-                        )
+                    if not self.db or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                        player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
                         return
                 except ValueError:
                     player.tell(f"Sorry, but no players matched your tokens: {target}.")
@@ -397,9 +357,7 @@ class elocheck(Plugin):
 
             if len(target_players) > 1:
                 amount_matched_players = len(target_players)
-                player.tell(
-                    f"A total of ^6{amount_matched_players}^7 players matched for {target}:"
-                )
+                player.tell(f"A total of ^6{amount_matched_players}^7 players matched for {target}:")
                 out = ""
                 for p in target_players:
                     out += " " * 2
@@ -433,27 +391,11 @@ class elocheck(Plugin):
 
             results = await asyncio.gather(*async_requests, return_exceptions=True)
 
-            truskill = (
-                RatingProvider.from_json(results[0])
-                if not isinstance(results[0], Exception)
-                else None
-            )
-            a_elo = (
-                RatingProvider.from_json(results[1])
-                if not isinstance(results[1], Exception)
-                else None
-            )
-            b_elo = (
-                RatingProvider.from_json(results[2])
-                if not isinstance(results[2], Exception)
-                else None
-            )
+            truskill = RatingProvider.from_json(results[0]) if not isinstance(results[0], Exception) else None
+            a_elo = RatingProvider.from_json(results[1]) if not isinstance(results[1], Exception) else None
+            b_elo = RatingProvider.from_json(results[2]) if not isinstance(results[2], Exception) else None
             map_based_truskill = None
-            if (
-                self.game is not None
-                and self.game.map is not None
-                and not isinstance(results[3], BaseException)
-            ):
+            if self.game is not None and self.game.map is not None and not isinstance(results[3], BaseException):
                 map_based_truskill = RatingProvider.from_json(results[3])
 
             if target_steam_id in aliases:
@@ -488,9 +430,7 @@ class elocheck(Plugin):
                         aliases=aliases[steam_id],
                     )
                 else:
-                    player_elos = self.format_player_elos(
-                        a_elo, b_elo, truskill, map_based_truskill, steam_id
-                    )
+                    player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id)
                 reply_func(f"{player_elos}^7\n\n")
 
         asyncio.run(_async_elocheck())
@@ -580,52 +520,33 @@ class elocheck(Plugin):
                     result.append(" " * indent + f"Aliases used: {formatted_aliases}^7")
                 else:
                     result.append(
-                        " " * indent
-                        + f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)"
+                        " " * indent + f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)"
                     )
 
         if map_based_truskill is not None:
             formatted_map_based_truskills = map_based_truskill.format_elos(steam_id)
-            if (
-                formatted_map_based_truskills is not None
-                and len(formatted_map_based_truskills) > 0
-                and self.game
-            ):
+            if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0 and self.game:
                 formatted_mapname = self.game.map.lower()
-                formatted_line = (
-                    " " * indent
-                    + "  "
-                    + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
-                )
-                for line in minqlx.CHAT_CHANNEL.split_long_lines(
-                    formatted_line, delimiter="  "
-                ):
+                formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
+                for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
                     result.append(line)
 
-        formatted_truskills = (
-            truskill.format_elos(steam_id) if truskill is not None else None
-        )
+        formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
         if formatted_truskills is not None and len(formatted_truskills) > 0:
             formatted_line = " " * indent + "  " + f"Truskills: {formatted_truskills}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(
-                formatted_line, delimiter="  "
-            ):
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
                 result.append(line)
 
         formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
             formatted_line = " " * indent + "  " + f"Elos: {formatted_a_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(
-                formatted_line, delimiter="  "
-            ):
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
                 result.append(line)
 
         formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
             formatted_line = " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(
-                formatted_line, delimiter="  "
-            ):
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
                 result.append(line)
 
         return "\n".join(result)
@@ -647,9 +568,7 @@ class elocheck(Plugin):
             return remove_trailing_color_code(player.name)
 
         if self.db and self.db.exists(PLAYER_BASE.format(steam_id) + ":last_used_name"):
-            return remove_trailing_color_code(
-                self.db[PLAYER_BASE.format(steam_id) + ":last_used_name"]
-            )
+            return remove_trailing_color_code(self.db[PLAYER_BASE.format(steam_id) + ":last_used_name"])
 
         return "unknown"
 
@@ -670,12 +589,8 @@ class elocheck(Plugin):
             try:
                 target_steam_id = int(target)
 
-                if not self.db or not self.db.exists(
-                    PLAYER_BASE.format(target_steam_id)
-                ):
-                    player.tell(
-                        f"Sorry, player with steam id {target_steam_id} never played here."
-                    )
+                if not self.db or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
+                    player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
                     return
             except ValueError:
                 player.tell(f"Sorry, but no players matched your tokens: {target}.")
@@ -683,9 +598,7 @@ class elocheck(Plugin):
 
         if len(target_players) > 1:
             amount_alternatives = len(target_players)
-            player.tell(
-                f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
-            )
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
             for p in target_players:
                 out += " " * 2
@@ -707,9 +620,7 @@ class elocheck(Plugin):
             reply_func(f"Sorry, no aliases returned for {target_steam_id}")
             return
 
-        formatted_aliases = self.format_player_aliases(
-            target_steam_id, aliases[target_steam_id]
-        )
+        formatted_aliases = self.format_player_aliases(target_steam_id, aliases[target_steam_id])
         reply_func(f"{formatted_aliases}^7")
 
     def format_player_aliases(self, steam_id, aliases):
@@ -773,9 +684,7 @@ class SkillRatingProvider:
                 return await result.json()
 
 
-TRUSKILLS = SkillRatingProvider(
-    "Truskill", "http://stats.houseofquake.com/", "elo/map_based"
-)
+TRUSKILLS = SkillRatingProvider("Truskill", "http://stats.houseofquake.com/", "elo/map_based")
 A_ELO = SkillRatingProvider("Elo", "http://qlstats.net/", "elo", timeout=15)
 B_ELO = SkillRatingProvider("B-Elo", "http://qlstats.net/", "elo_b", timeout=15)
 
@@ -836,9 +745,7 @@ class RatingProvider:
 
         if not isinstance(other, RatingProvider):
             formatted_other_type = type(other).__name__
-            raise TypeError(
-                f"Can't subtract '{formatted_other_type}' from a RatingProvider"
-            )
+            raise TypeError(f"Can't subtract '{formatted_other_type}' from a RatingProvider")
 
         for steam_id in self:
             if steam_id not in other:
@@ -851,13 +758,9 @@ class RatingProvider:
             returned[steam_id] = {}
             for gametype in self.rated_gametypes_for(steam_id):
                 if gametype not in other.rated_gametypes_for(steam_id):
-                    returned[steam_id][gametype] = self.gametype_data_for(
-                        steam_id, gametype
-                    )
+                    returned[steam_id][gametype] = self.gametype_data_for(steam_id, gametype)
                     continue
-                gametype_diff = self.rating_for(steam_id, gametype) - other.rating_for(
-                    steam_id, gametype
-                )
+                gametype_diff = self.rating_for(steam_id, gametype) - other.rating_for(steam_id, gametype)
 
                 if gametype_diff == 0:
                     continue
@@ -913,11 +816,7 @@ class RatingProvider:
         if player_data is None:
             return []
 
-        return [
-            gametype
-            for gametype in player_data
-            if gametype not in FILTERED_OUT_GAMETYPE_RESPONSES
-        ]
+        return [gametype for gametype in player_data if gametype not in FILTERED_OUT_GAMETYPE_RESPONSES]
 
     def privacy_for(self, steam_id):
         player_data = self[steam_id]
@@ -936,9 +835,7 @@ class RatingProvider:
             if "playerinfo" not in json_rating:
                 continue
 
-            returned = returned + [
-                int(steam_id) for steam_id in json_rating["playerinfo"]
-            ]
+            returned = returned + [int(steam_id) for steam_id in json_rating["playerinfo"]]
 
         return list(set(returned))
 
@@ -985,8 +882,6 @@ class PlayerRating:
 
     def __getattr__(self, attr):
         if attr not in ["privacy"]:
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no atrribute '{attr}'"
-            )
+            raise AttributeError(f"'{self.__class__.__name__}' object has no atrribute '{attr}'")
 
         return self.ratings[attr]

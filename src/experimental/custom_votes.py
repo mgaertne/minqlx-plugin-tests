@@ -17,22 +17,16 @@ class custom_votes(minqlx.Plugin):
 
         if vote.lower() == "thrufloors":
             if args.lower() == "off":
-                minqlx.callvote(
-                    "g_forceDmgThroughSurface 0", "Turn off damage through floors?"
-                )
+                minqlx.callvote("g_forceDmgThroughSurface 0", "Turn off damage through floors?")
                 minqlx.client_command(caller.id, "vote yes")
                 self.msg(f"{caller.name}^7 called a vote.")
                 return minqlx.RET_STOP_ALL
             if args.lower() == "on":
-                minqlx.callvote(
-                    "g_forceDmgThroughSurface 1", "Turn on damage through floors?"
-                )
+                minqlx.callvote("g_forceDmgThroughSurface 1", "Turn on damage through floors?")
                 minqlx.client_command(caller.id, "vote yes")
                 self.msg(f"{caller.name}^7 called a vote.")
                 return minqlx.RET_STOP_ALL
-            caller.tell(
-                "^2/cv thrufloors [on/off]^7 is the usage for this callvote command."
-            )
+            caller.tell("^2/cv thrufloors [on/off]^7 is the usage for this callvote command.")
             return minqlx.RET_STOP_ALL
 
         if vote.lower() == "spec":
@@ -41,14 +35,10 @@ class custom_votes(minqlx.Plugin):
                 return minqlx.RET_STOP_ALL
 
             if target_player.team == "spectator":
-                caller.tell(
-                    f"Player {target_player.name}^7 is already in the spectators."
-                )
+                caller.tell(f"Player {target_player.name}^7 is already in the spectators.")
                 return minqlx.RET_STOP_ALL
 
-            minqlx.callvote(
-                f"put {target_player.id} spec", f"spec {target_player.name}^7?"
-            )
+            minqlx.callvote(f"put {target_player.id} spec", f"spec {target_player.name}^7?")
             minqlx.client_command(caller.id, "vote yes")
             self.msg(f"{caller.name}^7 called a vote.")
             return minqlx.RET_STOP_ALL
@@ -81,9 +71,7 @@ class custom_votes(minqlx.Plugin):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
             amount_alternatives = len(players)
-            player.tell(
-                f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
-            )
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
             for p in players:
                 out += " " * indent

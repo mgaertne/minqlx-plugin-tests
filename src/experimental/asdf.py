@@ -72,30 +72,20 @@ class asdf(Plugin):
     def adjust_ammo_for_player(self, player):
         weapon_stats = self.weapon_stats_for(player.steam_id)
 
-        total_team_damage = (
-            self.red_overall_damage
-            if player.team == "red"
-            else self.blue_overall_damage
-        )
+        total_team_damage = self.red_overall_damage if player.team == "red" else self.blue_overall_damage
         self.logger.debug(f"total_team_damage: {total_team_damage}")
 
         if total_team_damage == 0.0:
             total_team_damage = player.stats.damage_dealt
-        damage_factor = 1.0 - float(player.stats.damage_dealt) / float(
-            total_team_damage
-        )
+        damage_factor = 1.0 - float(player.stats.damage_dealt) / float(total_team_damage)
 
         if damage_factor > 0.9:
             return
 
         filtered_weapon_stats = [
-            weapon_entry
-            for weapon_entry in weapon_stats.values()
-            if weapon_entry.accuracy() > 25.0
+            weapon_entry for weapon_entry in weapon_stats.values() if weapon_entry.accuracy() > 25.0
         ]
-        sorted_weapon_stats = sorted(
-            filtered_weapon_stats, key=lambda entry: entry.time
-        )
+        sorted_weapon_stats = sorted(filtered_weapon_stats, key=lambda entry: entry.time)
         ammo_settings = {}
         ammo_info = ""
 
@@ -107,18 +97,11 @@ class asdf(Plugin):
 
             starting_ammo = getattr(current_ammo, weapon_entry.weapon.ammo_type())
             accuracy_factor = (100.0 - weapon_entry.accuracy()) / 100.0
-            adjusted_starting_ammo = math.ceil(
-                starting_ammo * accuracy_factor * damage_factor
-            )
-            adjusted_starting_ammo = max(
-                starting_ammo * self.min_ammo_rate, adjusted_starting_ammo
-            )
+            adjusted_starting_ammo = math.ceil(starting_ammo * accuracy_factor * damage_factor)
+            adjusted_starting_ammo = max(starting_ammo * self.min_ammo_rate, adjusted_starting_ammo)
             ammo_settings[weapon_entry.weapon.ammo_type()] = adjusted_starting_ammo
             formatted_ammo_type = weapon_entry.weapon.ammo_type().upper()
-            ammo_info = (
-                ammo_info
-                + f" ^1{formatted_ammo_type}^7: ^4{starting_ammo}^3->^4{adjusted_starting_ammo}^7"
-            )
+            ammo_info = ammo_info + f" ^1{formatted_ammo_type}^7: ^4{starting_ammo}^3->^4{adjusted_starting_ammo}^7"
 
         if len(ammo_settings) == 0:
             return
@@ -126,9 +109,7 @@ class asdf(Plugin):
         self.logger.debug(f"Adjusted ammo settings for {player.name}: {ammo_settings}")
 
         player.ammo(**ammo_settings)
-        player.tell(
-            f"{player.name}, your team is dominating right now. Some of your ammo was reduced:{ammo_info}"
-        )
+        player.tell(f"{player.name}, your team is dominating right now. Some of your ammo was reduced:{ammo_info}")
 
     def handle_stats(self, stats):
         if stats["TYPE"] != "PLAYER_STATS":
@@ -200,10 +181,7 @@ class asdf(Plugin):
 
     def handle_round_start(self, _round_number):
         teams = self.teams()
-        self.stats_snapshot = {
-            player.steam_id: player.stats.damage_dealt
-            for player in teams["red"] + teams["blue"]
-        }
+        self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
 
     def handle_round_end(self, _data):
         if self.game is None:
@@ -219,18 +197,10 @@ class asdf(Plugin):
 
         teams = self.teams()
 
-        red_diff = sum(
-            deltas[player.steam_id]
-            for player in teams["red"]
-            if player.steam_id in deltas
-        )
+        red_diff = sum(deltas[player.steam_id] for player in teams["red"] if player.steam_id in deltas)
         self.red_overall_damage += red_diff
 
-        blue_diff = sum(
-            deltas[player.steam_id]
-            for player in teams["blue"]
-            if player.steam_id in deltas
-        )
+        blue_diff = sum(deltas[player.steam_id] for player in teams["blue"] if player.steam_id in deltas)
         self.blue_overall_damage += blue_diff
 
         self.logger.debug(f"red_diff: {red_diff} blue_diff: {blue_diff}")
@@ -244,9 +214,7 @@ class asdf(Plugin):
             if minqlx_player is None:
                 continue
 
-            returned[steam_id] = (
-                minqlx_player.stats.damage_dealt - self.stats_snapshot[steam_id]
-            )
+            returned[steam_id] = minqlx_player.stats.damage_dealt - self.stats_snapshot[steam_id]
 
         return returned
 
@@ -280,16 +248,12 @@ class asdf(Plugin):
                 continue
             accuracy = weapon_stats[weapon].accuracy()
             if accuracy != 0:
-                stats_strings.append(
-                    f"^1{weapon_stats[weapon].name}^7: ^4{accuracy:.0f}^7"
-                )
+                stats_strings.append(f"^1{weapon_stats[weapon].name}^7: ^4{accuracy:.0f}^7")
 
         if len(stats_strings) == 0:
             return
         stats_string = ", ".join(stats_strings)
-        reply_channel.reply(
-            f"Weapon statistics for player {player_name}^7: {stats_string}"
-        )
+        reply_channel.reply(f"Weapon statistics for player {player_name}^7: {stats_string}")
 
     def weapon_stats_for(self, steam_id):
         if not self.db:
@@ -351,9 +315,7 @@ class asdf(Plugin):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
             amount_alternatives = len(players)
-            player.tell(
-                f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
-            )
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
             for p in players:
                 out += " " * indent

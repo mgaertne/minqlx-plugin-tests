@@ -72,9 +72,7 @@ class thirtysecwarn(Plugin):
         Plugin.play_sound(self.get_announcer_sound())
 
     def get_announcer_sound(self):
-        qlx_thirty_second_warn_announcer = self.get_cvar(
-            "qlx_thirtySecondWarnAnnouncer"
-        )
+        qlx_thirty_second_warn_announcer = self.get_cvar("qlx_thirtySecondWarnAnnouncer")
 
         if qlx_thirty_second_warn_announcer == "random":
             return self.random_announcer()
