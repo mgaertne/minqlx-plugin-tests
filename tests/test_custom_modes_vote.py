@@ -1,28 +1,12 @@
-import pytest
-import redis
+from minqlx_plugin_test import fake_player, assert_plugin_sent_to_console, setup_cvars
 
-from mockito import spy2, unstub, verify, mock, when  # type: ignore
+from mockito import spy2, unstub, verify  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import assert_that, equal_to
 
-from minqlx_plugin_test import fake_player, assert_plugin_sent_to_console, setup_cvars
-
 import minqlx
 from minqlx import Plugin
-from minqlx.database import Redis
 from custom_modes_vote import custom_modes_vote
-
-
-@pytest.fixture(name="mocked_db")
-def _mocked_db():
-    redis_mock = mock(spec=redis.StrictRedis)
-    when(redis_mock).exists(any_).thenReturn(False)
-    # noinspection PyPropertyAccess
-    minqlx.database.Redis.r = redis_mock  # type: ignore
-
-    yield redis_mock
-
-    unstub()
 
 
 class TestCustomModesVote:
@@ -43,16 +27,14 @@ class TestCustomModesVote:
     def teardown_method():
         unstub()
 
-    def test_handle_map_change(self, mocked_db):
-        self.plugin.database = Redis
+    def test_handle_map_change(self):
         self.plugin.mode = "pql"
 
         self.plugin.handle_map_change("campgrounds", "ca")
 
         assert_that(self.plugin.mode, equal_to("vql"))
 
-    def test_handle_map_change_already_in_default_mode(self, mocked_db):
-        self.plugin.database = Redis
+    def test_handle_map_change_already_in_default_mode(self):
         self.plugin.mode = "vql"
 
         self.plugin.handle_map_change("campgrounds", "ca")
@@ -80,7 +62,9 @@ class TestCustomModesVote:
     def test_handle_vote_called_for_unavailable_mode(self):
         voting_player = fake_player(123, "Voting Player", _id=3)
 
-        return_code = self.plugin.handle_vote_called(voting_player, "mode", "unavailable")
+        return_code = self.plugin.handle_vote_called(
+            voting_player, "mode", "unavailable"
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         verify(Plugin, times=0).callvote(any_, any_)
@@ -100,7 +84,9 @@ class TestCustomModesVote:
     def test_handle_vote_called_for_not_for_mode_change(self):
         voting_player = fake_player(123, "Voting Player", _id=3)
 
-        return_code = self.plugin.handle_vote_called(voting_player, "map", "campgrounds ca")
+        return_code = self.plugin.handle_vote_called(
+            voting_player, "map", "campgrounds ca"
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         verify(Plugin, times=0).callvote(any_, any_)
@@ -133,25 +119,33 @@ class TestCustomModesVote:
 
     def test_cmd_switch_mode_no_mode_given(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_too_many_parameters_given(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_unavailable_mode(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "unavailable"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "unavailable"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_to_available_mode(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "pql"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "pql"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.mode, equal_to("pql"))

@@ -38,7 +38,9 @@ class TestSlap:
 
         await slap._slap(interaction, member)  # pylint: disable=W0212
 
-        interaction.response.send_message.assert_awaited_once_with("_@DiscordMember is slapped from the hidden._")
+        interaction.response.send_message.assert_awaited_once_with(
+            "_@DiscordMember is slapped from the hidden._"
+        )
 
     @pytest.mark.asyncio
     async def test_revenge_slap(self, bot, interaction, member):
@@ -48,7 +50,9 @@ class TestSlap:
 
         await slap._slap(interaction, bot.client.user)  # pylint: disable=W0212
 
-        interaction.response.send_message.assert_awaited_once_with("_slaps @DiscordMember with a large revenge trout._")
+        interaction.response.send_message.assert_awaited_once_with(
+            "_slaps @DiscordMember with a large revenge trout._"
+        )
 
     @pytest.mark.asyncio
     async def test_self_slap(self, bot, interaction, member):
@@ -58,7 +62,9 @@ class TestSlap:
 
         await slap._slap(interaction, member)  # pylint: disable=W0212
 
-        interaction.response.send_message.assert_awaited_once_with("_@DiscordMember slaps himself for his stupidity._")
+        interaction.response.send_message.assert_awaited_once_with(
+            "_@DiscordMember slaps himself for his stupidity._"
+        )
 
     @pytest.mark.asyncio
     async def test_slap_of_other_user(self, bot, interaction, member):
@@ -106,10 +112,14 @@ class TestSlap:
 
         await slap._slap(interaction, other_user)  # pylint: disable=W0212
 
-        verify(Plugin).msg("[DISCORD]^2 @DiscordMember slaps @SlappedDiscordMember with a large trout.")
+        verify(Plugin).msg(
+            "[DISCORD]^2 @DiscordMember slaps @SlappedDiscordMember with a large trout."
+        )
 
     @pytest.mark.asyncio
-    async def test_slap_is_forwarded_to_relay_channel_with_channel_name(self, bot, interaction, member, guild_channel):
+    async def test_slap_is_forwarded_to_relay_channel_with_channel_name(
+        self, bot, interaction, member, guild_channel
+    ):
         setup_cvars({"qlx_displayChannelForDiscordRelayChannels": "1"})
         other_user = mock(spec=Member)
         other_user.id = 21
@@ -135,7 +145,8 @@ class TestSlap:
         await slap._slap(interaction, other_user)  # pylint: disable=W0212
 
         verify(Plugin).msg(
-            "[DISCORD] ^5#DiscordGuildChannel^7:^2 @DiscordMember slaps @SlappedDiscordMember with a large trout."
+            "[DISCORD] ^5#DiscordGuildChannel^7:^2 "
+            "@DiscordMember slaps @SlappedDiscordMember with a large trout."
         )
 
     @pytest.mark.asyncio

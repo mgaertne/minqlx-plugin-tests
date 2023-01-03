@@ -137,7 +137,9 @@ class TestTopicUpdater:
 
         assert_that(
             game_status,
-            matches_regexp(r"Match in progress: .*5.* - .*3.* on .*Campgrounds.* \(CA\) with .*5/16.* players\. "),
+            matches_regexp(
+                r"Match in progress: .*5.* - .*3.* on .*Campgrounds.* \(CA\) with .*5/16.* players\. "
+            ),
         )
 
     @pytest.mark.asyncio
@@ -159,7 +161,9 @@ class TestTopicUpdater:
         verify(timer_mock.start).__call__()  # pylint: disable=C2801
 
     @pytest.mark.asyncio
-    async def test_timer_is_started_on_cog_load_no_game_running(self, bot, no_minqlx_game):
+    async def test_timer_is_started_on_cog_load_no_game_running(
+        self, bot, no_minqlx_game
+    ):
         timer_mock = mock(spec=threading.Timer)
         timer_mock.start = mock()
         spy2(threading.Timer)
@@ -179,7 +183,9 @@ class TestTopicUpdater:
         assert_that(extension.is_discord_logged_in(), equal_to(False))
 
     @pytest.mark.asyncio
-    async def test_update_topics_on_relay_and_triggered_channels_discord_not_logged_in(self, bot, relay_channel):
+    async def test_update_topics_on_relay_and_triggered_channels_discord_not_logged_in(
+        self, bot, relay_channel
+    ):
         when(bot).is_ready().thenReturn(False)
 
         extension = TopicUpdater(bot)
@@ -235,4 +241,6 @@ class TestTopicUpdater:
         await topic_updater.setup(bot)
 
         bot.add_cog.assert_awaited_once()
-        assert_that(isinstance(bot.add_cog.call_args.args[0], TopicUpdater), equal_to(True))
+        assert_that(
+            isinstance(bot.add_cog.call_args.args[0], TopicUpdater), equal_to(True)
+        )

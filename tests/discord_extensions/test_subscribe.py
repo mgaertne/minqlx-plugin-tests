@@ -47,8 +47,12 @@ def setup_db_long_map_names(mocked_db, known_long_map_names):
 
 def setup_db_players(mocked_db, known_users):
     for steam_id, name in known_users.items():
-        when(mocked_db).exists(f"minqlx:players:{steam_id}:last_used_name").thenReturn(True)
-        when(mocked_db).get(f"minqlx:players:{steam_id}:last_used_name").thenReturn(name)
+        when(mocked_db).exists(f"minqlx:players:{steam_id}:last_used_name").thenReturn(
+            True
+        )
+        when(mocked_db).get(f"minqlx:players:{steam_id}:last_used_name").thenReturn(
+            name
+        )
 
 
 class TestSubscribe:
@@ -87,27 +91,41 @@ class TestSubscribe:
     def teardown_method(self):
         unstub()
 
-    def test_member_commands_are_removed_when_bot_intents_do_not_allow(self, no_presences_bot, mocked_db):
+    def test_member_commands_are_removed_when_bot_intents_do_not_allow(
+        self, no_presences_bot, mocked_db
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        subscribe_commands = [command.name for command in extension.subscribe_group.commands]
+        subscribe_commands = [
+            command.name for command in extension.subscribe_group.commands
+        ]
         # noinspection PyTypeChecker
         assert_that(subscribe_commands, not_(has_item("member")))  # type: ignore
-        unsubscribe_commands = [command.name for command in extension.unsubscribe_group.commands]
+        unsubscribe_commands = [
+            command.name for command in extension.unsubscribe_group.commands
+        ]
         # noinspection PyTypeChecker
         assert_that(unsubscribe_commands, not_(has_item("member")))  # type: ignore
         verify(no_presences_bot).remove_listener(extension.on_presence_update)
 
-    def test_member_commands_are_kept_when_bot_has_right_intents(self, presences_aware_bot, mocked_db):
+    def test_member_commands_are_kept_when_bot_has_right_intents(
+        self, presences_aware_bot, mocked_db
+    ):
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        subscribe_commands = [command.name for command in extension.subscribe_group.commands]
+        subscribe_commands = [
+            command.name for command in extension.subscribe_group.commands
+        ]
         # noinspection PyTypeChecker
         assert_that(subscribe_commands, has_item("member"))
-        unsubscribe_commands = [command.name for command in extension.unsubscribe_group.commands]
+        unsubscribe_commands = [
+            command.name for command in extension.unsubscribe_group.commands
+        ]
         # noinspection PyTypeChecker
         assert_that(unsubscribe_commands, has_item("member"))
-        verify(presences_aware_bot, times=0).remove_listener(extension.on_presence_update)
+        verify(presences_aware_bot, times=0).remove_listener(
+            extension.on_presence_update
+        )
 
     def test_long_map_names_gathered_from_db(self, no_presences_bot, mocked_db):
         setup_db_long_map_names(
@@ -121,7 +139,9 @@ class TestSubscribe:
             has_entries(theatreofpain="Theatre of Pain", ra3azra1="Industrial Rust"),
         )
 
-    def test_installed_maps_gathered_from_maps_manager_plugin(self, no_presences_bot, mocked_db):
+    def test_installed_maps_gathered_from_maps_manager_plugin(
+        self, no_presences_bot, mocked_db
+    ):
         maps_plugin = mock(spec=Plugin)
         maps_plugin.installed_maps = ["ra3azra1", "campgrounds", "theatreofpain"]
         Plugin._loaded_plugins = {"maps_manager": maps_plugin}  # pylint: disable=W0212
@@ -146,7 +166,9 @@ class TestSubscribe:
             ),
         )
 
-    def test_installed_maps_gathered_from_maps_plugin(self, no_presences_bot, mocked_db):
+    def test_installed_maps_gathered_from_maps_plugin(
+        self, no_presences_bot, mocked_db
+    ):
         maps_plugin = mock(spec=Plugin)
         maps_plugin.logged_maps = ["ra3azra1", "campgrounds", "theatreofpain"]
         Plugin._loaded_plugins = {"maps": maps_plugin}  # pylint: disable=W0212
@@ -171,7 +193,9 @@ class TestSubscribe:
             ),
         )
 
-    def test_installed_maps_gathered_known_player_names_from_db(self, no_presences_bot, mocked_db):
+    def test_installed_maps_gathered_known_player_names_from_db(
+        self, no_presences_bot, mocked_db
+    ):
         when(mocked_db).keys("minqlx:players:*:last_used_name").thenReturn(
             [
                 "minqlx:players:123:last_used_name",
@@ -185,25 +209,37 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         # noinspection PyTypeChecker
-        assert_that(extension.known_players, has_entries({123: "plainname", 456: "coloredname"}))
+        assert_that(
+            extension.known_players, has_entries({123: "plainname", 456: "coloredname"})
+        )
 
     @pytest.mark.asyncio
-    async def test_subscribe_map_with_no_provided_map(self, no_presences_bot, mocked_db, interaction):
+    async def test_subscribe_map_with_no_provided_map(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         await extension._subscribe_map(interaction, "")  # pylint: disable=W0212
 
         assert_interaction_deferred_thinking(interaction)
-        assert_interaction_response_description_matches(interaction, equal_to("No mapname provided."))
+        assert_interaction_response_description_matches(
+            interaction, equal_to("No mapname provided.")
+        )
 
     @pytest.mark.asyncio
-    async def test_subscribe_map_with_a_not_installed_map(self, no_presences_bot, mocked_db, interaction):
+    async def test_subscribe_map_with_a_not_installed_map(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._subscribe_map(interaction, "not_installed")  # pylint: disable=W0212
+        await extension._subscribe_map(  # pylint: disable=W0212
+            interaction, "not_installed"
+        )
 
         assert_interaction_deferred_thinking(interaction)
-        assert_interaction_response_description_matches(interaction, equal_to("Map `not_installed` is not installed."))
+        assert_interaction_response_description_matches(
+            interaction, equal_to("Map `not_installed` is not installed.")
+        )
 
     @pytest.mark.asyncio
     async def test_subscribe_map_user_is_subscribed_to_map_changes(
@@ -215,33 +251,45 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._subscribe_map(interaction, "thunderstruck")  # pylint: disable=W0212
+        await extension._subscribe_map(  # pylint: disable=W0212
+            interaction, "thunderstruck"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You have been subscribed to map changes for map `thunderstruck`"),
+            contains_string(
+                "You have been subscribed to map changes for map `thunderstruck`"
+            ),
             times=2,
         )
         verify(mocked_db).sadd("minqlx:discord:42:subscribed_maps", "thunderstruck")
 
     @pytest.mark.asyncio
-    async def test_subscribe_map_with_long_mapname(self, no_presences_bot, mocked_db, interaction, user):
+    async def test_subscribe_map_with_long_mapname(
+        self, no_presences_bot, mocked_db, interaction, user
+    ):
         interaction.user = user
 
-        when(mocked_db).smembers(any_).thenReturn(["theatreofpain", "ra3azra1", "ra3goetz1"])
+        when(mocked_db).smembers(any_).thenReturn(
+            ["theatreofpain", "ra3azra1", "ra3goetz1"]
+        )
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.installed_maps = ["theatreofpain"]
         extension.formatted_installed_maps = {"theatreofpain": "Theatre of Pain"}
         extension.long_map_names_lookup = {"ra3azra1": "Industrial Rust"}
 
-        await extension._subscribe_map(interaction, "theatreofpain")  # pylint: disable=W0212
+        await extension._subscribe_map(  # pylint: disable=W0212
+            interaction, "theatreofpain"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("`Theatre of Pain`, `Industrial Rust (ra3azra1)`, `ra3goetz1`"),
+            contains_string(
+                "`Theatre of Pain`, `Industrial Rust (ra3azra1)`, `ra3goetz1`"
+            ),
             times=2,
         )
 
@@ -257,12 +305,16 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._subscribe_map(interaction, "thunderstruck")  # pylint: disable=W0212
+        await extension._subscribe_map(  # pylint: disable=W0212
+            interaction, "thunderstruck"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You already were subscribed to map changes for map `thunderstruck`"),
+            contains_string(
+                "You already were subscribed to map changes for map `thunderstruck`"
+            ),
             times=2,
         )
 
@@ -284,19 +336,27 @@ class TestSubscribe:
         assert_that(result[0].value, equal_to("campgrounds"))
 
     @pytest.mark.asyncio
-    async def test_subscribe_player_with_no_provided_player(self, no_presences_bot, mocked_db, interaction):
+    async def test_subscribe_player_with_no_provided_player(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         await extension._subscribe_player(interaction, "")  # pylint: disable=W0212
 
         assert_interaction_deferred_thinking(interaction)
-        assert_interaction_response_description_matches(interaction, equal_to("No player name provided."))
+        assert_interaction_response_description_matches(
+            interaction, equal_to("No player name provided.")
+        )
 
     @pytest.mark.asyncio
-    async def test_subscribe_player_with_no_matching_player_name(self, no_presences_bot, mocked_db, interaction):
+    async def test_subscribe_player_with_no_matching_player_name(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._subscribe_player(interaction, "unknownplayer")  # pylint: disable=W0212
+        await extension._subscribe_player(  # pylint: disable=W0212
+            interaction, "unknownplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -314,7 +374,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._subscribe_player(interaction, "matchedplayer")  # pylint: disable=W0212
+        await extension._subscribe_player(  # pylint: disable=W0212
+            interaction, "matchedplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -337,7 +399,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._subscribe_player(interaction, "matchedplayer")  # pylint: disable=W0212
+        await extension._subscribe_player(  # pylint: disable=W0212
+            interaction, "matchedplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -360,7 +424,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._subscribe_player(interaction, "matchedplayer")  # pylint: disable=W0212
+        await extension._subscribe_player(  # pylint: disable=W0212
+            interaction, "matchedplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -399,7 +465,9 @@ class TestSubscribe:
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        subscribed_players = await extension.subscribe_player_autocomplete(interaction, "matchedplayer")
+        subscribed_players = await extension.subscribe_player_autocomplete(
+            interaction, "matchedplayer"
+        )
 
         assert_that(subscribed_players, equal_to([]))
 
@@ -416,7 +484,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        subscribed_players = await extension.subscribe_player_autocomplete(interaction, "matchedplayer")
+        subscribed_players = await extension.subscribe_player_autocomplete(
+            interaction, "matchedplayer"
+        )
 
         assert_that(len(subscribed_players), equal_to(2))
         assert_that(subscribed_players[0].value, equal_to("123"))
@@ -443,12 +513,16 @@ class TestSubscribe:
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You have been subscribed to Quake Live activities of <@SubscribedMember>."),
+            contains_string(
+                "You have been subscribed to Quake Live activities of <@SubscribedMember>."
+            ),
             times=2,
         )
 
     @pytest.mark.asyncio
-    async def test_subscribe_member_already_subscribed(self, presences_aware_bot, mocked_db, interaction, user):
+    async def test_subscribe_member_already_subscribed(
+        self, presences_aware_bot, mocked_db, interaction, user
+    ):
         member = mock(spec=Member)
         member.id = 21
         member.mention = "<@SubscribedMember>"
@@ -465,7 +539,9 @@ class TestSubscribe:
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You already were subscribed to Quake Live activities of <@SubscribedMember>."),
+            contains_string(
+                "You already were subscribed to Quake Live activities of <@SubscribedMember>."
+            ),
             times=2,
         )
 
@@ -502,13 +578,17 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
-    async def test_unsubscribe_map_with_no_provided_map(self, no_presences_bot, mocked_db, interaction):
+    async def test_unsubscribe_map_with_no_provided_map(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         await extension._unsubscribe_map(interaction, "")  # pylint: disable=W0212
 
         assert_interaction_deferred_thinking(interaction)
-        assert_interaction_response_description_matches(interaction, equal_to("No mapname provided."))
+        assert_interaction_response_description_matches(
+            interaction, equal_to("No mapname provided.")
+        )
 
     @pytest.mark.asyncio
     async def test_unsubscribe_map_user_is_unsubscribed_from_map_changes(
@@ -520,12 +600,16 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._unsubscribe_map(interaction, "thunderstruck")  # pylint: disable=W0212
+        await extension._unsubscribe_map(  # pylint: disable=W0212
+            interaction, "thunderstruck"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You have been unsubscribed from map changes for map `thunderstruck`"),
+            contains_string(
+                "You have been unsubscribed from map changes for map `thunderstruck`"
+            ),
             times=2,
         )
         assert_interaction_response_description_matches(
@@ -536,7 +620,9 @@ class TestSubscribe:
         verify(mocked_db).srem("minqlx:discord:42:subscribed_maps", "thunderstruck")
 
     @pytest.mark.asyncio
-    async def test_unsubscribe_map_with_long_mapname(self, no_presences_bot, mocked_db, interaction, user):
+    async def test_unsubscribe_map_with_long_mapname(
+        self, no_presences_bot, mocked_db, interaction, user
+    ):
         interaction.user = user
 
         when(mocked_db).smembers(any_).thenReturn(["ra3azra1", "ra3goetz1"])
@@ -546,12 +632,16 @@ class TestSubscribe:
         extension.formatted_installed_maps = {"theatreofpain": "Theatre of Pain"}
         extension.long_map_names_lookup = {"ra3azra1": "Industrial Rust"}
 
-        await extension._unsubscribe_map(interaction, "theatreofpain")  # pylint: disable=W0212
+        await extension._unsubscribe_map(  # pylint: disable=W0212
+            interaction, "theatreofpain"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You are still subscribed to `Industrial Rust (ra3azra1)`, `ra3goetz1`"),
+            contains_string(
+                "You are still subscribed to `Industrial Rust (ra3azra1)`, `ra3goetz1`"
+            ),
             times=2,
         )
 
@@ -567,12 +657,16 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._unsubscribe_map(interaction, "thunderstruck")  # pylint: disable=W0212
+        await extension._unsubscribe_map(  # pylint: disable=W0212
+            interaction, "thunderstruck"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You were not subscribed to map changes for map `thunderstruck`"),
+            contains_string(
+                "You were not subscribed to map changes for map `thunderstruck`"
+            ),
             times=2,
         )
 
@@ -582,7 +676,9 @@ class TestSubscribe:
     ):
         interaction.user = user
 
-        when(mocked_db).smembers(any_).thenReturn(["ra3azra1", "campgrounds", "ra3azra1a"])
+        when(mocked_db).smembers(any_).thenReturn(
+            ["ra3azra1", "campgrounds", "ra3azra1a"]
+        )
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.installed_maps = ["ra3azra1", "ra3azra1a", "ra3azra1b", "campgrounds"]
@@ -604,19 +700,27 @@ class TestSubscribe:
         assert_that(result[1].value, equal_to("ra3azra1a"))
 
     @pytest.mark.asyncio
-    async def test_unsubscribe_player_with_no_provided_player(self, no_presences_bot, mocked_db, interaction):
+    async def test_unsubscribe_player_with_no_provided_player(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         await extension._unsubscribe_player(interaction, "")  # pylint: disable=W0212
 
         assert_interaction_deferred_thinking(interaction)
-        assert_interaction_response_description_matches(interaction, equal_to("No player name provided."))
+        assert_interaction_response_description_matches(
+            interaction, equal_to("No player name provided.")
+        )
 
     @pytest.mark.asyncio
-    async def test_unsubscribe_player_with_no_matching_player_name(self, no_presences_bot, mocked_db, interaction):
+    async def test_unsubscribe_player_with_no_matching_player_name(
+        self, no_presences_bot, mocked_db, interaction
+    ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._unsubscribe_player(interaction, "unknownplayer")  # pylint: disable=W0212
+        await extension._unsubscribe_player(  # pylint: disable=W0212
+            interaction, "unknownplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -634,7 +738,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._unsubscribe_player(interaction, "matchedplayer")  # pylint: disable=W0212
+        await extension._unsubscribe_player(  # pylint: disable=W0212
+            interaction, "matchedplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -657,7 +763,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._unsubscribe_player(interaction, "matchedplayer")  # pylint: disable=W0212
+        await extension._unsubscribe_player(  # pylint: disable=W0212
+            interaction, "matchedplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -685,7 +793,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._unsubscribe_player(interaction, "matchedplayer")  # pylint: disable=W0212
+        await extension._unsubscribe_player(  # pylint: disable=W0212
+            interaction, "matchedplayer"
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -724,7 +834,9 @@ class TestSubscribe:
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        unsubscribed_players = await extension.unsubscribe_player_autocomplete(interaction, "matchedplayer")
+        unsubscribed_players = await extension.unsubscribe_player_autocomplete(
+            interaction, "matchedplayer"
+        )
 
         assert_that(unsubscribed_players, equal_to([]))
 
@@ -741,7 +853,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        unsubscribed_players = await extension.unsubscribe_player_autocomplete(interaction, "matchedplayer")
+        unsubscribed_players = await extension.unsubscribe_player_autocomplete(
+            interaction, "matchedplayer"
+        )
 
         assert_that(len(unsubscribed_players), equal_to(2))
         assert_that(unsubscribed_players[0].value, equal_to("123"))
@@ -762,18 +876,24 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._unsubscribe_member(interaction, member)  # pylint: disable=W0212
+        await extension._unsubscribe_member(  # pylint: disable=W0212
+            interaction, member
+        )
 
         verify(mocked_db).srem("minqlx:discord:42:subscribed_members", 21)
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You have been unsubscribed from Quake Live activities of <@UnsubscribedMember>."),
+            contains_string(
+                "You have been unsubscribed from Quake Live activities of <@UnsubscribedMember>."
+            ),
             times=2,
         )
 
     @pytest.mark.asyncio
-    async def test_unsubscribe_member_already_unsubscribed(self, presences_aware_bot, mocked_db, interaction, user):
+    async def test_unsubscribe_member_already_unsubscribed(
+        self, presences_aware_bot, mocked_db, interaction, user
+    ):
         member = mock(spec=Member)
         member.id = 21
         member.mention = "<@UnsubscribedMember>"
@@ -785,12 +905,16 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._unsubscribe_member(interaction, member)  # pylint: disable=W0212
+        await extension._unsubscribe_member(  # pylint: disable=W0212
+            interaction, member
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You were not subscribed to Quake Live activities of <@UnsubscribedMember>."),
+            contains_string(
+                "You were not subscribed to Quake Live activities of <@UnsubscribedMember>."
+            ),
             times=2,
         )
 
@@ -814,12 +938,16 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._unsubscribe_member(interaction, member)  # pylint: disable=W0212
+        await extension._unsubscribe_member(  # pylint: disable=W0212
+            interaction, member
+        )
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
             interaction,
-            contains_string("You are still subscribed to Quake Live activities of <@OtherSubscribedMember>"),
+            contains_string(
+                "You are still subscribed to Quake Live activities of <@OtherSubscribedMember>"
+            ),
             times=2,
         )
 
@@ -838,14 +966,22 @@ class TestSubscribe:
                 "minqlx:discord:666:subscribed_maps",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:666:subscribed_maps", "overkill").thenReturn(True)
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_maps", "overkill").thenReturn(True)
-        when(mocked_db).sismember("minqlx:discord:21:subscribed_maps", "overkill").thenReturn(False)
+        when(mocked_db).sismember(
+            "minqlx:discord:666:subscribed_maps", "overkill"
+        ).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_maps", "overkill"
+        ).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:21:subscribed_maps", "overkill"
+        ).thenReturn(False)
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         await extension.notify_map_change("overkill")
 
-        user.send.assert_awaited_once_with(content="`overkill`, one of your favourite maps has been loaded!")
+        user.send.assert_awaited_once_with(
+            content="`overkill`, one of your favourite maps has been loaded!"
+        )
 
     @pytest.mark.asyncio
     async def test_notify_player_connected(self, no_presences_bot, mocked_db, user):
@@ -862,9 +998,15 @@ class TestSubscribe:
                 "minqlx:discord:666:subscribed_players",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:666:subscribed_players", 123).thenReturn(True)
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_players", 123).thenReturn(True)
-        when(mocked_db).sismember("minqlx:discord:21:subscribed_players", 123).thenReturn(False)
+        when(mocked_db).sismember(
+            "minqlx:discord:666:subscribed_players", 123
+        ).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_players", 123
+        ).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:21:subscribed_players", 123
+        ).thenReturn(False)
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
@@ -875,7 +1017,9 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
-    async def test_check_subscriptions_no_game_running(self, no_presences_bot, mocked_db, no_minqlx_game, user):
+    async def test_check_subscriptions_no_game_running(
+        self, no_presences_bot, mocked_db, no_minqlx_game, user
+    ):
         when(no_presences_bot).get_user(user.id).thenReturn(user)
 
         when(mocked_db).keys("minqlx:discord:*:subscribed_maps").thenReturn(
@@ -892,7 +1036,9 @@ class TestSubscribe:
         assert_that(user.send.await_count, equal_to(0))
 
     @pytest.mark.asyncio
-    async def test_check_subscriptions_map_already_notified(self, no_presences_bot, mocked_db, game_in_warmup, user):
+    async def test_check_subscriptions_map_already_notified(
+        self, no_presences_bot, mocked_db, game_in_warmup, user
+    ):
         when(no_presences_bot).get_user(user.id).thenReturn(user)
 
         when(mocked_db).keys("minqlx:discord:*:subscribed_maps").thenReturn(
@@ -900,7 +1046,9 @@ class TestSubscribe:
                 "minqlx:discord:42:subscribed_maps",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_maps", game_in_warmup.map).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_maps", game_in_warmup.map
+        ).thenReturn(True)
         connected_players()
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
@@ -921,14 +1069,18 @@ class TestSubscribe:
                 "minqlx:discord:42:subscribed_maps",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_maps", game_in_warmup.map).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_maps", game_in_warmup.map
+        ).thenReturn(True)
         connected_players()
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         await extension.check_subscriptions()
 
-        user.send.assert_awaited_once_with(content="`campgrounds`, one of your favourite maps has been loaded!")
+        user.send.assert_awaited_once_with(
+            content="`campgrounds`, one of your favourite maps has been loaded!"
+        )
 
     @pytest.mark.asyncio
     async def test_check_subscriptions_informs_about_player_connected(
@@ -945,7 +1097,9 @@ class TestSubscribe:
                 "minqlx:discord:42:subscribed_players",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_players", new_player.steam_id).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_players", new_player.steam_id
+        ).thenReturn(True)
         connected_players(new_player)
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
@@ -957,7 +1111,9 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
-    async def test_check_subscriptions_player_already_informed(self, no_presences_bot, mocked_db, game_in_warmup, user):
+    async def test_check_subscriptions_player_already_informed(
+        self, no_presences_bot, mocked_db, game_in_warmup, user
+    ):
         new_player = mock(spec=Player)
         new_player.steam_id = 123
         new_player.clean_name = "newplayer"
@@ -969,7 +1125,9 @@ class TestSubscribe:
                 "minqlx:discord:42:subscribed_players",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_players", new_player.steam_id).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_players", new_player.steam_id
+        ).thenReturn(True)
         connected_players(new_player)
 
         extension = SubscriberCog(no_presences_bot, mocked_db)
@@ -979,7 +1137,9 @@ class TestSubscribe:
 
         assert_that(user.send.await_count, equal_to(0))
 
-    def test_find_relevant_activitiy_with_no_activity(self, presences_aware_bot, mocked_db):
+    def test_find_relevant_activitiy_with_no_activity(
+        self, presences_aware_bot, mocked_db
+    ):
         member = mock(spec=Member)
         member.activities = []
         extension = SubscriberCog(presences_aware_bot, mocked_db)
@@ -988,7 +1148,9 @@ class TestSubscribe:
 
         assert_that(activities, equal_to(None))
 
-    def test_find_relevant_activitiy_with_irrelevant_activity(self, presences_aware_bot, mocked_db):
+    def test_find_relevant_activitiy_with_irrelevant_activity(
+        self, presences_aware_bot, mocked_db
+    ):
         member = mock(spec=Member)
         member.activities = [
             Activity(type=ActivityType.listening),
@@ -1001,7 +1163,9 @@ class TestSubscribe:
 
         assert_that(activities, equal_to(None))
 
-    def test_find_relevant_activitiy_finds_quakelive_activity(self, presences_aware_bot, mocked_db):
+    def test_find_relevant_activitiy_finds_quakelive_activity(
+        self, presences_aware_bot, mocked_db
+    ):
         member = mock(spec=Member)
         quakelive_activitiy = Activity(type=ActivityType.playing, name="Quake Live")
         member.activities = [
@@ -1016,13 +1180,21 @@ class TestSubscribe:
         assert_that(activities, equal_to(quakelive_activitiy))
 
     @pytest.mark.asyncio
-    async def test_on_presence_update_member_was_playing_before(self, presences_aware_bot, mocked_db, user):
+    async def test_on_presence_update_member_was_playing_before(
+        self, presences_aware_bot, mocked_db, user
+    ):
         before_member = mock(spec=Member)
         before_member.id = 21
-        before_member.activities = [Activity(type=ActivityType.playing, name="Quake Live")]
+        before_member.activities = [
+            Activity(type=ActivityType.playing, name="Quake Live")
+        ]
 
-        when(mocked_db).keys("minqlx:discord:*:subscribed_members").thenReturn(["minqlx:discord:42:subscribed_members"])
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_members", 21).thenReturn(True)
+        when(mocked_db).keys("minqlx:discord:*:subscribed_members").thenReturn(
+            ["minqlx:discord:42:subscribed_members"]
+        )
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_members", 21
+        ).thenReturn(True)
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
@@ -1031,13 +1203,19 @@ class TestSubscribe:
         assert_that(user.send.await_count, equal_to(0))
 
     @pytest.mark.asyncio
-    async def test_on_presence_update_member_is_not_playing_after(self, presences_aware_bot, mocked_db, user):
+    async def test_on_presence_update_member_is_not_playing_after(
+        self, presences_aware_bot, mocked_db, user
+    ):
         after_member = mock(spec=Member)
         after_member.id = 21
         after_member.activities = []
 
-        when(mocked_db).keys("minqlx:discord:*:subscribed_members").thenReturn(["minqlx:discord:42:subscribed_members"])
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_members", 21).thenReturn(True)
+        when(mocked_db).keys("minqlx:discord:*:subscribed_members").thenReturn(
+            ["minqlx:discord:42:subscribed_members"]
+        )
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_members", 21
+        ).thenReturn(True)
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
@@ -1046,7 +1224,9 @@ class TestSubscribe:
         assert_that(user.send.await_count, equal_to(0))
 
     @pytest.mark.asyncio
-    async def test_on_presence_update_member_just_started_playing(self, presences_aware_bot, mocked_db, user):
+    async def test_on_presence_update_member_just_started_playing(
+        self, presences_aware_bot, mocked_db, user
+    ):
         before_member = mock(spec=Member)
         before_member.id = 21
         before_member.activities = []
@@ -1054,7 +1234,9 @@ class TestSubscribe:
         after_member = mock(spec=Member)
         after_member.id = 21
         after_member.display_name = "PlayingMember"
-        after_member.activities = [Activity(type=ActivityType.playing, name="Quake Live")]
+        after_member.activities = [
+            Activity(type=ActivityType.playing, name="Quake Live")
+        ]
 
         when(mocked_db).keys("minqlx:discord:*:subscribed_members").thenReturn(
             [
@@ -1062,8 +1244,12 @@ class TestSubscribe:
                 "minqlx:discord:666:subscribed_members",
             ]
         )
-        when(mocked_db).sismember("minqlx:discord:42:subscribed_members", "21").thenReturn(True)
-        when(mocked_db).sismember("minqlx:discord:666:subscribed_members", "21").thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:42:subscribed_members", "21"
+        ).thenReturn(True)
+        when(mocked_db).sismember(
+            "minqlx:discord:666:subscribed_members", "21"
+        ).thenReturn(True)
 
         when(presences_aware_bot).get_user(user.id).thenReturn(user)
 
