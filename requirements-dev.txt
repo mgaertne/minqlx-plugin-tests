@@ -1,10 +1,16 @@
-types-requests==2.28.11.7
+-rrequirements-tests.txt
+pre-commit==2.21.0
+
+black==22.12.0
+
+pyupgrade==3.3.1
+
+flake8==6.0.0
+
+pylint==2.15.9
+
+mypy==0.991
 types-redis==4.3.21.7
+types-requests==2.28.11.7
 
-pytest>=7.0
-pytest-asyncio>=0.16
-pytest-clarity==1.0.1
-
-PyHamcrest==2.0.4
-mockito==1.4.0
-undecorated==0.3.0
+coverage==7.0.2

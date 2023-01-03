@@ -1,0 +1,6 @@
+pytest==7.0.1
+pytest-clarity==1.0.1
+
+PyHamcrest==2.0.4
+mockito==1.4.0
+undecorated==0.3.0
