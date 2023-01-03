@@ -188,14 +188,10 @@ class TestStatus:
 
         assert_that(
             game_status,
-            matches_regexp(
-                r"Match in progress: .*5.* - .*3.* on .*Campgrounds.* \(CA\) with .*0/16.* players\. "
-            ),
+            matches_regexp(r"Match in progress: .*5.* - .*3.* on .*Campgrounds.* \(CA\) with .*0/16.* players\. "),
         )
 
-    @pytest.mark.parametrize(
-        "channel_id,expected", [(1234, True), (5678, True), (42, False)]
-    )
+    @pytest.mark.parametrize("channel_id,expected", [(1234, True), (5678, True), (42, False)])
     def test_is_message_in_configured_triggered_or_relay_channel(
         self, channel_id, expected, context, bot, guild_channel
     ):
@@ -229,23 +225,17 @@ class TestStatus:
 
         await extension.slash_trigger_status(interaction)
 
-        interaction.response.send_message.assert_awaited_once_with(
-            content="Currently no game running."
-        )
+        interaction.response.send_message.assert_awaited_once_with(content="Currently no game running.")
 
     @pytest.mark.parametrize("channel_id,expected", [(1234, False), (5678, True)])
-    def test_is_message_in_configured_triggered_channel(
-        self, channel_id, expected, context, bot, guild_channel
-    ):
+    def test_is_message_in_configured_triggered_channel(self, channel_id, expected, context, bot, guild_channel):
         extension = Status(bot)
 
         guild_channel.id = channel_id
         context.message = mock(spec=Message)
         context.message.channel = guild_channel
 
-        assert_that(
-            extension.is_message_in_triggered_channel(context), equal_to(expected)
-        )
+        assert_that(extension.is_message_in_triggered_channel(context), equal_to(expected))
 
     @pytest.mark.asyncio
     async def test_bot_setup_called(self, bot):

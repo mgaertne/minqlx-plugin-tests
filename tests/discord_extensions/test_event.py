@@ -59,9 +59,7 @@ class TestEvent:
         unstub()
 
     @pytest.mark.asyncio
-    async def test_create_and_start_event_is_created_and_started(
-        self, bot, mocked_guild
-    ):
+    async def test_create_and_start_event_is_created_and_started(self, bot, mocked_guild):
         await event.create_and_start_event(bot)
 
         mocked_guild.create_scheduled_event.assert_awaited_once()
@@ -78,9 +76,7 @@ class TestEvent:
         )
 
     @pytest.mark.asyncio
-    async def test_create_and_start_event_when_event_already_started(
-        self, bot, mocked_guild, mocked_active_event
-    ):
+    async def test_create_and_start_event_when_event_already_started(self, bot, mocked_guild, mocked_active_event):
         mocked_guild.scheduled_events.append(mocked_active_event)
 
         await event.create_and_start_event(bot)
@@ -88,22 +84,16 @@ class TestEvent:
         mocked_guild.create_scheduled_event.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_create_and_start_event_event_misconfigured_event_name_cvar(
-        self, bot, mocked_guild
-    ):
+    async def test_create_and_start_event_event_misconfigured_event_name_cvar(self, bot, mocked_guild):
         when2(Plugin.get_cvar, "qlx_discord_ext_event_name").thenReturn(None)
-        when2(Plugin.get_cvar, "qlx_discord_ext_event_location").thenReturn(
-            "event location"
-        )
+        when2(Plugin.get_cvar, "qlx_discord_ext_event_location").thenReturn("event location")
 
         await event.create_and_start_event(bot)
 
         mocked_guild.create_scheduled_event.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_create_and_start_event_event_misconfigured_event_location_cvar(
-        self, bot, mocked_guild
-    ):
+    async def test_create_and_start_event_event_misconfigured_event_location_cvar(self, bot, mocked_guild):
         when2(Plugin.get_cvar, "qlx_discord_ext_event_name").thenReturn("event name")
         when2(Plugin.get_cvar, "qlx_discord_ext_event_location").thenReturn(None)
 
@@ -112,9 +102,7 @@ class TestEvent:
         mocked_guild.create_scheduled_event.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_end_event_ends_active_event_that_matches(
-        self, bot, mocked_guild, mocked_active_event
-    ):
+    async def test_end_event_ends_active_event_that_matches(self, bot, mocked_guild, mocked_active_event):
         mocked_guild.scheduled_events.append(mocked_active_event)
 
         await event.end_event(bot)
@@ -133,9 +121,7 @@ class TestEvent:
         mocked_active_event.end.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_end_event_does_not_end_inactive_event(
-        self, bot, mocked_guild, mocked_active_event
-    ):
+    async def test_end_event_does_not_end_inactive_event(self, bot, mocked_guild, mocked_active_event):
         mocked_active_event.status = EventStatus.scheduled
         mocked_guild.scheduled_events.append(mocked_active_event)
 
@@ -144,9 +130,7 @@ class TestEvent:
         mocked_active_event.end.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_end_event_with_non_configured_event_name(
-        self, bot, mocked_guild, mocked_active_event
-    ):
+    async def test_end_event_with_non_configured_event_name(self, bot, mocked_guild, mocked_active_event):
         when2(Plugin.get_cvar, "qlx_discord_ext_event_name").thenReturn(None)
         mocked_guild.scheduled_events.append(mocked_active_event)
 
@@ -155,9 +139,7 @@ class TestEvent:
         mocked_active_event.end.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_check_playing_activity_with_no_players_connected_ends_events(
-        self, bot
-    ):
+    async def test_check_playing_activity_with_no_players_connected_ends_events(self, bot):
         event.end_event = AsyncMock()
         connected_players()
 
@@ -166,9 +148,7 @@ class TestEvent:
         event.end_event.assert_called_once_with(bot)
 
     @pytest.mark.asyncio
-    async def test_check_playing_activity_creates_and_starts_event_when_player_connected(
-        self, bot
-    ):
+    async def test_check_playing_activity_creates_and_starts_event_when_player_connected(self, bot):
         event.create_and_start_event = AsyncMock()
         connected_players(fake_player(1, "Dummy Player"))
 

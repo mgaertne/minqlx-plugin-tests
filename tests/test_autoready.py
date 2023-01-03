@@ -41,9 +41,7 @@ class TestAutoReady:
         timer_ = mock(spec=CountdownThread)
         when(timer_).start().thenReturn(None)
         when(timer_).stop().thenReturn(None)
-        when(autoready).CountdownThread(any_(int), timed_actions=any_(dict)).thenReturn(
-            timer_
-        )
+        when(autoready).CountdownThread(any_(int), timed_actions=any_(dict)).thenReturn(timer_)
         yield timer_
         unstub()
 
@@ -200,9 +198,7 @@ class TestAutoReady:
         assert_that(self.plugin.current_timer, equal_to(-1))
 
     @pytest.mark.usefixtures("game_in_warmup")
-    def test_handle_map_change_stops_timer_and_remembers_remaining_seconds(
-        self, alive_timer
-    ):
+    def test_handle_map_change_stops_timer_and_remembers_remaining_seconds(self, alive_timer):
         alive_timer.seconds_left = 42
         self.plugin.timer = alive_timer
 
@@ -391,9 +387,7 @@ class TestAutoReady:
         assert_that(self.plugin.current_timer, equal_to(42))
 
     @pytest.mark.usefixtures("game_in_warmup")
-    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(
-        self, timer
-    ):
+    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self, timer):
         self.plugin.current_timer = 21
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(
@@ -536,12 +530,8 @@ class TestAutoReady:
 
         verify(time, times=2).sleep(0.2)
         verify(time).sleep(0.3)
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2
-        )
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^10^7:^108", times=2
-        )
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108", times=2)
 
     def test_shuffle_double_blink_when_diff_larger_than_one_player(self):
         spy2(time.sleep)
@@ -567,12 +557,8 @@ class TestAutoReady:
         verify(time, times=2).sleep(0.2)
         verify(time).sleep(0.3)
         verify(Plugin).shuffle()
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2
-        )
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^10^7:^110", times=2
-        )
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^110", times=2)
 
     def test_shuffle_double_blink_when_diff_one_player(self):
         spy2(time.sleep)
@@ -597,12 +583,8 @@ class TestAutoReady:
         verify(time, times=2).sleep(0.2)
         verify(time).sleep(0.3)
         verify(Plugin, times=0).shuffle()
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2
-        )
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^10^7:^110", times=2
-        )
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^110", times=2)
 
     def test_wear_off_double_blink(self):
         spy2(time.sleep)
@@ -613,12 +595,8 @@ class TestAutoReady:
         verify(time, times=2).sleep(0.2)
         verify(time).sleep(0.3)
         assert_plugin_played_sound("sound/items/wearoff.ogg")
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2
-        )
-        assert_plugin_center_printed(
-            "Match will ^2auto-start^7 in\n^10^7:^108", times=2
-        )
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^1 ^7:^1  ", times=2)
+        assert_plugin_center_printed("Match will ^2auto-start^7 in\n^10^7:^108", times=2)
 
     def test_allready(self):
         spy2(Plugin.allready)
@@ -639,9 +617,7 @@ class TestCountdownThread:
         self.mocked_function21 = mock()
         timed_test_actions = {42: self.mocked_function42, 21: self.mocked_function21}
         self.countdown_thread = CountdownThread(125, timed_actions=timed_test_actions)
-        self.fake_thread_runtime = datetime(
-            year=2022, month=4, day=4, hour=11, minute=11, second=11
-        )
+        self.fake_thread_runtime = datetime(year=2022, month=4, day=4, hour=11, minute=11, second=11)
         self.countdown_thread._now = self.fake_thread_runtime  # pylint: disable=W0212
 
     @staticmethod
@@ -649,9 +625,7 @@ class TestCountdownThread:
         unstub()
 
     def test_seconds_left_when_thread_has_not_been_started(self):
-        assert_that(
-            self.countdown_thread.seconds_left, equal_to(self.countdown_thread.duration)
-        )
+        assert_that(self.countdown_thread.seconds_left, equal_to(self.countdown_thread.duration))
 
     def test_seconds_left_when_thread_has_been_stopped_before(self):
         self.countdown_thread._remaining = 7  # pylint: disable=W0212
@@ -659,9 +633,7 @@ class TestCountdownThread:
         assert_that(self.countdown_thread.seconds_left, equal_to(7))
 
     def test_seconds_left_when_thread_is_current_running(self):
-        test_target_time = self.fake_thread_runtime + timedelta(
-            seconds=11, milliseconds=999, microseconds=999
-        )
+        test_target_time = self.fake_thread_runtime + timedelta(seconds=11, milliseconds=999, microseconds=999)
         self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
 
         assert_that(self.countdown_thread.seconds_left, equal_to(11))
@@ -669,9 +641,7 @@ class TestCountdownThread:
     def test_stop_when_thread_is_not_running(self):
         self.countdown_thread.stop()
 
-        assert_that(
-            self.countdown_thread.seconds_left, equal_to(self.countdown_thread.duration)
-        )
+        assert_that(self.countdown_thread.seconds_left, equal_to(self.countdown_thread.duration))
 
     def test_stop_when_target_time_is_unset(self):
         spy2(self.countdown_thread.is_alive)
@@ -679,17 +649,13 @@ class TestCountdownThread:
 
         self.countdown_thread.stop()
 
-        assert_that(
-            self.countdown_thread.seconds_left, equal_to(self.countdown_thread.duration)
-        )
+        assert_that(self.countdown_thread.seconds_left, equal_to(self.countdown_thread.duration))
 
     def test_stop_when_thread_is_running(self):
         spy2(self.countdown_thread.is_alive)
         when2(self.countdown_thread.is_alive).thenReturn(True)
 
-        test_target_time = self.fake_thread_runtime + timedelta(
-            seconds=11, milliseconds=999, microseconds=999
-        )
+        test_target_time = self.fake_thread_runtime + timedelta(seconds=11, milliseconds=999, microseconds=999)
         self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
 
         self.countdown_thread.stop()
@@ -697,21 +663,13 @@ class TestCountdownThread:
         assert_that(self.countdown_thread.seconds_left, equal_to(11))
 
     def test_determine_timed_action_for_several_combinations(self):
-        func_result = (
-            self.countdown_thread.determine_timed_action_for_remaining_seconds(42)
-        )
+        func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(42)
         assert_that(func_result, is_(self.mocked_function42))
-        func_result = (
-            self.countdown_thread.determine_timed_action_for_remaining_seconds(41)
-        )
+        func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(41)
         assert_that(func_result, is_(self.mocked_function21))
-        func_result = (
-            self.countdown_thread.determine_timed_action_for_remaining_seconds(21)
-        )
+        func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(21)
         assert_that(func_result, is_(self.mocked_function21))
-        func_result = (
-            self.countdown_thread.determine_timed_action_for_remaining_seconds(20)
-        )
+        func_result = self.countdown_thread.determine_timed_action_for_remaining_seconds(20)
         assert_that(func_result, not_(is_(self.mocked_function42)))
         assert_that(func_result, not_(is_(self.mocked_function21)))
 
@@ -721,17 +679,13 @@ class TestCountdownThread:
 
         self.countdown_thread.run_loop_step()
 
-        verify(self.mocked_function21, times=1).__call__(  # pylint: disable=C2801
-            any_(int)
-        )
+        verify(self.mocked_function21, times=1).__call__(any_(int))  # pylint: disable=C2801
         verify(time).sleep(0.0)
 
     def test_calculate_target_time(self):
         target_datetime = self.countdown_thread.calculate_target_time()
 
-        assert_that(
-            target_datetime, equal_to(self.fake_thread_runtime + timedelta(seconds=125))
-        )
+        assert_that(target_datetime, equal_to(self.fake_thread_runtime + timedelta(seconds=125)))
 
 
 class TestRandomIterator:

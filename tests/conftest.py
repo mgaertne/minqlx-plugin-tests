@@ -60,9 +60,7 @@ def _cvars(request):
 
 @pytest.fixture(name="no_minqlx_game")
 def _no_game():
-    when2(minqlx.Game).thenRaise(
-        NonexistentGameError("Tried to instantiate a game while no game is active.")
-    )
+    when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
     yield
     unstub()
 
@@ -141,10 +139,7 @@ def _game_in_progress(minqlx_game, request: FixtureRequest):
 
 
 def assert_channel_was_replied(
-    channel: minqlx.AbstractChannel,
-    matcher: Union[str, Matcher, Any],
-    *,
-    times: int = 1
+    channel: minqlx.AbstractChannel, matcher: Union[str, Matcher, Any], *, times: int = 1
 ) -> None:
     """Verify that a mocked channel was replied to with the given matcher.
 

@@ -134,9 +134,7 @@ class TestDuelArenaTests:
             self.plugin.duelarena_game.queue.insert(0, player.steam_id)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_fourth_player_was_loaded_while_duelarena_activated(
-        self, game_in_progress
-    ):
+    def test_when_fourth_player_was_loaded_while_duelarena_activated(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player", "spectator")
@@ -153,9 +151,7 @@ class TestDuelArenaTests:
         )
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_fourth_player_was_loaded_while_duelarena_deactivated(
-        self, game_in_progress
-    ):
+    def test_when_fourth_player_was_loaded_while_duelarena_deactivated(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player", "spectator")
@@ -192,8 +188,7 @@ class TestDuelArenaTests:
 
         assert_player_was_told(
             loaded_player,
-            "Loaded Player^7, type !join to join Duel Arena "
-            "or press join button to force switch to Clan Arena!",
+            "Loaded Player^7, type !join to join Duel Arena or press join button to force switch to Clan Arena!",
         )
 
     @pytest.mark.usefixtures("no_minqlx_game")
@@ -201,16 +196,12 @@ class TestDuelArenaTests:
         switching_player = fake_player(1, "Switching Player")
         connected_players(switching_player)
 
-        return_code = self.plugin.handle_team_switch_event(
-            switching_player, "red", "spectator"
-        )
+        return_code = self.plugin.handle_team_switch_event(switching_player, "red", "spectator")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_first_player_tries_to_join_any_team_she_gets_added_to_playerset(
-        self, game_in_progress
-    ):
+    def test_when_first_player_tries_to_join_any_team_she_gets_added_to_playerset(self, game_in_progress):
         switching_player = fake_player(1, "Switching Player")
         connected_players(switching_player)
 
@@ -223,9 +214,7 @@ class TestDuelArenaTests:
         assert_that(self.plugin.duelarena_game.playerset, has_items(*player_ids))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_third_player_tries_to_join_duelarena_gets_activated(
-        self, game_in_progress
-    ):
+    def test_when_third_player_tries_to_join_duelarena_gets_activated(self, game_in_progress):
         switching_player = fake_player(3, "Switching Player")
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -233,9 +222,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.deactivate_duelarena()
 
-        return_code = self.plugin.handle_team_switch_event(
-            switching_player, "spectator", "blue"
-        )
+        return_code = self.plugin.handle_team_switch_event(switching_player, "spectator", "blue")
 
         self.assert_duelarena_has_been_activated()
         assert_player_was_told(switching_player, DUELARENA_JOIN_MSG)
@@ -249,9 +236,7 @@ class TestDuelArenaTests:
         )
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_red_player_switches_to_spec_she_is_removed_from_playerset(
-        self, game_in_progress
-    ):
+    def test_when_red_player_switches_to_spec_she_is_removed_from_playerset(self, game_in_progress):
         switching_player = fake_player(1, "Switching Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -272,14 +257,12 @@ class TestDuelArenaTests:
     def assert_playerset_does_not_contain(self, *players):
         assert_that(
             self.plugin.duelarena_game.playerset,
-            not_(has_items([player.steam_id for player in players])),
-        )  # type: ignore
+            not_(has_items([player.steam_id for player in players])),  # type: ignore
+        )
 
     def assert_duelarena_has_been_deactivated(self):
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(False))
-        assert_that(
-            self.plugin.duelarena_game.is_pending_initialization(), equal_to(False)
-        )
+        assert_that(self.plugin.duelarena_game.is_pending_initialization(), equal_to(False))
         assert_plugin_center_printed("DuelArena deactivated!")
         assert_plugin_sent_to_console("DuelArena has been deactivated!")
 
@@ -300,13 +283,11 @@ class TestDuelArenaTests:
     def assert_queue_does_not_contain(self, *players):
         assert_that(
             self.plugin.duelarena_game.queue,
-            not_(has_items([player.steam_id for player in players])),
-        )  # type: ignore
+            not_(has_items([player.steam_id for player in players])),  # type: ignore
+        )
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_player_switch_to_spec_inititiated_by_plugin_clear_field(
-        self, game_in_progress
-    ):
+    def test_when_player_switch_to_spec_inititiated_by_plugin_clear_field(self, game_in_progress):
         switching_player = fake_player(1, "Switching Player", "blue")
         red_player = fake_player(2, "Blue Player", "red")
         spec_player = fake_player(3, "Speccing Player")
@@ -359,9 +340,7 @@ class TestDuelArenaTests:
         assert_that(self.plugin.duelarena_game.player_blue, equal_to(None))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_player_disconnects_she_gets_removed_from_playerset(
-        self, game_in_progress
-    ):
+    def test_when_player_disconnects_she_gets_removed_from_playerset(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         disconnecting_player = fake_player(2, "Disconnecting Player")
         spec_player = fake_player(3, "Speccing Player", "blue")
@@ -373,9 +352,7 @@ class TestDuelArenaTests:
         self.assert_playerset_does_not_contain(disconnecting_player)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_player_not_in_playerset_disconnects_nothing_happens(
-        self, game_in_progress
-    ):
+    def test_when_player_not_in_playerset_disconnects_nothing_happens(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         disconnecting_player = fake_player(2, "Disconnecting Player")
         spec_player = fake_player(3, "Speccing Player", "blue")
@@ -388,9 +365,7 @@ class TestDuelArenaTests:
         self.assert_playerset_does_not_contain(disconnecting_player)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_in_duelarena_third_player_disconnects_duelarena_deactivates(
-        self, game_in_progress
-    ):
+    def test_when_in_duelarena_third_player_disconnects_duelarena_deactivates(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         disconnecting_player = fake_player(2, "Disconnecting Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -405,17 +380,13 @@ class TestDuelArenaTests:
         self.assert_duelarena_has_been_deactivated()
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates(
-        self, game_in_progress
-    ):
+    def test_when_not_in_duelarena_fourth_player_disconnects_duelarena_activates(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
         disconnecting_player = fake_player(4, "Disconnecting Player")
         connected_players(red_player, blue_player, spec_player)
-        self.setup_duelarena_players(
-            red_player, blue_player, spec_player, disconnecting_player
-        )
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
         self.queue_up_players(spec_player, disconnecting_player)
         self.deactivate_duelarena()
 
@@ -433,9 +404,7 @@ class TestDuelArenaTests:
         spec_player = fake_player(3, "Speccing Player")
         disconnecting_player = fake_player(4, "Disconnecting Player")
         connected_players(red_player, blue_player, spec_player)
-        self.setup_duelarena_players(
-            red_player, blue_player, spec_player, disconnecting_player
-        )
+        self.setup_duelarena_players(red_player, blue_player, spec_player, disconnecting_player)
         self.queue_up_players(spec_player, disconnecting_player)
         self.deactivate_duelarena()
 
@@ -457,9 +426,7 @@ class TestDuelArenaTests:
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_deactivates_duelarena_when_game_countdown_starts_with_too_few_players(
-        self, game_in_progress
-    ):
+    def test_deactivates_duelarena_when_game_countdown_starts_with_too_few_players(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         connected_players(red_player, blue_player)
@@ -470,9 +437,7 @@ class TestDuelArenaTests:
         self.assert_duelarena_has_been_deactivated()
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_leaves_duelarena_deactivated_when_game_countdown_starts_with_too_few_players(
-        self, game_in_progress
-    ):
+    def test_leaves_duelarena_deactivated_when_game_countdown_starts_with_too_few_players(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         connected_players(red_player, blue_player)
@@ -484,9 +449,7 @@ class TestDuelArenaTests:
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(False))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_leaves_duelarena_activated_when_game_countdown_starts_with_three_players(
-        self, game_in_progress
-    ):
+    def test_leaves_duelarena_activated_when_game_countdown_starts_with_three_players(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player1 = fake_player(2, "Blue Player1", "blue")
         blue_player2 = fake_player(3, "Blue Player2", "blue")
@@ -498,9 +461,7 @@ class TestDuelArenaTests:
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_activates_duelarena_when_not_activated_during_game_countdown_with_three_players(
-        self, game_in_progress
-    ):
+    def test_activates_duelarena_when_not_activated_during_game_countdown_with_three_players(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player1 = fake_player(2, "Blue Player1", "blue")
         blue_player2 = fake_player(3, "Blue Player2", "blue")
@@ -513,9 +474,7 @@ class TestDuelArenaTests:
         self.assert_duelarena_has_been_activated()
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_does_nothing_when_game_countdown_starts_with_too_many_players(
-        self, game_in_progress
-    ):
+    def test_does_nothing_when_game_countdown_starts_with_too_many_players(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player1 = fake_player(3, "Speccing Player1")
@@ -567,17 +526,13 @@ class TestDuelArenaTests:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_round_end_with_no_game(self):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "DRAW"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
         assert_that(return_code, equal_to(None))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ft"], indirect=True)
     def test_handle_round_end_with_wrong_gametype(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "DRAW"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
         assert_that(return_code, equal_to(None))
 
@@ -587,9 +542,7 @@ class TestDuelArenaTests:
         indirect=True,
     )
     def test_handle_round_end_with_red_team_hit_roundlimit(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(None))
 
@@ -599,15 +552,11 @@ class TestDuelArenaTests:
         indirect=True,
     )
     def test_handle_round_end_with_blue_team_hit_roundlimit(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(None))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["red_score=5,blue_score=2,game_type=ca"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["red_score=5,blue_score=2,game_type=ca"], indirect=True)
     def test_handle_round_end_when_duel_was_aborted(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "spectator")
@@ -625,9 +574,7 @@ class TestDuelArenaTests:
         assert_plugin_sent_to_console("Place ^32.^7 Blue Player ^7(Wins:^22^7)")
         assert_plugin_sent_to_console("Place ^32.^7 Speccing Player ^7(Wins:^22^7)")
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["red_score=5,blue_score=3,game_type=ca"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["red_score=5,blue_score=3,game_type=ca"], indirect=True)
     def test_handle_round_end_inits_duelarena(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -646,9 +593,7 @@ class TestDuelArenaTests:
         assert_player_was_put_on(spec_player, "red")
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(
-        self, game_in_progress
-    ):
+    def test_handle_round_end_puts_playerset_to_queue_if_not_enqueued(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -738,9 +683,7 @@ class TestDuelArenaTests:
         assert_player_was_put_on(blue_player, "red")
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_handle_round_end_just_blue_player_on_blue_team_red_on_spec(
-        self, game_in_progress
-    ):
+    def test_handle_round_end_just_blue_player_on_blue_team_red_on_spec(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "spectator")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player", "red")
@@ -755,9 +698,7 @@ class TestDuelArenaTests:
         assert_player_was_put_on(blue_player, any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_handle_round_end_just_blue_player_on_red_team_red_on_spec(
-        self, game_in_progress
-    ):
+    def test_handle_round_end_just_blue_player_on_red_team_red_on_spec(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "spectator")
         blue_player = fake_player(2, "Blue Player", "red")
         spec_player = fake_player(3, "Speccing Player", "blue")
@@ -791,23 +732,17 @@ class TestDuelArenaTests:
     def test_handle_round_end_with_no_duelarena_active(self, game_in_progress):
         self.deactivate_duelarena()
 
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "BLUE"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_that(return_code, equal_to(None))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_handle_round_end_with_a_draw(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "DRAW"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
         assert_that(return_code, equal_to(None))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=3"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=3"], indirect=True)
     def test_handle_round_end_red_player_won_stores_red_score(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -822,14 +757,10 @@ class TestDuelArenaTests:
         self.assert_scores_are({red_player: 6, blue_player: 3, spec_player: 7})
 
     def assert_scores_are(self, scores):
-        scores_with_steam_ids = {
-            player.steam_id: value for player, value in scores.items()
-        }
+        scores_with_steam_ids = {player.steam_id: value for player, value in scores.items()}
         assert_that(self.plugin.duelarena_game.scores, equal_to(scores_with_steam_ids))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=5,blue_score=4"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=5,blue_score=4"], indirect=True)
     def test_handle_round_end_blue_player_won_stores_blue_score(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -843,9 +774,7 @@ class TestDuelArenaTests:
 
         self.assert_scores_are({red_player: 5, blue_player: 4, spec_player: 7})
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=3"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=3"], indirect=True)
     def test_handle_round_end_next_player_already_on_team(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
@@ -860,9 +789,7 @@ class TestDuelArenaTests:
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_handle_round_end_red_player_won_puts_switching_queued_player_to_losing_team(
-        self, game_in_progress
-    ):
+    def test_handle_round_end_red_player_won_puts_switching_queued_player_to_losing_team(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -881,12 +808,8 @@ class TestDuelArenaTests:
         )
         self.assert_queue_contains(blue_player)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=3"], indirect=True
-    )
-    def test_handle_round_end_red_player_won_puts_blue_player_on_spec(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=3"], indirect=True)
+    def test_handle_round_end_red_player_won_puts_blue_player_on_spec(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
@@ -900,9 +823,7 @@ class TestDuelArenaTests:
         game_in_progress.assert_addteamscore(team="blue", score=4)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_handle_round_end_when_player_queue_empty_duelarena_is_deactivated(
-        self, game_in_progress
-    ):
+    def test_handle_round_end_when_player_queue_empty_duelarena_is_deactivated(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         connected_players(red_player, blue_player)
@@ -914,9 +835,7 @@ class TestDuelArenaTests:
         self.assert_duelarena_has_been_deactivated()
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_handle_round_end_when_next_player_no_longer_available(
-        self, game_in_progress
-    ):
+    def test_handle_round_end_when_next_player_no_longer_available(self, game_in_progress):
         red_player = fake_player(1, "Red Player", "red")
         blue_player = fake_player(2, "Blue Player", "blue")
         connected_players(red_player, blue_player)
@@ -977,14 +896,10 @@ class TestDuelArenaTests:
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
         connected_players(blue_player, spec_player)
-        self.setup_duelarena_players(
-            fake_player(1, "Red Player", "red"), blue_player, spec_player
-        )
+        self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        return_code = self.plugin.handle_game_end(
-            {"ABORTED": False, "TSCORE0": 8, "TSCORE1": 3}
-        )
+        return_code = self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 8, "TSCORE1": 3})
 
         assert_that(return_code, equal_to(None))
 
@@ -993,14 +908,10 @@ class TestDuelArenaTests:
         blue_player = fake_player(2, "Blue Player", "blue")
         spec_player = fake_player(3, "Speccing Player")
         connected_players(blue_player, spec_player)
-        self.setup_duelarena_players(
-            fake_player(1, "Red Player", "red"), blue_player, spec_player
-        )
+        self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        return_code = self.plugin.handle_game_end(
-            {"ABORTED": False, "TSCORE0": 6, "TSCORE1": 8}
-        )
+        return_code = self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 6, "TSCORE1": 8})
 
         assert_that(return_code, equal_to(None))
 
@@ -1019,9 +930,7 @@ class TestDuelArenaTests:
         spec_player = fake_player(3, "Speccing Player", "spectator")
         joining_player = fake_player(42, "!joining Player", "spectator")
         connected_players(red_player, blue_player, spec_player, joining_player)
-        self.setup_duelarena_players(
-            red_player, blue_player, spec_player, joining_player
-        )
+        self.setup_duelarena_players(red_player, blue_player, spec_player, joining_player)
         self.queue_up_players(spec_player, joining_player)
 
         return_code = self.plugin.cmd_join(joining_player, None, None)
@@ -1054,9 +963,7 @@ class TestDuelArenaTests:
 
         self.plugin.cmd_join(joining_player, "!join", mock_channel)
 
-        self.assert_playerset_contains(
-            red_player, blue_player, spec_player, joining_player
-        )
+        self.assert_playerset_contains(red_player, blue_player, spec_player, joining_player)
         self.assert_queue_contains(spec_player, joining_player)
         assert_player_was_told(
             joining_player,
@@ -1113,9 +1020,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.queue, has_items(*items))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_add_player_when_duelarena_activated_and_player_already_in_queue(
-        self, game_in_progress
-    ):
+    def test_add_player_when_duelarena_activated_and_player_already_in_queue(self, game_in_progress):
         player_sid = 42
         self.duelarena_game.duelmode = True
         self.duelarena_game.queue = [1, player_sid, 2]
@@ -1125,9 +1030,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.queue, equal_to([1, player_sid, 2]))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_add_player_when_duelarena_activated_initializes_score(
-        self, game_in_progress
-    ):
+    def test_add_player_when_duelarena_activated_initializes_score(self, game_in_progress):
         player_sid = 42
         self.duelarena_game.duelmode = True
 
@@ -1139,9 +1042,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.scores, has_items(*items))  # type: ignore
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_add_player_when_duelarena_activated_and_player_already_has_score(
-        self, game_in_progress
-    ):
+    def test_add_player_when_duelarena_activated_and_player_already_has_score(self, game_in_progress):
         player_sid = 42
         self.duelarena_game.duelmode = True
         self.duelarena_game.scores[player_sid] = 5
@@ -1163,9 +1064,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.playerset, not_(has_items(*items)))  # type: ignore
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_remove_player_when_player_is_in_playerset_and_in_queue(
-        self, game_in_progress
-    ):
+    def test_remove_player_when_player_is_in_playerset_and_in_queue(self, game_in_progress):
         player_sid = 42
         removed_player = fake_player(player_sid, "Removed Players")
         red_player = fake_player(1, "Red Player", "red")
@@ -1192,9 +1091,7 @@ class TestDuelArenaGame:
         self.assert_playerset_does_not_contain(player_sid)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_remove_player_when_player_should_be_emergency_replaced(
-        self, game_in_progress
-    ):
+    def test_remove_player_when_player_should_be_emergency_replaced(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
         player_sid = 42
@@ -1227,9 +1124,7 @@ class TestDuelArenaGame:
         assert_that(return_code, equal_to(False))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_should_emergency_replace_with_duelarena_deactivated(
-        self, game_in_progress
-    ):
+    def test_should_emergency_replace_with_duelarena_deactivated(self, game_in_progress):
         self.duelarena_game.duelmode = False
 
         return_code = self.duelarena_game.should_emergency_replace_player(123)
@@ -1237,9 +1132,7 @@ class TestDuelArenaGame:
         assert_that(return_code, equal_to(False))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_should_emergency_replace_with_player_not_in_duelarena(
-        self, game_in_progress
-    ):
+    def test_should_emergency_replace_with_player_not_in_duelarena(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
         return_code = self.duelarena_game.should_emergency_replace_player(123)
@@ -1247,9 +1140,7 @@ class TestDuelArenaGame:
         assert_that(return_code, equal_to(False))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_should_emergency_replace_with_player_already_disconnected(
-        self, game_in_progress
-    ):
+    def test_should_emergency_replace_with_player_already_disconnected(self, game_in_progress):
         player_sid = 42
         self.duelarena_game.duelmode = True
         self.duelarena_game.playerset = [player_sid, 1, 2]
@@ -1411,9 +1302,7 @@ class TestDuelArenaGame:
         assert_plugin_sent_to_console(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_announce_activation_announces_activation_of_duelarena(
-        self, game_in_progress
-    ):
+    def test_announce_activation_announces_activation_of_duelarena(self, game_in_progress):
         self.duelarena_game.announce_activation()
 
         assert_plugin_center_printed(matches("DuelArena activated.*"))
@@ -1451,24 +1340,16 @@ class TestDuelArenaGame:
 
         assert_that(return_code, equal_to(True))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=6"], indirect=True
-    )
-    def test_should_not_be_activated_when_game_progressed_too_far_already(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=6"], indirect=True)
+    def test_should_not_be_activated_when_game_progressed_too_far_already(self, game_in_progress):
         self.duelarena_game.playerset = [123, 455, 789]
 
         return_code = self.duelarena_game.should_be_activated()
 
         assert_that(return_code, equal_to(False))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=5,blue_score=5"], indirect=True
-    )
-    def test_should_be_activated_when_game_did_not_progress_far_enough(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=5,blue_score=5"], indirect=True)
+    def test_should_be_activated_when_game_did_not_progress_far_enough(self, game_in_progress):
         self.duelarena_game.playerset = [123, 455, 789]
 
         return_code = self.duelarena_game.should_be_activated()
@@ -1527,9 +1408,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.scores, equal_to({}))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_deactivate_leaves_scores_with_duelarena_pending_init(
-        self, game_in_progress
-    ):
+    def test_deactivate_leaves_scores_with_duelarena_pending_init(self, game_in_progress):
         self.duelarena_game.duelmode = True
         self.duelarena_game.initduel = True
         self.duelarena_game.scores = {123: 3, 456: 2, 789: 1}
@@ -1540,9 +1419,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.scores, equal_to({123: 3, 456: 2, 789: 1}))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_deactivate_resets_scores_with_no_scores_initialized(
-        self, game_in_progress
-    ):
+    def test_deactivate_resets_scores_with_no_scores_initialized(self, game_in_progress):
         self.duelarena_game.duelmode = True
         self.duelarena_game.scores = {}
 
@@ -1559,9 +1436,7 @@ class TestDuelArenaGame:
         assert_plugin_sent_to_console(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_announce_deactivation_announces_duelarena_deactivation(
-        self, game_in_progress
-    ):
+    def test_announce_deactivation_announces_duelarena_deactivation(self, game_in_progress):
         self.duelarena_game.announce_deactivation()
 
         assert_plugin_center_printed(matches("DuelArena deactivated.*"))
@@ -1652,60 +1527,42 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.playerset, equal_to([]))
         assert_that(self.duelarena_game.queue, equal_to([]))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_both_on_right_team(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_both_on_right_team(self, game_in_progress):
         player1 = fake_player(1, "Red Player", "red")
         player2 = fake_player(2, "Blue Player", "blue")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-2)
         game_in_progress.assert_addteamscore(team="blue", score=1)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_player_was_put_on(player2, any_(str), times=0)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_both_on_opposing_teams(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_both_on_opposing_teams(self, game_in_progress):
         player1 = fake_player(1, "Blue Player", "blue")
         player2 = fake_player(2, "Red Player", "red")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-4)
         game_in_progress.assert_addteamscore(team="blue", score=3)
         assert_player_was_put_on(player1, any_(str), times=0)
         assert_player_was_put_on(player2, any_(str), times=0)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_red_in_red_blue_in_spec(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_red_in_red_blue_in_spec(self, game_in_progress):
         player1 = fake_player(1, "Red Player", "red")
         player2 = fake_player(2, "Blue Player", "spectator")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-2)
         game_in_progress.assert_addteamscore(team="blue", score=1)
@@ -1713,20 +1570,14 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.player_blue, equal_to(player2.steam_id))
         assert_player_was_put_on(player2, "blue")
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_red_in_blue_blue_in_spec(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_red_in_blue_blue_in_spec(self, game_in_progress):
         player1 = fake_player(1, "Red Player", "blue")
         player2 = fake_player(2, "Blue Player", "spectator")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-4)
         game_in_progress.assert_addteamscore(team="blue", score=3)
@@ -1734,20 +1585,14 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.player_red, equal_to(player2.steam_id))
         assert_player_was_put_on(player2, "red")
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_blue_in_blue_red_in_spec(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_blue_in_blue_red_in_spec(self, game_in_progress):
         player1 = fake_player(1, "Red Player", "spectator")
         player2 = fake_player(2, "Blue Player", "blue")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-2)
         game_in_progress.assert_addteamscore(team="blue", score=1)
@@ -1755,20 +1600,14 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.player_red, equal_to(player1.steam_id))
         assert_player_was_put_on(player2, any_(str), times=0)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_blue_in_red_red_in_spec(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_blue_in_red_red_in_spec(self, game_in_progress):
         player1 = fake_player(1, "Red Player", "spectator")
         player2 = fake_player(2, "Blue Player", "red")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-4)
         game_in_progress.assert_addteamscore(team="blue", score=3)
@@ -1776,20 +1615,14 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.player_blue, equal_to(player1.steam_id))
         assert_player_was_put_on(player2, any_(str), times=0)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True
-    )
-    def test_put_active_players_on_the_right_teams_both_players_in_spec(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca,red_score=6,blue_score=1"], indirect=True)
+    def test_put_active_players_on_the_right_teams_both_players_in_spec(self, game_in_progress):
         player1 = fake_player(1, "Red Player", "spectator")
         player2 = fake_player(2, "Blue Player", "spectator")
         connected_players(player1, player2)
         self.duelarena_game.scores = {player1.steam_id: 4, player2.steam_id: 2}
 
-        self.duelarena_game.put_active_players_on_the_right_teams(
-            player1.steam_id, player2.steam_id
-        )
+        self.duelarena_game.put_active_players_on_the_right_teams(player1.steam_id, player2.steam_id)
 
         game_in_progress.assert_addteamscore(team="red", score=-2)
         game_in_progress.assert_addteamscore(team="blue", score=1)
@@ -1810,9 +1643,7 @@ class TestDuelArenaGame:
     def test_ensure_duelarena_player_with_too_few_players(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
-        connected_players(
-            fake_player(1, "Red Player", "red"), fake_player(2, "Blue Player", "blue")
-        )
+        connected_players(fake_player(1, "Red Player", "red"), fake_player(2, "Blue Player", "blue"))
 
         return_code = self.duelarena_game.ensure_duelarena_players()
 
@@ -1834,9 +1665,7 @@ class TestDuelArenaGame:
         assert_that(return_code, equal_to(None))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_ensure_duelarena_player_with_one_extra_player_in_red(
-        self, game_in_progress
-    ):
+    def test_ensure_duelarena_player_with_one_extra_player_in_red(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
         red_player = fake_player(1, "Red Player1", "red")
@@ -1853,9 +1682,7 @@ class TestDuelArenaGame:
         assert_player_was_put_on(blue_player, any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_ensure_duelarena_player_with_one_enqueued_player_in_red(
-        self, game_in_progress
-    ):
+    def test_ensure_duelarena_player_with_one_enqueued_player_in_red(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
         red_player = fake_player(1, "Red Player1", "red")
@@ -1877,9 +1704,7 @@ class TestDuelArenaGame:
         assert_player_was_put_on(blue_player, any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_ensure_duelarena_player_with_one_extra_player_in_blue(
-        self, game_in_progress
-    ):
+    def test_ensure_duelarena_player_with_one_extra_player_in_blue(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
         red_player = fake_player(1, "Red Player1", "red")
@@ -1896,9 +1721,7 @@ class TestDuelArenaGame:
         assert_player_was_put_on(blue_player, any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_ensure_duelarena_player_with_one_enqueued_player_in_blue(
-        self, game_in_progress
-    ):
+    def test_ensure_duelarena_player_with_one_enqueued_player_in_blue(self, game_in_progress):
         self.duelarena_game.duelmode = True
 
         red_player = fake_player(1, "Red Player1", "red")
