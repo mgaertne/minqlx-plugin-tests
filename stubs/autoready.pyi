@@ -1,7 +1,7 @@
 from datetime import datetime
 from threading import RLock, Thread
 
-from typing import Callable, Iterator, Sequence, TypeVar, Generic, Iterable, Optional
+from typing import Callable, Iterator, Sequence, TypeVar, Generic
 
 from minqlx import Plugin, Player
 

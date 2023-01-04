@@ -5,6 +5,7 @@ import random
 import time
 
 from threading import RLock, Thread
+from typing import Union
 
 import minqlx
 from minqlx import Plugin
@@ -33,7 +34,7 @@ class autoready(Plugin):
         self.timer_visible = self.get_cvar("qlx_autoready_timer_visible", int) or 60
         self.disable_player_ready = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
 
-        self.timer = None
+        self.timer: Union['CountdownThread', None] = None
         self.current_timer = -1
         self.timer_lock = RLock()
 
@@ -86,8 +87,8 @@ class autoready(Plugin):
         else:
             self.current_timer = self.autostart_delay
 
-        self.timer = CountdownThread(self.current_timer, timed_actions=self.timed_actions())  # type: ignore
-        self.timer.start()  # type: ignore
+        self.timer = CountdownThread(self.current_timer, timed_actions=self.timed_actions())
+        self.timer.start()
 
     def timed_actions(self):
         return {
