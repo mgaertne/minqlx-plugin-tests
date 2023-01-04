@@ -34,7 +34,7 @@ class autoready(Plugin):
         self.timer_visible = self.get_cvar("qlx_autoready_timer_visible", int) or 60
         self.disable_player_ready = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
 
-        self.timer: Union['CountdownThread', None] = None
+        self.timer: Union["CountdownThread", None] = None
         self.current_timer = -1
         self.timer_lock = RLock()
 
