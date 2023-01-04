@@ -242,7 +242,9 @@ class auto_rebalance(Plugin):
         if len(teams["red"]) != len(teams["blue"]):
             return minqlx.RET_NONE
 
+        # noinspection PyProtectedMember
         if "balance" in minqlx.Plugin._loaded_plugins:  # pylint: disable=protected-access
+            # noinspection PyProtectedMember
             b = Plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
             players = {p.steam_id: gametype for p in teams["red"] + teams["blue"]}
             # noinspection PyUnresolvedReferences
