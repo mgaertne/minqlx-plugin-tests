@@ -211,7 +211,7 @@ class TestDuelArenaTests:
 
     def assert_playerset_contains(self, *players):
         player_ids = list(player.steam_id for player in players)
-        assert_that(self.plugin.duelarena_game.playerset, has_items(*player_ids))
+        assert_that(self.plugin.duelarena_game.playerset, has_items(*player_ids))  # type: ignore
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_when_third_player_tries_to_join_duelarena_gets_activated(self, game_in_progress):
@@ -255,10 +255,11 @@ class TestDuelArenaTests:
             self.plugin.duelarena_game.scores[player.steam_id] = scores[player]
 
     def assert_playerset_does_not_contain(self, *players):
+        # noinspection PyTypeChecker
         assert_that(
             self.plugin.duelarena_game.playerset,
-            not_(has_items([player.steam_id for player in players])),
-        )  # type: ignore
+            not_(has_items([player.steam_id for player in players])),  # type: ignore
+        )
 
     def assert_duelarena_has_been_deactivated(self):
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(False))
@@ -281,10 +282,11 @@ class TestDuelArenaTests:
         self.assert_playerset_does_not_contain(switching_player)
 
     def assert_queue_does_not_contain(self, *players):
+        # noinspection PyTypeChecker
         assert_that(
             self.plugin.duelarena_game.queue,
-            not_(has_items([player.steam_id for player in players])),
-        )  # type: ignore
+            not_(has_items([player.steam_id for player in players])),  # type: ignore
+        )
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_when_player_switch_to_spec_inititiated_by_plugin_clear_field(self, game_in_progress):
@@ -849,6 +851,7 @@ class TestDuelArenaTests:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_game_end_with_no_game_ending(self):
+        # noinspection PyNoneFunctionAssignment
         return_code = self.plugin.handle_game_end({})
 
         assert_that(return_code, equal_to(None))
@@ -857,6 +860,7 @@ class TestDuelArenaTests:
     def test_handle_game_end_which_was_aborted(self, game_in_progress):
         self.activate_duelarena()
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.plugin.handle_game_end({"ABORTED": True})
 
         assert_that(return_code, equal_to(None))
@@ -865,6 +869,7 @@ class TestDuelArenaTests:
     def test_handle_game_end_with_not_duelarena_active(self, game_in_progress):
         self.deactivate_duelarena()
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.plugin.handle_game_end({"ABORTED": False})
 
         assert_that(return_code, equal_to(None))
@@ -899,6 +904,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
         self.queue_up_players(spec_player)
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 8, "TSCORE1": 3})
 
         assert_that(return_code, equal_to(None))
@@ -911,6 +917,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
         self.queue_up_players(spec_player)
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 6, "TSCORE1": 8})
 
         assert_that(return_code, equal_to(None))
@@ -919,6 +926,7 @@ class TestDuelArenaTests:
     def test_join_cmd_while_duelarena_is_deactivated(self, game_in_progress):
         self.deactivate_duelarena()
 
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.cmd_join(None, None, None)
 
         assert_that(return_code, equal_to(None))
@@ -933,6 +941,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player, spec_player, joining_player)
         self.queue_up_players(spec_player, joining_player)
 
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.cmd_join(joining_player, None, None)
 
         assert_that(return_code, equal_to(None))
@@ -947,6 +956,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.queue_up_players(spec_player)
 
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.cmd_join(joining_player, None, None)
 
         assert_that(return_code, equal_to(None))
@@ -996,6 +1006,7 @@ class TestDuelArenaGame:
         self.assert_playerset_contains(player_sid)
 
     def assert_playerset_contains(self, *items):
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.playerset, has_items(*items))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
@@ -1017,6 +1028,7 @@ class TestDuelArenaGame:
         self.assert_players_are_enqueued(player_sid)
 
     def assert_players_are_enqueued(self, *items):
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.queue, has_items(*items))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
@@ -1374,6 +1386,7 @@ class TestDuelArenaGame:
         assert_that(self.duelarena_game.is_pending_initialization(), equal_to(False))
         assert_that(self.duelarena_game.player_red, equal_to(None))
         assert_that(self.duelarena_game.player_blue, equal_to(None))
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.player_spec, empty())
         assert_plugin_center_printed(matches("DuelArena deactivated.*"))
         assert_plugin_sent_to_console(matches("DuelArena .*deactivated.*"))
@@ -1635,6 +1648,7 @@ class TestDuelArenaGame:
     def test_ensure_duelarena_players_with_plugin_deactivated(self, game_in_progress):
         self.duelarena_game.duelmode = False
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.duelarena_game.ensure_duelarena_players()
 
         assert_that(return_code, equal_to(None))
@@ -1645,6 +1659,7 @@ class TestDuelArenaGame:
 
         connected_players(fake_player(1, "Red Player", "red"), fake_player(2, "Blue Player", "blue"))
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.duelarena_game.ensure_duelarena_players()
 
         assert_that(return_code, equal_to(None))
@@ -1660,6 +1675,7 @@ class TestDuelArenaGame:
             fake_player(4, "Blue Player2", "blue"),
         )
 
+        # noinspection PyNoneFunctionAssignment
         return_code = self.duelarena_game.ensure_duelarena_players()
 
         assert_that(return_code, equal_to(None))
@@ -1677,6 +1693,7 @@ class TestDuelArenaGame:
         self.duelarena_game.ensure_duelarena_players()
 
         assert_player_was_put_on(extra_player, "spectator")
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
         assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, any_(str), times=0)
@@ -1699,6 +1716,7 @@ class TestDuelArenaGame:
         self.duelarena_game.ensure_duelarena_players()
 
         assert_player_was_put_on(extra_player, "spectator")
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
         assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, any_(str), times=0)
@@ -1716,6 +1734,7 @@ class TestDuelArenaGame:
         self.duelarena_game.ensure_duelarena_players()
 
         assert_player_was_put_on(extra_player, "spectator")
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
         assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, any_(str), times=0)
@@ -1738,6 +1757,7 @@ class TestDuelArenaGame:
         self.duelarena_game.ensure_duelarena_players()
 
         assert_player_was_put_on(extra_player, "spectator")
+        # noinspection PyTypeChecker
         assert_that(self.duelarena_game.player_spec, has_item(extra_player.steam_id))
         assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, any_(str), times=0)
