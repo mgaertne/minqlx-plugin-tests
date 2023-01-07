@@ -251,8 +251,6 @@ class frag_stats(Plugin):
             COLLECTED_SOULZ_KEY.format(fragger_identifier),
             "+INF",
             "-INF",
-            start=0,
-            num=self.toplimit,
             withscores=True,
         )
 
@@ -266,8 +264,6 @@ class frag_stats(Plugin):
             REAPERZ_KEY.format(fragger_identifier),
             "+INF",
             "-INF",
-            start=0,
-            num=self.toplimit,
             withscores=True,
         )
 

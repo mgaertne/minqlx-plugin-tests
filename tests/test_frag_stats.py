@@ -685,16 +685,12 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:soulz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn([])
         when(fragstats_db).zrevrangebyscore(
             f"minqlx:players:{player.steam_id}:reaperz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn([])
 
@@ -714,16 +710,12 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:soulz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn([(killed1.steam_id, 1), (disconnected_killed2.steam_id, 2)])
         when(fragstats_db).zrevrangebyscore(
             f"minqlx:players:{player.steam_id}:reaperz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn([])
         when(fragstats_db).exists(f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name").thenReturn(True)
@@ -754,8 +746,6 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:soulz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn(
             [
@@ -769,8 +759,6 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn(
             [
@@ -1002,8 +990,6 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:soulz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn(
             [
@@ -1017,8 +1003,6 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz",
             "+INF",
             "-INF",
-            start=0,
-            num=10,
             withscores=True,
         ).thenReturn(
             [
