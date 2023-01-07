@@ -120,7 +120,7 @@ class autoready(Plugin):
         if self.timer is None:
             return
 
-        time.sleep(10)
+        time.sleep(12)
         if self.timer is None:
             return
 
@@ -231,9 +231,13 @@ class CountdownThread(Thread):
 
 
 def display_countdown(remaining):
+    @minqlx.next_frame
+    def print_remaining(text):
+        Plugin.center_print(text)
+
     time_color_format = "^1" if remaining <= 30 else "^3"
     remaining_minutes, remaining_seconds = divmod(remaining, 60)
-    Plugin.center_print(
+    print_remaining(
         f"Match will ^2auto-start^7 in\n"
         f"{time_color_format}{int(remaining_minutes):01}^7:"
         f"{time_color_format}{int(remaining_seconds):02}"
@@ -241,13 +245,21 @@ def display_countdown(remaining):
 
 
 def blink(remaining, *, sleep=0.4):
-    Plugin.center_print("Match will ^2auto-start^7 in\n^1 ^7:^1  ")
+    @minqlx.next_frame
+    def empty_print():
+        Plugin.center_print("Match will ^2auto-start^7 in\n^1 ^7:^1  ")
+
+    empty_print()
     time.sleep(sleep)
     display_countdown(remaining)
 
 
 def warning_blink(remaining, announcer_sound, *, sleep=0.4):
-    Plugin.play_sound(announcer_sound)
+    @minqlx.next_frame
+    def play_sound(_announcer_sound):
+        Plugin.play_sound(_announcer_sound)
+
+    play_sound(announcer_sound)
     blink(remaining, sleep=sleep)
 
 
@@ -258,20 +270,32 @@ def double_blink(remaining, *, sleep=0.2, _delay=0.3):
 
 
 def shuffle_double_blink(remaining, *, sleep=0.2, delay=0.3):
+    @minqlx.next_frame
+    def shuffle():
+        Plugin.shuffle()
+
     teams = Plugin.teams()
     if abs(len(teams["red"]) - len(teams["blue"])) > 1:
-        Plugin.shuffle()
+        shuffle()
     double_blink(remaining, sleep=sleep, _delay=delay)
 
 
 def wear_off_double_blink(remaining, *, sleep=0.2, delay=0.3):
-    Plugin.play_sound("sound/items/wearoff.ogg")
+    @minqlx.next_frame
+    def play_sound():
+        Plugin.play_sound("sound/items/wearoff.ogg")
+
+    play_sound()
     double_blink(remaining, sleep=sleep, _delay=delay)
 
 
-def allready(_remaining) -> None:
-    Plugin.center_print("Match will ^2auto-start^7 in\n^20^7:^200")
-    Plugin.allready()
+def allready(_remaining):
+    @minqlx.next_frame
+    def _allready():
+        Plugin.center_print("Match will ^2auto-start^7 in\n^20^7:^200")
+        Plugin.allready()
+
+    _allready()
 
 
 class RandomIterator:
