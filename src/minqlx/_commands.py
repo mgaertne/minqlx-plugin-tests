@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 import re
+from abc import abstractmethod
 
 import minqlx
 
@@ -108,7 +109,10 @@ class ChatChannel(AbstractChannel):
     def __init__(self, name="chat", fmt='print "{}\n"\n'):
         super().__init__(name)
         self.fmt = fmt
-        self.team = "all"
+
+    @abstractmethod
+    def receipients(self):
+        pass
 
     @minqlx.next_frame
     def reply(self, msg, limit=100, delimiter=" "):
@@ -118,18 +122,7 @@ class ChatChannel(AbstractChannel):
         msg = str(msg).replace('"', "'")
         # Can deal with all the below ChatChannel subclasses.
         last_color = ""
-        targets = None
-
-        if isinstance(self, TellChannel):
-            cid = minqlx.Plugin.client_id(self.recipient)
-            if cid is None:
-                raise ValueError("Invalid recipient.")
-            targets = [cid]
-        elif self.team != "all":
-            targets = []
-            for p in minqlx.Player.all_players():
-                if p.team == self.team:
-                    targets.append(p.id)
+        targets = self.receipients()
 
         split_msgs = self.split_long_lines(msg, limit, delimiter)
         # We've split messages, but we can still just join them up to 1000-ish
@@ -157,39 +150,18 @@ class ChatChannel(AbstractChannel):
                 last_color = find[-1]
 
 
-class RedTeamChatChannel(ChatChannel):
-    """A channel for in-game chat to and from the red team."""
+class TeamChatChannel(ChatChannel):
+    """A channel for chat to and from the server."""
 
-    def __init__(self):
-        super().__init__(name="red_team_chat", fmt='print "{}\n"\n')
-        self.team = "red"
+    def __init__(self, team="all", name="chat", fmt='print "{}\n"\n'):
+        super().__init__(name=name, fmt=fmt)
+        self.team = team
 
+    def receipients(self):
+        if self.team == "all":
+            return None
 
-class BlueTeamChatChannel(ChatChannel):
-    """A channel for in-game chat to and from the blue team."""
-
-    def __init__(self):
-        super().__init__(name="blue_team_chat", fmt='print "{}\n"\n')
-        self.team = "blue"
-
-
-class FreeChatChannel(ChatChannel):
-    """A channel for in-game chat to and from the free team. The free team
-    is the team all FFA players are in.
-
-    """
-
-    def __init__(self):
-        super().__init__(name="free_chat", fmt='print "{}\n"\n')
-        self.team = "free"
-
-
-class SpectatorChatChannel(ChatChannel):
-    """A channel for in-game chat to and from the spectator team."""
-
-    def __init__(self):
-        super().__init__(name="spectator_chat", fmt='print "{}\n"\n')
-        self.team: str = "spectator"
+        return [player.id for player in minqlx.Player.all_players() if player.team == self.team]
 
 
 class TellChannel(ChatChannel):
@@ -204,6 +176,12 @@ class TellChannel(ChatChannel):
         if player is None:
             return ""
         return f"tell {player.steam_id}"
+
+    def receipients(self):
+        cid = minqlx.Plugin.client_id(self.recipient)
+        if cid is None:
+            raise ValueError("Invalid recipient.")
+        return [cid]
 
 
 class ConsoleChannel(AbstractChannel):
@@ -441,9 +419,9 @@ class CommandInvoker:
 #                          MODULE CONSTANTS
 # ====================================================================
 COMMANDS = CommandInvoker()
-CHAT_CHANNEL = ChatChannel()
-RED_TEAM_CHAT_CHANNEL = RedTeamChatChannel()
-BLUE_TEAM_CHAT_CHANNEL = BlueTeamChatChannel()
-FREE_CHAT_CHANNEL = FreeChatChannel()
-SPECTATOR_CHAT_CHANNEL = SpectatorChatChannel()
+CHAT_CHANNEL = TeamChatChannel(team="all", name="chat")
+RED_TEAM_CHAT_CHANNEL = TeamChatChannel(team="red", name="red_team_chat")
+BLUE_TEAM_CHAT_CHANNEL = TeamChatChannel(team="blue", name="blue_team_chat")
+FREE_CHAT_CHANNEL = TeamChatChannel(team="free", name="free_chat")
+SPECTATOR_CHAT_CHANNEL = TeamChatChannel(team="spectator", name="spectator_chat")
 CONSOLE_CHANNEL = ConsoleChannel()

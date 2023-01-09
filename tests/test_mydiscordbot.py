@@ -66,7 +66,7 @@ class TestMyDiscordBotTests:
 
     def test_handle_ql_teamchat_message_relayed(self):
         chatter = fake_player(1, "Chatter")
-        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.RedTeamChatChannel())
+        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.RED_TEAM_CHAT_CHANNEL)
 
         verify(self.discord).relay_team_chat_message(
             player_that_matches(chatter), " *(to red team)*", "relayed message"
@@ -78,7 +78,7 @@ class TestMyDiscordBotTests:
         verify(self.discord, times=0).relay_chat_message(any, any, any)
 
     def test_handle_ql_chat_message_on_filtered_out_messagel(self):
-        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "!s", minqlx.RedTeamChatChannel())
+        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "!s", minqlx.RED_TEAM_CHAT_CHANNEL)
 
         verify(self.discord, times=0).relay_chat_message(any, any, any)
 
