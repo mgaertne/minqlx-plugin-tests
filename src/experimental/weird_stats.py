@@ -1234,10 +1234,10 @@ class weird_stats(Plugin):
             self.record_speeds(self.game.map.lower(), player_speeds)
 
         grouped_speeds = itertools.groupby(
-            sorted(player_speeds, key=player_speeds.get, reverse=True),  # type: ignore
+            sorted(player_speeds, key=player_speeds.get, reverse=True),
             key=player_speeds.get,
         )
-        grouped_speeds_dict = {speed: list(steam_ids) for speed, steam_ids in grouped_speeds}  # type: ignore
+        grouped_speeds_dict = {speed: list(steam_ids) for speed, steam_ids in grouped_speeds}
 
         if len(player_speeds) < 1:
             return []
