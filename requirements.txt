@@ -1,5 +1,5 @@
 discord.py==2.1.0
-redis==4.4.1
+redis==4.4.2
 requests==2.28.1
 zmq
 aiohttp==3.8.3
