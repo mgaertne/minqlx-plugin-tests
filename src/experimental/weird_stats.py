@@ -582,9 +582,14 @@ def most_honorable_haste_pickup_announcement(stats):
 def weird_facts(stats):
     formatted_weird_facts = ""
 
-    for medal_fact in random_medal_facts(stats):
-        formatted_weird_facts += random_conjunction()
-        formatted_weird_facts += medal_fact
+    medal_facts = random_medal_facts(stats)
+    if len(medal_facts) > 0:
+        formatted_weird_facts = medal_facts[0]
+
+        if len(medal_facts) > 1:
+            for medal_fact in medal_facts[1:]:
+                formatted_weird_facts += random_conjunction()
+                formatted_weird_facts += medal_fact
 
     for weapon_fact in random_weapon_stats(stats):
         formatted_weird_facts += random_conjunction()
@@ -623,9 +628,9 @@ def formatted_medal_fact(stats, medal_stat):
                 player_names = most_medaled_stats[0].name
             else:
                 player_names = (
-                    "^7, ".join([stats.name for stats in most_medaled_stats[:-1]])
-                    + "^7 and "
-                    + most_medaled_stats[-1].name
+                        "^7, ".join([stats.name for stats in most_medaled_stats[:-1]])
+                        + "^7 and "
+                        + most_medaled_stats[-1].name
                 )
             return f"{player_names} received ^5{medal_stat_value} {medal_stat} medals^7"
 
@@ -913,9 +918,9 @@ def formatted_weapon_fact(stats, weapon, weapon_fact):
             player_names = most_weaponed_stats[0].name
         else:
             player_names = (
-                "^7, ".join([stats.name for stats in most_weaponed_stats[:-1]])
-                + "^7 and "
-                + most_weaponed_stats[-1].name
+                    "^7, ".join([stats.name for stats in most_weaponed_stats[:-1]])
+                    + "^7 and "
+                    + most_weaponed_stats[-1].name
             )
         stats_amount = getattr(getattr(most_weaponed_stats[0].weapons, weapon), weapon_fact)
         if stats_amount > 0:
@@ -1006,8 +1011,8 @@ class weird_stats(Plugin):
         if player.steam_id in self.join_times:
             if new_team in ["spectator"]:
                 self.play_times[player.steam_id] = (
-                    datetime.now() - self.join_times[player.steam_id]
-                ).total_seconds() + self.play_times.get(player.steam_id, 0.0)
+                                                           datetime.now() - self.join_times[player.steam_id]
+                                                   ).total_seconds() + self.play_times.get(player.steam_id, 0.0)
                 del self.join_times[player.steam_id]
             return
 
@@ -1106,7 +1111,7 @@ class weird_stats(Plugin):
         if victim.steam_id not in self.means_of_death:
             self.means_of_death[victim.steam_id] = {}
         self.means_of_death[victim.steam_id][means_of_death] = (
-            self.means_of_death[victim.steam_id].get(means_of_death, 0) + 1
+                self.means_of_death[victim.steam_id].get(means_of_death, 0) + 1
         )
 
     def record_alive_time(self, *players):
@@ -1142,8 +1147,8 @@ class weird_stats(Plugin):
             if player.steam_id not in self.join_times:
                 continue
             self.play_times[player.steam_id] = (
-                datetime.now() - self.join_times[player.steam_id]
-            ).total_seconds() + self.play_times.get(player.steam_id, 0.0)
+                                                       datetime.now() - self.join_times[player.steam_id]
+                                               ).total_seconds() + self.play_times.get(player.steam_id, 0.0)
 
         self.announce_match_end_stats()
 
@@ -1257,7 +1262,7 @@ class weird_stats(Plugin):
                     dots_inserted = True
                 continue
 
-            prefix = f"^5{counter+extra:2}^7."
+            prefix = f"^5{counter + extra:2}^7."
             extra += max(0, len(steam_ids) - 1)
 
             for steam_id in steam_ids:
@@ -1289,8 +1294,8 @@ class weird_stats(Plugin):
                 if _player.steam_id not in self.join_times:
                     continue
                 current_play_times[_player.steam_id] = (
-                    current_play_times.get(_player.steam_id, 0.0)
-                    + (current_datetime - self.join_times[_player.steam_id]).total_seconds()
+                        current_play_times.get(_player.steam_id, 0.0)
+                        + (current_datetime - self.join_times[_player.steam_id]).total_seconds()
                 )
         return current_play_times
 
