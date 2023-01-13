@@ -580,7 +580,7 @@ def most_honorable_haste_pickup_announcement(stats):
 
 
 def weird_facts(stats):
-    formatted_weird_facts = []
+    formatted_weird_facts = ""
 
     for medal_fact in random_medal_facts(stats):
         formatted_weird_facts += random_conjunction()
