@@ -580,12 +580,11 @@ def most_honorable_haste_pickup_announcement(stats):
 
 
 def weird_facts(stats):
-    medal_facts = random_medal_facts(stats)
-    formatted_weird_facts = medal_facts[0]
-    if len(medal_facts) > 1:
-        for medal_fact in medal_facts[1:]:
-            formatted_weird_facts += random_conjunction()
-            formatted_weird_facts += medal_fact
+    formatted_weird_facts = []
+
+    for medal_fact in random_medal_facts(stats):
+        formatted_weird_facts += random_conjunction()
+        formatted_weird_facts += medal_fact
 
     for weapon_fact in random_weapon_stats(stats):
         formatted_weird_facts += random_conjunction()
