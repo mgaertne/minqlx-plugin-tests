@@ -1,6 +1,5 @@
-import threading
 from types import TracebackType, ModuleType
-from typing import Type, Callable, Mapping, Protocol
+from typing import Type, Callable, Protocol
 
 from datetime import datetime, timedelta
 from logging import Logger

@@ -1,3 +1,4 @@
+# noinspection PyPackageRequirements
 from zmq import Context, Socket
 
 class StatsListener:

@@ -1,5 +1,5 @@
 from logging import Logger
-from typing import Callable, Iterable, Type, overload, ClassVar, Mapping, AnyStr
+from typing import Callable, Iterable, Type, overload, ClassVar, Mapping
 
 from minqlx.database import Redis
 from minqlx import Command, Player, Game, AbstractChannel
