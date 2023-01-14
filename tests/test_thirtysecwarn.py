@@ -98,14 +98,14 @@ class TestThirtySecondWarnPlugin:
     def test_game_start_initializes_timer_round_number(self):
         self.warner.warner_thread_name = "test_game_start_initializes_timer_round_number1"
 
-        self.warner.handle_game_start(None)
+        self.warner.handle_game_start({})
 
         assert_that(self.warner.warner_thread_name, equal_to(None))
 
     def test_round_end_increases_round_number(self):
         self.warner.warner_thread_name = "test_round_end_increases_round_number1"
 
-        self.warner.handle_round_end(None)
+        self.warner.handle_round_end({})
 
         assert_that(self.warner.warner_thread_name, equal_to(None))
 
