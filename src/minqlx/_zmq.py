@@ -21,6 +21,7 @@ we get stats from it. It polls the ZMQ socket approx. every 0.25 seconds."""
 
 import json
 
+# noinspection PyPackageRequirements
 import zmq
 import minqlx
 
