@@ -2612,7 +2612,6 @@ class balancetwo(Plugin):
     def find_player_movements_to_even_teams(self):
         teams = self.teams()
 
-        self.logger.debug(f"{len(teams['red']) = } {len(teams['blue']) = }")
         if len(teams["red"]) == len(teams["blue"]):
             return []
 
@@ -2629,8 +2628,6 @@ class balancetwo(Plugin):
             bigger_team = "blue"
 
         moved_to = other_team(bigger_team)
-
-        self.logger.debug(f"{team_diff = } {amount_players_moved = } {bigger_team = } {moved_to = }")
 
         if self.switch_suggestion is not None:
             suggestion = self.switch_suggestion
