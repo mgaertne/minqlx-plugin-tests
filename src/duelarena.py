@@ -552,7 +552,7 @@ class DuelArenaGame:
 
         setattr(self, f"player_{team}", next_sid)
         next_player.put(team)
-        self.game.addteamscore(team, self.scores[next_player.steam_id] - loser_team_score)
+        self.game.addteamscore(team, self.scores.get(next_player.steam_id, 0) - loser_team_score)
 
     def announce_next_round(self):
         if not self.is_activated():
