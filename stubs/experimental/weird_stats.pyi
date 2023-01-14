@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from minqlx import AbstractChannel, Player, Plugin
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, TypeVar, Generic, Iterator, Sequence
 
 SteamId = int
 
@@ -158,6 +158,19 @@ def most_honorable_haste_pickup_announcement(
     stats: list[PlayerStatsEntry],
 ) -> str | None: ...
 def weird_facts(stats: list[PlayerStatsEntry]) -> str | None: ...
+
+T = TypeVar("T")
+
+class RandomIterator(Generic[T]):
+    seq: Sequence[T]
+    random_seq: Sequence[T]
+    iterator: Iterator[T]
+    def __init__(self, seq: Sequence[T]) -> None: ...
+    def __iter__(self) -> Iterator[T]: ...
+    def __next__(self) -> T: ...
+
+conjunction_iter: Iterator[str]
+
 def random_conjunction() -> str: ...
 def random_medal_facts(stats: list[PlayerStatsEntry], *, count: int = ...) -> list[str]: ...
 def formatted_medal_fact(stats: list[PlayerStatsEntry], medal_stat: str) -> str: ...
