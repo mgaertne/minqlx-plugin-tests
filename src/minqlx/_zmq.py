@@ -41,7 +41,7 @@ class StatsListener:
         self.password = minqlx.get_cvar("zmq_stats_password")
 
         # Initialize socket, connect, and subscribe.
-        self.context = zmq.Context()
+        self.context = zmq.Context()  # pylint: disable=E0110
         self.socket = self.context.socket(zmq.SUB)
         if self.password:
             self.socket.plain_username = b"stats"
