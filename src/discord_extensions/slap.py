@@ -66,10 +66,7 @@ async def send_to_discord_and_quake(interaction, message):
         return
 
     interaction_response = await interaction.original_response()
-    mentioned_users = interaction_response.mentions
-    quake_message = message.lstrip("_").rstrip("_")
-    for user in mentioned_users:
-        quake_message = quake_message.replace(user.mention, f"@{user.display_name}")
+    quake_message = interaction_response.clean_content.lstrip("_").rstrip("_")
 
     show_channel_name = Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool) or False
     discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"

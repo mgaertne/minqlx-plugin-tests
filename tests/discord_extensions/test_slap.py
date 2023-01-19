@@ -92,6 +92,8 @@ class TestSlap:
         interaction.channel_id = 1234
         mocked_original_message = AsyncMock()
         mocked_response = mock(spec=InteractionMessage)
+        mocked_response.clean_content = \
+            f"{member.mention} slaps {other_user.mention} with a large trout."
         mocked_original_message.return_value = mocked_response
         mocked_response.mentions = [member, other_user]
         interaction.original_response = mocked_original_message
@@ -120,6 +122,8 @@ class TestSlap:
         interaction.channel = guild_channel
         mocked_original_message = AsyncMock()
         mocked_response = mock(spec=InteractionMessage)
+        mocked_response.clean_content = \
+            f"{member.mention} slaps {other_user.mention} with a large trout."
         mocked_original_message.return_value = mocked_response
         mocked_response.mentions = [member, other_user]
         interaction.original_response = mocked_original_message
