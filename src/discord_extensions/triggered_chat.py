@@ -1,3 +1,5 @@
+import re
+
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
 
@@ -121,14 +123,31 @@ class TriggeredChat(Cog):
             )
             return
 
-        minqlx.CHAT_CHANNEL.reply(self._format_message_to_quake(channel, author, message))
-
         embed = Embed(
             color=Color.red(),
             title="sent message to Quake Live server",
             description=message,
         )
         await interaction.response.send_message(embed=embed)
+
+        quake_message = message
+        matcher = re.compile(r'<(@[!&]?|#)([0-9]{15,20})>')
+        matches = matcher.findall(message)
+        for match in matches:
+            if match[0] in ["@", "@!"]:
+                member = interaction.guild.get_member(int(match[1]))
+                replacement = f"@{member.display_name}" if member else "@deleted-user"
+            elif match[0] == "#":
+                channel = interaction.guild.get_channel(int(match[1]))
+                replacement = f"#{channel.name}" if channel else "#deleted-channel"
+            elif match[0] == "@&":
+                role = interaction.guild.get_role(int(match[1]))
+                replacement = f"@&{role.name}" if role else "@&deleted-role"
+            else:
+                continue
+            quake_message = quake_message.replace(f"<{match[0]}{match[1]}>", replacement)
+
+        minqlx.CHAT_CHANNEL.reply(self._format_message_to_quake(channel, author, quake_message))
 
     def _format_message_to_quake(self, channel, author, content):
         """
