@@ -67,11 +67,10 @@ class TestQlstatsPrivacyPolicy:
     @pytest.fixture
     def qlstats_response(self):
         spy2(minqlx.console_command)
-        response = mock(Response)
+        response = mock(spec=Response)
         response.status_code = 200
         response.text = ""
-        spy2(requests.get)
-        when(requests).get(any_(), timeout=any_()).thenReturn(response)
+        when2(requests.Session.get, any_(), timeout=any_()).thenReturn(response)
         yield response
         unstub(response)
 
@@ -171,8 +170,7 @@ class TestQlstatsPrivacyPolicy:
     def test_handle_player_connect_dispatches_fetching_of_privacy_settings_from_qlstats(
         self,
     ):
-        spy2(requests.get)
-        when2(requests.get, any_(), timeout=any_()).thenReturn(None)
+        when2(requests.Session.get, any_(), timeout=any_()).thenReturn(None)
 
         setup_cvars(
             {
@@ -189,7 +187,7 @@ class TestQlstatsPrivacyPolicy:
         with ThreadContextManager(self.plugin):
             self.plugin.handle_player_connect(connecting_player)
 
-        verify(requests).get(f"http://qlstats.net/belo/{connecting_player.steam_id}", timeout=any_())
+        verify(requests.Session).get(f"http://qlstats.net/belo/{connecting_player.steam_id}", timeout=any_())
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_logs_error_if_result_status_not_ok(self, qlstats_response):
