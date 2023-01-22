@@ -6,7 +6,7 @@ import pytest
 from hamcrest import assert_that, equal_to, not_, is_
 
 # noinspection PyProtectedMember
-from mockito import unstub, mock, when, any_, verify, spy2, when2  # type: ignore
+from mockito import unstub, mock, when, any_, verify, spy2, when2
 
 from minqlx_plugin_test import (
     setup_cvars,
@@ -41,14 +41,9 @@ class TestAutoReady:
         timer_ = mock(spec=CountdownThread)
         when(timer_).start().thenReturn(None)
         when(timer_).stop().thenReturn(None)
+        when(timer_).is_alive().thenReturn(False)
         when(autoready).CountdownThread(any_(int), timed_actions=any_(dict)).thenReturn(timer_)
         yield timer_
-        unstub()
-
-    @pytest.fixture
-    def expired_timer(self, timer):
-        when(timer).is_alive().thenReturn(False)
-        yield timer
         unstub()
 
     @pytest.fixture
@@ -184,17 +179,17 @@ class TestAutoReady:
         assert_that(return_val, equal_to(True))
 
     @pytest.mark.usefixtures("game_in_warmup")
-    def test_handle_map_change_with_no_running_timer(self, timer):
+    def test_handle_map_change_with_no_running_timer(self, alive_timer):
+        self.plugin.handle_map_change("campgrounds", "ca")
+
+        verify(alive_timer, times=0).stop()
+        assert_that(self.plugin.current_timer, equal_to(-1))
+
+    def test_handle_map_change_with_expired_timer(self, timer):
+        self.plugin.timer = timer
         self.plugin.handle_map_change("campgrounds", "ca")
 
         verify(timer, times=0).stop()
-        assert_that(self.plugin.current_timer, equal_to(-1))
-
-    def test_handle_map_change_with_expired_timer(self, expired_timer):
-        self.plugin.timer = expired_timer
-        self.plugin.handle_map_change("campgrounds", "ca")
-
-        verify(expired_timer, times=0).stop()
         assert_that(self.plugin.current_timer, equal_to(-1))
 
     @pytest.mark.usefixtures("game_in_warmup")
@@ -208,10 +203,10 @@ class TestAutoReady:
         assert_that(self.plugin.current_timer, equal_to(42))
 
     @pytest.mark.usefixtures("game_in_warmup")
-    def test_handle_game_countdown_with_no_timer(self, timer):
+    def test_handle_game_countdown_with_no_timer(self, alive_timer):
         self.plugin.handle_game_countdown()
 
-        verify(timer, times=0).stop()
+        verify(alive_timer, times=0).stop()
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_game_countdown_resets_current_timer(self, timer):
@@ -224,7 +219,7 @@ class TestAutoReady:
 
         verify(timer).stop()
         assert_that(self.plugin.current_timer, equal_to(21))
-        assert_that(self.plugin.timer, equal_to(timer))  # type: ignore
+        assert_that(self.plugin.timer, equal_to(timer))
 
     @pytest.mark.usefixtures("game_in_countdown")
     def test_handle_game_start_with_no_timer(self, timer):
@@ -243,7 +238,7 @@ class TestAutoReady:
 
         verify(timer).stop()
         assert_that(self.plugin.current_timer, equal_to(-1))
-        assert_that(self.plugin.timer, equal_to(None))  # type: ignore
+        assert_that(self.plugin.timer, equal_to(None))
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_team_switch_with_no_game(self, timer):
@@ -287,6 +282,8 @@ class TestAutoReady:
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_player_switching_to_spec(self, timer):
+        self.plugin.timer = timer
+
         switching_player = fake_player(1, "Switching Player", team="red")
         connected_players(
             switching_player,
@@ -346,6 +343,8 @@ class TestAutoReady:
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_starts_autoready_timer(self, timer):
+        self.plugin.timer = timer
+
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(
             switching_player,
@@ -365,8 +364,8 @@ class TestAutoReady:
         verify(timer).start()
         assert_that(self.plugin.current_timer, equal_to(180))
 
-    @pytest.mark.usefixtures("game_in_warmup")
-    def test_handle_team_switch_restarts_autoready_timer_after_mapchange(self, timer):
+    @pytest.mark.usefixtures("game_in_warmup", "timer")
+    def test_handle_team_switch_restarts_autoready_timer_after_mapchange(self):
         self.plugin.current_timer = 42
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(
@@ -386,8 +385,8 @@ class TestAutoReady:
 
         assert_that(self.plugin.current_timer, equal_to(42))
 
-    @pytest.mark.usefixtures("game_in_warmup")
-    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self, timer):
+    @pytest.mark.usefixtures("game_in_warmup", "timer")
+    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self):
         self.plugin.current_timer = 21
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(
@@ -488,7 +487,7 @@ class TestAutoReady:
         self.plugin.handle_player_disconnect(disconnecting_player, "ragequit")
 
         verify(alive_timer).stop()
-        assert_that(self.plugin.timer, equal_to(None))  # type: ignore
+        assert_that(self.plugin.timer, equal_to(None))
         assert_that(self.plugin.current_timer, equal_to(-1))
 
     def test_display_countdown_above_30(self):
