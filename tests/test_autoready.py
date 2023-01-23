@@ -36,7 +36,7 @@ from autoready import CountdownThread, RandomIterator
     indirect=True,
 )
 class TestAutoReady:
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def timer(self):
         timer_ = mock(spec=CountdownThread)
         when(timer_).start().thenReturn(None)
@@ -44,13 +44,13 @@ class TestAutoReady:
         when(timer_).is_alive().thenReturn(False)
         when(autoready).CountdownThread(any_(int), timed_actions=any_(dict)).thenReturn(timer_)
         yield timer_
-        unstub()
+        unstub(timer_)
 
     @pytest.fixture
     def alive_timer(self, timer):
         when(timer).is_alive().thenReturn(True)
         yield timer
-        unstub()
+        unstub(timer)
 
     def setup_method(self):
         self.plugin = autoready.autoready()
@@ -364,7 +364,7 @@ class TestAutoReady:
         verify(timer).start()
         assert_that(self.plugin.current_timer, equal_to(180))
 
-    @pytest.mark.usefixtures("game_in_warmup", "timer")
+    @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_team_switch_restarts_autoready_timer_after_mapchange(self):
         self.plugin.current_timer = 42
         switching_player = fake_player(1, "Switching Player", team="spectator")
@@ -385,8 +385,10 @@ class TestAutoReady:
 
         assert_that(self.plugin.current_timer, equal_to(42))
 
-    @pytest.mark.usefixtures("game_in_warmup", "timer")
-    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(self):
+    @pytest.mark.usefixtures("game_in_warmup")
+    def test_handle_team_switch_restarts_autoready_timer_after_close_call_mapchange(
+        self,
+    ):
         self.plugin.current_timer = 21
         switching_player = fake_player(1, "Switching Player", team="spectator")
         connected_players(
