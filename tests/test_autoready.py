@@ -1,4 +1,3 @@
-import threading
 import time
 import random
 from datetime import datetime, timedelta
@@ -8,6 +7,7 @@ from hamcrest import assert_that, equal_to, not_, is_
 
 # noinspection PyProtectedMember
 from mockito import unstub, mock, when, any_, verify, spy2, when2
+from undecorated import undecorated
 
 from minqlx_plugin_test import (
     setup_cvars,
@@ -17,7 +17,7 @@ from minqlx_plugin_test import (
     assert_plugin_played_sound,
 )
 
-from minqlx import Plugin
+from minqlx import Plugin, PlayerStats
 
 import autoready
 from autoready import CountdownThread, RandomIterator
@@ -495,6 +495,72 @@ class TestAutoReady:
         verify(alive_timer).stop()
         assert_that(self.plugin.timer, equal_to(None))
         assert_that(self.plugin.current_timer, equal_to(-1))
+
+    def test_make_sure_game_really_starts_timer_no_longer_valid(self, alive_timer):
+        plugin = autoready.autoready()
+        plugin.timer = None
+
+        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+
+        verify(alive_timer, times=0).stop()
+
+    def test_make_sure_game_really_starts_map_changed_in_between(self, alive_timer, game_in_warmup):
+        spy2(time.sleep)
+        when2(time.sleep, ...).thenReturn(None)
+        game_in_warmup.map = "thunderstruck"
+
+        plugin = autoready.autoready()
+        plugin.timer = alive_timer
+
+        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+
+        verify(alive_timer, times=0).stop()
+
+    def test_make_sure_game_really_starts_game_still_in_warmup(self, alive_timer, game_in_warmup):
+        spy2(time.sleep)
+        when2(time.sleep, ...).thenReturn(None)
+        game_in_warmup.map = "campgrounds"
+        connected_players()
+
+        plugin = autoready.autoready()
+        plugin.timer = alive_timer
+
+        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+
+        verify(alive_timer).stop()
+        verify(autoready).CountdownThread(30, timed_actions=any_())
+        verify(alive_timer).start()
+
+    # noinspection PyUnresolvedReferences,PyPropertyAccess
+    def test_make_sure_game_really_starts_specs_non_responding_players(self, alive_timer, game_in_warmup):
+        spy2(time.sleep)
+        when2(time.sleep, ...).thenReturn(None)
+        game_in_warmup.map = "campgrounds"
+        pending_player1 = fake_player(1, "pending red player", team="red")
+        pending_player1.stats = mock(spec=PlayerStats)
+        pending_player1.stats.ping = -1
+        pending_player2 = fake_player(42, "pending blue player", team="blue")
+        pending_player2.stats = mock(spec=PlayerStats)
+        pending_player2.stats.ping = -1
+        other_red_player = fake_player(123, "asdf", team="red")
+        other_red_player.stats = mock(spec=PlayerStats)
+        other_red_player.stats.ping = 42
+        other_blue_player = fake_player(456, "qwertz", team="blue")
+        other_blue_player.stats = mock(spec=PlayerStats)
+        other_blue_player.stats.ping = 120
+        spec_player = fake_player(789, "spec", team="spectator")
+        spec_player.stats = mock(spec=PlayerStats)
+        spec_player.stats.ping = 11
+
+        connected_players(other_red_player, pending_player2, other_blue_player, pending_player1, spec_player)
+
+        plugin = autoready.autoready()
+        plugin.timer = alive_timer
+
+        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+
+        pending_player1.assert_was_put_on("spectator")
+        pending_player2.assert_was_put_on("spectator")
 
     def test_display_countdown_above_30(self):
         autoready.display_countdown(121)
