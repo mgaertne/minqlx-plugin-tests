@@ -1,7 +1,5 @@
-import time
-
 import pytest
-from mockito import unstub, mock, spy2, verify, when, when2  # type: ignore
+from mockito import unstub, mock, spy2, verify, when  # type: ignore
 from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import assert_that, equal_to, not_, contains_exactly
 
@@ -32,9 +30,10 @@ class ThreadContextManager:
         pass
 
     def __exit__(self, exc_type, exc_value, traceback):
-        time.sleep(0.25)
-        for thread in self.plugin.connectthreads.values():
-            thread.join()
+        for steam_id, thread in self.plugin.connectthreads.items():
+            if thread.is_alive():
+                thread.join()
+                self.plugin.handle_player_connect(fake_player(steam_id, name="cleanup player"))
 
 
 # noinspection PyPep8Naming
@@ -50,6 +49,8 @@ class TestQlstatsPrivacyPolicy:
         )
         self.setup_balance_playerprivacy([])
         self.plugin = qlstats_privacy_policy()
+        self.plugin.remove_thread = lambda _: None
+        spy2(minqlx.console_command)
 
     @staticmethod
     def teardown_method():
@@ -66,11 +67,10 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.fixture
     def qlstats_response(self):
-        spy2(minqlx.console_command)
         response = mock(spec=Response)
         response.status_code = 200
         response.text = ""
-        when2(requests.Session.get, any_(), timeout=any_()).thenReturn(response)
+        when(requests.Session).get(...).thenReturn(response)
         yield response
         unstub(response)
 
@@ -170,7 +170,7 @@ class TestQlstatsPrivacyPolicy:
     def test_handle_player_connect_dispatches_fetching_of_privacy_settings_from_qlstats(
         self,
     ):
-        when2(requests.Session.get, any_(), timeout=any_()).thenReturn(None)
+        when(requests.Session).get(...).thenReturn(None)
 
         setup_cvars(
             {
@@ -213,7 +213,7 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_logs_error_if_playerinfo_not_included(self, qlstats_response):
-        when(qlstats_response).json().thenReturn({"invlied_response"})
+        when(qlstats_response).json().thenReturn({"invalid_response"})
 
         setup_cvars(
             {
@@ -738,18 +738,20 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_removes_existing_connect_thread(self):
+        plugin = qlstats_privacy_policy()
         # noinspection PyTypeChecker
-        self.plugin.connectthreads[1234] = "asdf"
+        plugin.connectthreads[1234] = "asdf"
 
-        undecorated(self.plugin.remove_thread)(self.plugin, 1234)
+        undecorated(plugin.remove_thread)(plugin, 1234)
 
-        assert_that(self.plugin.connectthreads, equal_to({}))
+        assert_that(plugin.connectthreads, equal_to({}))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_does_nothing_if_thread_does_not_exist(self):
+        plugin = qlstats_privacy_policy()
         # noinspection PyTypeChecker
-        self.plugin.connectthreads[1234] = "asdf"
+        plugin.connectthreads[1234] = "asdf"
 
-        undecorated(self.plugin.remove_thread)(self.plugin, 12345)
+        undecorated(plugin.remove_thread)(plugin, 12345)
 
-        assert_that(self.plugin.connectthreads, equal_to({1234: "asdf"}))
+        assert_that(plugin.connectthreads, equal_to({1234: "asdf"}))
