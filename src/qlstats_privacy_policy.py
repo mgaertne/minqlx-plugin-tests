@@ -9,7 +9,7 @@ import minqlx
 from minqlx import Plugin
 
 COLORED_QLSTATS_INSTRUCTIONS = (
-    "Error: Open qlstats.net, click Login/Sign-up, set privacy settings to ^6{}^7, " "click save and reconnect!"
+    "Error: Open qlstats.net, click Login/Sign-up, set privacy settings to ^6{}^7, click save and reconnect!"
 )
 
 
@@ -83,7 +83,7 @@ class qlstats_privacy_policy(Plugin):
 
     def check_for_correct_balance_plugin(self):
         if not self.check_balance_plugin_loaded():
-            self.logger.info("Balance plugin not loaded. " "This plugin just works with the balance plugin in place.")
+            self.logger.info("Balance plugin not loaded. This plugin just works with the balance plugin in place.")
             return False
 
         if not self.check_for_right_version_of_balance_plugin():
