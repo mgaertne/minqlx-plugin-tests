@@ -1,3 +1,4 @@
+import threading
 import time
 import random
 from datetime import datetime, timedelta
@@ -38,7 +39,7 @@ from autoready import CountdownThread, RandomIterator
 class TestAutoReady:
     @pytest.fixture(autouse=True)
     def timer(self):
-        timer_ = mock(spec=CountdownThread)
+        timer_ = mock(spec=CountdownThread, strict=False)
         when(timer_).start().thenReturn(None)
         when(timer_).stop().thenReturn(None)
         when(timer_).is_alive().thenReturn(False)
@@ -54,6 +55,7 @@ class TestAutoReady:
 
     def setup_method(self):
         self.plugin = autoready.autoready()
+        self.plugin.make_sure_game_really_starts = lambda _: None
 
     @staticmethod
     def teardown_method():
@@ -223,6 +225,8 @@ class TestAutoReady:
 
     @pytest.mark.usefixtures("game_in_countdown")
     def test_handle_game_start_with_no_timer(self, timer):
+        self.plugin.timer = None
+
         self.plugin.handle_game_start({})
 
         verify(timer, times=0).stop()
