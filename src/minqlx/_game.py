@@ -92,6 +92,7 @@ class Game:
         """The short name of the map. Ex.: ``longestyard``."""
         return self["mapname"]
 
+    # noinspection PyUnresolvedReferences
     @map.setter
     def map(self, value):
         minqlx.console_command(f"map {value}")
@@ -99,19 +100,19 @@ class Game:
     @property
     def map_title(self):
         """The full name of the map. Ex.: ``Longest Yard``."""
-        # noinspection PyProtectedMember
+        # noinspection PyProtectedMember, PyUnresolvedReferences
         return minqlx._map_title  # pylint: disable=protected-access
 
     @property
     def map_subtitle1(self):
         """The map's subtitle. Usually either empty or has the author's name."""
-        # noinspection PyProtectedMember
+        # noinspection PyProtectedMember, PyUnresolvedReferences
         return minqlx._map_subtitle1  # pylint: disable=protected-access
 
     @property
     def map_subtitle2(self):
         """The map's second subtitle. Usually either empty or has the author's name."""
-        # noinspection PyProtectedMember
+        # noinspection PyProtectedMember, PyUnresolvedReferences
         return minqlx._map_subtitle2  # pylint: disable=protected-access
 
     @property
@@ -148,6 +149,7 @@ class Game:
     def factory(self):
         return self["g_factory"]
 
+    # noinspection PyUnresolvedReferences
     @factory.setter
     def factory(self, value):
         minqlx.console_command(f"map {self.map} {value}")
@@ -160,6 +162,7 @@ class Game:
     def hostname(self):
         return self["sv_hostname"]
 
+    # noinspection PyUnresolvedReferences
     @hostname.setter
     def hostname(self, value):
         minqlx.set_cvar("sv_hostname", str(value))
@@ -168,6 +171,7 @@ class Game:
     def instagib(self):
         return bool(int(self["g_instaGib"]))
 
+    # noinspection PyUnresolvedReferences
     @instagib.setter
     def instagib(self, value):
         if isinstance(value, bool):
@@ -181,6 +185,7 @@ class Game:
     def loadout(self):
         return bool(int(self["g_loadout"]))
 
+    # noinspection PyUnresolvedReferences
     @loadout.setter
     def loadout(self, value):
         if isinstance(value, bool):
@@ -194,6 +199,7 @@ class Game:
     def maxclients(self):
         return int(self["sv_maxclients"])
 
+    # noinspection PyUnresolvedReferences
     @maxclients.setter
     def maxclients(self, new_limit):
         minqlx.set_cvar("sv_maxclients", str(new_limit))
@@ -202,6 +208,7 @@ class Game:
     def timelimit(self):
         return int(self["timelimit"])
 
+    # noinspection PyUnresolvedReferences
     @timelimit.setter
     def timelimit(self, new_limit):
         minqlx.set_cvar("timelimit", str(new_limit))
@@ -210,6 +217,7 @@ class Game:
     def fraglimit(self):
         return int(self["fraglimit"])
 
+    # noinspection PyUnresolvedReferences
     @fraglimit.setter
     def fraglimit(self, new_limit):
         minqlx.set_cvar("fraglimit", str(new_limit))
@@ -218,6 +226,7 @@ class Game:
     def roundlimit(self):
         return int(self["roundlimit"])
 
+    # noinspection PyUnresolvedReferences
     @roundlimit.setter
     def roundlimit(self, new_limit):
         minqlx.set_cvar("roundlimit", str(new_limit))
@@ -226,6 +235,7 @@ class Game:
     def roundtimelimit(self):
         return int(self["roundtimelimit"])
 
+    # noinspection PyUnresolvedReferences
     @roundtimelimit.setter
     def roundtimelimit(self, new_limit):
         minqlx.set_cvar("roundtimelimit", str(new_limit))
@@ -234,6 +244,7 @@ class Game:
     def scorelimit(self):
         return int(self["scorelimit"])
 
+    # noinspection PyUnresolvedReferences
     @scorelimit.setter
     def scorelimit(self, new_limit):
         minqlx.set_cvar("scorelimit", str(new_limit))
@@ -242,6 +253,7 @@ class Game:
     def capturelimit(self):
         return int(self["capturelimit"])
 
+    # noinspection PyUnresolvedReferences
     @capturelimit.setter
     def capturelimit(self, new_limit):
         minqlx.set_cvar("capturelimit", str(new_limit))
@@ -250,6 +262,7 @@ class Game:
     def teamsize(self):
         return int(self["teamsize"])
 
+    # noinspection PyUnresolvedReferences
     @teamsize.setter
     def teamsize(self, new_size):
         minqlx.set_cvar("teamsize", str(new_size))
@@ -261,6 +274,7 @@ class Game:
             return []
         return cvar.split(",")
 
+    # noinspection PyUnresolvedReferences
     @tags.setter
     def tags(self, new_tags):
         if isinstance(new_tags, str):
@@ -274,6 +288,7 @@ class Game:
     def workshop_items(self):
         return [int(i) for i in minqlx.get_configstring(715).split()]
 
+    # noinspection PyUnresolvedReferences
     @workshop_items.setter
     def workshop_items(self, new_items):
         if hasattr(new_items, "__iter__"):

@@ -63,6 +63,7 @@ class EventDispatcher:
     def kwargs(self):
         return self._kwargs
 
+    # noinspection PyUnresolvedReferences
     @kwargs.setter
     def kwargs(self, value):
         self._kwargs = value
@@ -71,6 +72,7 @@ class EventDispatcher:
     def return_value(self):
         return self._return_value
 
+    # noinspection PyUnresolvedReferences
     @return_value.setter
     def return_value(self, value):
         self._return_value = value

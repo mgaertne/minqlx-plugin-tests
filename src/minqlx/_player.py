@@ -137,6 +137,7 @@ class Player:
 
         return self._userinfo.copy()
 
+    # noinspection PyUnresolvedReferences
     @cvars.setter
     def cvars(self, new_cvars):
         new = "".join([f"\\{key}\\{new_cvars[key]}" for key in new_cvars])
@@ -166,6 +167,7 @@ class Player:
         except KeyError:
             return ""
 
+    # noinspection PyUnresolvedReferences
     @clan.setter
     def clan(self, tag):
         index = self.id + 529
@@ -179,6 +181,7 @@ class Player:
     def name(self):
         return self._name + "^7"
 
+    # noinspection PyUnresolvedReferences
     @name.setter
     def name(self, value):
         new = self.cvars
@@ -201,6 +204,7 @@ class Player:
     def team(self):
         return minqlx.TEAMS[self._info.team]
 
+    # noinspection PyUnresolvedReferences
     @team.setter
     def team(self, new_team):
         self.put(new_team)
@@ -210,6 +214,7 @@ class Player:
         # Float because they can occasionally be floats for some reason.
         return float(self["color1"]), float(self["color2"])
 
+    # noinspection PyUnresolvedReferences
     @colors.setter
     def colors(self, value):
         new = self.cvars
@@ -222,6 +227,7 @@ class Player:
     def model(self):
         return self["model"]
 
+    # noinspection PyUnresolvedReferences
     @model.setter
     def model(self, value):
         new = self.cvars
@@ -232,6 +238,7 @@ class Player:
     def headmodel(self):
         return self["headmodel"]
 
+    # noinspection PyUnresolvedReferences
     @headmodel.setter
     def headmodel(self, value):
         new = self.cvars
@@ -242,6 +249,7 @@ class Player:
     def handicap(self):
         return self["handicap"]
 
+    # noinspection PyUnresolvedReferences
     @handicap.setter
     def handicap(self, value):
         new = self.cvars
@@ -252,6 +260,7 @@ class Player:
     def autohop(self):
         return bool(int(self["cg_autoHop"]))
 
+    # noinspection PyUnresolvedReferences
     @autohop.setter
     def autohop(self, value):
         new = self.cvars
@@ -262,6 +271,7 @@ class Player:
     def autoaction(self):
         return bool(int(self["cg_autoAction"]))
 
+    # noinspection PyUnresolvedReferences
     @autoaction.setter
     def autoaction(self, value):
         new = self.cvars
@@ -272,6 +282,7 @@ class Player:
     def predictitems(self):
         return bool(int(self["cg_predictItems"]))
 
+    # noinspection PyUnresolvedReferences
     @predictitems.setter
     def predictitems(self, value):
         new = self.cvars
@@ -310,6 +321,7 @@ class Player:
             return "banned"
         return None
 
+    # noinspection PyUnresolvedReferences
     @privileges.setter
     def privileges(self, value):
         if not value or value == "none":
@@ -325,6 +337,7 @@ class Player:
     def country(self):
         return self["country"]
 
+    # noinspection PyUnresolvedReferences
     @country.setter
     def country(self, value):
         new = self.cvars
@@ -465,6 +478,7 @@ class Player:
     def holdable(self):
         return self.state.holdable
 
+    # noinspection PyUnresolvedReferences
     @holdable.setter
     def holdable(self, value):
         if not value:
@@ -511,6 +525,7 @@ class Player:
     def noclip(self):
         return self.state.noclip
 
+    # noinspection PyUnresolvedReferences
     @noclip.setter
     def noclip(self, value):
         minqlx.noclip(self.id, bool(value))
@@ -519,6 +534,7 @@ class Player:
     def health(self):
         return self.state.health
 
+    # noinspection PyUnresolvedReferences
     @health.setter
     def health(self, value):
         minqlx.set_health(self.id, value)
@@ -527,6 +543,7 @@ class Player:
     def armor(self):
         return self.state.armor
 
+    # noinspection PyUnresolvedReferences
     @armor.setter
     def armor(self, value):
         minqlx.set_armor(self.id, value)
@@ -535,6 +552,7 @@ class Player:
     def is_alive(self):
         return self.state.is_alive
 
+    # noinspection PyUnresolvedReferences
     @is_alive.setter
     def is_alive(self, value):
         if not isinstance(value, bool):
@@ -555,6 +573,7 @@ class Player:
     def score(self):
         return self.stats.score
 
+    # noinspection PyUnresolvedReferences
     @score.setter
     def score(self, value):
         minqlx.set_score(self.id, value)
