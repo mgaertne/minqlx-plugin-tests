@@ -1,10 +1,10 @@
 import pytest
 
-from minqlx_plugin_test import setup_cvars, fake_player, connected_players
-
 from mockito import spy2, unstub, when2, verify  # type: ignore
 from mockito.matchers import any_  # type: ignore
 from hamcrest import assert_that, instance_of, equal_to
+
+from minqlx_plugin_test import setup_cvars, fake_player, connected_players
 
 from minqlx import Plugin
 from fastvotes import (

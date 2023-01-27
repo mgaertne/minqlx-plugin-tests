@@ -4,16 +4,16 @@ import logging
 import pytest
 import redis
 
+from mockito import mock, when, unstub, verify, patch, spy2, when2  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
+from hamcrest import equal_to, assert_that, has_item
+
 from minqlx_plugin_test import (
     connected_players,
     fake_player,
     assert_plugin_sent_to_console,
     setup_cvars,
 )
-
-from mockito import mock, when, unstub, verify, patch, spy2, when2  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import equal_to, assert_that, has_item
 
 import minqlx
 from minqlx import Plugin, CHAT_CHANNEL

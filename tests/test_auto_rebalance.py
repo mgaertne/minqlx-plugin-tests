@@ -1,10 +1,3 @@
-from minqlx_plugin_test import (
-    connected_players,
-    fake_player,
-    assert_plugin_sent_to_console,
-    assert_player_was_put_on,
-)
-
 import pytest
 
 from mockito import unstub, mock, verify  # type: ignore
@@ -12,6 +5,13 @@ from mockito.matchers import matches  # type: ignore
 from hamcrest import assert_that, equal_to
 
 from undecorated import undecorated  # type: ignore
+
+from minqlx_plugin_test import (
+    connected_players,
+    fake_player,
+    assert_plugin_sent_to_console,
+    assert_player_was_put_on,
+)
 
 import minqlx
 from minqlx import Plugin

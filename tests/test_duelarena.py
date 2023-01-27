@@ -1,5 +1,11 @@
 import pytest
 
+from mockito import spy2, unstub, verify  # type: ignore
+from mockito.matchers import matches, any_  # type: ignore
+from hamcrest import assert_that, equal_to, has_items, not_, empty, has_item
+
+from undecorated import undecorated  # type: ignore
+
 from minqlx_plugin_test import (
     setup_cvars,
     connected_players,
@@ -9,12 +15,6 @@ from minqlx_plugin_test import (
     assert_plugin_sent_to_console,
     assert_player_was_put_on,
 )
-
-from mockito import spy2, unstub, verify  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import assert_that, equal_to, has_items, not_, empty, has_item
-
-from undecorated import undecorated  # type: ignore
 
 import minqlx
 from duelarena import duelarena, DUELARENA_JOIN_MSG, DuelArenaGame
