@@ -2,6 +2,7 @@ import asyncio
 import threading
 import time
 
+# noinspection PyPackageRequirements
 import schedule
 
 # noinspection PyPackageRequirements

@@ -9,6 +9,7 @@ from discord import PrivacyLevel, EntityType, EventStatus
 # noinspection PyPackageRequirements
 from discord.utils import utcnow
 
+# noinspection PyPackageRequirements
 import schedule  # type: ignore
 
 from minqlx import Plugin
