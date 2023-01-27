@@ -1395,10 +1395,14 @@ class weird_stats(Plugin):
             if top_map_speeds_dict.get(steam_id, -1.0) < speed:
                 # noinspection PyUnresolvedReferences
                 if redis.VERSION >= (3,):
+                    # noinspection PyTypeChecker
                     self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
+                    # noinspection PyTypeChecker
                     self.db.zadd(PLAYER_TOP_SPEEDS.format(mapname), {steam_id: speed})
                 else:
+                    # noinspection PyTypeChecker
                     self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
+                    # noinspection PyTypeChecker
                     self.db.zadd(MAP_TOP_SPEEDS.format(mapname), speed, steam_id)
             self.db.rpush(MAP_SPEED_LOG.format(mapname), speed)
 
@@ -1419,8 +1423,10 @@ class weird_stats(Plugin):
 
         # noinspection PyUnresolvedReferences
         if redis.VERSION >= (3,):
+            # noinspection PyTypeChecker
             self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
         else:
+            # noinspection PyTypeChecker
             self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
 
     def cmd_player_speeds(self, _player, _msg, _channel):

@@ -472,8 +472,10 @@ class showdown(Plugin):
             # noinspection PyUnresolvedReferences
             if self.db:
                 if redis.VERSION >= (3,):
+                    # noinspection PyTypeChecker
                     self.db.zadd(base_key, {timestamp: last_standing_time})
                 else:
+                    # noinspection PyTypeChecker
                     self.db.zadd(base_key, last_standing_time, timestamp)
             self.last_standing_steam_id = None
             self.last_standing_time = None
