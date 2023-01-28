@@ -47,28 +47,3 @@ class Redis(AbstractDatabase):
         password: str | None = ...,
     ) -> redisRedis | None: ...
     def close(self) -> None: ...
-    def mset(self, *args: dict, **kwargs: str | int | float | bool) -> bool: ...
-    def msetnx(self, *args: dict, **kwargs: str | int | float | bool) -> bool: ...
-    @overload
-    async def zadd(
-        self,
-        name: str,
-        *args: str,
-        **kwargs: int | float,
-    ) -> int: ...
-    @overload
-    async def zadd(
-        self,
-        name: str,
-        mapping: Mapping[str, int | float],
-        nx: bool = ...,
-        xx: bool = ...,
-        ch: bool = ...,
-        incr: bool = ...,
-        gt: int | float | None = ...,
-        lt: int | float | None = ...,
-    ) -> int: ...
-    @overload
-    def zincrby(self, name: str, value_or_amount: str, amount_or_value: int | float = ...) -> float: ...
-    @overload
-    def zincrby(self, name: str, value_or_amount: int | float, amount_or_value: str) -> float: ...
