@@ -75,7 +75,7 @@ class TestFragStats:
 
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        verify(fragstats_db).zincrby(f"minqlx:players:{killer.steam_id}:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby(f"minqlx:players:{killer.steam_id}:soulz", 1, str(victim.steam_id))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_death_records_reaper_in_db(self, fragstats_db):
@@ -86,7 +86,7 @@ class TestFragStats:
 
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, killer.steam_id)
+        verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, str(killer.steam_id))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_death_on_own_death_does_nothing(self):
@@ -119,7 +119,7 @@ class TestFragStats:
         self.plugin.handle_death(victim, None, {"MOD": "LAVA"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))  # type: ignore
-        verify(fragstats_db).zincrby("minqlx:players:lava:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby("minqlx:players:lava:soulz", 1, str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "lava")
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -132,7 +132,7 @@ class TestFragStats:
         self.plugin.handle_death(victim, None, {"MOD": "HURT"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))  # type: ignore
-        verify(fragstats_db).zincrby("minqlx:players:void:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby("minqlx:players:void:soulz", 1, str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "void")
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -145,7 +145,7 @@ class TestFragStats:
         self.plugin.handle_death(victim, None, {"MOD": "SLIME"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))  # type: ignore
-        verify(fragstats_db).zincrby("minqlx:players:acid:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby("minqlx:players:acid:soulz", 1, str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "acid")
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -158,7 +158,7 @@ class TestFragStats:
         self.plugin.handle_death(victim, None, {"MOD": "WATER"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))  # type: ignore
-        verify(fragstats_db).zincrby("minqlx:players:drowning:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby("minqlx:players:drowning:soulz", 1, str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "drowning")
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -171,7 +171,7 @@ class TestFragStats:
         self.plugin.handle_death(victim, None, {"MOD": "CRUSH"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))  # type: ignore
-        verify(fragstats_db).zincrby("minqlx:players:squished:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby("minqlx:players:squished:soulz", 1, str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "squished")
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -184,7 +184,7 @@ class TestFragStats:
         self.plugin.handle_death(victim, None, {"MOD": "UNKNOWN"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))  # type: ignore
-        verify(fragstats_db).zincrby("minqlx:players:unknown:soulz", 1, victim.steam_id)
+        verify(fragstats_db).zincrby("minqlx:players:unknown:soulz", 1, str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", 1, "unknown")
 
     @pytest.mark.usefixtures("game_in_progress")
