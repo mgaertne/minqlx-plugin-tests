@@ -3,7 +3,7 @@ from collections import Counter
 import redis
 
 import minqlx
-from minqlx import Plugin
+from minqlx import Plugin, NonexistentPlayerError
 
 COLLECTED_SOULZ_KEY = "minqlx:players:{}:soulz"
 REAPERZ_KEY = "minqlx:players:{}:reaperz"
@@ -77,11 +77,11 @@ class frag_stats(Plugin):
             return
 
         if redis.VERSION >= (3,):
-            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), 1, victim)
-            self.db.zincrby(REAPERZ_KEY.format(victim), 1, recorded_killer)
+            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), 1, str(victim))
+            self.db.zincrby(REAPERZ_KEY.format(victim), 1, str(recorded_killer))
         else:
-            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), victim, 1)
-            self.db.zincrby(REAPERZ_KEY.format(victim), recorded_killer, 1)
+            self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), str(victim), 1)
+            self.db.zincrby(REAPERZ_KEY.format(victim), str(recorded_killer), 1)
 
     # noinspection PyMethodMayBeStatic
     def determine_killer(self, killer, means_of_death):
@@ -192,12 +192,15 @@ class frag_stats(Plugin):
         return [self.resolve_player_name(item) for item in entries]
 
     def resolve_player_name(self, item):
-        try:
-            steam_id = int(item)
-        except ValueError:
+        if not str(item).isdigit():
             return str(item)
 
-        player = self.player(steam_id)
+        steam_id = int(item)
+
+        try:
+            player = self.player(steam_id)
+        except NonexistentPlayerError:
+            player = None
 
         if player is not None:
             return player.name
@@ -289,6 +292,7 @@ class frag_stats(Plugin):
 
         self.report_single_soulzbalance(player, msg[1], channel)
 
+    @minqlx.thread
     def report_top_soulzbalance(self, player, channel):
         reply_channel = self.identify_reply_channel(channel)
 
@@ -328,6 +332,7 @@ class frag_stats(Plugin):
         )
         reply_channel.reply(f"Worst {self.toplimit // 2} soul balance for {fragger_name}^7: {formatted_reapers}")
 
+    @minqlx.thread
     def report_single_soulzbalance(self, player, opponent, channel):
         reply_channel = self.identify_reply_channel(channel)
 
