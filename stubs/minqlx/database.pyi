@@ -1,3 +1,4 @@
+from datetime import timedelta
 from logging import Logger
 from typing import overload, Mapping
 
@@ -47,3 +48,36 @@ class Redis(AbstractDatabase):
         password: str | None = ...,
     ) -> redisRedis | None: ...
     def close(self) -> None: ...
+    def mset(self, *args: dict, **kwargs: str | int | float | bool) -> bool: ...
+    def msetnx(self, *args: dict, **kwargs: str | int | float | bool) -> bool: ...
+    @overload
+    async def zadd(
+        self,
+        name: str,
+        *args: str,
+        **kwargs: int | float,
+    ) -> int: ...
+    @overload
+    async def zadd(
+        self,
+        name: str,
+        mapping: Mapping[str, int | float],
+        nx: bool = ...,
+        xx: bool = ...,
+        ch: bool = ...,
+        incr: bool = ...,
+        gt: int | float | None = ...,
+        lt: int | float | None = ...,
+    ) -> int: ...
+    @overload
+    def zincrby(self, name: str, value_or_amount: str, amount_or_value: int | float = ...) -> float: ...
+    @overload
+    def zincrby(self, name: str, value_or_amount: int | float, amount_or_value: str) -> float: ...
+    @overload
+    def setex(self, name: str, value_or_time: str, time_or_value: int | timedelta) -> bool: ...
+    @overload
+    def setex(self, name: str, value_or_time: int | timedelta, time_or_value: str) -> bool: ...
+    @overload
+    def lrem(self, name: str, value_or_count: str, num_or_value: int = ...) -> int: ...
+    @overload
+    def lrem(self, name: str, value_or_count: int, num_or_value: str) -> int: ...
