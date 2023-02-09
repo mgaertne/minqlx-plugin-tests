@@ -29,7 +29,6 @@ LAST_USED_NAME_KEY = "minqlx:players:{}:last_used_name"
 
 
 class SubscriberCog(Cog):
-
     subscribe_group = app_commands.Group(
         name="subscribe",
         guild_only=True,
@@ -91,7 +90,7 @@ class SubscriberCog(Cog):
 
         return returned
 
-    @subscribe_group.command(name="map", description="Get notified when your favorite maps are played")
+    @subscribe_group.command(name="map", description="Get notified when your favorite maps are played")  # type: ignore
     @app_commands.describe(mapname="the name of the map to subscribe to")
     @app_commands.guild_only()
     async def subscribe_map(self, interaction, mapname: str):
@@ -160,7 +159,7 @@ class SubscriberCog(Cog):
             for mapname in filtered_candidates[:25]
         ]
 
-    @subscribe_group.command(
+    @subscribe_group.command(  # type: ignore
         name="player",
         description="Get notified when your favorite players joins the server",
     )
@@ -254,7 +253,7 @@ class SubscriberCog(Cog):
             for steam_id in filtered_candidates[:25]
         ]
 
-    @subscribe_group.command(
+    @subscribe_group.command(  # type: ignore
         name="member",
         description="Get notified when your favorite discord user starts playing",
     )
@@ -294,7 +293,7 @@ class SubscriberCog(Cog):
 
         return subscribed_users
 
-    @unsubscribe_group.command(name="map", description="Stop getting notified about a map")
+    @unsubscribe_group.command(name="map", description="Stop getting notified about a map")  # type: ignore
     @app_commands.describe(mapname="the name of the map to subscribe from")
     @app_commands.guild_only()
     async def unsubscribe_map(self, interaction, mapname: str):
@@ -341,7 +340,7 @@ class SubscriberCog(Cog):
 
         return [app_commands.Choice(name=self.format_mapname(mapname), value=mapname) for mapname in candidates[:25]]
 
-    @unsubscribe_group.command(name="player", description="Stop getting notified about a player")
+    @unsubscribe_group.command(name="player", description="Stop getting notified about a player")  # type: ignore
     @app_commands.describe(player="Name of the player you want to unsubscribe from")
     @app_commands.guild_only()
     async def unsubscribe_player(self, interaction, player: str):
@@ -419,7 +418,7 @@ class SubscriberCog(Cog):
             for steam_id in candidates[:25]
         ]
 
-    @unsubscribe_group.command(name="member", description="Stop getting notified about a discord user")
+    @unsubscribe_group.command(name="member", description="Stop getting notified about a discord user")  # type: ignore
     @app_commands.describe(member="Discord user you want to unsubscribe from")
     @app_commands.guild_only()
     async def unsubscribe_member(self, interaction, member: Member):

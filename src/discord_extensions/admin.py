@@ -117,7 +117,7 @@ class AdminCog(Cog):
             app_commands.Command(
                 name=self.discord_exec_prefix,
                 description="execute minqlx commands on the server",
-                callback=self.slash_qlx,
+                callback=self.slash_qlx,  # type: ignore
                 parent=None,
                 nsfw=False,
             )

@@ -147,7 +147,7 @@ class Status(Cog):
         slash_status_command: app_commands.Command = app_commands.Command(
             name=self.discord_trigger_status,
             description="display current game status information",
-            callback=self.slash_trigger_status,
+            callback=self.slash_trigger_status,  # type: ignore
             parent=None,
             nsfw=False,
         )

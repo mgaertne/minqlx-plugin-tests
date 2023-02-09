@@ -62,11 +62,10 @@ class TriggeredChat(Cog):
             )
         )
 
-        # noinspection PyTypeChecker
         slash_triggered_chat_command = app_commands.Command(  # type: ignore
             name=self.discord_trigger_triggered_channel_chat,
             description="send a message to the Quake Live server",
-            callback=self.slash_triggered_chat,
+            callback=self.slash_triggered_chat,  # type: ignore
             parent=None,
             nsfw=False,
         )
@@ -108,7 +107,10 @@ class TriggeredChat(Cog):
         )
 
     @app_commands.describe(message="message to send to the server")
-    async def slash_triggered_chat(self, interaction, message: str):
+    async def slash_triggered_chat(self, interaction, message: str) -> None:
+        if interaction.guild is None:
+            return
+
         channel = interaction.channel
         if not isinstance(channel, GuildChannel):
             await interaction.response.send_message(
@@ -131,7 +133,7 @@ class TriggeredChat(Cog):
         await interaction.response.send_message(embed=embed)
 
         quake_message = message
-        matcher = re.compile(r'<(@[!&]?|#)([0-9]{15,20})>')
+        matcher = re.compile(r"<(@[!&]?|#)([0-9]{15,20})>")
         matches = matcher.findall(message)
         for match in matches:
             if match[0] in ["@", "@!"]:
