@@ -14,6 +14,7 @@ class bday(Plugin):
     bmap_steamid: SteamId | None
     bmap_map: str | None
     number_of_bday_maps: int
+    bmap_factory: str
     pending_bday_confirmations: dict[SteamId, str]
     def __init__(self) -> None: ...
     def cmd_bday(self, player: Player, msg: str, _channel: AbstractChannel) -> int: ...
