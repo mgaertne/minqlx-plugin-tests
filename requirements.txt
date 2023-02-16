@@ -9,3 +9,4 @@ aiohttp_retry>=2.4
 
 discord.py>=2.0; python_version >= '3.8'
 schedule>=1.0.0; python_version >= '3.8'
+openai>=0.26.5
