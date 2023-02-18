@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from threading import RLock
 
 import openai
+from openai import OpenAIError, Completion, Model
 
 import minqlx
 from minqlx import (
@@ -86,7 +87,7 @@ class openai_bot(Plugin):
             with self.queue_lock:
                 contextualized_prompt = self.contextualized_query(request)
                 try:
-                    completion = openai.Completion.create(
+                    completion = Completion.create(
                         engine=self.model,
                         prompt=contextualized_prompt,
                         max_tokens=self.max_tokens,
@@ -97,7 +98,8 @@ class openai_bot(Plugin):
                         frequency_penalty=self.frequency_penalty,
                         presence_penalty=self.presence_penalty,
                     )
-                except (openai.error.Timeout, openai.error.APIConnectionError):
+                except OpenAIError as e:
+                    self.logger.debug(f"Exception from openai API: {e}")
                     return
 
                 response = (
@@ -151,7 +153,7 @@ class openai_bot(Plugin):
     @minqlx.thread
     def list_models_in_thread(self, player):
         openai.api_key = self.bot_api_key
-        available_models = openai.Model.list()
+        available_models = Model.list()
         formatted_models = ", ".join([model["id"] for model in available_models["data"]])
         player.tell(f"Available models: {formatted_models}")
 
@@ -165,7 +167,7 @@ class openai_bot(Plugin):
     @minqlx.thread
     def switch_model_in_thread(self, player, model):
         openai.api_key = self.bot_api_key
-        available_models = openai.Model.list()
+        available_models = Model.list()
         available_model_names = [model["id"] for model in available_models["data"]]
 
         if model not in available_model_names:
