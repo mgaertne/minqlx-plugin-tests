@@ -1197,26 +1197,49 @@ class weird_stats(Plugin):
 
         self.match_end_announced = True
 
-        announcements = self.player_speeds_announcements(
+        player_speed_announcements = self.player_speeds_announcements(
             top_entries=self.stats_top_display, match_end_announcements=True
         )
-        if len(announcements) > 0:
-            self.msg(f"  ^5Top {self.stats_top_display} player speeds^7 {announcements[0]}")
-            for msg in announcements[1:]:
-                self.msg(msg)
-
         quickest_death_announcement = self.quickest_deaths()
-        if quickest_death_announcement is not None and len(quickest_death_announcement) > 0:
-            self.msg(quickest_death_announcement)
         most_environmental_deaths_announcement = self.environmental_deaths(
             self.means_of_death, ["void", "lava", "acid", "drowning", "squished"]
         )
+        stats_announcements = [
+            announcer(list(self.player_stats.values())) for announcer in self.playerstats_announcements
+        ]
+
+        if len(player_speed_announcements) > 0:
+            self.msg(f"  ^5Top {self.stats_top_display} player speeds^7 {player_speed_announcements[0]}")
+            for msg in player_speed_announcements[1:]:
+                self.msg(msg)
+
+        # noinspection PyProtectedMember
+        if "openai_bot" in Plugin._loaded_plugins:
+            # noinspection PyProtectedMember
+            openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
+            # noinspection PyUnresolvedReferences
+            openai_bot_plugin.summarize_game_end_stats(
+                "\n".join(
+                    [
+                        stats
+                        for stats in [
+                            quickest_death_announcement,
+                            most_environmental_deaths_announcement,
+                            *stats_announcements,
+                        ]
+                        if stats is not None
+                    ]
+                )
+            )
+            return
+
+        if quickest_death_announcement is not None and len(quickest_death_announcement) > 0:
+            self.msg(quickest_death_announcement)
         if most_environmental_deaths_announcement is not None and len(most_environmental_deaths_announcement) > 0:
             self.msg(most_environmental_deaths_announcement)
 
-        for announcer in self.playerstats_announcements:
-            stats_announcement = announcer(list(self.player_stats.values()))
-            if stats_announcement is not None and len(stats_announcement) > 0:
+        if stats_announcements is not None and len(stats_announcements) > 0:
+            for stats_announcement in stats_announcements:
                 self.msg(stats_announcement)
 
     def stats_from_all_players_collected(self):
