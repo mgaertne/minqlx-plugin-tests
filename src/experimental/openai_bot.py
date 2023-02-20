@@ -126,7 +126,8 @@ class openai_bot(Plugin):
         with lock:
             self.db.zadd(
                 CHAT_BOT_LOG,
-                {message: int(datetime.strftime(datetime.now(), DATETIMEFORMAT))},
+                int(datetime.strftime(datetime.now(), DATETIMEFORMAT)),
+                message
             )
 
     def _send_message(self, communication_channel, message):

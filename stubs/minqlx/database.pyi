@@ -54,7 +54,7 @@ class Redis(AbstractDatabase):
     async def zadd(
         self,
         name: str,
-        *args: str,
+        *args: str | int | float,
         **kwargs: int | float,
     ) -> int: ...
     @overload
