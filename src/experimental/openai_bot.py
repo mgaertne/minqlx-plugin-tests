@@ -1,3 +1,12 @@
+"""
+This is a plugin created by ShiN0
+Copyright (c) 2023 ShiN0
+<https://www.github.com/mgaertne/minqlx-plugin-tests>
+
+You are free to modify this plugin to your own one.
+
+You need to install openai in your python installation, i.e. python3 -m pip install -U openai
+"""
 import re
 from datetime import datetime, timedelta
 from threading import RLock
@@ -35,6 +44,50 @@ def identify_reply_channel(channel):
 
 # noinspection PyPep8Naming
 class openai_bot(Plugin):
+    """
+    This plugin offers a customizeable openai chat bot in your server using the completion API from openai.
+
+    For this plugin to work, you need to provide an API key from openai, potentially with added costs applied according
+    to their terms of service. Please check their pricing for the model you configure here. You may also want to set a
+    hard limit for the spendings at their platform.
+
+    For explanations on the various parameters for the openai API, please consult the openai API documentation.
+
+    Uses:
+    * qlx_openai_botname (default: "Bob") The name of the bot as it will appear in in-game chat.
+    * qlx_openai_clanprefix (default: "") An optional clan prefix that will show up whenever your bot says something.
+    * qlx_openai_model (default: "text-davinci-003") The AI model used for creating chat interactions.
+    * qlx_openai_temperature (default: 1.0) What sampling temperature to use, between 0 and 2.
+    * qlx_openai_max_tokens (default: 100, max: 4096) The maximum amount of tokens a completion may consume. Note that
+            tokens are consumed for the prompt and completion combined.
+    * qlx_openai_top_p (default: 1.0) An alternative to sampling with temperature, called nucleus sampling.
+    * qlx_openai_frequency_penalty (default: 0.0) Number between -2.0 and 2.0. Positive values penalize new tokens
+            based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same
+            line verbatim.
+    * qlx_openai_presence_penalty (default: 0.0) Number between -2.0 and 2.0. Positive values penalize new tokens
+            based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
+    * qlx_openai_prompt_template" A template string that is used to generate the completion prompt. Three different
+            variables are filled in dynamically here:
+            {bot_name}: the name of the bot as configured in qlx_openai_botname
+            {chat_history}: the current history of the chat
+            {trigger_line}: the chat line that triggered this conversation (this will not be included in the
+                chat history
+            You can use \n to indicate newlines here as well.
+
+            Defaults to:
+            Chatlog:
+            {chat_history}
+
+            You are {bot_name}, a spectator on a QuakeLive server.
+
+            {trigger_line}
+
+            {bot_name}:
+    * qlx_openai_chat_history_minutes (default: 10) Conversations with the bot from the past x minutes will be included
+            in the chat_history.
+    * qlx_openai_chat_history_length (default: 8) Maximum number of previous conversations to include in the
+            chat_history.
+    """
     database = Redis  # type: ignore
 
     def __init__(self):
@@ -44,12 +97,17 @@ class openai_bot(Plugin):
         self.set_cvar_once("qlx_openai_botname", "Bob")
         self.set_cvar_once("qlx_openai_clanprefix", "")
         self.set_cvar_once("qlx_openai_model", "text-davinci-003")
-        self.set_cvar_once("qlx_openai_temperature", "0.5")
-        self.set_cvar_once("qlx_openai_max_tokens", "28")
-        self.set_cvar_once("qlx_openai_top_p", "1.0")
-        self.set_cvar_once("qlx_openai_frequency_penalty", "0")
-        self.set_cvar_once("qlx_openai_presence_penalty", "0")
-        self.set_cvar_once("qlx_openai_prompt_template", "{chat_history}\n{bot_name}:")
+        self.set_cvar_limit_once("qlx_openai_temperature", 1.0, 0.0, 2.0)
+        self.set_cvar_limit_once("qlx_openai_max_tokens", 100, 0, 4096)
+        self.set_cvar_limit_once("qlx_openai_top_p", 1.0, 0.0, 2.0)
+        self.set_cvar_limit_once("qlx_openai_frequency_penalty", 0.0, -2.0, 2.0)
+        self.set_cvar_limit_once("qlx_openai_presence_penalty", 0.0, -2.0, 2.0)
+        self.set_cvar_once(
+            "qlx_openai_prompt_template",
+            "Chatlog:\n{chat_history}\n\n"
+            "You are {bot_name}, a spectator on a QuakeLive server.\n\n"
+            "{trigger_line}\n\n{bot_name}:"
+        )
         self.set_cvar_once("qlx_openai_chat_history_minutes", "10")
         self.set_cvar_once("qlx_openai_chat_history_length", "8")
 
@@ -57,10 +115,10 @@ class openai_bot(Plugin):
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "text-davinci-003"
-        self.temperature = self.get_cvar("qlx_openai_temperature", float) or 0.5
+        self.temperature = self.get_cvar("qlx_openai_temperature", float) or 1.0
         if self.temperature < 0 or self.temperature > 2:
-            self.temperature = 0.5
-        self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 28
+            self.temperature = 1.0
+        self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
         self.top_p = self.get_cvar("qlx_openai_top_p", float) or 1.0
         if self.top_p < 0 or self.top_p > 2:
             self.top_p = 1.0
