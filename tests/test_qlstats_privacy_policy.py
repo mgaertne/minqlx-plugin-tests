@@ -71,6 +71,7 @@ class TestQlstatsPrivacyPolicy:
         response = mock(spec=Response)
         response.status_code = 200
         response.text = ""
+        spy2(requests.Session.get)
         when(requests.Session).get(...).thenReturn(response)
         yield response
         unstub(response)
