@@ -18,7 +18,7 @@ from hamcrest import (
 # noinspection PyProtectedMember
 from mockito import unstub, mock, patch, when, any_, verify
 
-from minqlx_plugin_test import setup_cvars, connected_players
+from minqlx_plugin_test import setup_cvars, connected_players, fake_player
 import minqlx
 import minqlx.database
 from minqlx import Plugin, Player
@@ -934,9 +934,7 @@ class TestSubscribe:
     async def test_check_subscriptions_informs_about_player_connected(
         self, no_presences_bot, mocked_db, game_in_warmup, user
     ):
-        new_player = mock(spec=Player)
-        new_player.steam_id = 123
-        new_player.clean_name = "newplayer"
+        new_player = fake_player(123, "newplayer")
 
         when(no_presences_bot).get_user(user.id).thenReturn(user)
 
@@ -958,9 +956,7 @@ class TestSubscribe:
 
     @pytest.mark.asyncio
     async def test_check_subscriptions_player_already_informed(self, no_presences_bot, mocked_db, game_in_warmup, user):
-        new_player = mock(spec=Player)
-        new_player.steam_id = 123
-        new_player.clean_name = "newplayer"
+        new_player = fake_player(123, "newplayer")
 
         when(no_presences_bot).get_user(user.id).thenReturn(user)
 
