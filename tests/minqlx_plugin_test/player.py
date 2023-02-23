@@ -63,6 +63,7 @@ def connected_players(*players: Player) -> None:
     for player in players:
         when2(Plugin.player, player.steam_id).thenReturn(player)
         when2(Plugin.player, player).thenReturn(player)
+        when2(Plugin.player, player.id).thenReturn(player)
 
 
 def assert_player_was_put_on(player: Player, matcher: Union[str, Matcher], *, times: int = 1) -> None:
