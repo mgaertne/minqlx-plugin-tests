@@ -52,8 +52,9 @@ class TestQlstatsPrivacyPolicy:
         self.plugin.remove_thread = lambda _: None
         spy2(minqlx.console_command)
 
-    @staticmethod
-    def teardown_method():
+    def teardown_method(self):
+        if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
+            del minqlx.Plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
         unstub()
 
     # noinspection PyMethodMayBeStatic
