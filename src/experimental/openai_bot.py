@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from threading import RLock
 
 import openai
-from openai import OpenAIError, Completion, Model
+from openai import OpenAIError, Model, ChatCompletion
 
 import minqlx
 from minqlx import (
@@ -56,7 +56,7 @@ class openai_bot(Plugin):
     Uses:
     * qlx_openai_botname (default: "Bob") The name of the bot as it will appear in in-game chat.
     * qlx_openai_clanprefix (default: "") An optional clan prefix that will show up whenever your bot says something.
-    * qlx_openai_model (default: "text-davinci-003") The AI model used for creating chat interactions.
+    * qlx_openai_model (default: "gpt-3.5-turbo") The AI model used for creating chat interactions.
     * qlx_openai_temperature (default: 1.0) What sampling temperature to use, between 0 and 2.
     * qlx_openai_max_tokens (default: 100, max: 4096) The maximum amount of tokens a completion may consume. Note that
             tokens are consumed for the prompt and completion combined.
@@ -66,28 +66,19 @@ class openai_bot(Plugin):
             line verbatim.
     * qlx_openai_presence_penalty (default: 0.0) Number between -2.0 and 2.0. Positive values penalize new tokens
             based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
-    * qlx_openai_prompt_template" A template string that is used to generate the completion prompt. Three different
-            variables are filled in dynamically here:
-            {bot_name}: the name of the bot as configured in qlx_openai_botname
-            {chat_history}: the current history of the chat
-            {trigger_line}: the chat line that triggered this conversation (this will not be included in the
-                chat history
-            You can use \n to indicate newlines here as well.
-
-            Defaults to:
-            Chatlog:
-            {chat_history}
-
-            You are {bot_name}, a spectator on a QuakeLive server.
-
-            {trigger_line}
-
-            {bot_name}:
+    * qlx_openai_system_context A template string that provides the overall system context for the chat. You can use
+            {bot_name} to dynamically fill in the name of the bot here
+            Defaults to: "You are {bot_name}, a spectator on a QuakeLive server."
     * qlx_openai_chat_history_minutes (default: 10) Conversations with the bot from the past x minutes will be included
             in the chat_history.
     * qlx_openai_chat_history_length (default: 8) Maximum number of previous conversations to include in the
             chat_history.
+
+    Previously used cvars that have become obsolete and are no longer used/supported:
+    * qlx_openai_prompt_template feed the relevant parts into qlx_openai_system_context. The chat history is
+            automatically provided per the ChatCompletion API request. You no longer need to provide this on your own.
     """
+
     database = Redis  # type: ignore
 
     def __init__(self):
@@ -96,25 +87,20 @@ class openai_bot(Plugin):
         self.queue_lock = RLock()
         self.set_cvar_once("qlx_openai_botname", "Bob")
         self.set_cvar_once("qlx_openai_clanprefix", "")
-        self.set_cvar_once("qlx_openai_model", "text-davinci-003")
+        self.set_cvar_once("qlx_openai_model", "gpt-3.5-turbo")
         self.set_cvar_limit_once("qlx_openai_temperature", 1.0, 0.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_max_tokens", 100, 0, 4096)
         self.set_cvar_limit_once("qlx_openai_top_p", 1.0, 0.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_frequency_penalty", 0.0, -2.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_presence_penalty", 0.0, -2.0, 2.0)
-        self.set_cvar_once(
-            "qlx_openai_prompt_template",
-            "Chatlog:\n{chat_history}\n\n"
-            "You are {bot_name}, a spectator on a QuakeLive server.\n\n"
-            "{trigger_line}\n\n{bot_name}:"
-        )
+        self.set_cvar_once("qlx_openai_system_context", "You are {bot_name}, a spectator on a QuakeLive server.")
         self.set_cvar_once("qlx_openai_chat_history_minutes", "10")
         self.set_cvar_once("qlx_openai_chat_history_length", "8")
 
         self.bot_api_key = self.get_cvar("qlx_openai_apikey")
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
-        self.model = self.get_cvar("qlx_openai_model") or "text-davinci-003"
+        self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
         self.temperature = self.get_cvar("qlx_openai_temperature", float) or 1.0
         if self.temperature < 0 or self.temperature > 2:
             self.temperature = 1.0
@@ -128,8 +114,8 @@ class openai_bot(Plugin):
         self.presence_penalty = self.get_cvar("qlx_openai_presence_penalty", float) or 0.0
         if self.presence_penalty < -2.0 or self.presence_penalty > 2.0:
             self.presence_penalty = 0.0
-        self.prompt_template = (
-            self.get_cvar("qlx_openai_prompt_template").encode("raw_unicode_escape").decode("unicode_escape")
+        self.system_context = (
+            self.get_cvar("qlx_openai_system_context").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.chat_history_minutes = self.get_cvar("qlx_openai_chat_history_minutes", int) or 10
         self.chat_history_length = self.get_cvar("qlx_openai_chat_history_length", int) or 8
@@ -141,22 +127,25 @@ class openai_bot(Plugin):
 
     def summarize_game_end_stats(self, announcements):
         @minqlx.thread
-        def threaded_summary(prompt):
-            response = self._gather_completion(prompt)
+        def threaded_summary(messages):
+            response = self._gather_completion(messages)
             if response is None:
                 return
             response = response.replace("%", " percent")
             self._send_message(minqlx.CHAT_CHANNEL, response)
 
-        contextualized_prompt = f"Summarize in short using slang and sarcasm:\n{announcements}."
-        threaded_summary(contextualized_prompt)
+        contextualized_messages = [
+            {"role": "system", "content": self.system_context},
+            {"role": "user", "content": f"Summarize in short using slang and sarcasm:\n{announcements}."}
+        ]
+        threaded_summary(contextualized_messages)
 
-    def _gather_completion(self, prompt):
+    def _gather_completion(self, messages):
         openai.api_key = self.bot_api_key
         try:
-            completion = Completion.create(
-                engine=self.model,
-                prompt=prompt,
+            completion = ChatCompletion.create(
+                model=self.model,
+                messages=messages,
                 max_tokens=self.max_tokens,
                 n=1,
                 top_p=self.top_p,
@@ -171,9 +160,7 @@ class openai_bot(Plugin):
         return self._pick_choice_and_cleanup(completion)
 
     def _pick_choice_and_cleanup(self, completion):
-        response = (
-            completion.choices[0].text.lstrip().rstrip().replace("\n", " ").replace("  ", " ").lstrip('"').rstrip('"')
-        )
+        response = completion.choices[0]["message"]["content"]
         if len(response) == 0:
             return None
         if response.startswith(f"{self.bot_name}: "):
@@ -182,11 +169,7 @@ class openai_bot(Plugin):
 
     def _record_chat_line(self, message, *, lock):
         with lock:
-            self.db.zadd(
-                CHAT_BOT_LOG,
-                int(datetime.strftime(datetime.now(), DATETIMEFORMAT)),
-                message
-            )
+            self.db.zadd(CHAT_BOT_LOG, int(datetime.strftime(datetime.now(), DATETIMEFORMAT)), message)
 
     def _send_message(self, communication_channel, message):
         communication_channel.reply(f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{message}")
@@ -203,10 +186,10 @@ class openai_bot(Plugin):
     def handle_chat(self, player, msg, channel):
         @minqlx.thread
         def threaded_response(communication_channel, chatter, message):
-            request = f"Player {chatter.clean_name}: {message}"
+            request = f"{chatter.clean_name}: {message}"
             with self.queue_lock:
-                contextualized_prompt = self.contextualized_prompt(request)
-                response = self._gather_completion(contextualized_prompt)
+                message_history = self.contextualized_chat_history(request)
+                response = self._gather_completion(message_history)
                 self._record_chat_line(request, lock=self.queue_lock)
                 if response is None:
                     return
@@ -220,11 +203,15 @@ class openai_bot(Plugin):
 
         threaded_response(reply_channel, player, msg)
 
-    def contextualized_prompt(self, request):
+    def contextualized_chat_history(self, request):
         period_start = datetime.now() - timedelta(minutes=self.chat_history_minutes)
         chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, datetime.strftime(period_start, DATETIMEFORMAT), "+INF")
-        chat_history = "\n".join(chat_log[-self.chat_history_length:])
-        return self.prompt_template.format(bot_name=self.bot_name, chat_history=chat_history, trigger_line=request)
+        chat_history_messages = [{"role": "system", "content": self.system_context.format(bot_name=self.bot_name)}]
+        for message in chat_log[-self.chat_history_length:]:
+            role = "assistant" if message.startswith(self.bot_name) else "user"
+            chat_history_messages.append({"role": role, "content": message})
+        chat_history_messages.append({"role": "user", "content": request})
+        return chat_history_messages
 
     def cmd_list_models(self, player, _msg, _channel):
         self._list_models_in_thread(player)
