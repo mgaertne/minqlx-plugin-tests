@@ -270,10 +270,11 @@ class openai_bot(Plugin):
             return f"Chatlog:\n{returned}"
 
         system_context = {"role": "system", "content": self.system_context.format(bot_name=self.bot_name)}
-        chat_history_messages = [
-            {"role": "user", "content": request},
-            {"role": "user", "content": self.bot_mood.format(bot_name=self.bot_name)},
-        ]
+        chat_history_messages = [{"role": "user", "content": request}]
+        if len(self.bot_mood.format(bot_name=self.bot_name).strip()) > 0:
+            chat_history_messages.append(
+                {"role": "user", "content": self.bot_mood.format(bot_name=self.bot_name)},
+            )
 
         for message in reversed(chat_log):
             if (
