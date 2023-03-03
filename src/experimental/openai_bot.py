@@ -143,6 +143,10 @@ class openai_bot(Plugin):
             response = response.replace("%", " percent")
             self._send_message(minqlx.CHAT_CHANNEL, response)
 
+        if self.model.startswith("text-"):
+            threaded_summary(f"Summarize in short using slang and sarcasm:\n{announcements}.")
+            return
+
         contextualized_messages = [
             {
                 "role": "system",
