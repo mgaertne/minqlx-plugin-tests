@@ -148,12 +148,8 @@ class openai_bot(Plugin):
             return
 
         contextualized_messages = [
-            {
-                "role": "system",
-                "content": f"{self.system_context.format(bot_name=self.bot_name)} "
-                f"{self.bot_mood.format(bot_name=self.bot_name)}",
-            },
-            {"role": "system", "content": self.bot_mood.format(bot_name=self.bot_name)},
+            {"role": "system", "content": self.system_context.format(bot_name=self.bot_name)},
+            {"role": "user", "content": self.bot_mood.format(bot_name=self.bot_name)},
             {"role": "user", "content": f"Summarize in short using slang and sarcasm:\n{announcements}."},
         ]
         threaded_summary(contextualized_messages)
@@ -261,30 +257,24 @@ class openai_bot(Plugin):
     def contextualized_chat_history(self, request):
         chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, "-INF", "+INF")
         if self.model.startswith("text-"):
-            returned = (
-                f"\n{self.system_context.format(bot_name=self.bot_name)}"
-                f"{self.bot_mood.format(bot_name=self.bot_name)}\n\n"
-                f"{request}\n\n"
-                f"{self.bot_name}:"
-            )
+            returned = f"\n{self.system_context.format(bot_name=self.bot_name)}" f"{request}\n\n" f"{self.bot_name}:"
 
             encoding = tiktoken.encoding_for_model(self.model)
             for message in reversed(chat_log):
-                if len(encoding.encode("Chatlog:\n" + returned)) > self.max_chat_history_tokens:
+                if len(encoding.encode(f"Chatlog:\n{returned}")) > self.max_chat_history_tokens:
+                    score = self.db.zscore(CHAT_BOT_LOG, message)
+                    self.db.zremrangebyscore(CHAT_BOT_LOG, "-INF", score)
                     break
-                returned = f"{message}\n" + returned
+                returned = f"{message}\n{returned}"
 
-            return "Chatlog:\n" + returned
+            return f"Chatlog:\n{returned}"
 
-        system_context = {
-            "role": "system",
-            "content": f"{self.system_context.format(bot_name=self.bot_name)} "
-            f"{self.bot_mood.format(bot_name=self.bot_name)}",
-        }
+        system_context = {"role": "system", "content": self.system_context.format(bot_name=self.bot_name)}
         chat_history_messages = [
             {"role": "user", "content": request},
-            {"role": "system", "content": self.bot_mood.format(bot_name=self.bot_name)},
+            {"role": "user", "content": self.bot_mood.format(bot_name=self.bot_name)},
         ]
+
         for message in reversed(chat_log):
             if (
                 num_tokens_from_messages(chat_history_messages + [system_context], model=self.model)
@@ -297,6 +287,7 @@ class openai_bot(Plugin):
             chat_history_messages.append({"role": role, "content": message})
         chat_history_messages.append(system_context)
         chat_history_messages.reverse()
+
         return chat_history_messages
 
     def cmd_list_models(self, player, _msg, _channel):
