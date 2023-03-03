@@ -41,26 +41,31 @@ class OpenAIBridge(Cog):
         if self.bot.user is None or message.author.id == self.bot.user.id:
             return
 
-        pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
-        if not re.search(pattern, message.content, flags=re.IGNORECASE):
+        # noinspection PyProtectedMember
+        if "openai_bot" not in Plugin._loaded_plugins:  # pylint: disable=protected-access
             return
-
-        author_name = message.author.display_name if message.author.display_name else message.author.name
-        request = f"{author_name}: {message.content}"
 
         # noinspection PyProtectedMember
         openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]  # pylint: disable=protected-access
 
         # noinspection PyUnresolvedReferences
         with openai_bot_plugin.queue_lock:
-            # noinspection PyUnresolvedReferences
-            message_history = openai_bot_plugin.contextualized_chat_history(request)
-            # noinspection PyProtectedMember,PyUnresolvedReferences
-            response = openai_bot_plugin._gather_completion(message_history)  # pylint: disable=protected-access
+            author_name = message.author.display_name if message.author.display_name else message.author.name
+            request = f"Discord-Chatter {author_name}: {message.content}"
+
             # noinspection PyProtectedMember,PyUnresolvedReferences
             openai_bot_plugin._record_chat_line(  # pylint: disable=protected-access
                 request, lock=openai_bot_plugin.queue_lock
             )
+
+            pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
+            if not re.search(pattern, message.content, flags=re.IGNORECASE):
+                return
+
+            # noinspection PyUnresolvedReferences
+            message_history = openai_bot_plugin.contextualized_chat_history(request)
+            # noinspection PyProtectedMember,PyUnresolvedReferences
+            response = openai_bot_plugin._gather_completion(message_history)  # pylint: disable=protected-access
             if response is None:
                 return
             # noinspection PyProtectedMember,PyUnresolvedReferences
