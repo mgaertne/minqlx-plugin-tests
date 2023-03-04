@@ -148,9 +148,8 @@ class openai_bot(Plugin):
             return
 
         contextualized_messages = [
-            {"role": "system", "content": self.system_context.format(bot_name=self.bot_name)},
-            {"role": "user", "content": self.bot_mood.format(bot_name=self.bot_name)},
-            {"role": "user", "content": f"Summarize in short using slang and sarcasm:\n{announcements}."},
+            {"role": "user", "content": "You use sarcasm and slang."},
+            {"role": "user", "content": f"Give a two-sentence summary:\n{announcements}."},
         ]
         threaded_summary(contextualized_messages)
 
@@ -236,13 +235,15 @@ class openai_bot(Plugin):
         def threaded_response(communication_channel, chatter, message):
             with self.queue_lock:
                 request = f"Player {chatter.clean_name}: {message}"
-                self._record_chat_line(request, lock=self.queue_lock)
 
                 pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
                 if not re.search(pattern, msg, flags=re.IGNORECASE):
+                    self._record_chat_line(request, lock=self.queue_lock)
                     return
 
                 message_history = self.contextualized_chat_history(request)
+                self._record_chat_line(request, lock=self.queue_lock)
+
                 response = self._gather_completion(message_history)
                 if response is None:
                     return
@@ -250,6 +251,9 @@ class openai_bot(Plugin):
                 self._send_message(communication_channel, response)
 
         if channel not in [CHAT_CHANNEL]:
+            return
+
+        if len(Plugin.clean_text(msg)) < 3:
             return
 
         threaded_response(channel, player, msg)
