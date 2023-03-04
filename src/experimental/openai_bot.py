@@ -253,6 +253,9 @@ class openai_bot(Plugin):
         if channel not in [CHAT_CHANNEL]:
             return
 
+        if msg.startswith("!"):
+            return
+
         if len(Plugin.clean_text(msg)) < 3:
             return
 
