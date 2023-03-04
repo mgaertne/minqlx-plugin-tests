@@ -51,7 +51,7 @@ class OpenAIBridge(Cog):
         # noinspection PyUnresolvedReferences
         with openai_bot_plugin.queue_lock:
             author_name = message.author.display_name if message.author.display_name else message.author.name
-            request = f"Discord-Chatter {author_name}: {message.content}"
+            request = f"{author_name}: {message.content}"
 
             # noinspection PyProtectedMember,PyUnresolvedReferences
             openai_bot_plugin._record_chat_line(  # pylint: disable=protected-access

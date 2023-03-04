@@ -8,6 +8,7 @@ You are free to modify this plugin to your own one.
 You need to install openai in your python installation, i.e. python3 -m pip install -U openai
 """
 import re
+import time
 from datetime import datetime
 from threading import RLock
 
@@ -71,14 +72,19 @@ class openai_bot(Plugin):
             based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
     * qlx_openai_system_context A template string that provides the overall system context for the chat. You can use
             {bot_name} to dynamically fill in the name of the bot here.
+            {game_state} to dynamically insert the current game state
             Defaults to: "You are {bot_name}, a spectator on a QuakeLive server."
     * qlx_openai_bot_mood A template string that provides the overall bot mood or instructions on how to react to
-            different types of messages and questions. You can use {bot_name} to dynamically fill in the name of the
-            bot here.
+            different types of messages and questions. You can use
+            {bot_name} to dynamically fill in the name of the bot here.
+            {game_state} to dynamically insert the current game state
             Defaults to: ""
     * qlx_openai_max_chat_history_tokens (default: 512) Maximum number of tokens the chat history may consume.
             Values are limited to be between 0 and 4096. Note that chat history tokens should be lower than
             qlx_openai_max_tokens.
+    * qlx_openai_greet_joiners (default: 1 or True) greet joiners upon messages within the greeting_delay
+    * qlx_openai_greeting_delay (default: 60) amount of seconds where newly connected players will be greeted upon
+            their first message regardless of bot mentioning
 
     Previously used cvars that have become obsolete and are no longer used/supported:
     * qlx_openai_prompt_template feed the relevant parts into qlx_openai_system_context. The chat history is
@@ -104,6 +110,8 @@ class openai_bot(Plugin):
         self.set_cvar_once("qlx_openai_system_context", "You are {bot_name}, a spectator on a QuakeLive server.")
         self.set_cvar_once("qlx_openai_bot_mood", "")
         self.set_cvar_limit_once("qlx_openai_max_chat_history_tokens", 512, 0, 4096)
+        self.set_cvar_once("qlx_openai_greet_joiners", "1")
+        self.set_cvar_once("qlx_openai_greeting_delay", "60")
 
         self.bot_api_key = self.get_cvar("qlx_openai_apikey")
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
@@ -129,7 +137,12 @@ class openai_bot(Plugin):
         self.max_chat_history_tokens = self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
         self.max_chat_history_tokens = min(self.max_chat_history_tokens, self.max_tokens)
 
+        self.greet_joiners = self.get_cvar("qlx_openai_greet_joiners", bool)
+        self.greeting_delay = self.get_cvar("qlx_openai_greeting_delay", int) or 60
+        self.recently_connected_steam_ids = set()
+
         self.add_hook("chat", self.handle_chat)
+        self.add_hook("player_connect", self.handle_player_connect)
 
         self.add_command("listmodels", self.cmd_list_models, permission=5)
         self.add_command("switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]")
@@ -144,12 +157,12 @@ class openai_bot(Plugin):
             self._send_message(minqlx.CHAT_CHANNEL, response)
 
         if self.model.startswith("text-"):
-            threaded_summary(f"Summarize in short using slang and sarcasm:\n{announcements}.")
+            threaded_summary(f"Summarize in short using slang and sarcasm:\n{Plugin.clean_text(announcements)}.")
             return
 
         contextualized_messages = [
             {"role": "user", "content": "You use sarcasm and slang."},
-            {"role": "user", "content": f"Give a two-sentence summary:\n{announcements}."},
+            {"role": "user", "content": f"Give a two-sentence summary:\n{Plugin.clean_text(announcements)}."},
         ]
         threaded_summary(contextualized_messages)
 
@@ -234,12 +247,19 @@ class openai_bot(Plugin):
         @minqlx.thread
         def threaded_response(communication_channel, chatter, message):
             with self.queue_lock:
-                request = f"Player {chatter.clean_name}: {message}"
+                request = f"{chatter.clean_name}: {message}"
 
                 pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
-                if not re.search(pattern, msg, flags=re.IGNORECASE):
+                if (
+                    not re.search(pattern, msg, flags=re.IGNORECASE)
+                    and not self.greet_joiners
+                    and chatter.steam_id not in self.recently_connected_steam_ids
+                ):
                     self._record_chat_line(request, lock=self.queue_lock)
                     return
+
+                if chatter.steam_id in self.recently_connected_steam_ids:
+                    self.recently_connected_steam_ids.remove(chatter.steam_id)
 
                 message_history = self.contextualized_chat_history(request)
                 self._record_chat_line(request, lock=self.queue_lock)
@@ -264,7 +284,11 @@ class openai_bot(Plugin):
     def contextualized_chat_history(self, request):
         chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, "-INF", "+INF")
         if self.model.startswith("text-"):
-            returned = f"\n{self.system_context.format(bot_name=self.bot_name)}" f"{request}\n\n" f"{self.bot_name}:"
+            returned = (
+                f"\n{self.system_context.format(bot_name=self.bot_name, game_state=self.current_game_state())}"
+                f"{request}\n\n"
+                f"{self.bot_name}:"
+            )
 
             encoding = tiktoken.encoding_for_model(self.model)
             for message in reversed(chat_log):
@@ -276,11 +300,17 @@ class openai_bot(Plugin):
 
             return f"Chatlog:\n{returned}"
 
-        system_context = {"role": "system", "content": self.system_context.format(bot_name=self.bot_name)}
+        system_context = {
+            "role": "system",
+            "content": self.system_context.format(bot_name=self.bot_name, game_state=self.current_game_state()),
+        }
         chat_history_messages = [{"role": "user", "content": request}]
-        if len(self.bot_mood.format(bot_name=self.bot_name).strip()) > 0:
+        if len(self.bot_mood.format(bot_name=self.bot_name, game_state=self.current_game_state()).strip()) > 0:
             chat_history_messages.append(
-                {"role": "user", "content": self.bot_mood.format(bot_name=self.bot_name)},
+                {
+                    "role": "user",
+                    "content": self.bot_mood.format(bot_name=self.bot_name, game_state=self.current_game_state()),
+                }
             )
 
         for message in reversed(chat_log):
@@ -297,6 +327,38 @@ class openai_bot(Plugin):
         chat_history_messages.reverse()
 
         return chat_history_messages
+
+    def current_game_state(self):
+        game = self.game
+        if game is None:
+            return ""
+
+        teams = Plugin.teams()
+        red_names = ", ".join([player.clean_name for player in teams["red"]])
+        blue_names = ", ".join([player.clean_name for player in teams["blue"]])
+
+        map_title = f"{game.map_title} ({game.map})" if game.map_title else game.map
+
+        if game.state != "in_progress":
+            return (
+                f"Team Red: {red_names} Team Blue: {blue_names} Match state: {game.state.lower()} "
+                f"Current map: {map_title}"
+            )
+
+        return (
+            f"Team Red: {red_names} Team Blue: {blue_names} Match state: {game.state.replace('_', ' ').lower()} "
+            f"Match standings Red:{game.red_score} Blue:{game.blue_score} Current map: {map_title}"
+        )
+
+    def handle_player_connect(self, player):
+        self.recently_connected_steam_ids.add(player.steam_id)
+        self._remove_recently_connected(player.steam_id)
+
+    @minqlx.thread
+    def _remove_recently_connected(self, steam_id):
+        time.sleep(self.greeting_delay)
+        if steam_id in self.recently_connected_steam_ids:
+            self.recently_connected_steam_ids.remove(steam_id)
 
     def cmd_list_models(self, player, _msg, _channel):
         self._list_models_in_thread(player)
