@@ -61,9 +61,10 @@ class openai_bot(Plugin):
     * qlx_openai_botname (default: "Bob") The name of the bot as it will appear in in-game chat.
     * qlx_openai_clanprefix (default: "") An optional clan prefix that will show up whenever your bot says something.
     * qlx_openai_model (default: "gpt-3.5-turbo") The AI model used for creating chat interactions.
+    * qlx_openai_max_tokens (default: 1024, max: 4096) The maximum amount of tokens a completion may consume.
+    * qlx_openai_max_chat_history_tokens (default: 512) Maximum number of tokens the chat history may consume.
+            Values are limited to be between 0 and 4096.
     * qlx_openai_temperature (default: 1.0) What sampling temperature to use, between 0 and 2.
-    * qlx_openai_max_tokens (default: 1024, max: 4096) The maximum amount of tokens a completion may consume. Note that
-            tokens are consumed for the prompt and completion combined.
     * qlx_openai_top_p (default: 1.0) An alternative to sampling with temperature, called nucleus sampling.
     * qlx_openai_frequency_penalty (default: 0.0) Number between -2.0 and 2.0. Positive values penalize new tokens
             based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same
@@ -79,18 +80,9 @@ class openai_bot(Plugin):
             {bot_name} to dynamically fill in the name of the bot here.
             {game_state} to dynamically insert the current game state
             Defaults to: ""
-    * qlx_openai_max_chat_history_tokens (default: 512) Maximum number of tokens the chat history may consume.
-            Values are limited to be between 0 and 4096. Note that chat history tokens should be lower than
-            qlx_openai_max_tokens.
     * qlx_openai_greet_joiners (default: 1 or True) greet joiners upon messages within the greeting_delay
     * qlx_openai_greeting_delay (default: 60) amount of seconds where newly connected players will be greeted upon
             their first message regardless of bot mentioning
-
-    Previously used cvars that have become obsolete and are no longer used/supported:
-    * qlx_openai_prompt_template feed the relevant parts into qlx_openai_system_context. The chat history is
-            automatically provided per the ChatCompletion API request. You no longer need to provide this on your own.
-    * qlx_openai_chat_history_minutes and qlx_openai_chat_history_length these were replaced with the
-            max_chat_history_tokens approach that is dynamically determined.
     """
 
     database = Redis  # type: ignore
@@ -102,14 +94,14 @@ class openai_bot(Plugin):
         self.set_cvar_once("qlx_openai_botname", "Bob")
         self.set_cvar_once("qlx_openai_clanprefix", "")
         self.set_cvar_once("qlx_openai_model", "gpt-3.5-turbo")
-        self.set_cvar_limit_once("qlx_openai_temperature", 1.0, 0.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_max_tokens", 1024, 0, 4096)
+        self.set_cvar_limit_once("qlx_openai_max_chat_history_tokens", 512, 0, 4096)
+        self.set_cvar_limit_once("qlx_openai_temperature", 1.0, 0.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_top_p", 1.0, 0.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_frequency_penalty", 0.0, -2.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_presence_penalty", 0.0, -2.0, 2.0)
         self.set_cvar_once("qlx_openai_system_context", "You are {bot_name}, a spectator on a QuakeLive server.")
         self.set_cvar_once("qlx_openai_bot_mood", "")
-        self.set_cvar_limit_once("qlx_openai_max_chat_history_tokens", 512, 0, 4096)
         self.set_cvar_once("qlx_openai_greet_joiners", "1")
         self.set_cvar_once("qlx_openai_greeting_delay", "60")
 
@@ -117,10 +109,11 @@ class openai_bot(Plugin):
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
+        self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
+        self.max_chat_history_tokens = self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
         self.temperature = self.get_cvar("qlx_openai_temperature", float) or 1.0
         if self.temperature < 0 or self.temperature > 2:
             self.temperature = 1.0
-        self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
         self.top_p = self.get_cvar("qlx_openai_top_p", float) or 1.0
         if self.top_p < 0 or self.top_p > 2:
             self.top_p = 1.0
@@ -134,8 +127,6 @@ class openai_bot(Plugin):
             self.get_cvar("qlx_openai_system_context").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_mood = self.get_cvar("qlx_openai_bot_mood").encode("raw_unicode_escape").decode("unicode_escape")
-        self.max_chat_history_tokens = self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
-        self.max_chat_history_tokens = min(self.max_chat_history_tokens, self.max_tokens)
 
         self.greet_joiners = self.get_cvar("qlx_openai_greet_joiners", bool)
         self.greeting_delay = self.get_cvar("qlx_openai_greeting_delay", int) or 60
@@ -143,6 +134,7 @@ class openai_bot(Plugin):
 
         self.add_hook("chat", self.handle_chat)
         self.add_hook("player_connect", self.handle_player_connect)
+        self.add_hook("game_countdown", self.handle_game_countdown)
 
         self.add_command("listmodels", self.cmd_list_models, permission=5)
         self.add_command("switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]")
@@ -162,7 +154,7 @@ class openai_bot(Plugin):
 
         contextualized_messages = [
             {"role": "user", "content": "You use sarcasm and slang."},
-            {"role": "user", "content": f"Give a two-sentence summary:\n{Plugin.clean_text(announcements)}."},
+            {"role": "user", "content": f"Give a two-sentence summary: {Plugin.clean_text(announcements)}."},
         ]
         threaded_summary(contextualized_messages)
 
@@ -220,7 +212,7 @@ class openai_bot(Plugin):
                 response = response.replace(f"{self.bot_name}: ", "")
             return response
 
-        response = completion.choices[0]["message"]["content"]
+        response = completion.choices[0]["message"]["content"].lstrip().rstrip()
         if len(response) == 0:
             return None
         if response.startswith(f"{self.bot_name}: "):
@@ -250,10 +242,8 @@ class openai_bot(Plugin):
                 request = f"{chatter.clean_name}: {message}"
 
                 pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
-                if (
-                    not re.search(pattern, msg, flags=re.IGNORECASE)
-                    and not self.greet_joiners
-                    and chatter.steam_id not in self.recently_connected_steam_ids
+                if not re.search(pattern, msg, flags=re.IGNORECASE) and (
+                    not self.greet_joiners or chatter.steam_id not in self.recently_connected_steam_ids
                 ):
                     self._record_chat_line(request, lock=self.queue_lock)
                     return
@@ -334,20 +324,30 @@ class openai_bot(Plugin):
             return ""
 
         teams = Plugin.teams()
-        red_names = ", ".join([player.clean_name for player in teams["red"]])
-        blue_names = ", ".join([player.clean_name for player in teams["blue"]])
+        team_status = ""
+        if len(teams["red"]) > 0:
+            red_names = ", ".join([player.clean_name for player in teams["red"]])
+            team_status += f"Team Red: {red_names}\n"
+        if len(teams["blue"]) > 0:
+            blue_names = ", ".join([player.clean_name for player in teams["blue"]])
+            team_status += f"Team Blue: {blue_names}\n"
+        team_status += f"Spectators: {self.bot_name}"
+        if len(teams["spectator"]) > 0:
+            spectator_names = ", ".join([player.clean_name for player in teams["spectator"]])
+            team_status += f", {spectator_names}"
 
-        map_title = f"{game.map_title} ({game.map})" if game.map_title else game.map
+        map_title = game.map_title if game.map_title else game.map
 
         if game.state != "in_progress":
             return (
-                f"Team Red: {red_names} Team Blue: {blue_names} Match state: {game.state.lower()} "
-                f"Current map: {map_title}"
+                f"{team_status}\nMatch state: {game.state.lower()}\n"
+                f"Current map: {map_title}\nGame type: {game.factory_title}\n"
             )
 
         return (
-            f"Team Red: {red_names} Team Blue: {blue_names} Match state: {game.state.replace('_', ' ').lower()} "
-            f"Match standings Red:{game.red_score} Blue:{game.blue_score} Current map: {map_title}"
+            f"{team_status}\nMatch state: {game.state.replace('_', ' ').lower()}\n"
+            f"Match standings Red:{game.red_score}, Blue:{game.blue_score}\n"
+            f"Current map: {map_title}\nGame type: {game.factory_title}\n"
         )
 
     def handle_player_connect(self, player):
@@ -359,6 +359,24 @@ class openai_bot(Plugin):
         time.sleep(self.greeting_delay)
         if steam_id in self.recently_connected_steam_ids:
             self.recently_connected_steam_ids.remove(steam_id)
+
+    def handle_game_countdown(self):
+        @minqlx.thread
+        def threaded_response():
+            with self.queue_lock:
+                map_title = self.game.map_title if self.game.map_title else self.game.map
+                request = f"Match starting on {map_title}"
+
+                message_history = self.contextualized_chat_history(request)
+                self._record_chat_line(request, lock=self.queue_lock)
+
+                response = self._gather_completion(message_history)
+                if response is None:
+                    return
+                self._record_chat_line(f"{self.bot_name}: {response}", lock=self.queue_lock)
+                self._send_message(minqlx.CHAT_CHANNEL, response)
+
+        threaded_response()
 
     def cmd_list_models(self, player, _msg, _channel):
         self._list_models_in_thread(player)
