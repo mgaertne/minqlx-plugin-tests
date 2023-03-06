@@ -1,0 +1,156 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minqlx_plugin_tests"
+version = "0.0.1"
+authors = [{name = "Markus 'ShiN0' Gaertner"}]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+requires-python = ">=3.6"
+dependencies = [
+    "tox",
+    "zmq",
+    "redis>=2.10",
+    "urllib3>=1.24.3",
+    "requests>=2.20",
+    "aiohttp>=3.7.4",
+    "aiohttp_retry>=2.4",
+    "discord.py>=2.0; python_version >= '3.8'",
+    "schedule>=1.0.0; python_version >= '3.8'",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Homepage = "https://github.com/mgaertne/minqlx-plugin-tests"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+include-package-data = false
+
+[tool.setuptools.packages]
+find = {namespaces = false}
+
+[tool.tox]
+legacy_tox_ini = """
+    [tox]
+    envlist = py3{6,7,8,9,10,11},coverage,ruff,mypy
+    usedevelop = true
+
+    [gh-actions]
+    python =
+        3.6: py36
+        3.7: py37
+        3.8: py38
+        3.9: py39
+        3.10: py310
+        3.11: py311
+
+   [testenv:py3{6,7,8,9,10,11}]
+    deps =
+        -rrequirements-tests.txt
+    commands =
+        pytest {posargs:tests}
+
+    [testenv:coverage]
+    deps =
+        -rrequirements-dev.txt
+    commands =
+        coverage erase
+        coverage run -m pytest {posargs:tests}
+        coverage report
+        coverage xml
+        coverage html
+
+    [testenv:ruff]
+    deps =
+        ruff
+    commands = ruff {posargs:src tests}
+
+    [testenv:mypy]
+    deps =
+        mypy
+        types-redis
+        types-requests
+    commands = mypy {posargs}
+"""
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
+pythonpath = [
+    "src",
+    "tests",
+]
+
+[tool.coverage.paths]
+source = [
+    "src"
+]
+
+[tool.coverage.run]
+omit = [
+    "src/minqlx/*",
+    "src/experimental/*",
+    "tests/*",
+    "tests/minqlx_plugin_test/*",
+]
+
+[tool.ruff]
+select = ["C4", "E", "F", "SIM", "TCH"]
+ignore = []
+
+fixable = ["A", "B", "C", "D", "E", "F"]
+unfixable = []
+
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "build",
+    "dist",
+    "venv",
+]
+per-file-ignores = {}
+
+line-length = 120
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+target-version = "py37"
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+packages = ["stubs","src","tests"]
+check_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_configs = true
+no_implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = "stubs.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

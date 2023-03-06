@@ -103,5 +103,8 @@ ENV/
 # idea/PyCharm
 .idea
 
+# ruff
+.ruff_cache/
+
 # MAC
 .DS_Store
