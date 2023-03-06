@@ -27,13 +27,3 @@ jobs:
         python -m pip install tox tox-gh-actions
     - name: Test with tox
       run: tox -r
-    - name: Upload coverage.xml
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: tox-gh-actions-coverage
-        path: coverage.xml
-        if-no-files-found: error
-    - name: Upload coverage.xml to codecov
-      if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' }}
-      uses: codecov/codecov-action@v2
