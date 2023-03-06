@@ -1,9 +1,12 @@
-from threading import RLock
-
-from openai import ChatCompletion
+from typing import TYPE_CHECKING
 
 from minqlx import Plugin, Player, AbstractChannel
-from minqlx.database import Redis
+
+if TYPE_CHECKING:
+    from threading import RLock
+
+    from openai import ChatCompletion
+    from minqlx.database import Redis
 
 DATETIMEFORMAT: str
 CHAT_BOT_LOG: str

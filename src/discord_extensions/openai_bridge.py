@@ -3,6 +3,8 @@ import re
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog
 
+import emoji
+
 from minqlx import Plugin
 
 
@@ -33,7 +35,9 @@ class OpenAIBridge(Cog):
 
     @Cog.listener(name="on_message")
     async def on_message(self, message):
-        discord_relay_channel_ids = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+        discord_relay_channel_ids = int_set(
+            Plugin.get_cvar("qlx_discordRelayChannelIds", set)
+        )
 
         if message.channel.id not in discord_relay_channel_ids:
             return
@@ -42,15 +46,24 @@ class OpenAIBridge(Cog):
             return
 
         # noinspection PyProtectedMember
-        if "openai_bot" not in Plugin._loaded_plugins:  # pylint: disable=protected-access
+        if (
+            "openai_bot"
+            not in Plugin._loaded_plugins  # pylint: disable=protected-access
+        ):
             return
 
         # noinspection PyProtectedMember
-        openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]  # pylint: disable=protected-access
+        openai_bot_plugin = Plugin._loaded_plugins[  # pylint: disable=protected-access
+            "openai_bot"
+        ]
 
         # noinspection PyUnresolvedReferences
         with openai_bot_plugin.queue_lock:
-            author_name = message.author.display_name if message.author.display_name else message.author.name
+            author_name = (
+                message.author.display_name
+                if message.author.display_name
+                else message.author.name
+            )
             request = f"{author_name}: {message.content}"
 
             # noinspection PyProtectedMember,PyUnresolvedReferences
@@ -65,15 +78,24 @@ class OpenAIBridge(Cog):
             # noinspection PyUnresolvedReferences
             message_history = openai_bot_plugin.contextualized_chat_history(request)
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            response = openai_bot_plugin._gather_completion(message_history)  # pylint: disable=protected-access
+            response = openai_bot_plugin._gather_completion(  # pylint: disable=protected-access
+                message_history
+            )
             if response is None:
                 return
             # noinspection PyProtectedMember,PyUnresolvedReferences
             openai_bot_plugin._record_chat_line(  # pylint: disable=protected-access
                 f"{self.bot_name}: {response}", lock=openai_bot_plugin.queue_lock
             )
-            Plugin.msg(f"{self.bot_clanprefix}{self.bot_name}: {response}")
-            await message.channel.send(content=Plugin.clean_text(f"{self.bot_clanprefix}{self.bot_name}: {response}"))
+            Plugin.msg(
+                f"{self.bot_clanprefix}{self.bot_name}: "
+                f"{emoji.demojize(response, delimiters=('#', ' ')).replace('  ', ' ')}"
+            )
+            await message.channel.send(
+                content=Plugin.clean_text(
+                    f"{self.bot_clanprefix}{self.bot_name}: {response}"
+                )
+            )
 
 
 async def setup(bot):
