@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from typing import Pattern, Callable, Iterable
+from typing import Pattern, Callable, Iterable, TYPE_CHECKING
 
-from minqlx import Player, Plugin
+if TYPE_CHECKING:
+    from minqlx import Player, Plugin
 
 MAX_MSG_LENGTH: int
 re_color_tag: Pattern

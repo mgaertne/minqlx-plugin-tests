@@ -1,20 +1,24 @@
-# noinspection PyPackageRequirements
-from discord import (
-    Activity,
-    CustomActivity,
-    Game,
-    Interaction,
-    Member,
-    Spotify,
-    Streaming,
-    User,
-    app_commands,
-)
+from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Cog
-from minqlx import Player
-from minqlx.database import Redis
+
+if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
+    from discord import (
+        Activity,
+        CustomActivity,
+        Game,
+        Interaction,
+        Member,
+        Spotify,
+        Streaming,
+        User,
+        app_commands,
+    )
+
+    from minqlx import Player
+    from minqlx.database import Redis
 
 DISCORD_MAP_SUBSCRIPTION_KEY: str
 DISCORD_PLAYER_SUBSCRIPTION_KEY: str

@@ -1,10 +1,13 @@
-# noinspection PyPackageRequirements
-from discord import Interaction
+from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Cog, Context
 
-from minqlx import Game, Player
+if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
+    from discord import Interaction
+
+    from minqlx import Game, Player
 
 def get_game_info(game: Game) -> str: ...
 def player_data() -> str: ...

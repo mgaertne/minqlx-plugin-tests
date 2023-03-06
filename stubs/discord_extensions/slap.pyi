@@ -1,11 +1,11 @@
-# noinspection PyPackageRequirements
-from discord import (
-    Interaction,
-    Member,
-)
+from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot as Bot
+
+if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
+    from discord import Interaction, Member
 
 async def slap(interaction: Interaction, member: Member) -> None: ...
 async def _slap(interaction: Interaction, member: Member) -> None: ...

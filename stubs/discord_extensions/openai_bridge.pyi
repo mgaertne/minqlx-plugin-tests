@@ -1,8 +1,11 @@
-# noinspection PyPackageRequirements
-from discord import Message
+from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Bot
+
+if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
+    from discord import Message
 
 def int_set(string_set: set[str]) -> set[int]: ...
 

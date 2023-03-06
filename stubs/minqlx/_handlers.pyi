@@ -1,9 +1,11 @@
-from collections import deque
-from sched import scheduler
-from types import TracebackType
-from typing import Pattern, Type
+from typing import Pattern, Type, TYPE_CHECKING
 
-from minqlx import AbstractChannel
+if TYPE_CHECKING:
+    from collections import deque
+    from sched import scheduler
+    from types import TracebackType
+
+    from minqlx import AbstractChannel
 
 _re_say: Pattern
 _re_say_team: Pattern

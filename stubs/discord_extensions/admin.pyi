@@ -1,15 +1,18 @@
-from asyncio import AbstractEventLoop
-
-# noinspection PyPackageRequirements
-import discord.utils
-
-# noinspection PyPackageRequirements
-from discord import Interaction as Interaction, Message as Message, User as User, Embed
+from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot as Bot, Cog, Context as Context
 
 from minqlx import AbstractChannel, AbstractDummyPlayer
+
+if TYPE_CHECKING:
+    from asyncio import AbstractEventLoop
+
+    # noinspection PyPackageRequirements
+    import discord.utils
+    # noinspection PyPackageRequirements
+    from discord import Interaction as Interaction, Message as Message, User as User, Embed
+
 
 class DiscordInteractionChannel(AbstractChannel, AbstractDummyPlayer):
     user: User

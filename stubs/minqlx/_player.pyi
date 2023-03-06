@@ -1,15 +1,16 @@
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 
-from minqlx import (
-    PlayerInfo,
-    PlayerState,
-    PlayerStats,
-    Vector3,
-    Weapons,
-    Powerups,
-    Flight,
-    AbstractChannel,
-)
+if TYPE_CHECKING:
+    from minqlx import (
+        PlayerInfo,
+        PlayerState,
+        PlayerStats,
+        Vector3,
+        Weapons,
+        Powerups,
+        Flight,
+        AbstractChannel,
+    )
 
 _DUMMY_USERINFO: Iterable[str]
 

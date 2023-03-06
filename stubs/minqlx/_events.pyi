@@ -1,6 +1,7 @@
-from typing import Type, Callable, Iterable, Mapping, Pattern
+from typing import Type, Callable, Iterable, Mapping, Pattern, TYPE_CHECKING
 
-from minqlx import Plugin, Player, AbstractChannel, Command
+if TYPE_CHECKING:
+    from minqlx import Plugin, Player, AbstractChannel, Command
 
 _re_vote: Pattern
 

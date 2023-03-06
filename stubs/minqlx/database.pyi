@@ -1,9 +1,11 @@
-from datetime import timedelta
-from logging import Logger
-from typing import overload, Mapping
+from typing import overload, Mapping, TYPE_CHECKING
 
-from redis import Redis as redisRedis, ConnectionPool
-from minqlx import Plugin, Player
+if TYPE_CHECKING:
+    from datetime import timedelta
+    from logging import Logger
+
+    from redis import Redis as redisRedis, ConnectionPool
+    from minqlx import Plugin, Player
 
 class AbstractDatabase:
     _counter: int

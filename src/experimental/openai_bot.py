@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from threading import RLock
 
+import emoji
 import openai
 import tiktoken
 from openai import OpenAIError, Model, ChatCompletion, Completion
@@ -254,7 +255,8 @@ class openai_bot(Plugin):
 
     def _send_message(self, communication_channel, message):
         communication_channel.reply(
-            f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{message}"
+            f"{self.bot_clanprefix}^7{self.bot_name}^7: "
+            f"^2{emoji.demojize(message, delimiters=('#', ' ')).replace('  ', ' ')}"
         )
 
         # noinspection PyProtectedMember

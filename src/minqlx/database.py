@@ -181,7 +181,9 @@ class Redis(AbstractDatabase):
         elif isinstance(player, str):
             steam_id = int(player)
         else:
-            raise ValueError("Invalid player. Use either a minqlx.Player instance or a SteamID64.")
+            raise ValueError(
+                "Invalid player. Use either a minqlx.Player instance or a SteamID64."
+            )
 
         # If it's the owner, treat it like a 5.
         if steam_id == minqlx.owner():
@@ -289,10 +291,7 @@ class Redis(AbstractDatabase):
                     )
                 else:
                     split_host = cvar_host.split(":")
-                    if len(split_host) > 1:
-                        port = int(split_host[1])
-                    else:
-                        port = 6379  # Default port.
+                    port = int(split_host[1]) if len(split_host) > 1 else 6379
                     Redis._pool = redis.ConnectionPool(
                         host=split_host[0],
                         port=port,
@@ -300,7 +299,9 @@ class Redis(AbstractDatabase):
                         password=Redis._pass,
                         decode_responses=True,
                     )
-                    Redis._conn = redis.StrictRedis(connection_pool=Redis._pool, decode_responses=True)
+                    Redis._conn = redis.StrictRedis(
+                        connection_pool=Redis._pool, decode_responses=True
+                    )
                     # TODO: Why does self._conn get set when doing Redis._conn?
                     self._conn = None
             return Redis._conn
@@ -308,10 +309,7 @@ class Redis(AbstractDatabase):
             if host is None:
                 raise ValueError("wrong host")
             split_host = host.split(":")
-            if len(split_host) > 1:
-                port = int(split_host[1])
-            else:
-                port = 6379  # Default port.
+            port = int(split_host[1]) if len(split_host) > 1 else 6379
 
             if unix_socket:
                 self._conn = redis.StrictRedis(
@@ -328,7 +326,9 @@ class Redis(AbstractDatabase):
                     password=password,
                     decode_responses=True,
                 )
-                self._conn = redis.StrictRedis(connection_pool=self._pool, decode_responses=True)
+                self._conn = redis.StrictRedis(
+                    connection_pool=self._pool, decode_responses=True
+                )
         return self._conn
 
     def close(self):
@@ -380,9 +380,8 @@ class Redis(AbstractDatabase):
             return self.r.zadd(name, *args, **kwargs)
 
         mapping = {}
-        if len(args) > 0:
-            if len(args) % 2 != 0:
-                raise redis.RedisError("ZADD requires an equal number of values and scores")
+        if len(args) > 0 and len(args) % 2 != 0:
+            raise redis.RedisError("ZADD requires an equal number of values and scores")
 
         for i in range(0, len(args), 2):
             mapping[args[i + 1]] = args[i]

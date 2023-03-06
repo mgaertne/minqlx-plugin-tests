@@ -1,6 +1,9 @@
+from typing import TYPE_CHECKING
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Cog
-from minqlx import Game
+
+if TYPE_CHECKING:
+    from minqlx import Game
 
 def get_game_info(game: Game) -> str: ...
 def game_status_information(game: Game) -> str: ...

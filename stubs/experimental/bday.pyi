@@ -1,7 +1,10 @@
-from datetime import datetime
+from typing import TYPE_CHECKING
 
 from minqlx import Plugin, AbstractChannel, Player
-from minqlx.database import Redis
+
+if TYPE_CHECKING:
+    from datetime import datetime
+    from minqlx.database import Redis
 
 SteamId = int
 

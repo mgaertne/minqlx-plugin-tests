@@ -58,9 +58,14 @@ class SubscriberCog(Cog):
             # noinspection PyProtectedMember,PyUnresolvedReferences
             self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps  # type: ignore
 
-        self.formatted_installed_maps = {mapname: mapname for mapname in self.installed_maps}
+        self.formatted_installed_maps = {
+            mapname: mapname for mapname in self.installed_maps
+        }
         for mapname, long_map_name in self.long_map_names_lookup.items():
-            if mapname in self.installed_maps and long_map_name.lower() != mapname.lower():
+            if (
+                mapname in self.installed_maps
+                and long_map_name.lower() != mapname.lower()
+            ):
                 self.formatted_installed_maps[mapname] = f"{long_map_name} ({mapname})"
 
         self.known_players = self.gather_known_players()
@@ -110,7 +115,9 @@ class SubscriberCog(Cog):
             await interaction.edit_original_response(embed=reply_embed)
             return
 
-        db_return_value = self.db.sadd(DISCORD_MAP_SUBSCRIPTION_KEY.format(interaction.user.id), stripped_mapname)
+        db_return_value = self.db.sadd(
+            DISCORD_MAP_SUBSCRIPTION_KEY.format(interaction.user.id), stripped_mapname
+        )
 
         if not db_return_value:
             immediate_reply_message = (
@@ -126,9 +133,12 @@ class SubscriberCog(Cog):
         await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
-        formatted_maps = "`, `".join([self.format_mapname(mapname) for mapname in subscribed_maps])
+        formatted_maps = "`, `".join(
+            [self.format_mapname(mapname) for mapname in subscribed_maps]
+        )
         reply_embed.description = (
-            f"{immediate_reply_message}\n" f"You are currently subscribed to map changes for: `{formatted_maps}`"
+            f"{immediate_reply_message}\n"
+            f"You are currently subscribed to map changes for: `{formatted_maps}`"
         )
         await interaction.edit_original_response(embed=reply_embed)
 
@@ -150,12 +160,15 @@ class SubscriberCog(Cog):
         filtered_candidates = [
             mapname
             for mapname, formatted_long_name in self.formatted_installed_maps.items()
-            if current.lower() in formatted_long_name.lower() and mapname not in subscribed_maps
+            if current.lower() in formatted_long_name.lower()
+            and mapname not in subscribed_maps
         ]
         filtered_candidates.sort()
 
         return [
-            app_commands.Choice(name=self.formatted_installed_maps[mapname], value=mapname)
+            app_commands.Choice(
+                name=self.formatted_installed_maps[mapname], value=mapname
+            )
             for mapname in filtered_candidates[:25]
         ]
 
@@ -179,12 +192,16 @@ class SubscriberCog(Cog):
 
         matching_players = self.find_matching_players(stripped_player_name)
         if len(matching_players) == 0:
-            reply_embed.description = f"No player matching player name `{stripped_player_name}` found."
+            reply_embed.description = (
+                f"No player matching player name `{stripped_player_name}` found."
+            )
             await interaction.edit_original_response(embed=reply_embed)
             return
 
         if len(matching_players) > 1:
-            matching_player_names = [self.formatted_last_used_name(steam_id) for steam_id in matching_players]
+            matching_player_names = [
+                self.formatted_last_used_name(steam_id) for steam_id in matching_players
+            ]
             formatted_player_names = "`, `".join(matching_player_names)
             reply_embed.description = (
                 f"More than one player matching your player name found. "
@@ -202,15 +219,22 @@ class SubscriberCog(Cog):
 
         last_used_name = self.formatted_last_used_name(matching_steam_id)
         if not db_return_value:
-            immediate_reply_message = f"You already were subscribed to player `{last_used_name}`."
+            immediate_reply_message = (
+                f"You already were subscribed to player `{last_used_name}`."
+            )
         else:
-            immediate_reply_message = f"You have been subscribed to player `{last_used_name}`."
+            immediate_reply_message = (
+                f"You have been subscribed to player `{last_used_name}`."
+            )
         reply_embed.description = immediate_reply_message
         await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_players = self.subscribed_players_of(interaction.user.id)
         formatted_players = "`, `".join(
-            [self.formatted_last_used_name(subscribed_steam_id) for subscribed_steam_id in subscribed_players]
+            [
+                self.formatted_last_used_name(subscribed_steam_id)
+                for subscribed_steam_id in subscribed_players
+            ]
         )
         reply_embed.description = (
             f"{immediate_reply_message}\n"
@@ -232,10 +256,14 @@ class SubscriberCog(Cog):
     def formatted_last_used_name(self, steam_id):
         if not self.db.exists(LAST_USED_NAME_KEY.format(steam_id)):
             return str(steam_id)
-        return Plugin.clean_text(self.db.get(LAST_USED_NAME_KEY.format(steam_id))).replace("`", r"\`")
+        return Plugin.clean_text(
+            self.db.get(LAST_USED_NAME_KEY.format(steam_id))
+        ).replace("`", r"\`")
 
     def subscribed_players_of(self, user_id):
-        player_subscriptions = self.db.smembers(DISCORD_PLAYER_SUBSCRIPTION_KEY.format(user_id))
+        player_subscriptions = self.db.smembers(
+            DISCORD_PLAYER_SUBSCRIPTION_KEY.format(user_id)
+        )
         return [int(player_steam_id) for player_steam_id in player_subscriptions]
 
     @subscribe_player.autocomplete(name="player")
@@ -249,7 +277,9 @@ class SubscriberCog(Cog):
         filtered_candidates.sort()
 
         return [
-            app_commands.Choice(name=self.formatted_last_used_name(steam_id), value=str(steam_id))
+            app_commands.Choice(
+                name=self.formatted_last_used_name(steam_id), value=str(steam_id)
+            )
             for steam_id in filtered_candidates[:25]
         ]
 
@@ -265,7 +295,9 @@ class SubscriberCog(Cog):
     async def _subscribe_member(self, interaction, member):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
-        db_return_value = self.db.sadd(DISCORD_MEMBER_SUBSCRIPTION_KEY.format(interaction.user.id), member.id)
+        db_return_value = self.db.sadd(
+            DISCORD_MEMBER_SUBSCRIPTION_KEY.format(interaction.user.id), member.id
+        )
 
         if not db_return_value:
             immediate_reply_message = f"You already were subscribed to Quake Live activities of {member.mention}."
@@ -284,7 +316,9 @@ class SubscriberCog(Cog):
 
     def subscribed_users_of(self, user_id):
         subscribed_users = []
-        for discord_str_id in self.db.smembers(DISCORD_MEMBER_SUBSCRIPTION_KEY.format(user_id)):
+        for discord_str_id in self.db.smembers(
+            DISCORD_MEMBER_SUBSCRIPTION_KEY.format(user_id)
+        ):
             discord_id = int(discord_str_id)
             subscribed_user = self.bot.get_user(discord_id)
             if subscribed_user is None:
@@ -308,15 +342,19 @@ class SubscriberCog(Cog):
             await interaction.edit_original_response(embed=reply_embed)
             return
 
-        db_return_value = self.db.srem(DISCORD_MAP_SUBSCRIPTION_KEY.format(interaction.user.id), stripped_mapname)
+        db_return_value = self.db.srem(
+            DISCORD_MAP_SUBSCRIPTION_KEY.format(interaction.user.id), stripped_mapname
+        )
 
         if not db_return_value:
             immediate_reply_message = (
-                f"You were not subscribed to map changes for map " f"`{self.format_mapname(stripped_mapname)}`. "
+                f"You were not subscribed to map changes for map "
+                f"`{self.format_mapname(stripped_mapname)}`. "
             )
         else:
             immediate_reply_message = (
-                f"You have been unsubscribed from map changes for map " f"`{self.format_mapname(stripped_mapname)}`. "
+                f"You have been unsubscribed from map changes for map "
+                f"`{self.format_mapname(stripped_mapname)}`. "
             )
         reply_embed.description = immediate_reply_message
         await interaction.edit_original_response(embed=reply_embed)
@@ -328,17 +366,28 @@ class SubscriberCog(Cog):
             await interaction.edit_original_response(embed=reply_embed)
             return
 
-        formatted_maps = "`, `".join([self.format_mapname(mapname) for mapname in subscribed_maps])
-        reply_embed.description = f"{immediate_reply_message}\nYou are still subscribed to `{formatted_maps}`"
+        formatted_maps = "`, `".join(
+            [self.format_mapname(mapname) for mapname in subscribed_maps]
+        )
+        reply_embed.description = (
+            f"{immediate_reply_message}\nYou are still subscribed to `{formatted_maps}`"
+        )
         await interaction.edit_original_response(embed=reply_embed)
 
     @unsubscribe_map.autocomplete("mapname")
     async def unsubscribe_map_autocomplete(self, interaction, current):
         subscribed_maps = self.subscribed_maps_of(interaction.user.id)
-        candidates = [mapname for mapname in subscribed_maps if current.lower() in self.format_mapname(mapname).lower()]
+        candidates = [
+            mapname
+            for mapname in subscribed_maps
+            if current.lower() in self.format_mapname(mapname).lower()
+        ]
         candidates.sort()
 
-        return [app_commands.Choice(name=self.format_mapname(mapname), value=mapname) for mapname in candidates[:25]]
+        return [
+            app_commands.Choice(name=self.format_mapname(mapname), value=mapname)
+            for mapname in candidates[:25]
+        ]
 
     @unsubscribe_group.command(name="player", description="Stop getting notified about a player")  # type: ignore
     @app_commands.describe(player="Name of the player you want to unsubscribe from")
@@ -357,12 +406,16 @@ class SubscriberCog(Cog):
 
         matching_players = self.find_matching_players(stripped_player_name)
         if len(matching_players) == 0:
-            reply_embed.description = f"No player matching player name `{stripped_player_name}` found."
+            reply_embed.description = (
+                f"No player matching player name `{stripped_player_name}` found."
+            )
             await interaction.edit_original_response(embed=reply_embed)
             return
 
         if len(matching_players) > 1:
-            matching_player_names = [self.formatted_last_used_name(steam_id) for steam_id in matching_players]
+            matching_player_names = [
+                self.formatted_last_used_name(steam_id) for steam_id in matching_players
+            ]
             formatted_player_names = "`, `".join(matching_player_names)
             reply_embed.description = (
                 f"More than one player matching your player name found. "
@@ -380,15 +433,22 @@ class SubscriberCog(Cog):
 
         last_used_name = self.formatted_last_used_name(matching_steam_id)
         if not db_return_value:
-            immediate_reply_message = f"You were not subscribed to player `{last_used_name}`."
+            immediate_reply_message = (
+                f"You were not subscribed to player `{last_used_name}`."
+            )
         else:
-            immediate_reply_message = f"You have been unsubscribed from player `{last_used_name}`."
+            immediate_reply_message = (
+                f"You have been unsubscribed from player `{last_used_name}`."
+            )
         reply_embed.description = immediate_reply_message
         await interaction.edit_original_response(embed=reply_embed)
 
         subscribed_players = self.subscribed_players_of(interaction.user.id)
         formatted_players = "`, `".join(
-            [self.formatted_last_used_name(subscribed_steam_id) for subscribed_steam_id in subscribed_players]
+            [
+                self.formatted_last_used_name(subscribed_steam_id)
+                for subscribed_steam_id in subscribed_players
+            ]
         )
 
         if len(subscribed_players) == 0:
@@ -414,7 +474,9 @@ class SubscriberCog(Cog):
         candidates.sort()
 
         return [
-            app_commands.Choice(name=self.formatted_last_used_name(steam_id), value=str(steam_id))
+            app_commands.Choice(
+                name=self.formatted_last_used_name(steam_id), value=str(steam_id)
+            )
             for steam_id in candidates[:25]
         ]
 
@@ -427,10 +489,14 @@ class SubscriberCog(Cog):
     async def _unsubscribe_member(self, interaction, member):
         reply_embed = Embed(color=Color.blurple())
         await interaction.response.defer(thinking=True, ephemeral=True)
-        db_return_value = self.db.srem(DISCORD_MEMBER_SUBSCRIPTION_KEY.format(interaction.user.id), member.id)
+        db_return_value = self.db.srem(
+            DISCORD_MEMBER_SUBSCRIPTION_KEY.format(interaction.user.id), member.id
+        )
 
         if not db_return_value:
-            immediate_reply_message = f"You were not subscribed to Quake Live activities of {member.mention}."
+            immediate_reply_message = (
+                f"You were not subscribed to Quake Live activities of {member.mention}."
+            )
         else:
             immediate_reply_message = f"You have been unsubscribed from Quake Live activities of {member.mention}."
         reply_embed.description = immediate_reply_message
@@ -440,14 +506,16 @@ class SubscriberCog(Cog):
 
         if len(subscribed_users) == 0:
             reply_embed.description = (
-                f"{immediate_reply_message}\n" f"You are no longer subscribed to Quake Live activities of anyone."
+                f"{immediate_reply_message}\n"
+                f"You are no longer subscribed to Quake Live activities of anyone."
             )
             await interaction.edit_original_response(embed=reply_embed)
             return
 
         formatted_users = ", ".join([user.mention for user in subscribed_users])
         reply_embed.description = (
-            f"{immediate_reply_message}\n" f"You are still subscribed to Quake Live activities of {formatted_users}"
+            f"{immediate_reply_message}\n"
+            f"You are still subscribed to Quake Live activities of {formatted_users}"
         )
         await interaction.edit_original_response(embed=reply_embed)
 
@@ -496,7 +564,7 @@ class SubscriberCog(Cog):
     async def check_subscriptions(self):
         notification_actions = []
         game = None
-        try:
+        try:  # noqa: SIM105
             game = minqlx.Game()
         except NonexistentGameError:
             pass
@@ -504,10 +572,16 @@ class SubscriberCog(Cog):
         if game is not None and game.map != self.last_notified_map:
             self.last_notified_map = game.map
             if self.last_notified_map is not None:
-                notification_actions.append(self.notify_map_change(self.last_notified_map))
+                notification_actions.append(
+                    self.notify_map_change(self.last_notified_map)
+                )
 
         players = Plugin.players()
-        new_players = [player for player in players if player.steam_id not in self.notified_steam_ids]
+        new_players = [
+            player
+            for player in players
+            if player.steam_id not in self.notified_steam_ids
+        ]
         for player in new_players:
             notification_actions.append(self.notify_player_connected(player))
         self.notified_steam_ids = [player.steam_id for player in players]

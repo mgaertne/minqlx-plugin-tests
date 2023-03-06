@@ -1,8 +1,10 @@
 from minqlx import AbstractChannel, Player, Plugin
-from requests import Session
-from typing import Callable, Awaitable, Iterable, Iterator
+from typing import Callable, Awaitable, Iterable, Iterator, TYPE_CHECKING
 
-from minqlx.database import Redis
+if TYPE_CHECKING:
+    from requests import Session
+
+    from minqlx.database import Redis
 
 SteamId = int
 PLAYER_BASE: str

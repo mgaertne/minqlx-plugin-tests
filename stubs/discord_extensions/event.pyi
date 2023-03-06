@@ -1,7 +1,8 @@
-from typing import NoReturn
+from typing import NoReturn, TYPE_CHECKING
 
-# noinspection PyPackageRequirements
-from discord.ext.commands import Bot
+if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
+    from discord.ext.commands import Bot
 
 async def create_and_start_event(bot: Bot) -> None: ...
 async def end_event(bot: Bot) -> None: ...

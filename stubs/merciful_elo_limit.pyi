@@ -1,9 +1,10 @@
 from threading import Thread, Event
-from typing import Iterable
-
-from requests import Session
+from typing import Iterable, TYPE_CHECKING
 
 from minqlx import Plugin, AbstractChannel, Player
+
+if TYPE_CHECKING:
+    from requests import Session
 
 SteamId = int
 

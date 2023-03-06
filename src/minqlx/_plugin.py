@@ -292,10 +292,7 @@ class Plugin:
         if isinstance(name, int) and 0 <= name < 64:
             return minqlx.Player(name)
 
-        if not player_list:
-            players = cls.players()
-        else:
-            players = player_list
+        players = player_list if player_list else cls.players()
 
         if isinstance(name, int) and name >= 64:
             for p in players:
@@ -342,10 +339,7 @@ class Plugin:
         if isinstance(name, minqlx.Player):
             return name.name
 
-        if not player_list:
-            players = cls.players()
-        else:
-            players = player_list
+        players = player_list if player_list else cls.players()
 
         clean = cls.clean_text(name).lower()
         for p in players:
@@ -366,10 +360,7 @@ class Plugin:
         if isinstance(name, minqlx.Player):
             return name.id
 
-        if not player_list:
-            players = cls.players()
-        else:
-            players = player_list
+        players = player_list if player_list else cls.players()
 
         # Check Steam ID first, then name.
         if isinstance(name, int) and name >= 64:
@@ -394,10 +385,7 @@ class Plugin:
         :returns: A list of players that had that in their names.
 
         """
-        if not player_list:
-            players = cls.players()
-        else:
-            players = player_list
+        players = player_list if player_list else cls.players()
 
         if not name:
             return players
@@ -412,12 +400,11 @@ class Plugin:
     @classmethod
     def teams(cls, player_list=None):
         """Get a dictionary with the teams as keys and players as values."""
-        if not player_list:
-            players = cls.players()
-        else:
-            players = player_list
+        players = player_list if player_list else cls.players()
 
-        res: dict[str, list[minqlx.Player]] = {team_value: [] for team_value in minqlx.TEAMS.values()}
+        res: dict[str, list[minqlx.Player]] = {
+            team_value: [] for team_value in minqlx.TEAMS.values()
+        }
 
         for p in players:
             res[p.team].append(p)

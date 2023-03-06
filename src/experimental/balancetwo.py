@@ -3012,7 +3012,7 @@ class balancetwo(Plugin):
 
             return [(player, moved_to) for player in sorted_team[:amount_players_moved]]
 
-        sorted_team = sorted(
+        sorted_team = sorted(  # noqa: C414
             sorted(relevant_players, key=lambda player: player.stats.damage_dealt),
             key=lambda player: max(player.score, 0),
         )
@@ -3555,7 +3555,7 @@ class KickThread(threading.Thread):
     def try_mute(self):
         @minqlx.next_frame
         def execute(_player):
-            try:
+            try:  # noqa: SIM105
                 _player.mute()
             except ValueError:
                 pass
@@ -3573,7 +3573,7 @@ class KickThread(threading.Thread):
     def try_kick(self):
         @minqlx.next_frame
         def execute(_player):
-            try:
+            try:  # noqa: SIM105
                 _player.kick(f"^1GOT KICKED!^7 {self.kickmsg}")
             except ValueError:
                 pass

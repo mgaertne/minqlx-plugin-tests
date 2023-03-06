@@ -1,7 +1,5 @@
 import threading
 from abc import abstractmethod, ABCMeta
-from datetime import datetime
-from requests import Session
 from typing import (
     Callable,
     Iterator,
@@ -11,10 +9,16 @@ from typing import (
     Generic,
     Mapping,
     Awaitable,
+    TYPE_CHECKING
 )
 
 from minqlx import AbstractChannel, Player, Plugin
-from minqlx.database import Redis
+
+if TYPE_CHECKING:
+    from datetime import datetime
+    from requests import Session
+
+    from minqlx.database import Redis
 
 SteamId = int
 PLAYER_BASE: str

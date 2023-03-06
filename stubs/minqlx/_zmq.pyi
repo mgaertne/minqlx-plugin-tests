@@ -1,5 +1,8 @@
-# noinspection PyPackageRequirements
-from zmq import Context, Socket
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # noinspection PyPackageRequirements
+    from zmq import Context, Socket
 
 class StatsListener:
     done: bool

@@ -1,9 +1,12 @@
-from datetime import datetime
+from typing import TYPE_CHECKING
 from threading import RLock, Thread
 
 from typing import Callable, Iterator, Sequence, TypeVar, Generic
 
 from minqlx import Plugin, Player
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 THIRTY_SECOND_WARNINGS: Sequence[str]
 

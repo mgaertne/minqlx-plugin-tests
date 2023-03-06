@@ -1,8 +1,10 @@
-from logging import Logger
-from typing import Callable, Iterable, Type, overload, ClassVar, Mapping
+from typing import Callable, Iterable, Type, overload, ClassVar, Mapping, TYPE_CHECKING
 
-from minqlx.database import Redis
-from minqlx import Command, Player, Game, AbstractChannel
+if TYPE_CHECKING:
+    from logging import Logger
+
+    from minqlx.database import Redis
+    from minqlx import Command, Player, Game, AbstractChannel
 
 class Plugin:
     _loaded_plugins: ClassVar[dict[str, Plugin]] = ...

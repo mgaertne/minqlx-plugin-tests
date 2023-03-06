@@ -1,7 +1,8 @@
-from datetime import datetime
-
+from typing import Callable, NamedTuple, TypeVar, Generic, Iterator, Sequence, TYPE_CHECKING
 from minqlx import AbstractChannel, Player, Plugin
-from typing import Callable, NamedTuple, TypeVar, Generic, Iterator, Sequence
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 SteamId = int
 

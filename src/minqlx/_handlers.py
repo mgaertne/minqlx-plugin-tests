@@ -28,7 +28,9 @@ import minqlx
 
 _re_say = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
 _re_say_team = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
-_re_callvote = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$", flags=re.IGNORECASE)
+_re_callvote = re.compile(
+    r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$", flags=re.IGNORECASE
+)
 _re_vote = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
 _re_team = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
 _re_vote_ended = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
@@ -47,8 +49,10 @@ def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
     """
     # noinspection PyBroadException
     try:
-        minqlx.COMMANDS.handle_input(minqlx.RconDummyPlayer(), cmd, minqlx.CONSOLE_CHANNEL)
-    except:  # pylint: disable=bare-except
+        minqlx.COMMANDS.handle_input(
+            minqlx.RconDummyPlayer(), cmd, minqlx.CONSOLE_CHANNEL
+        )
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -86,7 +90,9 @@ def handle_client_command(client_id, cmd):
         res = _re_say_team.match(cmd)
         if res:
             msg = res.group("msg").replace('"', "")
-            if player.team == "free":  # I haven't tried this, but I don't think it's even possible.
+            if (
+                player.team == "free"
+            ):  # I haven't tried this, but I don't think it's even possible.
                 channel = minqlx.FREE_CHAT_CHANNEL
             elif player.team == "red":
                 channel = minqlx.RED_TEAM_CHAT_CHANNEL
@@ -105,19 +111,26 @@ def handle_client_command(client_id, cmd):
             # Set the caller for vote_started in case the vote goes through.
             # noinspection PyUnresolvedReferences
             minqlx.EVENT_DISPATCHERS["vote_started"].caller(player)
-            if minqlx.EVENT_DISPATCHERS["vote_called"].dispatch(player, vote, args) is False:
+            if (
+                minqlx.EVENT_DISPATCHERS["vote_called"].dispatch(player, vote, args)
+                is False
+            ):
                 return False
             return cmd
 
         res = _re_vote.match(cmd)
         if res and minqlx.Plugin.is_vote_active():
             arg = res.group("arg").lower()
-            if arg in ["y", "1"]:
-                if minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, True) is False:
-                    return False
-            elif arg in ["n", "2"]:
-                if minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, False) is False:
-                    return False
+            if (
+                arg in ["y", "1"]
+                and minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, True) is False
+            ):
+                return False
+            if (
+                arg in ["n", "2"]
+                and minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, False) is False
+            ):
+                return False
             return cmd
 
         res = _re_team.match(cmd)
@@ -138,9 +151,14 @@ def handle_client_command(client_id, cmd):
             elif arg == "a":
                 target_team = "any"
 
-            if target_team:
-                if minqlx.EVENT_DISPATCHERS["team_switch_attempt"].dispatch(player, player.team, target_team) is False:
-                    return False
+            if (
+                target_team
+                and minqlx.EVENT_DISPATCHERS["team_switch_attempt"].dispatch(
+                    player, player.team, target_team
+                )
+                is False
+            ):
+                return False
             return cmd
 
         res = _re_userinfo.match(cmd)
@@ -150,7 +168,9 @@ def handle_client_command(client_id, cmd):
             changed = {}
 
             for key in new_info:
-                if key not in old_info or (key in old_info and new_info[key] != old_info[key]):
+                if key not in old_info or (
+                    key in old_info and new_info[key] != old_info[key]
+                ):
                     changed[key] = new_info[key]
 
             if changed:
@@ -160,11 +180,13 @@ def handle_client_command(client_id, cmd):
                 if isinstance(ret, dict):
                     for key in ret:
                         new_info[key] = ret[key]
-                    formatted_key_values = "".join([f"\\{key}\\{value}" for key, value in new_info.items()])
+                    formatted_key_values = "".join(
+                        [f"\\{key}\\{value}" for key, value in new_info.items()]
+                    )
                     cmd = f'userinfo "{formatted_key_values}"'
 
         return cmd
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -192,7 +214,7 @@ def handle_server_command(client_id, cmd):
                 minqlx.EVENT_DISPATCHERS["vote_ended"].dispatch(False)
 
         return cmd
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -219,13 +241,13 @@ def handle_frame():
         try:
             frame_tasks.run(blocking=False)
             break
-        except:  # pylint: disable=bare-except
+        except:  # pylint: disable=bare-except  # noqa: E722
             minqlx.log_exception()
             continue
     # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["frame"].dispatch()
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -253,7 +275,9 @@ def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statemen
         # A good place to warn the owner if ZMQ stats are disabled.
         global _zmq_warning_issued  # pylint: disable=global-statement
         stats_enabled_cvar = minqlx.get_cvar("zmq_stats_enable")
-        if (stats_enabled_cvar is None or not bool(int(stats_enabled_cvar))) and not _zmq_warning_issued:
+        if (
+            stats_enabled_cvar is None or not bool(int(stats_enabled_cvar))
+        ) and not _zmq_warning_issued:
             logger = minqlx.get_logger()
             logger.warning(
                 "Some events will not work because ZMQ stats is not enabled. "
@@ -266,20 +290,24 @@ def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statemen
     if not is_restart:
         # noinspection PyBroadException
         try:
-            minqlx.EVENT_DISPATCHERS["map"].dispatch(minqlx.get_cvar("mapname"), minqlx.get_cvar("g_factory"))
-        except:  # pylint: disable=bare-except
+            minqlx.EVENT_DISPATCHERS["map"].dispatch(
+                minqlx.get_cvar("mapname"), minqlx.get_cvar("g_factory")
+            )
+        except:  # pylint: disable=bare-except  # noqa: E722
             minqlx.log_exception()
             return True
 
     # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["new_game"].dispatch()
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
 
-def handle_set_configstring(index, value):  # pylint: disable=inconsistent-return-statements
+def handle_set_configstring(  # pylint: disable=inconsistent-return-statements
+    index, value
+):
     """Called whenever the server tries to set a configstring. Can return
     False to stop the event.
 
@@ -316,12 +344,15 @@ def handle_set_configstring(index, value):  # pylint: disable=inconsistent-retur
                 elif old_state == "PRE_GAME" and new_state == "COUNT_DOWN":
                     _ad_round_number = 1
                     minqlx.EVENT_DISPATCHERS["game_countdown"].dispatch()
-                elif old_state == "COUNT_DOWN" and new_state == "IN_PROGRESS":
+                elif (
+                    old_state == "COUNT_DOWN" and new_state == "IN_PROGRESS"  # noqa: SIM114
+                ):
                     pass
                     # minqlx.EVENT_DISPATCHERS["game_start"].dispatch()
-                elif old_state == "IN_PROGRESS" and new_state == "PRE_GAME":
-                    pass
-                elif old_state == "COUNT_DOWN" and new_state == "PRE_GAME":
+                elif new_state == "PRE_GAME" and old_state in [
+                    "IN_PROGRESS",
+                    "COUNT_DOWN",
+                ]:
                     pass
                 else:
                     logger = minqlx.get_logger()
@@ -353,7 +384,7 @@ def handle_set_configstring(index, value):  # pylint: disable=inconsistent-retur
                     return
 
         return res
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -374,7 +405,7 @@ def handle_player_connect(client_id, _is_bot):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_connect"].dispatch(player)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -392,7 +423,7 @@ def handle_player_loaded(client_id):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_loaded"].dispatch(player)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -410,7 +441,7 @@ def handle_player_disconnect(client_id, reason):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_disconnect"].dispatch(player, reason)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -425,7 +456,7 @@ def handle_player_spawn(client_id):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_spawn"].dispatch(player)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -441,7 +472,7 @@ def handle_kamikaze_use(client_id):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["kamikaze_use"].dispatch(player)
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -459,8 +490,10 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
     # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
-        return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(player, bool(is_used_on_demand))
-    except:  # pylint: disable=bare-except
+        return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(
+            player, bool(is_used_on_demand)
+        )
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -487,7 +520,7 @@ def handle_console_print(text):  # pylint: disable=inconsistent-return-statement
             return res
 
         return text
-    except:  # pylint: disable=bare-except
+    except:  # pylint: disable=bare-except  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -512,7 +545,9 @@ def redirect_print(channel):
     class PrintRedirector:
         def __init__(self, _channel):
             if not isinstance(_channel, minqlx.AbstractChannel):
-                raise ValueError("The redirection channel must be an instance of minqlx.AbstractChannel.")
+                raise ValueError(
+                    "The redirection channel must be an instance of minqlx.AbstractChannel."
+                )
 
             self.channel = _channel
 

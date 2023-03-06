@@ -1,7 +1,9 @@
-from collections import Counter
-from typing import Sequence, Iterable
+from typing import Sequence, Iterable, TYPE_CHECKING
 
 from minqlx import Player, Plugin, AbstractChannel
+
+if TYPE_CHECKING:
+    from collections import Counter
 
 COLLECTED_SOULZ_KEY: str
 REAPERZ_KEY: str

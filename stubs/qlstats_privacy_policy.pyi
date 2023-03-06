@@ -1,8 +1,10 @@
+from typing import TYPE_CHECKING
 from threading import Thread
 
-from requests import Response
-
 from minqlx import Player, AbstractChannel, Plugin
+
+if TYPE_CHECKING:
+    from requests import Response
 
 SteamId = int
 

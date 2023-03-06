@@ -59,7 +59,9 @@ class Player:
             self._id = client_id
             self._info = minqlx.player_info(client_id)
             if not self._info:
-                self._invalidate(f"Tried to initialize a Player instance of nonexistant player {client_id}.")
+                self._invalidate(
+                    f"Tried to initialize a Player instance of nonexistant player {client_id}."
+                )
 
         self._userinfo = None
         self._steam_id = self._info.steam_id
@@ -70,16 +72,15 @@ class Player:
             self._name = self._info.name
         else:
             self._userinfo = minqlx.parse_variables(self._info.userinfo, ordered=True)
-            if "name" in self._userinfo:
-                self._name = self._userinfo["name"]
-            else:  # No name at all. Weird userinfo during connection perhaps?
-                self._name = ""
+            self._name = self._userinfo.get("name", "")
 
     def __repr__(self):
         if not self._valid:
             return f"{self.__class__.__name__}(INVALID:'{self.clean_name}':{self.steam_id})"
 
-        return f"{self.__class__.__name__}({self._id}:'{self.clean_name}':{self.steam_id})"
+        return (
+            f"{self.__class__.__name__}({self._id}:'{self.clean_name}':{self.steam_id})"
+        )
 
     def __str__(self):
         return self.name
@@ -118,12 +119,11 @@ class Player:
             self._name = self._info.name
         else:
             self._userinfo = minqlx.parse_variables(self._info.userinfo, ordered=True)
-            if "name" in self._userinfo:
-                self._name = self._userinfo["name"]
-            else:
-                self._name = ""
+            self._name = self._userinfo.get("name", "")
 
-    def _invalidate(self, e="The player does not exist anymore. Did the player disconnect?"):
+    def _invalidate(
+        self, e="The player does not exist anymore. Did the player disconnect?"
+    ):
         self._valid = False
         raise NonexistentPlayerError(e)
 
@@ -357,10 +357,7 @@ class Player:
         return self.stats.ping
 
     def position(self, reset=False, **kwargs):
-        if reset:
-            pos = minqlx.Vector3((0, 0, 0))
-        else:
-            pos = self.state.position
+        pos = minqlx.Vector3((0, 0, 0)) if reset else self.state.position
 
         if not kwargs:
             return pos
@@ -372,10 +369,7 @@ class Player:
         return minqlx.set_position(self.id, minqlx.Vector3((x, y, z)))
 
     def velocity(self, reset=False, **kwargs):
-        if reset:
-            vel = minqlx.Vector3((0, 0, 0))
-        else:
-            vel = self.state.velocity
+        vel = minqlx.Vector3((0, 0, 0)) if reset else self.state.velocity
 
         if not kwargs:
             return vel
@@ -387,10 +381,7 @@ class Player:
         return minqlx.set_velocity(self.id, minqlx.Vector3((x, y, z)))
 
     def weapons(self, reset=False, **kwargs):
-        if reset:
-            weaps = minqlx.Weapons((False,) * 15)
-        else:
-            weaps = self.state.weapons
+        weaps = minqlx.Weapons((False,) * 15) if reset else self.state.weapons
 
         if not kwargs:
             return weaps
@@ -413,7 +404,9 @@ class Player:
 
         return minqlx.set_weapons(
             self.id,
-            minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)),
+            minqlx.Weapons(
+                (g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)
+            ),
         )
 
     def weapon(self, new_weapon=None):
@@ -427,10 +420,7 @@ class Player:
         return minqlx.set_weapon(self.id, new_weapon)
 
     def ammo(self, reset=False, **kwargs):
-        if reset:
-            a = minqlx.Weapons((0,) * 15)
-        else:
-            a = self.state.ammo
+        a = minqlx.Weapons((0,) * 15) if reset else self.state.ammo
 
         if not kwargs:
             return a
@@ -453,26 +443,43 @@ class Player:
 
         return minqlx.set_ammo(
             self.id,
-            minqlx.Weapons((g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)),
+            minqlx.Weapons(
+                (g, mg, sg, gl, rl, lg, rg, pg, bfg, gh, ng, pl, cg, hmg, hands)
+            ),
         )
 
     def powerups(self, reset=False, **kwargs):
-        if reset:
-            pu = minqlx.Powerups((0,) * 6)
-        else:
-            pu = self.state.powerups
+        pu = minqlx.Powerups((0,) * 6) if reset else self.state.powerups
 
         if not kwargs:
             return pu
 
         quad = pu.quad if "quad" not in kwargs else round(kwargs["quad"] * 1000)
-        bs = pu.battlesuit if "battlesuit" not in kwargs else round(kwargs["battlesuit"] * 1000)
+        bs = (
+            pu.battlesuit
+            if "battlesuit" not in kwargs
+            else round(kwargs["battlesuit"] * 1000)
+        )
         haste = pu.haste if "haste" not in kwargs else round(kwargs["haste"] * 1000)
-        invis = pu.invisibility if "invisibility" not in kwargs else round(kwargs["invisibility"] * 1000)
-        regen = pu.regeneration if "regeneration" not in kwargs else round(kwargs["regeneration"] * 1000)
-        invul = pu.invulnerability if "invulnerability" not in kwargs else round(kwargs["invulnerability"] * 1000)
+        invis = (
+            pu.invisibility
+            if "invisibility" not in kwargs
+            else round(kwargs["invisibility"] * 1000)
+        )
+        regen = (
+            pu.regeneration
+            if "regeneration" not in kwargs
+            else round(kwargs["regeneration"] * 1000)
+        )
+        invul = (
+            pu.invulnerability
+            if "invulnerability" not in kwargs
+            else round(kwargs["invulnerability"] * 1000)
+        )
 
-        return minqlx.set_powerups(self.id, minqlx.Powerups((quad, bs, haste, invis, regen, invul)))
+        return minqlx.set_powerups(
+            self.id, minqlx.Powerups((quad, bs, haste, invis, regen, invul))
+        )
 
     @property
     def holdable(self):
@@ -508,18 +515,17 @@ class Player:
             self.holdable = "flight"
             reset = True
 
-        if reset:
-            # Set to defaults on reset.
-            fl = minqlx.Flight((16000, 16000, 1200, 0))
-        else:
-            fl = state.flight
+        # Set to defaults on reset.
+        fl = minqlx.Flight((16000, 16000, 1200, 0)) if reset else state.flight
 
         fuel = fl.fuel if "fuel" not in kwargs else kwargs["fuel"]
         max_fuel = fl.max_fuel if "max_fuel" not in kwargs else kwargs["max_fuel"]
         thrust = fl.thrust if "thrust" not in kwargs else kwargs["thrust"]
         refuel = fl.refuel if "refuel" not in kwargs else kwargs["refuel"]
 
-        return minqlx.set_flight(self.id, minqlx.Flight((fuel, max_fuel, thrust, refuel)))
+        return minqlx.set_flight(
+            self.id, minqlx.Flight((fuel, max_fuel, thrust, refuel))
+        )
 
     @property
     def noclip(self):
@@ -632,7 +638,9 @@ class Player:
 
     @classmethod
     def all_players(cls):
-        return [cls(i, info=info) for i, info in enumerate(minqlx.players_info()) if info]
+        return [
+            cls(i, info=info) for i, info in enumerate(minqlx.players_info()) if info
+        ]
 
 
 class AbstractDummyPlayer(Player):
