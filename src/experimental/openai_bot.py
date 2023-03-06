@@ -37,7 +37,9 @@ def num_tokens_from_messages(messages, *, model="gpt-3.5-turbo-0301"):
 
     num_tokens = 0
     for message in messages:
-        num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+        num_tokens += (
+            4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+        )
         for key, value in message.items():
             num_tokens += len(encoding.encode(value))
             if key == "name":  # if there's a name, the role is omitted
@@ -100,7 +102,10 @@ class openai_bot(Plugin):
         self.set_cvar_limit_once("qlx_openai_top_p", 1.0, 0.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_frequency_penalty", 0.0, -2.0, 2.0)
         self.set_cvar_limit_once("qlx_openai_presence_penalty", 0.0, -2.0, 2.0)
-        self.set_cvar_once("qlx_openai_system_context", "You are {bot_name}, a spectator on a QuakeLive server.")
+        self.set_cvar_once(
+            "qlx_openai_system_context",
+            "You are {bot_name}, a spectator on a QuakeLive server.",
+        )
         self.set_cvar_once("qlx_openai_bot_mood", "")
         self.set_cvar_once("qlx_openai_greet_joiners", "1")
         self.set_cvar_once("qlx_openai_greeting_delay", "60")
@@ -110,23 +115,35 @@ class openai_bot(Plugin):
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
         self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
-        self.max_chat_history_tokens = self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
+        self.max_chat_history_tokens = (
+            self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
+        )
         self.temperature = self.get_cvar("qlx_openai_temperature", float) or 1.0
         if self.temperature < 0 or self.temperature > 2:
             self.temperature = 1.0
         self.top_p = self.get_cvar("qlx_openai_top_p", float) or 1.0
         if self.top_p < 0 or self.top_p > 2:
             self.top_p = 1.0
-        self.frequency_penalty = self.get_cvar("qlx_openai_frequency_penalty", float) or 0.0
+        self.frequency_penalty = (
+            self.get_cvar("qlx_openai_frequency_penalty", float) or 0.0
+        )
         if self.frequency_penalty < -2.0 or self.frequency_penalty > 2.0:
             self.frequency_penalty = 0.0
-        self.presence_penalty = self.get_cvar("qlx_openai_presence_penalty", float) or 0.0
+        self.presence_penalty = (
+            self.get_cvar("qlx_openai_presence_penalty", float) or 0.0
+        )
         if self.presence_penalty < -2.0 or self.presence_penalty > 2.0:
             self.presence_penalty = 0.0
         self.system_context = (
-            self.get_cvar("qlx_openai_system_context").encode("raw_unicode_escape").decode("unicode_escape")
+            self.get_cvar("qlx_openai_system_context")
+            .encode("raw_unicode_escape")
+            .decode("unicode_escape")
         )
-        self.bot_mood = self.get_cvar("qlx_openai_bot_mood").encode("raw_unicode_escape").decode("unicode_escape")
+        self.bot_mood = (
+            self.get_cvar("qlx_openai_bot_mood")
+            .encode("raw_unicode_escape")
+            .decode("unicode_escape")
+        )
 
         self.greet_joiners = self.get_cvar("qlx_openai_greet_joiners", bool)
         self.greeting_delay = self.get_cvar("qlx_openai_greeting_delay", int) or 60
@@ -135,9 +152,12 @@ class openai_bot(Plugin):
         self.add_hook("chat", self.handle_chat)
         self.add_hook("player_connect", self.handle_player_connect)
         self.add_hook("game_countdown", self.handle_game_countdown)
+        self.add_hook("round_end", self.handle_round_end)
 
         self.add_command("listmodels", self.cmd_list_models, permission=5)
-        self.add_command("switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]")
+        self.add_command(
+            "switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]"
+        )
 
     def summarize_game_end_stats(self, announcements):
         @minqlx.thread
@@ -149,12 +169,17 @@ class openai_bot(Plugin):
             self._send_message(minqlx.CHAT_CHANNEL, response)
 
         if self.model.startswith("text-"):
-            threaded_summary(f"Summarize in short using slang and sarcasm:\n{Plugin.clean_text(announcements)}.")
+            threaded_summary(
+                f"Summarize in short using slang and sarcasm:\n{Plugin.clean_text(announcements)}."
+            )
             return
 
         contextualized_messages = [
             {"role": "user", "content": "You use sarcasm and slang."},
-            {"role": "user", "content": f"Give a two-sentence summary: {Plugin.clean_text(announcements)}."},
+            {
+                "role": "user",
+                "content": f"Give a two-sentence summary: {Plugin.clean_text(announcements)}.",
+            },
         ]
         threaded_summary(contextualized_messages)
 
@@ -221,10 +246,16 @@ class openai_bot(Plugin):
 
     def _record_chat_line(self, message, *, lock):
         with lock:
-            self.db.zadd(CHAT_BOT_LOG, int(datetime.strftime(datetime.now(), DATETIMEFORMAT)), message)
+            self.db.zadd(
+                CHAT_BOT_LOG,
+                int(datetime.strftime(datetime.now(), DATETIMEFORMAT)),
+                message,
+            )
 
     def _send_message(self, communication_channel, message):
-        communication_channel.reply(f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{message}")
+        communication_channel.reply(
+            f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{message}"
+        )
 
         # noinspection PyProtectedMember
         if "mydiscordbot" in Plugin._loaded_plugins:
@@ -232,7 +263,9 @@ class openai_bot(Plugin):
             discord_plugin = Plugin._loaded_plugins["mydiscordbot"]
             # noinspection PyUnresolvedReferences
             discord_plugin.discord.relay_message(
-                Plugin.clean_text(f"**{self.bot_clanprefix}{self.bot_name}**: {message}")
+                Plugin.clean_text(
+                    f"**{self.bot_clanprefix}{self.bot_name}**: {message}"
+                )
             )
 
     def handle_chat(self, player, msg, channel):
@@ -243,7 +276,8 @@ class openai_bot(Plugin):
 
                 pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
                 if not re.search(pattern, msg, flags=re.IGNORECASE) and (
-                    not self.greet_joiners or chatter.steam_id not in self.recently_connected_steam_ids
+                    not self.greet_joiners
+                    or chatter.steam_id not in self.recently_connected_steam_ids
                 ):
                     self._record_chat_line(request, lock=self.queue_lock)
                     return
@@ -257,7 +291,9 @@ class openai_bot(Plugin):
                 response = self._gather_completion(message_history)
                 if response is None:
                     return
-                self._record_chat_line(f"{self.bot_name}: {response}", lock=self.queue_lock)
+                self._record_chat_line(
+                    f"{self.bot_name}: {response}", lock=self.queue_lock
+                )
                 self._send_message(communication_channel, response)
 
         if channel not in [CHAT_CHANNEL]:
@@ -282,7 +318,10 @@ class openai_bot(Plugin):
 
             encoding = tiktoken.encoding_for_model(self.model)
             for message in reversed(chat_log):
-                if len(encoding.encode(f"Chatlog:\n{returned}")) > self.max_chat_history_tokens:
+                if (
+                    len(encoding.encode(f"Chatlog:\n{returned}"))
+                    > self.max_chat_history_tokens
+                ):
                     score = self.db.zscore(CHAT_BOT_LOG, message)
                     self.db.zremrangebyscore(CHAT_BOT_LOG, "-INF", score)
                     break
@@ -292,20 +331,33 @@ class openai_bot(Plugin):
 
         system_context = {
             "role": "system",
-            "content": self.system_context.format(bot_name=self.bot_name, game_state=self.current_game_state()),
+            "content": self.system_context.format(
+                bot_name=self.bot_name, game_state=self.current_game_state()
+            ),
         }
         chat_history_messages = [{"role": "user", "content": request}]
-        if len(self.bot_mood.format(bot_name=self.bot_name, game_state=self.current_game_state()).strip()) > 0:
+        if (
+            len(
+                self.bot_mood.format(
+                    bot_name=self.bot_name, game_state=self.current_game_state()
+                ).strip()
+            )
+            > 0
+        ):
             chat_history_messages.append(
                 {
                     "role": "user",
-                    "content": self.bot_mood.format(bot_name=self.bot_name, game_state=self.current_game_state()),
+                    "content": self.bot_mood.format(
+                        bot_name=self.bot_name, game_state=self.current_game_state()
+                    ),
                 }
             )
 
         for message in reversed(chat_log):
             if (
-                num_tokens_from_messages(chat_history_messages + [system_context], model=self.model)
+                num_tokens_from_messages(
+                    chat_history_messages + [system_context], model=self.model
+                )
                 > self.max_chat_history_tokens
             ):
                 score = self.db.zscore(CHAT_BOT_LOG, message)
@@ -333,21 +385,16 @@ class openai_bot(Plugin):
             team_status += f"Team Blue: {blue_names}\n"
         team_status += f"Spectators: {self.bot_name}"
         if len(teams["spectator"]) > 0:
-            spectator_names = ", ".join([player.clean_name for player in teams["spectator"]])
+            spectator_names = ", ".join(
+                [player.clean_name for player in teams["spectator"]]
+            )
             team_status += f", {spectator_names}"
 
         map_title = game.map_title if game.map_title else game.map
 
-        if game.state != "in_progress":
-            return (
-                f"{team_status}\nMatch state: {game.state.lower()}\n"
-                f"Current map: {map_title}\nGame type: {game.factory_title}\n"
-            )
-
         return (
             f"{team_status}\nMatch state: {game.state.replace('_', ' ').lower()}\n"
-            f"Match standings Red:{game.red_score}, Blue:{game.blue_score}\n"
-            f"Current map: {map_title}\nGame type: {game.factory_title}\n"
+            f"Current map: {map_title}\nGame type: {game.factory_title}"
         )
 
     def handle_player_connect(self, player):
@@ -364,7 +411,9 @@ class openai_bot(Plugin):
         @minqlx.thread
         def threaded_response():
             with self.queue_lock:
-                map_title = self.game.map_title if self.game.map_title else self.game.map
+                map_title = (
+                    self.game.map_title if self.game.map_title else self.game.map
+                )
                 request = f"Match starting on {map_title}"
 
                 message_history = self.contextualized_chat_history(request)
@@ -373,10 +422,24 @@ class openai_bot(Plugin):
                 response = self._gather_completion(message_history)
                 if response is None:
                     return
-                self._record_chat_line(f"{self.bot_name}: {response}", lock=self.queue_lock)
+                self._record_chat_line(
+                    f"{self.bot_name}: {response}", lock=self.queue_lock
+                )
                 self._send_message(minqlx.CHAT_CHANNEL, response)
 
         threaded_response()
+
+    def handle_round_end(self, _data):
+        @minqlx.thread
+        def record_match_state():
+            with self.queue_lock:
+                if not self.game:
+                    return
+
+                request = f"Red: {self.game.red_score}, Blue: {self.game.blue_score}"
+                self._record_chat_line(request, lock=self.queue_lock)
+
+        record_match_state()
 
     def cmd_list_models(self, player, _msg, _channel):
         self._list_models_in_thread(player)
@@ -385,7 +448,9 @@ class openai_bot(Plugin):
     def _list_models_in_thread(self, player):
         openai.api_key = self.bot_api_key
         available_models = Model.list()
-        formatted_models = ", ".join([model["id"] for model in available_models["data"]])
+        formatted_models = ", ".join(
+            [model["id"] for model in available_models["data"]]
+        )
         player.tell(f"Available models: {formatted_models}")
 
     def cmd_switch_model(self, player, msg, _channel):
