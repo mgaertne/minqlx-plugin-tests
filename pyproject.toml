@@ -12,7 +12,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 dependencies = [
     "tox",
     "zmq",
@@ -42,19 +42,18 @@ find = {namespaces = false}
 [tool.tox]
 legacy_tox_ini = """
     [tox]
-    envlist = py3{6,7,8,9,10,11},coverage,ruff,mypy
+    envlist = py3{7,8,9,10,11},coverage,ruff,mypy
     usedevelop = true
 
     [gh-actions]
     python =
-        3.6: py36
         3.7: py37
         3.8: py38
         3.9: py39
         3.10: py310
         3.11: py311
 
-   [testenv:py3{6,7,8,9,10,11}]
+   [testenv:py3{7,8,9,10,11}]
     deps =
         -rrequirements-tests.txt
     commands =
@@ -73,7 +72,7 @@ legacy_tox_ini = """
     [testenv:ruff]
     deps =
         ruff
-    commands = ruff {posargs:src tests}
+    commands = ruff {posargs:src stubs tests}
 
     [testenv:mypy]
     deps =
