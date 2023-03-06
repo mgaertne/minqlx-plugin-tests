@@ -59,7 +59,7 @@ class custom_modes_vote(Plugin):
     def available_modes(self):
         keys = set()
         for value in game_settings.values():
-            for key in value.keys():
+            for key in value:
                 keys.add(key)
 
         return keys
