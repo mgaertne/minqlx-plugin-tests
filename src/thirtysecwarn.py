@@ -61,18 +61,20 @@ class thirtysecwarn(Plugin):
     def play_thirty_second_warning(self, warner_thread_name):
         if not self.game:
             return
-        if not self.game.type_short == "ca":
+        if self.game.type_short != "ca":
             return
-        if not self.game.state == "in_progress":
+        if self.game.state != "in_progress":
             return
-        if not self.warner_thread_name == warner_thread_name:
+        if self.warner_thread_name != warner_thread_name:
             return
 
         # passed all conditions, play sound
         Plugin.play_sound(self.get_announcer_sound())
 
     def get_announcer_sound(self):
-        qlx_thirty_second_warn_announcer = self.get_cvar("qlx_thirtySecondWarnAnnouncer")
+        qlx_thirty_second_warn_announcer = self.get_cvar(
+            "qlx_thirtySecondWarnAnnouncer"
+        )
 
         if qlx_thirty_second_warn_announcer == "random":
             return self.random_announcer()

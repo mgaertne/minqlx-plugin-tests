@@ -108,12 +108,16 @@ class mydiscordbot(Plugin):
         Plugin.set_cvar_once("qlx_discord_extensions", "")
 
         # get the actual cvar values from the server
-        self.discord_message_filters = Plugin.get_cvar("qlx_discordQuakeRelayMessageFilters", set) or set()
+        self.discord_message_filters = (
+            Plugin.get_cvar("qlx_discordQuakeRelayMessageFilters", set) or set()
+        )
 
         # adding general plugin hooks
         self.add_hook("unload", self.handle_plugin_unload)
         self.add_hook("chat", self.handle_ql_chat, priority=minqlx.PRI_LOWEST)
-        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_LOWEST)
+        self.add_hook(
+            "player_connect", self.handle_player_connect, priority=minqlx.PRI_LOWEST
+        )
         self.add_hook(
             "player_disconnect",
             self.handle_player_disconnect,
@@ -127,7 +131,9 @@ class mydiscordbot(Plugin):
             self.handle_game_countdown_or_end,
             priority=minqlx.PRI_LOWEST,
         )
-        self.add_hook("game_end", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST)
+        self.add_hook(
+            "game_end", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST
+        )
 
         self.add_command("discord", self.cmd_discord, usage="<message>")
         self.add_command(
@@ -198,7 +204,11 @@ class mydiscordbot(Plugin):
             return "Warmup"
         if game.state == "countdown":
             return "Match starting"
-        if game.roundlimit in [game.blue_score, game.red_score] or game.red_score < 0 or game.blue_score < 0:
+        if (
+            game.roundlimit in [game.blue_score, game.red_score]
+            or game.red_score < 0
+            or game.blue_score < 0
+        ):
             return f"Match ended: **{game.red_score}** - **{game.blue_score}**"
         if game.state == "in_progress":
             return f"Match in progress: **{game.red_score}** - **{game.blue_score}**"
@@ -280,9 +290,13 @@ class mydiscordbot(Plugin):
             return
 
         if channel.name in ["red_team_chat", "blue_team_chat"]:
-            self.discord.relay_team_chat_message(player, handled_channels[channel.name], Plugin.clean_text(msg))
+            self.discord.relay_team_chat_message(
+                player, handled_channels[channel.name], Plugin.clean_text(msg)
+            )
             return
-        self.discord.relay_chat_message(player, handled_channels[channel.name], Plugin.clean_text(msg))
+        self.discord.relay_chat_message(
+            player, handled_channels[channel.name], Plugin.clean_text(msg)
+        )
 
     @minqlx.delay(3)
     def handle_player_connect(self, player):
@@ -330,8 +344,13 @@ class mydiscordbot(Plugin):
         :param: vote: the vote itself, i.e. map change, kick player, etc.
         :param: args: any arguments of the vote, i.e. map name, which player to kick, etc.
         """
-        caller_name = discord.utils.escape_markdown(caller.clean_name) if caller else "The server"
-        content = f"_{caller_name} called a vote: {vote} " f"{discord.utils.escape_markdown(Plugin.clean_text(args))}_"
+        caller_name = (
+            discord.utils.escape_markdown(caller.clean_name) if caller else "The server"
+        )
+        content = (
+            f"_{caller_name} called a vote: {vote} "
+            f"{discord.utils.escape_markdown(Plugin.clean_text(args))}_"
+        )
 
         self.discord.relay_message(content)
 
@@ -345,10 +364,9 @@ class mydiscordbot(Plugin):
         :param: _args: any arguments of the vote, i.e. map name, which player to kick, etc.
         :param: passed: boolean indicating whether the vote passed
         """
-        if passed:
-            content = f"*Vote passed ({votes[0]} - {votes[1]}).*"
-        else:
-            content = "*Vote failed.*"
+        content = (
+            f"*Vote passed ({votes[0]} - {votes[1]}).*" if passed else "*Vote failed.*"
+        )
 
         self.discord.relay_message(content)
 
@@ -391,7 +409,10 @@ class mydiscordbot(Plugin):
         :param: msg: the original message the player sent (includes the trigger)
         :param: channel: the channel the message came through, i.e. team chat, general chat, etc.
         """
-        if len(msg) > 2 or (len(msg) == 2 and msg[1] not in ["status", "connect", "disconnect", "reconnect"]):
+        if len(msg) > 2 or (
+            len(msg) == 2
+            and msg[1] not in ["status", "connect", "disconnect", "reconnect"]
+        ):
             return minqlx.RET_USAGE
 
         if len(msg) == 2 and msg[1] == "connect":
@@ -467,30 +488,46 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord = None
 
         self.discord_bot_token = Plugin.get_cvar("qlx_discordBotToken") or ""
-        self.discord_application_id = Plugin.get_cvar("qlx_discordApplicationId", str) or ""
-        self.discord_relay_channel_ids = SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
+        self.discord_application_id = (
+            Plugin.get_cvar("qlx_discordApplicationId", str) or ""
+        )
+        self.discord_relay_channel_ids = SimpleAsyncDiscord.int_set(
+            Plugin.get_cvar("qlx_discordRelayChannelIds", set)
+        )
         self.discord_relay_team_chat_channel_ids = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordRelayTeamchatChannelIds", set)
         )
         self.discord_triggered_channel_ids = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
         )
-        self.discord_triggered_channel_message_prefix = Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
+        self.discord_triggered_channel_message_prefix = (
+            Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
+        )
         self.discord_command_prefix = Plugin.get_cvar("qlx_discordCommandPrefix") or "!"
-        self.discord_help_enabled = Plugin.get_cvar("qlx_discordEnableHelp", bool) or True
-        self.discord_version_enabled = Plugin.get_cvar("qlx_discordEnableVersion", bool) or True
-        self.discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
+        self.discord_help_enabled = (
+            Plugin.get_cvar("qlx_discordEnableHelp", bool) or True
+        )
+        self.discord_version_enabled = (
+            Plugin.get_cvar("qlx_discordEnableVersion", bool) or True
+        )
+        self.discord_message_prefix = (
+            Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
+        )
         self.discord_show_relay_channel_names = (
             Plugin.get_cvar("qlx_displayChannelForDiscordRelayChannels", bool) or False
         )
         self.discord_replace_relayed_mentions = (
-            Plugin.get_cvar("qlx_discordReplaceMentionsForRelayedMessages", bool) or True
+            Plugin.get_cvar("qlx_discordReplaceMentionsForRelayedMessages", bool)
+            or True
         )
         self.discord_replace_triggered_mentions = (
-            Plugin.get_cvar("qlx_discordReplaceMentionsForTriggeredMessages", bool) or True
+            Plugin.get_cvar("qlx_discordReplaceMentionsForTriggeredMessages", bool)
+            or True
         )
 
-        extended_logging_enabled = Plugin.get_cvar("qlx_discordLogToSeparateLogfile", bool) or False
+        extended_logging_enabled = (
+            Plugin.get_cvar("qlx_discordLogToSeparateLogfile", bool) or False
+        )
         if extended_logging_enabled:
             self.setup_extended_logger()
 
@@ -499,19 +536,25 @@ class SimpleAsyncDiscord(threading.Thread):
         discord_logger: logging.Logger = logging.getLogger("discord")
         discord_logger.setLevel(logging.DEBUG)
         # File
-        file_path = os.path.join(minqlx.get_cvar("fs_homepath") or "", "minqlx_discord.log")
+        file_path = os.path.join(
+            minqlx.get_cvar("fs_homepath") or "", "minqlx_discord.log"
+        )
         maxlogs = minqlx.Plugin.get_cvar("qlx_logs", int) or 5
         maxlogsize = minqlx.Plugin.get_cvar("qlx_logsSize", int) or 1024
         file_fmt = logging.Formatter(
             "(%(asctime)s) [%(levelname)s @ %(name)s.%(funcName)s] %(message)s",
             "%H:%M:%S",
         )
-        file_handler = RotatingFileHandler(file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs)
+        file_handler = RotatingFileHandler(
+            file_path, encoding="utf-8", maxBytes=maxlogsize, backupCount=maxlogs
+        )
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_fmt)
         discord_logger.addHandler(file_handler)
         # Console
-        console_fmt = logging.Formatter("[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S")
+        console_fmt = logging.Formatter(
+            "[%(name)s.%(funcName)s] %(levelname)s: %(message)s", "%H:%M:%S"
+        )
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(console_fmt)
@@ -549,7 +592,10 @@ class SimpleAsyncDiscord(threading.Thread):
         loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        members_intent = self.discord_replace_relayed_mentions or self.discord_replace_triggered_mentions
+        members_intent = (
+            self.discord_replace_relayed_mentions
+            or self.discord_replace_triggered_mentions
+        )
         intents = discord.Intents(
             members=members_intent,
             guilds=True,
@@ -646,10 +692,19 @@ class SimpleAsyncDiscord(threading.Thread):
         if hasattr(author, "nick") and author.nick is not None:
             sender = author.nick
 
-        channel_name = "" if isinstance(channel, (discord.DMChannel, discord.PartialMessageable)) else channel.name
-        if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
+        channel_name = (
+            ""
+            if isinstance(channel, (discord.DMChannel, discord.PartialMessageable))
+            else channel.name
+        )
+        if (
+            not self.discord_show_relay_channel_names
+            and channel.id in self.discord_relay_channel_ids
+        ):
             return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content}"
-        return f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content}"
+        return (
+            f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content}"
+        )
 
     async def on_ready(self):
         """
@@ -664,14 +719,20 @@ class SimpleAsyncDiscord(threading.Thread):
         for extension in extensions:
             if len(extension.strip()) > 0:
                 ready_actions.append(
-                    self.discord.load_extension(f".{extension}", package="minqlx-plugins.discord_extensions")
+                    self.discord.load_extension(
+                        f".{extension}", package="minqlx-plugins.discord_extensions"
+                    )
                 )
 
         if self.discord.user is not None:
-            self.logger.info(f"Logged in to discord as: {self.discord.user.name} ({self.discord.user.id})")
+            self.logger.info(
+                f"Logged in to discord as: {self.discord.user.name} ({self.discord.user.id})"
+            )
         Plugin.msg("Connected to discord")
 
-        ready_actions.append(self.discord.change_presence(activity=discord.Game(name="Quake Live")))
+        ready_actions.append(
+            self.discord.change_presence(activity=discord.Game(name="Quake Live"))
+        )
         await asyncio.gather(*ready_actions)
         await self.discord.tree.sync()
         self.logger.info("Application command tree synced!")
@@ -698,7 +759,11 @@ class SimpleAsyncDiscord(threading.Thread):
             # noinspection PyTypeChecker
             content: str = message.clean_content
             if len(content) > 0:
-                minqlx.CHAT_CHANNEL.reply(self._format_message_to_quake(message.channel, message.author, content))
+                minqlx.CHAT_CHANNEL.reply(
+                    self._format_message_to_quake(
+                        message.channel, message.author, content
+                    )
+                )
 
     async def on_command_error(self, exception, ctx):
         """
@@ -757,7 +822,9 @@ class SimpleAsyncDiscord(threading.Thread):
             asyncio.run_coroutine_threadsafe(
                 channel.send(
                     content,
-                    allowed_mentions=AllowedMentions(everyone=False, users=True, roles=True),
+                    allowed_mentions=AllowedMentions(
+                        everyone=False, users=True, roles=True
+                    ),
                 ),
                 loop=self.discord.loop,
             )
@@ -824,7 +891,9 @@ class SimpleAsyncDiscord(threading.Thread):
         for match in sorted(matches, key=lambda _match: len(str(_match)), reverse=True):
             if str(match) in ["all", "everyone", "here"]:
                 continue
-            member = SimpleAsyncDiscord.find_user_that_matches(str(match), member_list, player)
+            member = SimpleAsyncDiscord.find_user_that_matches(
+                str(match), member_list, player
+            )
             if member is not None:
                 returned_message = returned_message.replace(f"@{match}", member.mention)
 
@@ -852,7 +921,11 @@ class SimpleAsyncDiscord(threading.Thread):
             return member[0]
 
         # then try a direct match at the user's nickname
-        member = [user for user in member_list if user.nick is not None and user.nick.lower() == match.lower()]
+        member = [
+            user
+            for user in member_list
+            if user.nick is not None and user.nick.lower() == match.lower()
+        ]
         if len(member) == 1:
             return member[0]
 
@@ -902,9 +975,13 @@ class SimpleAsyncDiscord(threading.Thread):
         matches: list[re.Match[str]] = matcher.findall(returned_message)
 
         for match in sorted(matches, key=lambda _match: len(str(_match)), reverse=True):
-            channel = SimpleAsyncDiscord.find_channel_that_matches(str(match), channel_list, player)
+            channel = SimpleAsyncDiscord.find_channel_that_matches(
+                str(match), channel_list, player
+            )
             if channel is not None:
-                returned_message = returned_message.replace(f"#{match}", channel.mention)
+                returned_message = returned_message.replace(
+                    f"#{match}", channel.mention
+                )
 
         return returned_message
 
@@ -935,13 +1012,17 @@ class SimpleAsyncDiscord(threading.Thread):
             return channel[0]
 
         # then we try a match with portions of the channel name
-        channel = [ch for ch in channel_list if ch.name.lower().find(match.lower()) != -1]
+        channel = [
+            ch for ch in channel_list if ch.name.lower().find(match.lower()) != -1
+        ]
         if len(channel) == 1:
             return channel[0]
 
         # we found more than one matching channel, let's tell the player about this.
         if len(channel) > 1 and player is not None:
-            player.tell(f"Found ^6{len(channel)}^7 matching discord channels for #{match}:")
+            player.tell(
+                f"Found ^6{len(channel)}^7 matching discord channels for #{match}:"
+            )
             alternatives = ""
             for alternative_channel in channel:
                 alternatives += f"#{alternative_channel.name} "
@@ -974,7 +1055,8 @@ class SimpleAsyncDiscord(threading.Thread):
             )
         else:
             content = (
-                f"**{discord.utils.escape_markdown(player.clean_name)}**: " f"{discord.utils.escape_markdown(message)}"
+                f"**{discord.utils.escape_markdown(player.clean_name)}**: "
+                f"{discord.utils.escape_markdown(message)}"
             )
 
         self.send_to_discord_channels(self.discord_triggered_channel_ids, content)

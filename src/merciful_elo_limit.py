@@ -51,14 +51,18 @@ def is_player_in_exception_list(player):
     # noinspection PyProtectedMember
     if "mybalance" in Plugin._loaded_plugins:  # pylint: disable=protected-access
         # noinspection PyProtectedMember
-        mybalance_plugin = Plugin._loaded_plugins["mybalance"]  # pylint: disable=protected-access
+        mybalance_plugin = Plugin._loaded_plugins[  # pylint: disable=protected-access
+            "mybalance"
+        ]
         # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions
 
     # noinspection PyProtectedMember
     if "balancetwo" in Plugin._loaded_plugins:  # pylint: disable=protected-access
         # noinspection PyProtectedMember
-        balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]  # pylint: disable=protected-access
+        balancetwo_plugin = Plugin._loaded_plugins[  # pylint: disable=protected-access
+            "balancetwo"
+        ]
         # noinspection PyUnresolvedReferences
         return player.steam_id in balancetwo_plugin.exceptions
 
@@ -85,7 +89,9 @@ class merciful_elo_limit(Plugin):
         self.set_cvar_once("qlx_mercifulelo_daysbanned", "30")
 
         self.min_elo = self.get_cvar("qlx_mercifulelo_minelo", int) or 800
-        self.application_games = self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
+        self.application_games = (
+            self.get_cvar("qlx_mercifulelo_applicationgames", int) or 10
+        )
         self.banned_days = self.get_cvar("qlx_mercifulelo_daysbanned", int) or 30
 
         self.tracked_player_sids = set()
@@ -95,8 +101,12 @@ class merciful_elo_limit(Plugin):
         self.connectthreads = {}
 
         self.add_hook("map", self.handle_map_change)
-        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST)
-        self.add_hook("player_loaded", self.handle_player_loaded, priority=minqlx.PRI_HIGHEST)
+        self.add_hook(
+            "player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST
+        )
+        self.add_hook(
+            "player_loaded", self.handle_player_loaded, priority=minqlx.PRI_HIGHEST
+        )
         self.add_hook("round_countdown", self.handle_round_countdown)
         self.add_hook("round_start", self.handle_round_start)
 
@@ -169,7 +179,9 @@ class merciful_elo_limit(Plugin):
         return len(games_in_period) < self.application_games
 
     def application_games_of_player(self, steam_id):
-        return self.db.zrangebyscore(APPLICATION_GAMES_KEY.format(steam_id), self.gaming_period_start(), "+INF")
+        return self.db.zrangebyscore(
+            APPLICATION_GAMES_KEY.format(steam_id), self.gaming_period_start(), "+INF"
+        )
 
     def next_game_available_at(self, steam_id):
         games_in_period = self.application_games_of_player(steam_id)
@@ -179,7 +191,9 @@ class merciful_elo_limit(Plugin):
             return None
         min_game = min(timestamped_games)
 
-        next_game_available = datetime.fromtimestamp(min_game) + timedelta(days=self.banned_days)
+        next_game_available = datetime.fromtimestamp(min_game) + timedelta(
+            days=self.banned_days
+        )
 
         return next_game_available.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -263,7 +277,10 @@ class merciful_elo_limit(Plugin):
             return None
 
         # noinspection PyProtectedMember
-        if "balance" not in Plugin._loaded_plugins and "balancetwo" not in Plugin._loaded_plugins:
+        if (
+            "balance" not in Plugin._loaded_plugins
+            and "balancetwo" not in Plugin._loaded_plugins
+        ):
             self.logger.warning(
                 "Balance plugin not found. Merciful elo limits just work with the elos from the balance plugin"
             )
@@ -274,12 +291,12 @@ class merciful_elo_limit(Plugin):
             # noinspection PyProtectedMember
             balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]
             balance_api = self.get_cvar("qlx_balanceApi")
-            if balance_api == "elo":
-                # noinspection PyUnresolvedReferences
-                ratings = balancetwo_plugin.ratings["Elo"]
-            else:
-                # noinspection PyUnresolvedReferences
-                ratings = balancetwo_plugin.ratings["B-Elo"]
+            # noinspection PyUnresolvedReferences
+            ratings = (
+                balancetwo_plugin.ratings["Elo"]
+                if balance_api == "elo"
+                else balancetwo_plugin.ratings["B-Elo"]
+            )
             if player.steam_id not in ratings:
                 return None
 
@@ -300,7 +317,10 @@ class merciful_elo_limit(Plugin):
         next_game_available_at = self.next_game_available_at(player.steam_id)
         if next_game_available_at is None:
             return
-        self.blink2(player, f"^1Skill warning, read console! ^3{remaining_matches} ^1matches left.")
+        self.blink2(
+            player,
+            f"^1Skill warning, read console! ^3{remaining_matches} ^1matches left.",
+        )
         player.tell(
             f"{player.clean_name}, this is a ^1Skill Warning! ^7Your qlstats.net glicko is below {self.min_elo}. "
             f"You have ^3{remaining_matches} ^7of {self.application_games} "
@@ -349,8 +369,14 @@ class merciful_elo_limit(Plugin):
             self.tracked_player_sids.add(player.steam_id)
 
             timestamp = datetime.now().timestamp()
-            self.db.zremrangebyscore(APPLICATION_GAMES_KEY.format(player.steam_id), "-INF", self.gaming_period_start())
-            self.db.zadd(APPLICATION_GAMES_KEY.format(player.steam_id), timestamp, timestamp)
+            self.db.zremrangebyscore(
+                APPLICATION_GAMES_KEY.format(player.steam_id),
+                "-INF",
+                self.gaming_period_start(),
+            )
+            self.db.zadd(
+                APPLICATION_GAMES_KEY.format(player.steam_id), timestamp, timestamp
+            )
             return
 
     def cmd_mercis(self, _player, _msg, channel):
@@ -363,7 +389,9 @@ class merciful_elo_limit(Plugin):
             if elo is None or elo > self.min_elo:
                 continue
 
-            remaining_matches = self.remaining_application_games_for_player(reported_player.steam_id)
+            remaining_matches = self.remaining_application_games_for_player(
+                reported_player.steam_id
+            )
 
             if remaining_matches >= self.application_games:
                 continue
@@ -372,7 +400,9 @@ class merciful_elo_limit(Plugin):
                 reported_players.append(reported_player)
 
         if len(reported_players) == 0:
-            reply_channel.reply("There is currently no player within their application period connected.")
+            reply_channel.reply(
+                "There is currently no player within their application period connected."
+            )
             return
 
         reply_channel.reply("Players currently within their application period:")
@@ -381,7 +411,9 @@ class merciful_elo_limit(Plugin):
             if elo is None:
                 continue
 
-            remaining_matches = self.remaining_application_games_for_player(merci_player.steam_id)
+            remaining_matches = self.remaining_application_games_for_player(
+                merci_player.steam_id
+            )
             reply_channel.reply(
                 f"{merci_player.clean_name} (elo: {elo}): ^3{remaining_matches}^7 application matches left"
             )
@@ -402,11 +434,15 @@ class merciful_elo_limit(Plugin):
         self.db.zrem(APPLICATION_GAMES_KEY.format(steam_id), games[len(games) - 1])
 
         granted_player = self.player(steam_id)
-        reply_channel.reply(f"{granted_player.clean_name}^7 has been granted another application game")
+        reply_channel.reply(
+            f"{granted_player.clean_name}^7 has been granted another application game"
+        )
         return minqlx.RET_NONE
 
     def remaining_application_games_for_player(self, steam_id):
-        remaining_matches = self.application_games - len(self.application_games_of_player(steam_id))
+        remaining_matches = self.application_games - len(
+            self.application_games_of_player(steam_id)
+        )
         return remaining_matches
 
     @minqlx.delay(600)  # 10 minutes
@@ -481,15 +517,21 @@ class ConnectThread(threading.Thread):
             return
 
         if result is None or result.status_code != requests.codes.ok:
-            logger.debug("MericfulEloLimitError: Invalid response code from qlstats.net.")
+            logger.debug(
+                "MericfulEloLimitError: Invalid response code from qlstats.net."
+            )
             return
         js = result.json()
 
         if "players" not in js:
-            logger.debug("MericfulEloLimitError: Invalid response content from qlstats.net.")
+            logger.debug(
+                "MericfulEloLimitError: Invalid response content from qlstats.net."
+            )
             return
 
-        player_entry = [entry for entry in js["players"] if entry["steamid"] == str(self._steam_id)]
+        player_entry = [
+            entry for entry in js["players"] if entry["steamid"] == str(self._steam_id)
+        ]
 
         if len(player_entry) <= 0:
             logger.debug(

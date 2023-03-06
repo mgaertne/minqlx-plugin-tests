@@ -39,7 +39,9 @@ IPS_BASE = "minqlx:ips"
 SUPPORTED_GAMETYPES = ("ad", "ca", "ctf", "dom", "ft", "tdm")
 
 
-def requests_retry_session(retries=3, backoff_factor=0.1, status_forcelist=(500, 502, 504), session=None):
+def requests_retry_session(
+    retries=3, backoff_factor=0.1, status_forcelist=(500, 502, 504), session=None
+):
     session = session or Session()
     retry = Retry(
         total=retries,
@@ -101,14 +103,20 @@ def report_ratings_for_team(
     if team is None or len(team) <= 0:
         return
 
-    primary_filtered = [player for player in team if player.steam_id in primary_rating_provider.rated_steam_ids()]
+    primary_filtered = [
+        player
+        for player in team
+        if player.steam_id in primary_rating_provider.rated_steam_ids()
+    ]
     primary_filtered = [
         player
         for player in primary_filtered
         if gametype in primary_rating_provider.rated_gametypes_for(player.steam_id)
     ]
     primary_filtered = [
-        player for player in primary_filtered if primary_rating_provider.games_for(player.steam_id, gametype) > 0
+        player
+        for player in primary_filtered
+        if primary_rating_provider.games_for(player.steam_id, gametype) > 0
     ]
 
     rated_player_texts = []
@@ -120,15 +128,24 @@ def report_ratings_for_team(
         )
 
         for player in primary_sorted:
-            primary_rating = primary_rating_provider.rating_for(player.steam_id, gametype)
-            secondary_rating = secondary_rating_provider.rating_for(player.steam_id, gametype)
+            primary_rating = primary_rating_provider.rating_for(
+                player.steam_id, gametype
+            )
+            secondary_rating = secondary_rating_provider.rating_for(
+                player.steam_id, gametype
+            )
             if (
                 player.steam_id in secondary_rating_provider.rated_steam_ids()
-                and gametype in secondary_rating_provider.rated_gametypes_for(player.steam_id)
+                and gametype
+                in secondary_rating_provider.rated_gametypes_for(player.steam_id)
                 and secondary_rating_provider.games_for(player.steam_id, gametype) > 0
             ):
-                primary_rating = primary_rating_provider.rating_for(player.steam_id, gametype)
-                secondary_rating = secondary_rating_provider.rating_for(player.steam_id, gametype)
+                primary_rating = primary_rating_provider.rating_for(
+                    player.steam_id, gametype
+                )
+                secondary_rating = secondary_rating_provider.rating_for(
+                    player.steam_id, gametype
+                )
                 rated_player_texts.append(
                     f"{player.name}^7: {_primary_rating_prefix}{primary_rating}^7/"
                     f"{_secondary_rating_prefix}{secondary_rating}^7"
@@ -143,12 +160,15 @@ def report_ratings_for_team(
 
     if len(primary_unranked) > 0:
         secondary_filtered = [
-            player for player in primary_unranked if player.steam_id in secondary_rating_provider.rated_steam_ids()
+            player
+            for player in primary_unranked
+            if player.steam_id in secondary_rating_provider.rated_steam_ids()
         ]
         secondary_filtered = [
             player
             for player in secondary_filtered
-            if gametype in secondary_rating_provider.rated_gametypes_for(player.steam_id)
+            if gametype
+            in secondary_rating_provider.rated_gametypes_for(player.steam_id)
         ]
         secondary_filtered = [
             player
@@ -164,17 +184,27 @@ def report_ratings_for_team(
             )
 
             for player in secondary_sorted:
-                primary_rating = primary_rating_provider.rating_for(player.steam_id, gametype)
-                secondary_rating = secondary_rating_provider.rating_for(player.steam_id, gametype)
+                primary_rating = primary_rating_provider.rating_for(
+                    player.steam_id, gametype
+                )
+                secondary_rating = secondary_rating_provider.rating_for(
+                    player.steam_id, gametype
+                )
                 rated_player_texts.append(
                     f"{player.name}^7: {_primary_rating_prefix}^5{primary_rating}/"
                     f"{_secondary_rating_prefix}{secondary_rating}^7"
                 )
 
-        secondary_unranked = [player for player in primary_unranked if player not in secondary_filtered]
+        secondary_unranked = [
+            player for player in primary_unranked if player not in secondary_filtered
+        ]
         for player in secondary_unranked:
-            primary_rating = primary_rating_provider.rating_for(player.steam_id, gametype)
-            secondary_rating = secondary_rating_provider.rating_for(player.steam_id, gametype)
+            primary_rating = primary_rating_provider.rating_for(
+                player.steam_id, gametype
+            )
+            secondary_rating = secondary_rating_provider.rating_for(
+                player.steam_id, gametype
+            )
             rated_player_texts.append(
                 f"{player.name}^7: {_primary_rating_prefix}^5{primary_rating}^7/"
                 f"{_secondary_rating_prefix}^5{secondary_rating}^7"
@@ -291,35 +321,57 @@ class balancetwo(Plugin):
         self.set_cvar_once("qlx_qlstatsPrivacyWhitelist", "public, private, untracked")
         self.set_cvar_once("qlx_qlstatsPrivacyJoinAttempts", "5")
 
-        self.rating_system = self.get_cvar("qlx_balancetwo_ratingSystem") or "mapbased-truskills"
+        self.rating_system = (
+            self.get_cvar("qlx_balancetwo_ratingSystem") or "mapbased-truskills"
+        )
 
-        self.ratingLimit_kick = self.get_cvar("qlx_balancetwo_ratingLimit_kick", bool) or False
+        self.ratingLimit_kick = (
+            self.get_cvar("qlx_balancetwo_ratingLimit_kick", bool) or False
+        )
 
         self.ratingLimit_min = self.parse_rating_limit("qlx_balancetwo_ratingLimit_min")
         self.ratingLimit_max = self.parse_rating_limit("qlx_balancetwo_ratingLimit_max")
-        self.ratingLimit_minGames = self.parse_rating_limit("qlx_balancetwo_ratingLimit_minGames")
+        self.ratingLimit_minGames = self.parse_rating_limit(
+            "qlx_balancetwo_ratingLimit_minGames"
+        )
 
-        self.minimum_suggestion_diff = self.parse_suggestion_minimum("qlx_balancetwo_minimumSuggestionDiff")
-        self.minimum_suggestion_stddev_diff = self.parse_suggestion_minimum("qlx_balancetwo_minimumStddevDiff")
+        self.minimum_suggestion_diff = self.parse_suggestion_minimum(
+            "qlx_balancetwo_minimumSuggestionDiff"
+        )
+        self.minimum_suggestion_stddev_diff = self.parse_suggestion_minimum(
+            "qlx_balancetwo_minimumStddevDiff"
+        )
 
         self.last_action = self.get_cvar("qlx_balancetwo_lastAction") or "spec"
 
         self.auto_switch = self.get_cvar("qlx_balancetwo_autoSwitch", bool) or False
-        self.repeat_vetoed_switches = self.get_cvar("qlx_balancetwo_repeatvetoedsuggestions", bool) or False
-        self.unique_player_switches = self.get_cvar("qlx_balancetwo_uniquePlayerSwitches", bool) or False
-        self.auto_rebalance = self.get_cvar("qlx_balancetwo_autoRebalance", bool) or True
+        self.repeat_vetoed_switches = (
+            self.get_cvar("qlx_balancetwo_repeatvetoedsuggestions", bool) or False
+        )
+        self.unique_player_switches = (
+            self.get_cvar("qlx_balancetwo_uniquePlayerSwitches", bool) or False
+        )
+        self.auto_rebalance = (
+            self.get_cvar("qlx_balancetwo_autoRebalance", bool) or True
+        )
 
-        self.reply_channel = self.get_cvar("qlx_balancetwo_elocheckReplyChannel") or "public"
+        self.reply_channel = (
+            self.get_cvar("qlx_balancetwo_elocheckReplyChannel") or "public"
+        )
         if self.reply_channel != "private":
             self.reply_channel = "public"
-        self.show_steam_ids = self.get_cvar("qlx_balancetwo_elocheckShowSteamids", bool) or False
+        self.show_steam_ids = (
+            self.get_cvar("qlx_balancetwo_elocheckShowSteamids", bool) or False
+        )
 
         self.allowed_privacy = self.get_cvar("qlx_qlstatsPrivacyWhitelist", list) or [
             "public",
             "private",
             "untracked",
         ]
-        self.max_num_join_attempts = self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int) or 5
+        self.max_num_join_attempts = (
+            self.get_cvar("qlx_qlstatsPrivacyJoinAttempts", int) or 5
+        )
 
         self.connectthreads = {}
         self.kickthreads = {}
@@ -350,7 +402,9 @@ class balancetwo(Plugin):
         self.privacy_checks_enabled = True
         self.join_attempts = {}
 
-        elocheck_premission = self.get_cvar("qlx_balancetwo_elocheckPermission", int) or 0
+        elocheck_premission = (
+            self.get_cvar("qlx_balancetwo_elocheckPermission", int) or 0
+        )
         self.add_command(
             ("elocheck", "getrating", "getelo", "elo"),
             self.cmd_elocheck,
@@ -365,7 +419,9 @@ class balancetwo(Plugin):
         )
         self.add_command(("ratings", "elos", "selo"), self.cmd_ratings)
 
-        self.add_command("eloupdates", self.cmd_switch_elo_changes_notifications, usage="<0/1>")
+        self.add_command(
+            "eloupdates", self.cmd_switch_elo_changes_notifications, usage="<0/1>"
+        )
 
         self.add_command("balance", self.cmd_balance, 1)
         self.add_command("last", self.cmd_last_action, 2, usage="[SPEC|IGNORE]")
@@ -378,7 +434,9 @@ class balancetwo(Plugin):
 
         self.add_command(("nokick", "dontkick"), self.cmd_nokick, 2, usage="[<name>]")
 
-        self.add_command("privacy", self.cmd_switch_privacy_checks, permission=1, usage="[0/1]")
+        self.add_command(
+            "privacy", self.cmd_switch_privacy_checks, permission=1, usage="[0/1]"
+        )
 
         self.add_command(
             ("add_exception", "elo_exception"),
@@ -394,7 +452,9 @@ class balancetwo(Plugin):
         )
 
         self.add_hook("map", self.handle_map_change)
-        self.add_hook("player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST)
+        self.add_hook(
+            "player_connect", self.handle_player_connect, priority=minqlx.PRI_HIGHEST
+        )
         self.add_hook("player_disconnect", self.handle_player_disconnect)
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
         self.add_hook("team_switch", self.handle_team_switch)
@@ -419,9 +479,11 @@ class balancetwo(Plugin):
 
         if isinstance(evaluated_rating_limits, dict):
             returned_rating_limits = {}
-            for rating_system in evaluated_rating_limits.keys():
+            for rating_system in evaluated_rating_limits:
                 if rating_system.lower() not in ["a-elo", "b-elo", "truskills"]:
-                    self.logger.debug(f"Found unknown rating provider in {cvar}: {rating_system} Ignoring")
+                    self.logger.debug(
+                        f"Found unknown rating provider in {cvar}: {rating_system} Ignoring"
+                    )
                     continue
                 if rating_system.lower() == "a-elo":
                     rating_provider_name = A_ELO.name
@@ -429,7 +491,9 @@ class balancetwo(Plugin):
                     rating_provider_name = B_ELO.name
                 else:
                     rating_provider_name = TRUSKILLS.name
-                returned_rating_limits[rating_provider_name] = evaluated_rating_limits[rating_system]
+                returned_rating_limits[rating_provider_name] = evaluated_rating_limits[
+                    rating_system
+                ]
 
             return returned_rating_limits
 
@@ -471,11 +535,17 @@ class balancetwo(Plugin):
             missing_steam_ids = steam_ids
             if rating_provider.name in self.ratings:
                 rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
-                missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
+                missing_steam_ids = [
+                    steam_id
+                    for steam_id in steam_ids
+                    if steam_id not in rated_steam_ids
+                ]
 
             async_requests.append(rating_provider.fetch_elos(missing_steam_ids))
 
-        mapbased_rating_provider_name, mapbased_fetching = self.fetch_mapbased_ratings(steam_ids, mapname)
+        mapbased_rating_provider_name, mapbased_fetching = self.fetch_mapbased_ratings(
+            steam_ids, mapname
+        )
 
         fetched_rating_providers = [TRUSKILLS.name, A_ELO.name, B_ELO.name]
         if mapbased_rating_provider_name is not None:
@@ -485,7 +555,9 @@ class balancetwo(Plugin):
         results = await asyncio.gather(*async_requests, return_exceptions=True)
         print(results)
 
-        for rating_provider_name, rating_results in zip(fetched_rating_providers, results):
+        for rating_provider_name, rating_results in zip(
+            fetched_rating_providers, results
+        ):
             if isinstance(rating_results, BaseException):
                 continue
             self.append_ratings(rating_provider_name, rating_results)
@@ -501,12 +573,16 @@ class balancetwo(Plugin):
         missing_steam_ids = steam_ids
         if rating_provider_name in self.ratings:
             rated_steam_ids = self.ratings[rating_provider_name].rated_steam_ids()
-            missing_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids]
+            missing_steam_ids = [
+                steam_id for steam_id in steam_ids if steam_id not in rated_steam_ids
+            ]
 
         if len(missing_steam_ids) == 0:
             return None, None
 
-        return rating_provider_name, TRUSKILLS.fetch_elos(missing_steam_ids, headers={"X-QuakeLive-Map": mapname})
+        return rating_provider_name, TRUSKILLS.fetch_elos(
+            missing_steam_ids, headers={"X-QuakeLive-Map": mapname}
+        )
 
     def append_ratings(self, rating_provider_name, json_result):
         if json_result is None:
@@ -522,10 +598,7 @@ class balancetwo(Plugin):
         if len(msg) > 2:
             return minqlx.RET_USAGE
 
-        if len(msg) == 1:
-            target = str(player.steam_id)
-        else:
-            target = msg[1]
+        target = str(player.steam_id) if len(msg) == 1 else msg[1]
 
         self.do_elocheck(player, target, channel)
         return minqlx.RET_NONE
@@ -541,8 +614,12 @@ class balancetwo(Plugin):
                 try:
                     target_steam_id = int(target)
 
-                    if not self.db or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
-                        player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
+                    if not self.db or not self.db.exists(
+                        PLAYER_BASE.format(target_steam_id)
+                    ):
+                        player.tell(
+                            f"Sorry, player with steam id {target_steam_id} never played here."
+                        )
                         return
                 except ValueError:
                     player.tell(f"Sorry, but no players matched your tokens: {target}.")
@@ -550,7 +627,9 @@ class balancetwo(Plugin):
 
             if len(target_players) > 1:
                 amount_matched_players = len(target_players)
-                player.tell(f"A total of ^6{amount_matched_players}^7 players matched for {target}:")
+                player.tell(
+                    f"A total of ^6{amount_matched_players}^7 players matched for {target}:"
+                )
                 out = ""
                 for p in target_players:
                     out += " " * 2
@@ -584,11 +663,27 @@ class balancetwo(Plugin):
 
             results = await asyncio.gather(*async_requests, return_exceptions=True)
 
-            truskill = RatingProvider.from_json(results[0]) if not isinstance(results[0], Exception) else None
-            a_elo = RatingProvider.from_json(results[1]) if not isinstance(results[1], Exception) else None
-            b_elo = RatingProvider.from_json(results[2]) if not isinstance(results[2], Exception) else None
+            truskill = (
+                RatingProvider.from_json(results[0])
+                if not isinstance(results[0], Exception)
+                else None
+            )
+            a_elo = (
+                RatingProvider.from_json(results[1])
+                if not isinstance(results[1], Exception)
+                else None
+            )
+            b_elo = (
+                RatingProvider.from_json(results[2])
+                if not isinstance(results[2], Exception)
+                else None
+            )
             map_based_truskill = None
-            if self.game is not None and self.game.map is not None and not isinstance(results[3], BaseException):
+            if (
+                self.game is not None
+                and self.game.map is not None
+                and not isinstance(results[3], BaseException)
+            ):
                 map_based_truskill = RatingProvider.from_json(results[3])
 
             if target_steam_id in aliases:
@@ -623,7 +718,9 @@ class balancetwo(Plugin):
                         aliases=aliases[steam_id],
                     )
                 else:
-                    player_elos = self.format_player_elos(a_elo, b_elo, truskill, map_based_truskill, steam_id)
+                    player_elos = self.format_player_elos(
+                        a_elo, b_elo, truskill, map_based_truskill, steam_id
+                    )
                 reply_func(f"{player_elos}^7\n\n")
 
         asyncio.run(_async_elocheck())
@@ -716,33 +813,51 @@ class balancetwo(Plugin):
                     result.append(" " * indent + f"Aliases used: {formatted_aliases}^7")
                 else:
                     result.append(
-                        " " * indent + f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)"
+                        " " * indent
+                        + f"Aliases used: {formatted_aliases}^7, ... (^4!aliases <player>^7 to list all)"
                     )
 
         if map_based_truskill is not None and self.game is not None:
             formatted_map_based_truskills = map_based_truskill.format_elos(steam_id)
-            if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0:
+            if (
+                formatted_map_based_truskills is not None
+                and len(formatted_map_based_truskills) > 0
+            ):
                 formatted_mapname = self.game.map.lower()
-                formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
-                for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+                formatted_line = (
+                    " " * indent
+                    + "  "
+                    + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
+                )
+                for line in minqlx.CHAT_CHANNEL.split_long_lines(
+                    formatted_line, delimiter="  "
+                ):
                     result.append(line)
 
-        formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
+        formatted_truskills = (
+            truskill.format_elos(steam_id) if truskill is not None else None
+        )
         if formatted_truskills is not None and len(formatted_truskills) > 0:
             formatted_line = " " * indent + "  " + f"Truskills: {formatted_truskills}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(
+                formatted_line, delimiter="  "
+            ):
                 result.append(line)
 
         formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
             formatted_line = " " * indent + "  " + f"Elos: {formatted_a_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(
+                formatted_line, delimiter="  "
+            ):
                 result.append(line)
 
         formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
             formatted_line = " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(
+                formatted_line, delimiter="  "
+            ):
                 result.append(line)
 
         return "\n".join(result)
@@ -767,7 +882,9 @@ class balancetwo(Plugin):
             return remove_trailing_color_code(player.name)
 
         if self.db.exists(PLAYER_BASE.format(steam_id) + ":last_used_name"):
-            return remove_trailing_color_code(self.db[PLAYER_BASE.format(steam_id) + ":last_used_name"])
+            return remove_trailing_color_code(
+                self.db[PLAYER_BASE.format(steam_id) + ":last_used_name"]
+            )
 
         return "unknown"
 
@@ -788,8 +905,12 @@ class balancetwo(Plugin):
             try:
                 target_steam_id = int(target)
 
-                if self.db is None or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
-                    player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
+                if self.db is None or not self.db.exists(
+                    PLAYER_BASE.format(target_steam_id)
+                ):
+                    player.tell(
+                        f"Sorry, player with steam id {target_steam_id} never played here."
+                    )
                     return
             except ValueError:
                 player.tell(f"Sorry, but no players matched your tokens: {target}.")
@@ -797,7 +918,9 @@ class balancetwo(Plugin):
 
         if len(target_players) > 1:
             amount_alternatives = len(target_players)
-            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
+            player.tell(
+                f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
+            )
             out = ""
             for p in target_players:
                 out += " " * 2
@@ -819,7 +942,9 @@ class balancetwo(Plugin):
             reply_func(f"Sorry, no aliases returned for {target_steam_id}")
             return
 
-        formatted_aliases = self.format_player_aliases(target_steam_id, aliases[target_steam_id])
+        formatted_aliases = self.format_player_aliases(
+            target_steam_id, aliases[target_steam_id]
+        )
         reply_func(f"{formatted_aliases}^7")
 
     def format_player_aliases(self, steam_id, aliases):
@@ -837,12 +962,19 @@ class balancetwo(Plugin):
         mapname = self.game.map.lower()
         map_based_rating_provider_name = f"{mapname} {TRUSKILLS.name}"
 
-        if TRUSKILLS.name in self.ratings and map_based_rating_provider_name in self.ratings:
+        if (
+            TRUSKILLS.name in self.ratings
+            and map_based_rating_provider_name in self.ratings
+        ):
             truskills_rating_provider = self.ratings[TRUSKILLS.name]
-            mapbased_truskills_rating_provider = self.ratings[map_based_rating_provider_name]
+            mapbased_truskills_rating_provider = self.ratings[
+                map_based_rating_provider_name
+            ]
 
             truskills_url = TRUSKILLS.url_base.split(":")[1].strip("/")
-            channel.reply(f"^3{TRUSKILLS.name}^7 ratings (^3general^7/^3map-based^7) (^3{truskills_url}^7)")
+            channel.reply(
+                f"^3{TRUSKILLS.name}^7 ratings (^3general^7/^3map-based^7) (^3{truskills_url}^7)"
+            )
 
             report_ratings_for_team(
                 channel,
@@ -1006,7 +1138,9 @@ class balancetwo(Plugin):
             channel.reply("Teams are good! Nothing to balance.")
             return
 
-        for steam_id1, steam_id2 in itertools.zip_longest(team1_to_move_steam_ids, team2_to_move_steam_ids):
+        for steam_id1, steam_id2 in itertools.zip_longest(
+            team1_to_move_steam_ids, team2_to_move_steam_ids
+        ):
             if steam_id1 is not None:
                 player1 = self.player(steam_id1)
                 if player1 is not None:
@@ -1067,7 +1201,9 @@ class balancetwo(Plugin):
 
         configured_rating_provider_name = self.configured_rating_provider_name()
         if configured_rating_provider_name not in self.ratings:
-            self.logger.debug(f"Balancing aborted. No ratings found for {configured_rating_provider_name}.")
+            self.logger.debug(
+                f"Balancing aborted. No ratings found for {configured_rating_provider_name}."
+            )
             return [], []
         configured_rating_provider = self.ratings[configured_rating_provider_name]
 
@@ -1075,7 +1211,9 @@ class balancetwo(Plugin):
 
         for combination in itertools.combinations(steam_ids, int(len(steam_ids) / 2)):
             red_steam_ids = list(combination)
-            blue_steam_ids = [steam_id for steam_id in steam_ids if steam_id not in red_steam_ids]
+            blue_steam_ids = [
+                steam_id for steam_id in steam_ids if steam_id not in red_steam_ids
+            ]
 
             previous_red_team, previous_blue_team = self.previous_teams
             if self.previous_teams is not None and (
@@ -1090,8 +1228,12 @@ class balancetwo(Plugin):
             ):
                 continue
 
-            red_avg = self.team_average(gt, red_steam_ids, rating_provider=configured_rating_provider)
-            blue_avg = self.team_average(gt, blue_steam_ids, rating_provider=configured_rating_provider)
+            red_avg = self.team_average(
+                gt, red_steam_ids, rating_provider=configured_rating_provider
+            )
+            blue_avg = self.team_average(
+                gt, blue_steam_ids, rating_provider=configured_rating_provider
+            )
             diff = abs(red_avg - blue_avg)
 
             team_combinations.append((red_steam_ids, blue_steam_ids, diff))
@@ -1129,12 +1271,16 @@ class balancetwo(Plugin):
 
         configured_rating_provider_name = self.configured_rating_provider_name()
         if configured_rating_provider_name not in self.ratings:
-            self.logger.debug(f"Balancing aborted. No ratings found for {configured_rating_provider_name}.")
+            self.logger.debug(
+                f"Balancing aborted. No ratings found for {configured_rating_provider_name}."
+            )
             return [], []
 
         configured_rating_provider = self.ratings[configured_rating_provider_name]
         rated_steam_ids = [
-            steam_id for steam_id in steam_ids if steam_id in configured_rating_provider.rated_steam_ids()
+            steam_id
+            for steam_id in steam_ids
+            if steam_id in configured_rating_provider.rated_steam_ids()
         ]
         rated_steam_ids = [
             steam_id
@@ -1142,9 +1288,15 @@ class balancetwo(Plugin):
             if gametype in configured_rating_provider.rated_gametypes_for(steam_id)
         ]
         rated_steam_ids = [
-            steam_id for steam_id in rated_steam_ids if configured_rating_provider.rating_for(steam_id, gametype) > 0
+            steam_id
+            for steam_id in rated_steam_ids
+            if configured_rating_provider.rating_for(steam_id, gametype) > 0
         ]
-        rated_steam_ids.sort(key=lambda steam_id: configured_rating_provider.rating_for(steam_id, gametype))
+        rated_steam_ids.sort(
+            key=lambda steam_id: configured_rating_provider.rating_for(
+                steam_id, gametype
+            )
+        )
         parked_lowest_steam_id = None
         if len(rated_steam_ids) % 2 == 1:
             if self.last_action != "spec":
@@ -1204,10 +1356,14 @@ class balancetwo(Plugin):
             red_steam_ids + [parked_lowest_steam_id],
             rating_provider=configured_rating_provider,
         )
-        option1_blue_average = self.team_average(gametype, blue_steam_ids, rating_provider=configured_rating_provider)
+        option1_blue_average = self.team_average(
+            gametype, blue_steam_ids, rating_provider=configured_rating_provider
+        )
         option1_diff = abs(option1_red_average - option1_blue_average)
 
-        option2_red_average = self.team_average(gametype, red_steam_ids, rating_provider=configured_rating_provider)
+        option2_red_average = self.team_average(
+            gametype, red_steam_ids, rating_provider=configured_rating_provider
+        )
         option2_blue_average = self.team_average(
             gametype,
             blue_steam_ids + [parked_lowest_steam_id],
@@ -1242,12 +1398,20 @@ class balancetwo(Plugin):
 
         configured_rating_provider = self.ratings[configured_rating_provider_name]
 
-        avg_red = self.team_average(gt, red_team, rating_provider=configured_rating_provider)
-        avg_blue = self.team_average(gt, blue_team, rating_provider=configured_rating_provider)
+        avg_red = self.team_average(
+            gt, red_team, rating_provider=configured_rating_provider
+        )
+        avg_blue = self.team_average(
+            gt, blue_team, rating_provider=configured_rating_provider
+        )
         avg_diff = avg_red - avg_blue
 
-        stddev_red = self.team_stddev(red_team, gt, mu=avg_red, rating_provider=configured_rating_provider)
-        stddev_blue = self.team_stddev(blue_team, gt, mu=avg_blue, rating_provider=configured_rating_provider)
+        stddev_red = self.team_stddev(
+            red_team, gt, mu=avg_red, rating_provider=configured_rating_provider
+        )
+        stddev_blue = self.team_stddev(
+            blue_team, gt, mu=avg_blue, rating_provider=configured_rating_provider
+        )
 
         absolute_diff = abs(avg_diff)
         if configured_rating_provider_name.endswith(TRUSKILLS.name):
@@ -1288,11 +1452,14 @@ class balancetwo(Plugin):
         )
 
     def configured_rating_provider_name(self):
-        if self.game is not None and self.game.map is not None:
-            if self.rating_system == "mapbased-truskills":
-                formatted_mapname = self.game.map.lower()
-                rating_provider_name = f"{formatted_mapname} {TRUSKILLS.name}"
-                return rating_provider_name
+        if (
+            self.game is not None
+            and self.game.map is not None
+            and self.rating_system == "mapbased-truskills"
+        ):
+            formatted_mapname = self.game.map.lower()
+            rating_provider_name = f"{formatted_mapname} {TRUSKILLS.name}"
+            return rating_provider_name
         if self.rating_system.endswith("truskills"):
             return TRUSKILLS.name
 
@@ -1322,7 +1489,10 @@ class balancetwo(Plugin):
             if steam_id not in configured_rating_provider.rated_steam_ids():
                 return 0
 
-        return sum(configured_rating_provider.rating_for(steam_id, gametype) for steam_id in steam_ids) / len(steam_ids)
+        return sum(
+            configured_rating_provider.rating_for(steam_id, gametype)
+            for steam_id in steam_ids
+        ) / len(steam_ids)
 
     def team_stddev(
         self,
@@ -1347,12 +1517,17 @@ class balancetwo(Plugin):
             if steam_id not in configured_rating_provider.rated_steam_ids():
                 return 0
 
-        team_elos = [pow(configured_rating_provider.rating_for(steam_id, gametype) - mu, 2) for steam_id in steam_ids]
+        team_elos = [
+            pow(configured_rating_provider.rating_for(steam_id, gametype) - mu, 2)
+            for steam_id in steam_ids
+        ]
         return math.sqrt(sum(team_elos) / len(steam_ids))
 
     def cmd_last_action(self, _player, msg, channel):
         if len(msg) < 2:
-            channel.reply(f"^7The current action when teams are uneven is: ^6{self.last_action}^7.")
+            channel.reply(
+                f"^7The current action when teams are uneven is: ^6{self.last_action}^7."
+            )
             return minqlx.RET_NONE
 
         if msg[1] not in ["spec", "ignore"]:
@@ -1414,7 +1589,8 @@ class balancetwo(Plugin):
         if self.unique_player_switches and len(self.switched_players) > 0:
             possible_switches = list(
                 filter(
-                    lambda suggestion: suggestion.red_player.steam_id not in self.switched_players
+                    lambda suggestion: suggestion.red_player.steam_id
+                    not in self.switched_players
                     and suggestion.blue_player.steam_id not in self.switched_players,
                     possible_switches,
                 )
@@ -1460,7 +1636,9 @@ class balancetwo(Plugin):
             stddev_diff = abs(stddev_red - stddev_blue)
             return list(
                 filter(
-                    lambda suggestion: self.satisfies_minimum_suggestion_parameters(suggestion, stddev_diff),
+                    lambda suggestion: self.satisfies_minimum_suggestion_parameters(
+                        suggestion, stddev_diff
+                    ),
                     possible_switches,
                 )
             )
@@ -1487,13 +1665,14 @@ class balancetwo(Plugin):
         return abs(suggestion.avg_diff) <= minimum_suggestion_diff
 
     def minimum_suggestion_parameters(self):
-        if self.game is not None:
-            played_rounds = self.game.blue_score + self.game.red_score
-        else:
-            played_rounds = 0
+        played_rounds = (
+            0 if self.game is None else self.game.blue_score + self.game.red_score
+        )
 
         filtered_criteria = min(
-            filter(lambda x: played_rounds < x[0], self.minimum_suggestion_diff.items()),
+            filter(
+                lambda x: played_rounds < x[0], self.minimum_suggestion_diff.items()
+            ),
             key=itemgetter(1),
         )
         minimum_suggestion_diff = itemgetter(1)(filtered_criteria)
@@ -1521,14 +1700,22 @@ class balancetwo(Plugin):
         switches = []
         for red_p in teams["red"]:
             for blue_p in teams["blue"]:
-                r = [player.steam_id for player in teams["red"] if player.steam_id != red_p.steam_id] + [
-                    blue_p.steam_id
-                ]
-                b = [player.steam_id for player in teams["blue"] if player.steam_id != blue_p.steam_id] + [
-                    red_p.steam_id
-                ]
-                avg_red = self.team_average(gametype, r, rating_provider=configured_rating_provider)
-                avg_blue = self.team_average(gametype, b, rating_provider=configured_rating_provider)
+                r = [
+                    player.steam_id
+                    for player in teams["red"]
+                    if player.steam_id != red_p.steam_id
+                ] + [blue_p.steam_id]
+                b = [
+                    player.steam_id
+                    for player in teams["blue"]
+                    if player.steam_id != blue_p.steam_id
+                ] + [red_p.steam_id]
+                avg_red = self.team_average(
+                    gametype, r, rating_provider=configured_rating_provider
+                )
+                avg_blue = self.team_average(
+                    gametype, b, rating_provider=configured_rating_provider
+                )
                 diff = avg_red - avg_blue
 
                 if diff <= minimum_suggestion_diff:
@@ -1674,7 +1861,9 @@ class balancetwo(Plugin):
 
             _resolved_player.unmute()
 
-            channel.reply(f"^7An admin has prevented {_resolved_player.name}^7 from being kicked.")
+            channel.reply(
+                f"^7An admin has prevented {_resolved_player.name}^7 from being kicked."
+            )
 
         if self.kickthreads is None or len(self.kickthreads) == 0:
             player.tell("^6Psst^7: There are no people being kicked right now.")
@@ -1704,7 +1893,9 @@ class balancetwo(Plugin):
             player.tell(f"^6Psst^7: did you mean ^6{formatted_alternatives}^7?")
             return minqlx.RET_STOP_ALL
 
-        matched_players = [_player for _player in _scheduled_players if msg[1] in _player.name]
+        matched_players = [
+            _player for _player in _scheduled_players if msg[1] in _player.name
+        ]
 
         if len(matched_players) == 0:
             player.tell(f"^6Psst^7: no players matched '^6{msg[1]}^7'?")
@@ -1752,15 +1943,21 @@ class balancetwo(Plugin):
 
         for player in teams["red"] + teams["blue"]:
             if player.steam_id not in elo_ratings:
-                player.tell("We couldn't fetch your ratings, yet. You will not be able to play, until we did.")
+                player.tell(
+                    "We couldn't fetch your ratings, yet. You will not be able to play, until we did."
+                )
                 player.put("spectator")
                 continue
 
             if elo_ratings.privacy_for(player.steam_id) not in self.allowed_privacy:
                 player_privacy = elo_ratings.privacy_for(player.steam_id).lower()
-                self.msg(f"{player.name}^7 not allowed to join due to {player_privacy} QLStats.net privacy settings.")
+                self.msg(
+                    f"{player.name}^7 not allowed to join due to {player_privacy} QLStats.net privacy settings."
+                )
                 player.center_print("^3Join not allowed. See instructions in console!")
-                player.tell(f"Not allowed to join due to ^6{player_privacy}^7 QLStats.net data.")
+                player.tell(
+                    f"Not allowed to join due to ^6{player_privacy}^7 QLStats.net data."
+                )
                 player.tell(self.colored_qlstats_instructions())
                 player.put("spectator")
 
@@ -1783,14 +1980,20 @@ class balancetwo(Plugin):
                     return minqlx.RET_NONE
 
                 target_steam_id = int(msg[1])
-                if self.db is None or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
-                    player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
+                if self.db is None or not self.db.exists(
+                    PLAYER_BASE.format(target_steam_id)
+                ):
+                    player.tell(
+                        f"Sorry, player with steam id {target_steam_id} never played here."
+                    )
                     return minqlx.RET_NONE
                 target_name = str(target_steam_id)
 
             elif len(target_players) > 1:
                 amount_matched_players = len(target_players)
-                player.tell(f"A total of ^6{amount_matched_players}^7 players matched for {msg[1]}:")
+                player.tell(
+                    f"A total of ^6{amount_matched_players}^7 players matched for {msg[1]}:"
+                )
                 out = ""
                 for p in target_players:
                     out += " " * 2
@@ -1806,13 +2009,21 @@ class balancetwo(Plugin):
         if self.db is None:
             return minqlx.RET_NONE
 
-        current_exception = self.db.get_flag(target_steam_id, "balancetwo:ratinglimit_exception", default=False)
+        current_exception = self.db.get_flag(
+            target_steam_id, "balancetwo:ratinglimit_exception", default=False
+        )
         if current_exception:
-            player.tell(f"^6Psst: ^7This ID is already in the exception list under name ^6{target_name}^7!")
+            player.tell(
+                f"^6Psst: ^7This ID is already in the exception list under name ^6{target_name}^7!"
+            )
             return minqlx.RET_NONE
 
-        self.db.set_flag(target_steam_id, "balancetwo:ratinglimit_exception", value=True)
-        player.tell(f"^6Psst: ^2Succesfully ^7added ^6{target_name} ^7to the exception list.")
+        self.db.set_flag(
+            target_steam_id, "balancetwo:ratinglimit_exception", value=True
+        )
+        player.tell(
+            f"^6Psst: ^2Succesfully ^7added ^6{target_name} ^7to the exception list."
+        )
         return minqlx.RET_NONE
 
     def cmd_del_exception(self, player, msg, _channel):
@@ -1830,13 +2041,19 @@ class balancetwo(Plugin):
                     return minqlx.RET_NONE
 
                 target_steam_id = int(msg[1])
-                if self.db is None or not self.db.exists(PLAYER_BASE.format(target_steam_id)):
-                    player.tell(f"Sorry, player with steam id {target_steam_id} never played here.")
+                if self.db is None or not self.db.exists(
+                    PLAYER_BASE.format(target_steam_id)
+                ):
+                    player.tell(
+                        f"Sorry, player with steam id {target_steam_id} never played here."
+                    )
                     return minqlx.RET_NONE
 
             elif len(target_players) > 1:
                 amount_matched_players = len(target_players)
-                player.tell(f"A total of ^6{amount_matched_players}^7 players matched for {msg[1]}:")
+                player.tell(
+                    f"A total of ^6{amount_matched_players}^7 players matched for {msg[1]}:"
+                )
                 out = ""
                 for p in target_players:
                     out += " " * 2
@@ -1851,12 +2068,16 @@ class balancetwo(Plugin):
         if self.db is None:
             return minqlx.RET_NONE
 
-        current_exception = self.db.get_flag(target_steam_id, "balancetwo:ratinglimit_exception", default=False)
+        current_exception = self.db.get_flag(
+            target_steam_id, "balancetwo:ratinglimit_exception", default=False
+        )
         if not current_exception:
             player.tell(f"^6{msg[1]} was not found in the exception list...")
             return minqlx.RET_NONE
 
-        self.db.set_flag(target_steam_id, "balancetwo:ratinglimit_exception", value=False)
+        self.db.set_flag(
+            target_steam_id, "balancetwo:ratinglimit_exception", value=False
+        )
         player.tell(f"^6Player {msg[1]} found and removed!")
         return minqlx.RET_NONE
 
@@ -1888,7 +2109,11 @@ class balancetwo(Plugin):
                 if rating_provider.name in self.previous_ratings:
                     rating_providers_fetched.append(rating_provider.name)
                     async_requests.append(
-                        rating_provider.fetch_elos(self.previous_ratings[rating_provider.name].rated_steam_ids())
+                        rating_provider.fetch_elos(
+                            self.previous_ratings[
+                                rating_provider.name
+                            ].rated_steam_ids()
+                        )
                     )
 
             if self.previous_map is not None:
@@ -1897,18 +2122,23 @@ class balancetwo(Plugin):
                     rating_providers_fetched.append(mapbased_rating_provider_name)
                     async_requests.append(
                         TRUSKILLS.fetch_elos(
-                            self.previous_ratings[mapbased_rating_provider_name].rated_steam_ids(),
+                            self.previous_ratings[
+                                mapbased_rating_provider_name
+                            ].rated_steam_ids(),
                             headers={"X-QuakeLive-Map": self.previous_map},
                         )
                     )
 
             results = await asyncio.gather(*async_requests, return_exceptions=True)
-            for rating_provider_name, rating_results in zip(rating_providers_fetched, results):
+            for rating_provider_name, rating_results in zip(
+                rating_providers_fetched, results
+            ):
                 if isinstance(rating_results, BaseException):
                     continue
                 self.append_ratings(rating_provider_name, rating_results)
                 self.rating_diffs[rating_provider_name] = (
-                    RatingProvider.from_json(rating_results) - self.previous_ratings[rating_provider_name]
+                    RatingProvider.from_json(rating_results)
+                    - self.previous_ratings[rating_provider_name]
                 )
 
         async def fetch_ratings_from_newmap(_mapname):
@@ -1946,7 +2176,9 @@ class balancetwo(Plugin):
         return None
 
     def check_player_ratings(self, steam_id):
-        if self.db is None or self.db.get_flag(steam_id, "balancetwo:ratinglimit_exception", default=False):
+        if self.db is None or self.db.get_flag(
+            steam_id, "balancetwo:ratinglimit_exception", default=False
+        ):
             return None
 
         if self.game is None:
@@ -1955,8 +2187,13 @@ class balancetwo(Plugin):
         gametype = self.game.type_short
 
         for rating_provider_name, min_games in self.ratingLimit_minGames.items():
-            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
+            if (
+                rating_provider_name in self.ratings
+                and steam_id in self.ratings[rating_provider_name]
+            ):
+                rated_games = self.ratings[rating_provider_name].games_for(
+                    steam_id, gametype
+                )
                 if rated_games < min_games:
                     return (
                         f"You have insufficient rated games ({rated_games}) for {gametype} "
@@ -1964,8 +2201,13 @@ class balancetwo(Plugin):
                     )
 
         for rating_provider_name, ratingLimit_min in self.ratingLimit_min.items():
-            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+            if (
+                rating_provider_name in self.ratings
+                and steam_id in self.ratings[rating_provider_name]
+            ):
+                player_ratings = self.ratings[rating_provider_name].rating_for(
+                    steam_id, gametype
+                )
                 if player_ratings < ratingLimit_min:
                     return (
                         f"Your {rating_provider_name } skill rating ({player_ratings}) is too low "
@@ -1974,8 +2216,13 @@ class balancetwo(Plugin):
                     )
 
         for rating_provider_name, ratingLimit_max in self.ratingLimit_max.items():
-            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+            if (
+                rating_provider_name in self.ratings
+                and steam_id in self.ratings[rating_provider_name]
+            ):
+                player_ratings = self.ratings[rating_provider_name].rating_for(
+                    steam_id, gametype
+                )
                 if player_ratings > ratingLimit_max:
                     return (
                         f"Your {rating_provider_name } skill rating ({player_ratings}) is too high "
@@ -1984,7 +2231,9 @@ class balancetwo(Plugin):
                     )
 
         for rating_provider_name in (
-            set(self.ratingLimit_minGames.keys()) | set(self.ratingLimit_min.keys()) | set(self.ratingLimit_max.keys())
+            set(self.ratingLimit_minGames.keys())
+            | set(self.ratingLimit_min.keys())
+            | set(self.ratingLimit_max.keys())
         ):
             threadname = f"{steam_id}_{rating_provider_name}"
             if threadname not in self.connectthreads:
@@ -2005,8 +2254,13 @@ class balancetwo(Plugin):
                 self.append_ratings(rating_provider_name, ct.fetched_result)
 
         for rating_provider_name, min_games in self.ratingLimit_minGames.items():
-            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
+            if (
+                rating_provider_name in self.ratings
+                and steam_id in self.ratings[rating_provider_name]
+            ):
+                rated_games = self.ratings[rating_provider_name].games_for(
+                    steam_id, gametype
+                )
                 if rated_games < min_games:
                     return (
                         f"You have insufficient rated games ({rated_games}) for {gametype} "
@@ -2014,8 +2268,13 @@ class balancetwo(Plugin):
                     )
 
         for rating_provider_name, ratingLimit_min in self.ratingLimit_min.items():
-            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+            if (
+                rating_provider_name in self.ratings
+                and steam_id in self.ratings[rating_provider_name]
+            ):
+                player_ratings = self.ratings[rating_provider_name].rating_for(
+                    steam_id, gametype
+                )
                 if player_ratings < ratingLimit_min:
                     return (
                         f"Your {rating_provider_name } skill rating ({player_ratings}) is too low "
@@ -2024,8 +2283,13 @@ class balancetwo(Plugin):
                     )
 
         for rating_provider_name, ratingLimit_max in self.ratingLimit_max.items():
-            if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+            if (
+                rating_provider_name in self.ratings
+                and steam_id in self.ratings[rating_provider_name]
+            ):
+                player_ratings = self.ratings[rating_provider_name].rating_for(
+                    steam_id, gametype
+                )
                 if player_ratings > ratingLimit_max:
                     return (
                         f"Your {rating_provider_name } skill rating ({player_ratings}) is too high "
@@ -2045,12 +2309,16 @@ class balancetwo(Plugin):
         if rating_provider_name == B_ELO.name:
             return B_ELO
 
-        self.logger.debug("ERROR: Unknown rating provider configured! Please fix immediately.")
+        self.logger.debug(
+            "ERROR: Unknown rating provider configured! Please fix immediately."
+        )
         return None
 
     def check_player_privacy(self, steam_id):
         if A_ELO.name in self.ratings and steam_id in self.ratings[A_ELO.name]:
-            if not self.is_player_with_allowed_privacy_settings(steam_id, self.ratings[A_ELO.name]):
+            if not self.is_player_with_allowed_privacy_settings(
+                steam_id, self.ratings[A_ELO.name]
+            ):
                 return minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
             return None
 
@@ -2081,9 +2349,10 @@ class balancetwo(Plugin):
 
     def record_join_times(self, steam_id):
         current_time = datetime.now()
-        if steam_id in self.jointimes:
-            if (current_time - self.jointimes[steam_id]) < timedelta(seconds=5):
-                return
+        if steam_id in self.jointimes and (
+            current_time - self.jointimes[steam_id]
+        ) < timedelta(seconds=5):
+            return
 
         self.jointimes[steam_id] = current_time
 
@@ -2102,7 +2371,10 @@ class balancetwo(Plugin):
             if self.is_player_within_configured_rating_limit(steam_id):
                 continue
 
-            if steam_id not in self.kickthreads or not self.kickthreads[steam_id].is_alive():
+            if (
+                steam_id not in self.kickthreads
+                or not self.kickthreads[steam_id].is_alive()
+            ):
                 new_steam_ids_to_kick.append(steam_id)
 
         if len(new_steam_ids_to_kick) == 0:
@@ -2112,8 +2384,13 @@ class balancetwo(Plugin):
         for steam_id in new_steam_ids_to_kick:
             kickmsg = None
             for rating_provider_name, min_games in self.ratingLimit_minGames.items():
-                if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                    rated_games = self.ratings[rating_provider_name].games_for(steam_id, gametype)
+                if (
+                    rating_provider_name in self.ratings
+                    and steam_id in self.ratings[rating_provider_name]
+                ):
+                    rated_games = self.ratings[rating_provider_name].games_for(
+                        steam_id, gametype
+                    )
                     if rated_games < min_games:
                         kickmsg = (
                             f"You have insufficient rated games ({rated_games}) for {gametype} "
@@ -2122,8 +2399,13 @@ class balancetwo(Plugin):
                         )
 
             for rating_provider_name, ratingLimit_min in self.ratingLimit_min.items():
-                if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                    player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                if (
+                    rating_provider_name in self.ratings
+                    and steam_id in self.ratings[rating_provider_name]
+                ):
+                    player_ratings = self.ratings[rating_provider_name].rating_for(
+                        steam_id, gametype
+                    )
                     if player_ratings < ratingLimit_min:
                         kickmsg = (
                             f"Your {rating_provider_name} skill rating ({player_ratings}) is too low "
@@ -2132,8 +2414,13 @@ class balancetwo(Plugin):
                         )
 
             for rating_provider_name, ratingLimit_max in self.ratingLimit_max.items():
-                if rating_provider_name in self.ratings and steam_id in self.ratings[rating_provider_name]:
-                    player_ratings = self.ratings[rating_provider_name].rating_for(steam_id, gametype)
+                if (
+                    rating_provider_name in self.ratings
+                    and steam_id in self.ratings[rating_provider_name]
+                ):
+                    player_ratings = self.ratings[rating_provider_name].rating_for(
+                        steam_id, gametype
+                    )
                     if player_ratings > ratingLimit_max:
                         kickmsg = (
                             f"Your {rating_provider_name} skill rating ({player_ratings}) is too high "
@@ -2143,7 +2430,8 @@ class balancetwo(Plugin):
 
             if kickmsg is None:
                 self.logger.debug(
-                    f"ERROR: Something went wrong when double-checking player rating limits. " f"Not kicking {steam_id}"
+                    f"ERROR: Something went wrong when double-checking player rating limits. "
+                    f"Not kicking {steam_id}"
                 )
                 continue
 
@@ -2155,7 +2443,9 @@ class balancetwo(Plugin):
         if steam_id in self.exceptions:
             return True
 
-        if self.db is not None and self.db.get_flag(steam_id, "balancetwo:ratinglimit_exception", default=False):
+        if self.db is not None and self.db.get_flag(
+            steam_id, "balancetwo:ratinglimit_exception", default=False
+        ):
             return True
 
         return False
@@ -2186,7 +2476,9 @@ class balancetwo(Plugin):
             if privacy_check not in [None, minqlx.RET_NONE]:
                 return privacy_check
 
-        if new in ["red", "blue", "any", "free"] and not self.has_exception_to_play(player.steam_id):
+        if new in ["red", "blue", "any", "free"] and not self.has_exception_to_play(
+            player.steam_id
+        ):
             rating_check = self.check_rating_limit(player)
             if rating_check not in [None, minqlx.RET_NONE]:
                 return rating_check
@@ -2201,13 +2493,17 @@ class balancetwo(Plugin):
             return minqlx.RET_NONE
 
         if A_ELO.name not in self.ratings:
-            self.logger.debug(f"No data from qlstats for privacy check available. Letting {player.name} play.")
+            self.logger.debug(
+                f"No data from qlstats for privacy check available. Letting {player.name} play."
+            )
             return minqlx.RET_NONE
 
         elo_ratings = self.ratings[A_ELO.name]
 
         if player.steam_id not in elo_ratings:
-            player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
+            player.tell(
+                "We couldn't fetch your ratings, yet. You will not be able to join, until we did."
+            )
             return minqlx.RET_STOP_ALL
 
         if self.is_player_with_allowed_privacy_settings(player.steam_id, elo_ratings):
@@ -2222,7 +2518,9 @@ class balancetwo(Plugin):
             self.join_attempts[player.steam_id] -= 1
 
             if self.join_attempts[player.steam_id] < 0:
-                player.kick(minqlx.Plugin.clean_text(self.colored_qlstats_instructions()))
+                player.kick(
+                    minqlx.Plugin.clean_text(self.colored_qlstats_instructions())
+                )
                 return minqlx.RET_STOP_ALL
             self.msg(
                 f"{player.name}^7 not allowed to join due to {player_privacy} QLStats.net privacy settings. "
@@ -2233,8 +2531,12 @@ class balancetwo(Plugin):
                 f"{self.join_attempts[player.steam_id]} join attempts before automatically kicking you."
             )
         else:
-            self.msg(f"{player.name}^7 not allowed to join due to {player_privacy} QLStats.net privacy settings.")
-            player.tell(f"Not allowed to join due to ^6{player_privacy}^7 QLStats.net data.")
+            self.msg(
+                f"{player.name}^7 not allowed to join due to {player_privacy} QLStats.net privacy settings."
+            )
+            player.tell(
+                f"Not allowed to join due to ^6{player_privacy}^7 QLStats.net data."
+            )
 
         player.center_print("^3Join not allowed. See instructions in console!")
         player.tell(self.colored_qlstats_instructions())
@@ -2262,13 +2564,18 @@ class balancetwo(Plugin):
         if self.is_player_within_configured_rating_limit(player.steam_id):
             return minqlx.RET_NONE
 
-        if self.ratingLimit_kick:
-            kickmsg = "so you'll be kicked shortly..."
-        else:
-            kickmsg = "but you are free to keep watching."
+        kickmsg = (
+            "so you'll be kicked shortly..."
+            if self.ratingLimit_kick
+            else "but you are free to keep watching."
+        )
 
-        player.tell(f"^6You do not meet the skill rating requirements to play on this server, {kickmsg}")
-        player.center_print(f"^6You do not meet the skill rating requirements to play on this server, {kickmsg}")
+        player.tell(
+            f"^6You do not meet the skill rating requirements to play on this server, {kickmsg}"
+        )
+        player.center_print(
+            f"^6You do not meet the skill rating requirements to play on this server, {kickmsg}"
+        )
 
         return minqlx.RET_STOP_ALL
 
@@ -2280,7 +2587,8 @@ class balancetwo(Plugin):
         for limited_rating_provider, min_games in self.ratingLimit_minGames.items():
             if limited_rating_provider not in self.ratings:
                 self.logger.debug(
-                    f"Ratings not found for {steam_id}. " f"Allowing player to join: {limited_rating_provider}."
+                    f"Ratings not found for {steam_id}. "
+                    f"Allowing player to join: {limited_rating_provider}."
                 )
                 return True
 
@@ -2297,7 +2605,8 @@ class balancetwo(Plugin):
         for limited_rating_provider, ratingLimit_max in self.ratingLimit_max.items():
             if limited_rating_provider not in self.ratings:
                 self.logger.debug(
-                    f"Ratings not found for {steam_id}. " f"Allowing player to join: {limited_rating_provider}."
+                    f"Ratings not found for {steam_id}. "
+                    f"Allowing player to join: {limited_rating_provider}."
                 )
                 return True
 
@@ -2320,7 +2629,8 @@ class balancetwo(Plugin):
         for limited_rating_provider, ratingLimit_min in self.ratingLimit_min.items():
             if limited_rating_provider not in self.ratings:
                 self.logger.debug(
-                    f"Ratings not found for {limited_rating_provider}. " f"Allowing player to join: {steam_id}."
+                    f"Ratings not found for {limited_rating_provider}. "
+                    f"Allowing player to join: {steam_id}."
                 )
                 return True
 
@@ -2376,9 +2686,17 @@ class balancetwo(Plugin):
             gametype, teams[last_new_player.team].copy(), new_player_team
         )
 
-        alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + [player]
-        alternative_team_b = teams[other_than_last_players_team].copy() + [last_new_player]
-        alternative_diff = self.calculate_player_average_difference(gametype, alternative_team_a, alternative_team_b)
+        alternative_team_a = [
+            player
+            for player in teams[last_new_player.team]
+            if player != last_new_player
+        ] + [player]
+        alternative_team_b = teams[other_than_last_players_team].copy() + [
+            last_new_player
+        ]
+        alternative_diff = self.calculate_player_average_difference(
+            gametype, alternative_team_a, alternative_team_b
+        )
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
@@ -2391,13 +2709,17 @@ class balancetwo(Plugin):
                 return minqlx.RET_NONE
             if new not in ["any"]:
                 formatted_team = format_team(last_new_player.team)
-                player.tell(f"{player.clean_name}, you have been moved to {formatted_team} to maintain team balance.")
+                player.tell(
+                    f"{player.clean_name}, you have been moved to {formatted_team} to maintain team balance."
+                )
             player.put(last_new_player.team)
             return minqlx.RET_STOP_ALL
 
         if new not in ["any", other_than_last_players_team]:
             formatted_team = format_team(other_than_last_players_team)
-            player.tell(f"{player.clean_name}, you have been moved to {formatted_team} to maintain team balance.")
+            player.tell(
+                f"{player.clean_name}, you have been moved to {formatted_team} to maintain team balance."
+            )
             player.put(other_than_last_players_team)
             return minqlx.RET_STOP_ALL
 
@@ -2409,8 +2731,12 @@ class balancetwo(Plugin):
         configured_rating_provider_name = self.configured_rating_provider_name()
         configured_rating_provider = self.ratings[configured_rating_provider_name]
 
-        team1_avg = self.team_average(gametype, team1_steam_ids, rating_provider=configured_rating_provider)
-        team2_avg = self.team_average(gametype, team2_steam_ids, rating_provider=configured_rating_provider)
+        team1_avg = self.team_average(
+            gametype, team1_steam_ids, rating_provider=configured_rating_provider
+        )
+        team2_avg = self.team_average(
+            gametype, team2_steam_ids, rating_provider=configured_rating_provider
+        )
         return abs(team1_avg - team2_avg)
 
     def handle_team_switch(self, player, _old_team, new_team):
@@ -2440,8 +2766,10 @@ class balancetwo(Plugin):
             A_ELO.name,
             B_ELO.name,
         ]:
-            formatted_diffs = self.format_rating_diffs_for_rating_provider_name_and_player(
-                rating_provider_name, player.steam_id
+            formatted_diffs = (
+                self.format_rating_diffs_for_rating_provider_name_and_player(
+                    rating_provider_name, player.steam_id
+                )
             )
             if formatted_diffs is not None:
                 changed_ratings.append(formatted_diffs)
@@ -2450,20 +2778,29 @@ class balancetwo(Plugin):
             return
 
         formatted_rating_changes = ", ".join(changed_ratings)
-        player.tell(f"Your ratings changed since the last map: {formatted_rating_changes}")
+        player.tell(
+            f"Your ratings changed since the last map: {formatted_rating_changes}"
+        )
 
-    def format_rating_diffs_for_rating_provider_name_and_player(self, rating_provider_name, steam_id):
+    def format_rating_diffs_for_rating_provider_name_and_player(
+        self, rating_provider_name, steam_id
+    ):
         if (
             rating_provider_name not in self.rating_diffs
             or steam_id not in self.rating_diffs[rating_provider_name]
-            or self.previous_gametype not in self.rating_diffs[rating_provider_name][steam_id]
+            or self.previous_gametype
+            not in self.rating_diffs[rating_provider_name][steam_id]
             or rating_provider_name not in self.ratings
             or steam_id not in self.ratings[rating_provider_name]
         ):
             return None
 
-        current_rating = self.ratings[rating_provider_name].rating_for(steam_id, self.previous_gametype)
-        rating_diff = self.rating_diffs[rating_provider_name][steam_id][self.previous_gametype]
+        current_rating = self.ratings[rating_provider_name].rating_for(
+            steam_id, self.previous_gametype
+        )
+        rating_diff = self.rating_diffs[rating_provider_name][steam_id][
+            self.previous_gametype
+        ]
         if rating_provider_name.endswith(TRUSKILLS.name):
             if rating_diff < 0.0:
                 return f"^3{rating_provider_name}^7: ^4{current_rating:.02f}^7 (^1{rating_diff:+.02f}^7)"
@@ -2491,10 +2828,18 @@ class balancetwo(Plugin):
         def execute_switch_suggestion():
             self.execute_suggestion()
 
-        if not self.auto_switch and self.switch_suggestion is not None and self.switch_suggestion.all_agreed():
+        if (
+            not self.auto_switch
+            and self.switch_suggestion is not None
+            and self.switch_suggestion.all_agreed()
+        ):
             execute_switch_suggestion()
 
-        if self.auto_switch and self.switch_suggestion is not None and not self.switch_suggestion.all_agreed():
+        if (
+            self.auto_switch
+            and self.switch_suggestion is not None
+            and not self.switch_suggestion.all_agreed()
+        ):
             execute_switch_suggestion()
 
         self.in_countdown = True
@@ -2515,11 +2860,14 @@ class balancetwo(Plugin):
                 if moved_to not in result:
                     continue
                 move_announcements.append(
-                    f"server will move {'^7, '.join(result[moved_to])}^7 to" f" {format_team(moved_to) }"
+                    f"server will move {'^7, '.join(result[moved_to])}^7 to"
+                    f" {format_team(moved_to) }"
                 )
 
         if "spectator" in result:
-            move_announcements.append(f"server will auto spec {'^7, '.join(result['spectator'])}^7")
+            move_announcements.append(
+                f"server will auto spec {'^7, '.join(result['spectator'])}^7"
+            )
 
         if len(move_announcements) == 0:
             return
@@ -2558,9 +2906,15 @@ class balancetwo(Plugin):
             else:
                 lowest_players2 = [lowest_players[0]]
                 for player in lowest_players:
-                    if player.stats.damage_dealt < lowest_players2[0].stats.damage_dealt:
+                    if (
+                        player.stats.damage_dealt
+                        < lowest_players2[0].stats.damage_dealt
+                    ):
                         lowest_players2 = [player]
-                    elif player.stats.damage_dealt == lowest_players2[0].stats.damage_dealt:
+                    elif (
+                        player.stats.damage_dealt
+                        == lowest_players2[0].stats.damage_dealt
+                    ):
                         lowest_players2.append(player)
 
                 if len(lowest_players2) == 1:
@@ -2572,7 +2926,9 @@ class balancetwo(Plugin):
                     )
         else:
             self.msg(f"Picking someone to {self.last_action} based on join times.")
-            lowest_player = max(bigger_team, key=lambda _player: self.find_time(_player.steam_id))
+            lowest_player = max(
+                bigger_team, key=lambda _player: self.find_time(_player.steam_id)
+            )
         self.msg(f"Picked {lowest_player.name} from the {lowest_player.team} team.")
         return lowest_player
 
@@ -2600,7 +2956,9 @@ class balancetwo(Plugin):
         team_movements = self.find_player_movements_to_even_teams()
         for player, moved_to in team_movements:
             if not player:
-                self.logger.debug("Something went wrong during balancing. Probably player left while calculating.")
+                self.logger.debug(
+                    "Something went wrong during balancing. Probably player left while calculating."
+                )
                 continue
 
             self.msg(
@@ -2622,10 +2980,7 @@ class balancetwo(Plugin):
 
         amount_players_moved = int(abs(team_diff) / 2)
 
-        if team_diff > 0:
-            bigger_team = "red"
-        else:
-            bigger_team = "blue"
+        bigger_team = "red" if team_diff > 0 else "blue"
 
         moved_to = other_team(bigger_team)
 
@@ -2634,10 +2989,15 @@ class balancetwo(Plugin):
             relevant_players = [
                 player
                 for player in teams[bigger_team]
-                if player.steam_id not in suggestion.affected_steam_ids() + self.switched_players
+                if player.steam_id
+                not in suggestion.affected_steam_ids() + self.switched_players
             ]
         else:
-            relevant_players = [player for player in teams[bigger_team] if player.steam_id not in self.switched_players]
+            relevant_players = [
+                player
+                for player in teams[bigger_team]
+                if player.steam_id not in self.switched_players
+            ]
 
         if self.game and (self.game.red_score + self.game.blue_score) < 1:
             sorted_team = sorted(
@@ -2688,17 +3048,23 @@ class balancetwo(Plugin):
             self.twovstwo_iter = RandomIterator(self.twovstwo_combinations)
 
             next_twovstwo = sorted(list(next(self.twovstwo_iter)))
-            other_twovstwo = sorted([steam_id for steam_id in steam_ids if steam_id not in next_twovstwo])
+            other_twovstwo = sorted(
+                [steam_id for steam_id in steam_ids if steam_id not in next_twovstwo]
+            )
             red_steam_ids = sorted([player.steam_id for player in teams["red"]])
             blue_steam_ids = sorted([player.steam_id for player in teams["blue"]])
             while not (
-                next_twovstwo == red_steam_ids
-                or next_twovstwo == blue_steam_ids
-                or other_twovstwo == red_steam_ids
-                or other_twovstwo == blue_steam_ids
+                next_twovstwo in (red_steam_ids, blue_steam_ids)
+                or other_twovstwo in (red_steam_ids, blue_steam_ids)
             ):
                 next_twovstwo = sorted(list(next(self.twovstwo_iter)))
-                other_twovstwo = sorted([steam_id for steam_id in steam_ids if steam_id not in next_twovstwo])
+                other_twovstwo = sorted(
+                    [
+                        steam_id
+                        for steam_id in steam_ids
+                        if steam_id not in next_twovstwo
+                    ]
+                )
 
     @minqlx.thread
     def record_team_stats(self, gametype):
@@ -2730,14 +3096,25 @@ class balancetwo(Plugin):
         returned = {}
         for player in team:
             a_elo = 0
-            if A_ELO.name in self.ratings and player.steam_id in self.ratings[A_ELO.name]:
+            if (
+                A_ELO.name in self.ratings
+                and player.steam_id in self.ratings[A_ELO.name]
+            ):
                 a_elo = self.ratings[A_ELO.name].rating_for(player.steam_id, gametype)
             b_elo = 0
-            if B_ELO.name in self.ratings and player.steam_id in self.ratings[B_ELO.name]:
+            if (
+                B_ELO.name in self.ratings
+                and player.steam_id in self.ratings[B_ELO.name]
+            ):
                 b_elo = self.ratings[B_ELO.name].rating_for(player.steam_id, gametype)
             truskill = 0
-            if TRUSKILLS.name in self.ratings and player.steam_id in self.ratings[TRUSKILLS.name]:
-                truskill = self.ratings[TRUSKILLS.name].rating_for(player.steam_id, gametype)
+            if (
+                TRUSKILLS.name in self.ratings
+                and player.steam_id in self.ratings[TRUSKILLS.name]
+            ):
+                truskill = self.ratings[TRUSKILLS.name].rating_for(
+                    player.steam_id, gametype
+                )
             returned[player.steam_id] = [a_elo, b_elo, truskill]
 
         return returned
@@ -2778,7 +3155,9 @@ class SkillRatingProvider:
                 return await result.json()
 
 
-TRUSKILLS = SkillRatingProvider("Truskill", "http://stats.houseofquake.com/", "elo/map_based")
+TRUSKILLS = SkillRatingProvider(
+    "Truskill", "http://stats.houseofquake.com/", "elo/map_based"
+)
 A_ELO = SkillRatingProvider("Elo", "http://qlstats.net/", "elo", timeout=15)
 B_ELO = SkillRatingProvider("B-Elo", "http://qlstats.net/", "elo_b", timeout=15)
 
@@ -2839,7 +3218,9 @@ class RatingProvider:
 
         if not isinstance(other, RatingProvider):
             formatted_other_type = type(other).__name__
-            raise TypeError(f"Can't subtract '{formatted_other_type}' from a RatingProvider")
+            raise TypeError(
+                f"Can't subtract '{formatted_other_type}' from a RatingProvider"
+            )
 
         for steam_id in self:
             if steam_id not in other:
@@ -2852,9 +3233,13 @@ class RatingProvider:
             returned[steam_id] = {}
             for gametype in self.rated_gametypes_for(steam_id):
                 if gametype not in other.rated_gametypes_for(steam_id):
-                    returned[steam_id][gametype] = self.gametype_data_for(steam_id, gametype)
+                    returned[steam_id][gametype] = self.gametype_data_for(
+                        steam_id, gametype
+                    )
                     continue
-                gametype_diff = self.rating_for(steam_id, gametype) - other.rating_for(steam_id, gametype)
+                gametype_diff = self.rating_for(steam_id, gametype) - other.rating_for(
+                    steam_id, gametype
+                )
 
                 if gametype_diff == 0:
                     continue
@@ -2910,7 +3295,11 @@ class RatingProvider:
         if player_data is None:
             return []
 
-        return [gametype for gametype in player_data if gametype not in FILTERED_OUT_GAMETYPE_RESPONSES]
+        return [
+            gametype
+            for gametype in player_data
+            if gametype not in FILTERED_OUT_GAMETYPE_RESPONSES
+        ]
 
     def privacy_for(self, steam_id):
         player_data = self[steam_id]
@@ -2929,7 +3318,9 @@ class RatingProvider:
             if "playerinfo" not in json_rating:
                 continue
 
-            returned = returned + [int(steam_id) for steam_id in json_rating["playerinfo"]]
+            returned = returned + [
+                int(steam_id) for steam_id in json_rating["playerinfo"]
+            ]
 
         return list(set(returned))
 
@@ -2976,7 +3367,9 @@ class PlayerRating:
 
     def __getattr__(self, attr):
         if attr not in ["privacy"]:
-            raise AttributeError(f"'{self.__class__.__name__}' object has no atrribute '{attr}'")
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no atrribute '{attr}'"
+            )
 
         return self.ratings[attr]
 
@@ -2992,7 +3385,9 @@ class ConnectThread(threading.Thread):
 
     def run(self):
         async def fetch_ratings():
-            self.fetched_result = await self.rating_provider.fetch_elos([self._steam_id])
+            self.fetched_result = await self.rating_provider.fetch_elos(
+                [self._steam_id]
+            )
 
         asyncio.run(fetch_ratings())
 
@@ -3020,7 +3415,9 @@ class SuggestionQueue:
         self.strategy = strategy
 
     def __str__(self):
-        formatted_suggestion = ", ".join([str(suggestion) for suggestion in self.suggestions])
+        formatted_suggestion = ", ".join(
+            [str(suggestion) for suggestion in self.suggestions]
+        )
         return f"[{formatted_suggestion}]"
 
     def __len__(self):
@@ -3084,7 +3481,9 @@ class Suggestion:
             f"dmg: {self.blue_player.stats.damage_dealt}, time: {self.blue_player.stats.time})"
         )
 
-        return f"Switch {red_player} with {blue_player}, resulting diff: {self.avg_diff}"
+        return (
+            f"Switch {red_player} with {blue_player}, resulting diff: {self.avg_diff}"
+        )
 
     def announcement(self):
         if not self.auto_switch:
@@ -3149,7 +3548,9 @@ class KickThread(threading.Thread):
         if not self.go:
             return
 
-        Plugin.msg(f"^7Sorry, {player.name} {self.kickmsg}, so you'll be ^6kicked ^7shortly...")
+        Plugin.msg(
+            f"^7Sorry, {player.name} {self.kickmsg}, so you'll be ^6kicked ^7shortly..."
+        )
 
     def try_mute(self):
         @minqlx.next_frame

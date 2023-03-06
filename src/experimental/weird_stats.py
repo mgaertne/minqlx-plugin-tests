@@ -22,7 +22,11 @@ class Position(NamedTuple):
 
 
 def calculate_distance(previous, current):
-    return math.sqrt((current.x - previous.x) ** 2 + (current.y - previous.y) ** 2 + (current.z - previous.z) ** 2)
+    return math.sqrt(
+        (current.x - previous.x) ** 2
+        + (current.y - previous.y) ** 2
+        + (current.z - previous.z) ** 2
+    )
 
 
 def format_float(value):
@@ -194,7 +198,9 @@ class PlayerStatsEntry:
     @property
     def aborted(self):
         for stats_entry in self.stats_data:
-            if "ABORTED" in stats_entry["DATA"] and stats_entry["DATA"].get("ABORTED", False):
+            if "ABORTED" in stats_entry["DATA"] and stats_entry["DATA"].get(
+                "ABORTED", False
+            ):
                 return True
 
         return False
@@ -254,7 +260,9 @@ class PlayerStatsEntry:
 
     @property
     def max_streak(self):
-        max_streaks = [stats_entry["DATA"].get("MAX_STREAK", 0) for stats_entry in self.stats_data]
+        max_streaks = [
+            stats_entry["DATA"].get("MAX_STREAK", 0) for stats_entry in self.stats_data
+        ]
         return max(max_streaks)
 
     # noinspection PyArgumentList
@@ -320,7 +328,9 @@ class PlayerStatsEntry:
     # noinspection PyArgumentList
     @property
     def pickups(self):
-        returned = Pickups(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        returned = Pickups(
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        )
         for stats_entry in self.stats_data:
             if "PICKUPS" not in stats_entry["DATA"]:
                 continue
@@ -503,8 +513,13 @@ def most_weapon_hits_announcement(stats):
         ("Grappler", lambda stats_entry: stats_entry.weapons.other.hits),
     ]:
         most_effective_players = filter_stats_for_max_value(stats, filter_func)
-        if len(most_effective_players) > 0 and filter_func(most_effective_players[0]) > 0:
-            most_effective_player_names = "^7, ".join([_stats.name for _stats in most_effective_players])
+        if (
+            len(most_effective_players) > 0
+            and filter_func(most_effective_players[0]) > 0
+        ):
+            most_effective_player_names = "^7, ".join(
+                [_stats.name for _stats in most_effective_players]
+            )
             if len(most_effective_players) == 1:
                 returned += (
                     f"^5{announcement}^7: {most_effective_player_names}^7 "
@@ -522,7 +537,9 @@ def most_weapon_hits_announcement(stats):
 
 
 def most_accurate_railbitches_announcement(stats):
-    railbitches = filter_stats_for_max_value(stats, lambda stats_entry: stats_entry.weapons.railgun.accuracy)
+    railbitches = filter_stats_for_max_value(
+        stats, lambda stats_entry: stats_entry.weapons.railgun.accuracy
+    )
     if len(railbitches) == 0:
         return None
 
@@ -543,7 +560,9 @@ def most_accurate_railbitches_announcement(stats):
 
 
 def longest_shaftlamers_announcement(stats):
-    shaftlamers = filter_stats_for_max_value(stats, lambda stats_entry: stats_entry.weapons.lightninggun.time)
+    shaftlamers = filter_stats_for_max_value(
+        stats, lambda stats_entry: stats_entry.weapons.lightninggun.time
+    )
     if len(shaftlamers) == 0:
         return None
 
@@ -565,7 +584,9 @@ def longest_shaftlamers_announcement(stats):
 
 
 def most_honorable_haste_pickup_announcement(stats):
-    hasters = filter_stats_for_max_value(stats, lambda stats_entry: stats_entry.pickups.haste)
+    hasters = filter_stats_for_max_value(
+        stats, lambda stats_entry: stats_entry.pickups.haste
+    )
     if len(hasters) == 0:
         return None
 
@@ -583,9 +604,13 @@ def weird_facts(stats):
     medal_facts = random_medal_facts(stats)
     weapon_facts = random_weapon_stats(stats)
 
-    conjunctions = [random_conjunction() for _ in range(len(medal_facts) + len(weapon_facts) - 1)]
+    conjunctions = [
+        random_conjunction() for _ in range(len(medal_facts) + len(weapon_facts) - 1)
+    ]
     conjuncted_facts = itertools.chain.from_iterable(
-        itertools.zip_longest(itertools.chain(medal_facts, weapon_facts), conjunctions, fillvalue="")
+        itertools.zip_longest(
+            itertools.chain(medal_facts, weapon_facts), conjunctions, fillvalue=""
+        )
     )
 
     formatted_weird_facts = "".join(list(conjuncted_facts))
@@ -636,7 +661,9 @@ def random_medal_facts(stats, *, count=1):
 
 
 def formatted_medal_fact(stats, medal_stat):
-    most_medaled_stats = filter_stats_for_max_value(stats, lambda stats_entry: getattr(stats_entry.medals, medal_stat))
+    most_medaled_stats = filter_stats_for_max_value(
+        stats, lambda stats_entry: getattr(stats_entry.medals, medal_stat)
+    )
 
     if len(most_medaled_stats) > 0:
         medal_stat_value: int = getattr(most_medaled_stats[0].medals, medal_stat)
@@ -682,10 +709,18 @@ WEAPON_FACTS_LOOKUP = {
             "{player_names} accepted ^5{stats_amount} shafts^7",
             "{player_names} was ^5electrocuted^7 ^5{stats_amount} times^7",
         ],
-        "railgun": ["{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "plasmagun": ["{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "hmg": ["{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "bfg": ["{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
+        "railgun": [
+            "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "plasmagun": [
+            "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "hmg": [
+            "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "bfg": [
+            "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
         "gauntlet": [
             "{player_names} was ^5pummeled {stats_amount} times^7",
             "{player_names} was ^5humiliated {stats_amount} times^7",
@@ -703,100 +738,234 @@ WEAPON_FACTS_LOOKUP = {
             "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7",
             "{player_names} got ^5lead poisining^7 ^5{stats_amount} times^7",
         ],
-        "grapple": ["{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
+        "grapple": [
+            "{player_names} died from a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
     },
     "damage_dealt": {
-        "machinegun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "shotgun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "grenade_launcher": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} nade damage^7"],
+        "machinegun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "shotgun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "grenade_launcher": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} nade damage^7"
+        ],
         "rocket_launcher": [
             "{player_names} ^2dealt^7 a total of ^5{stats_amount} rocket damage^7",
             "{player_names} spammed a total of ^5{stats_amount} rocket damage^7",
         ],
-        "lightninggun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "railgun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "plasmagun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "hmg": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "bfg": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "gauntlet": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "nailgun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "proximity_mine_launcher": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} proximity mine damage^7"],
-        "chaingun": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "grapple": ["{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
+        "lightninggun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "railgun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "plasmagun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "hmg": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "bfg": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "gauntlet": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "nailgun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "proximity_mine_launcher": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} proximity mine damage^7"
+        ],
+        "chaingun": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "grapple": [
+            "{player_names} ^2dealt^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
     },
     "damage_taken": {
-        "machinegun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "shotgun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "grenade_launcher": ["{player_names} ^1received^7 a total of ^5{stats_amount} grenade damage^7"],
-        "rocket_launcher": ["{player_names} ^1received^7 a total of ^5{stats_amount} rocket damage^7"],
-        "lightninggun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "railgun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "plasmagun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "hmg": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "bfg": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "gauntlet": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "nailgun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "proximity_mine_launcher": ["{player_names} ^1received^7 a total of ^5{stats_amount} proximity mine damage^7"],
-        "chaingun": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
-        "grapple": ["{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"],
+        "machinegun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "shotgun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "grenade_launcher": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} grenade damage^7"
+        ],
+        "rocket_launcher": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} rocket damage^7"
+        ],
+        "lightninggun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "railgun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "plasmagun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "hmg": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "bfg": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "gauntlet": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "nailgun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "proximity_mine_launcher": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} proximity mine damage^7"
+        ],
+        "chaingun": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
+        "grapple": [
+            "{player_names} ^1received^7 a total of ^5{stats_amount} {weapon_name} damage^7"
+        ],
     },
     "hits": {
-        "machinegun": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "shotgun": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
+        "machinegun": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "shotgun": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
         "grenade_launcher": [
             "{player_names} hit with the ^5grenade launcher^7 ^5{stats_amount} times^7",
             "{stats_amount} of {player_names}'s lost nades have been found",
             "{player_names} dropped {stats_amount} lucky nades",
         ],
-        "rocket_launcher": ["{player_names} hit with the ^5rocket launcher^7 ^5{stats_amount} times^7"],
-        "lightninggun": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
+        "rocket_launcher": [
+            "{player_names} hit with the ^5rocket launcher^7 ^5{stats_amount} times^7"
+        ],
+        "lightninggun": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
         "railgun": [
             "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7",
             "{player_names} camped successfully to hit ^5{stats_amount} rails^7",
         ],
-        "plasmagun": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "hmg": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "bfg": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "gauntlet": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "nailgun": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "proximity_mine_launcher": ["{player_names} hit with the ^5proximity mine launcher^7 ^5{stats_amount} times^7"],
-        "chaingun": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "grapple": ["{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"],
+        "plasmagun": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "hmg": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "bfg": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "gauntlet": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "nailgun": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "proximity_mine_launcher": [
+            "{player_names} hit with the ^5proximity mine launcher^7 ^5{stats_amount} times^7"
+        ],
+        "chaingun": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "grapple": [
+            "{player_names} hit with the ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
     },
     "kills": {
-        "machinegun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "shotgun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "grenade_launcher": ["{player_names} killed ^5{stats_amount} enemies^7 with ^5nades^7"],
+        "machinegun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "shotgun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "grenade_launcher": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with ^5nades^7"
+        ],
         "rocket_launcher": [
             "{player_names} killed ^5{stats_amount} enemies^7 with ^5rockets^7",
             "{player_names} donated ^5{stats_amount}^7 enemy bodies to ^5rocket science^7",
         ],
-        "lightninggun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "railgun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "plasmagun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "hmg": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "bfg": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "gauntlet": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "nailgun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "proximity_mine_launcher": ["{player_names} killed ^5{stats_amount} enemies^7 with ^5proximity mines^7"],
-        "chaingun": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
-        "grapple": ["{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"],
+        "lightninggun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "railgun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "plasmagun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "hmg": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "bfg": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "gauntlet": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "nailgun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "proximity_mine_launcher": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with ^5proximity mines^7"
+        ],
+        "chaingun": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
+        "grapple": [
+            "{player_names} killed ^5{stats_amount} enemies^7 with the ^5{weapon_name}^7"
+        ],
     },
     "pickups": {
-        "machinegun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "shotgun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "grenade_launcher": ["{player_names} picked up a ^5grenade launcher^7 ^5{stats_amount} times^7"],
-        "rocket_launcher": ["{player_names} picked up a ^5rocket launcher^7 ^5{stats_amount} times^7"],
-        "lightninggun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "railgun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "plasmagun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "hmg": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "bfg": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "gauntlet": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "nailgun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "proximity_mine_launcher": ["{player_names} picked up a ^5proximity mine launcher^7 ^5{stats_amount} times^7"],
-        "chaingun": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
-        "grapple": ["{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"],
+        "machinegun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "shotgun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "grenade_launcher": [
+            "{player_names} picked up a ^5grenade launcher^7 ^5{stats_amount} times^7"
+        ],
+        "rocket_launcher": [
+            "{player_names} picked up a ^5rocket launcher^7 ^5{stats_amount} times^7"
+        ],
+        "lightninggun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "railgun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "plasmagun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "hmg": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "bfg": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "gauntlet": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "nailgun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "proximity_mine_launcher": [
+            "{player_names} picked up a ^5proximity mine launcher^7 ^5{stats_amount} times^7"
+        ],
+        "chaingun": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
+        "grapple": [
+            "{player_names} picked up a ^5{weapon_name}^7 ^5{stats_amount} times^7"
+        ],
     },
     "time": {
         "machinegun": [
@@ -939,7 +1108,9 @@ def formatted_weapon_fact(stats, weapon, weapon_fact):
                 + "^7 and "
                 + most_weaponed_stats[-1].name
             )
-        stats_amount = getattr(getattr(most_weaponed_stats[0].weapons, weapon), weapon_fact)
+        stats_amount = getattr(
+            getattr(most_weaponed_stats[0].weapons, weapon), weapon_fact
+        )
         if stats_amount > 0:
             return format_weapon_fact(
                 weapon_fact,
@@ -967,12 +1138,18 @@ class weird_stats(Plugin):
         self.set_cvar_once("qlx_weirdstats_fastestmaps_display_ingame", "10")
         self.set_cvar_once("qlx_weirdstats_fastestmaps_display_warmup", "30")
 
-        self.stats_play_time_fraction = self.get_cvar("qlx_weirdstats_playtime_fraction", float) or 0.75
+        self.stats_play_time_fraction = (
+            self.get_cvar("qlx_weirdstats_playtime_fraction", float) or 0.75
+        )
         self.stats_top_display = self.get_cvar("qlx_weirdstats_topdisplay", int) or 3
         if self.stats_top_display < 0:
             self.stats_top_display = 666
-        self.fastestmaps_display_ingame = self.get_cvar("qlx_weirdstats_fastestmaps_display_ingame", int) or 10
-        self.fastestmaps_display_warmup = self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int) or 30
+        self.fastestmaps_display_ingame = (
+            self.get_cvar("qlx_weirdstats_fastestmaps_display_ingame", int) or 10
+        )
+        self.fastestmaps_display_warmup = (
+            self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int) or 30
+        )
 
         self.game_start_time = None
         self.join_times = {}  # type: ignore
@@ -1068,7 +1245,9 @@ class weird_stats(Plugin):
         if player.steam_id not in self.previous_positions:
             return 0.0
 
-        return calculate_distance(self.previous_positions[player.steam_id], Position(*player.position()))
+        return calculate_distance(
+            self.previous_positions[player.steam_id], Position(*player.position())
+        )
 
     def handle_game_countdown(self):
         self.reinitialize_game()
@@ -1092,7 +1271,10 @@ class weird_stats(Plugin):
     def handle_game_start(self, _data):
         teams = self.teams()
         self.game_start_time = datetime.now()
-        self.join_times = {player.steam_id: self.game_start_time for player in teams["red"] + teams["blue"]}
+        self.join_times = {
+            player.steam_id: self.game_start_time
+            for player in teams["red"] + teams["blue"]
+        }
 
     def handle_round_start(self, _round_number):
         self.in_round = True
@@ -1102,7 +1284,8 @@ class weird_stats(Plugin):
 
         teams = self.teams()
         self.previous_positions = {
-            player.steam_id: Position(*player.position()) for player in teams["red"] + teams["blue"]
+            player.steam_id: Position(*player.position())
+            for player in teams["red"] + teams["blue"]
         }
 
     def handle_death(self, victim, killer, data):
@@ -1118,7 +1301,11 @@ class weird_stats(Plugin):
         if means_of_death == "SWITCHTEAM":
             return
 
-        if killer is not None and victim is not None and victim.steam_id == killer.steam_id:
+        if (
+            killer is not None
+            and victim is not None
+            and victim.steam_id == killer.steam_id
+        ):
             return
 
         if victim is None:
@@ -1142,15 +1329,24 @@ class weird_stats(Plugin):
         player_alive_time: float = player_alive_timedelta.total_seconds()
 
         for player in players:
-            if self.fastest_death == (-1, -1) or self.fastest_death[1] > player_alive_time:
+            if (
+                self.fastest_death == (-1, -1)
+                or self.fastest_death[1] > player_alive_time
+            ):
                 self.fastest_death = player.steam_id, player_alive_time  # type: ignore
-            self.alive_times[player.steam_id] = self.alive_times.get(player.steam_id, 0.0) + player_alive_time
+            self.alive_times[player.steam_id] = (
+                self.alive_times.get(player.steam_id, 0.0) + player_alive_time
+            )
 
     def handle_round_end(self, _data):
         self.in_round = False
 
         teams = self.teams()
-        surviving_players = [player for player in teams["red"] + teams["blue"] if player.is_alive and player.health > 0]
+        surviving_players = [
+            player
+            for player in teams["red"] + teams["blue"]
+            if player.is_alive and player.health > 0
+        ]
         self.record_alive_time(*surviving_players)
 
         self.round_start_datetime = None
@@ -1205,11 +1401,14 @@ class weird_stats(Plugin):
             self.means_of_death, ["void", "lava", "acid", "drowning", "squished"]
         )
         stats_announcements = [
-            announcer(list(self.player_stats.values())) for announcer in self.playerstats_announcements
+            announcer(list(self.player_stats.values()))
+            for announcer in self.playerstats_announcements
         ]
 
         if len(player_speed_announcements) > 0:
-            self.msg(f"  ^5Top {self.stats_top_display} player speeds^7 {player_speed_announcements[0]}")
+            self.msg(
+                f"  ^5Top {self.stats_top_display} player speeds^7 {player_speed_announcements[0]}"
+            )
             for msg in player_speed_announcements[1:]:
                 self.msg(msg)
 
@@ -1233,9 +1432,15 @@ class weird_stats(Plugin):
             )
             return
 
-        if quickest_death_announcement is not None and len(quickest_death_announcement) > 0:
+        if (
+            quickest_death_announcement is not None
+            and len(quickest_death_announcement) > 0
+        ):
             self.msg(quickest_death_announcement)
-        if most_environmental_deaths_announcement is not None and len(most_environmental_deaths_announcement) > 0:
+        if (
+            most_environmental_deaths_announcement is not None
+            and len(most_environmental_deaths_announcement) > 0
+        ):
             self.msg(most_environmental_deaths_announcement)
 
         if stats_announcements is not None and len(stats_announcements) > 0:
@@ -1246,15 +1451,15 @@ class weird_stats(Plugin):
         steam_ids_in_stats = self.player_stats.keys()
 
         teams = self.teams()
-        steam_ids_in_teams = [player.steam_id for player in teams["red"] + teams["blue"]]
+        steam_ids_in_teams = [
+            player.steam_id for player in teams["red"] + teams["blue"]
+        ]
 
-        for steam_id in steam_ids_in_teams:
-            if steam_id not in steam_ids_in_stats:
-                return False
+        return all(steam_id in steam_ids_in_stats for steam_id in steam_ids_in_teams)
 
-        return True
-
-    def player_speeds_announcements(self, *, top_entries=-1, match_end_announcements=False):
+    def player_speeds_announcements(
+        self, *, top_entries=-1, match_end_announcements=False
+    ):
         player_speeds = self.determine_player_speeds()
         if len(player_speeds) == 0:
             return []
@@ -1273,7 +1478,8 @@ class weird_stats(Plugin):
             player_speeds = {
                 steam_id: speed
                 for steam_id, speed in player_speeds.items()
-                if current_play_times.get(steam_id, 0.00) >= self.stats_play_time_fraction * longest_join_time
+                if current_play_times.get(steam_id, 0.00)
+                >= self.stats_play_time_fraction * longest_join_time
             }
             self.record_speeds(self.game.map.lower(), player_speeds)
 
@@ -1281,7 +1487,9 @@ class weird_stats(Plugin):
             sorted(player_speeds, key=player_speeds.get, reverse=True),
             key=player_speeds.get,
         )
-        grouped_speeds_dict = {speed: list(steam_ids) for speed, steam_ids in grouped_speeds}
+        grouped_speeds_dict = {
+            speed: list(steam_ids) for speed, steam_ids in grouped_speeds
+        }
 
         if len(player_speeds) < 1:
             return []
@@ -1291,11 +1499,16 @@ class weird_stats(Plugin):
 
         dots_inserted = False
         extra = 0
-        for counter, (speed, steam_ids) in enumerate(grouped_speeds_dict.items(), start=1):
+        for counter, (speed, steam_ids) in enumerate(
+            grouped_speeds_dict.items(), start=1
+        ):
             if match_end_announcements and 0 < top_entries < counter:
                 return returned
 
-            if not match_end_announcements and top_entries < counter < len(grouped_speeds_dict) - top_entries + 1:
+            if (
+                not match_end_announcements
+                and top_entries < counter < len(grouped_speeds_dict) - top_entries + 1
+            ):
                 if not dots_inserted:
                     returned.append("   ...")
                     extra += max(0, len(steam_ids) - 1)
@@ -1311,9 +1524,14 @@ class weird_stats(Plugin):
                     continue
                 alive_time = self.alive_time_of(steam_id)
                 if match_end_announcements:
-                    dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_time
+                    dmg_per_second = (
+                        self.player_stats[steam_id].damage.dealt / alive_time
+                    )
                 elif steam_id in self.player_stats:
-                    dmg_per_second = (player.stats.damage_dealt + self.player_stats[steam_id].damage.dealt) / alive_time
+                    dmg_per_second = (
+                        player.stats.damage_dealt
+                        + self.player_stats[steam_id].damage.dealt
+                    ) / alive_time
                 else:
                     dmg_per_second = player.stats.damage_dealt / alive_time
                 returned.append(
@@ -1335,7 +1553,9 @@ class weird_stats(Plugin):
                     continue
                 current_play_times[_player.steam_id] = (
                     current_play_times.get(_player.steam_id, 0.0)
-                    + (current_datetime - self.join_times[_player.steam_id]).total_seconds()
+                    + (
+                        current_datetime - self.join_times[_player.steam_id]
+                    ).total_seconds()
                 )
         return current_play_times
 
@@ -1365,10 +1585,7 @@ class weird_stats(Plugin):
 
         alive_time_delta = timedelta(seconds=alive_time)
         player = self.player(steam_id)
-        if player is None:
-            quickest_death_name = str(steam_id)
-        else:
-            quickest_death_name = player.name
+        quickest_death_name = player.name if player else str(steam_id)
 
         return f"  ^5Quickest death^7: {quickest_death_name} (^5{alive_time_delta.total_seconds():.02f} seconds^7)"
 
@@ -1376,7 +1593,9 @@ class weird_stats(Plugin):
         filtered_means_of_death = {}  # type: ignore
         for steam_id, death_data in means_of_death.items():
             for mod in means_of_death_filter:
-                filtered_means_of_death[steam_id] = filtered_means_of_death.get(steam_id, 0) + death_data.get(mod, 0)
+                filtered_means_of_death[steam_id] = filtered_means_of_death.get(
+                    steam_id, 0
+                ) + death_data.get(mod, 0)
 
         if len(filtered_means_of_death) == 0:
             return ""
@@ -1438,10 +1657,17 @@ class weird_stats(Plugin):
 
         previous_top_speeds = self.db_get_top_speed_for_player(steam_id)
 
-        previous_map_player_top_speeds = [topspeed for _mapname, topspeed in previous_top_speeds if mapname == _mapname]
+        previous_map_player_top_speeds = [
+            topspeed
+            for _mapname, topspeed in previous_top_speeds
+            if mapname == _mapname
+        ]
         previous_map_player_top_speeds.sort(reverse=True)
 
-        if len(previous_map_player_top_speeds) > 0 and previous_map_player_top_speeds[0] >= speed:
+        if (
+            len(previous_map_player_top_speeds) > 0
+            and previous_map_player_top_speeds[0] >= speed
+        ):
             return
 
         # noinspection PyUnresolvedReferences
@@ -1453,7 +1679,9 @@ class weird_stats(Plugin):
             self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), speed, mapname)
 
     def cmd_player_speeds(self, _player, _msg, _channel):
-        announcements = self.player_speeds_announcements(top_entries=self.stats_top_display)
+        announcements = self.player_speeds_announcements(
+            top_entries=self.stats_top_display
+        )
         if len(announcements) == 0:
             return
 
@@ -1491,7 +1719,9 @@ class weird_stats(Plugin):
 
         try:
             steam_id = int(target)
-            if self.db is not None and self.db.exists(LAST_USED_NAME_KEY.format(steam_id)):
+            if self.db is not None and self.db.exists(
+                LAST_USED_NAME_KEY.format(steam_id)
+            ):
                 return self.resolve_player_name(steam_id), steam_id
         except ValueError:
             pass
@@ -1513,7 +1743,9 @@ class weird_stats(Plugin):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
             amount_alternatives = len(players)
-            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
+            player.tell(
+                f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
+            )
             out = ""
             for p in players:
                 out += " " * indent
@@ -1550,9 +1782,8 @@ class weird_stats(Plugin):
         return target_players.pop()
 
     def resolve_player_name(self, item):
-        if isinstance(item, str):
-            if not item.isdigit():
-                return item
+        if isinstance(item, str) and not item.isdigit():
+            return item
 
         steam_id = int(item)
 
@@ -1571,7 +1802,9 @@ class weird_stats(Plugin):
         player_name = self.resolve_player_name(steam_id)
         top_speeds = self.db_get_top_speed_for_player(steam_id)
         if len(top_speeds) < 1:
-            channel.reply(f"^7Player ^2{player_name}^7 has no entries in the TopSpeeds database table.")
+            channel.reply(
+                f"^7Player ^2{player_name}^7 has no entries in the TopSpeeds database table."
+            )
             return
 
         reply = ""
@@ -1587,7 +1820,9 @@ class weird_stats(Plugin):
         player_top_speeds = self.db.zrevrangebyscore(
             PLAYER_TOP_SPEEDS.format(steam_id), "+INF", "-INF", withscores=True
         )
-        interim_player_top_speeds = [(mapname, float(speed)) for mapname, speed in player_top_speeds]
+        interim_player_top_speeds = [
+            (mapname, float(speed)) for mapname, speed in player_top_speeds
+        ]
 
         if len(player_top_speeds) == 0:
             return []
@@ -1657,14 +1892,20 @@ class weird_stats(Plugin):
 
         sorted_mapnames = sorted(all_avg_speeds, key=all_avg_speeds.get, reverse=True)  # type: ignore
         formatted_speeds = "^7] [".join(
-            [f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7" for mapname in sorted_mapnames[0:upper_limit]]
+            [
+                f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
+                for mapname in sorted_mapnames[0:upper_limit]
+            ]
         )
         channel.reply(f"Top {upper_limit} fastest maps by average player speed:")
         channel.reply(f"^7[{formatted_speeds}^7].")
 
         sorted_mapnames.reverse()
         formatted_speeds = "^7] [".join(
-            [f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7" for mapname in sorted_mapnames[0:upper_limit]]
+            [
+                f"^6{mapname}-^5{all_avg_speeds[mapname]:.2f} km/h^7"
+                for mapname in sorted_mapnames[0:upper_limit]
+            ]
         )
         channel.reply(f"Top {upper_limit} slowest maps by average player speed:")
         channel.reply(f"^7[{formatted_speeds}^7].")
@@ -1673,8 +1914,12 @@ class weird_stats(Plugin):
         if self.db is None:
             return []
 
-        map_damages = self.db.zrevrangebyscore(MAP_TOP_SPEEDS.format(mapname), "+INF", "-INF", withscores=True)
-        interim_map_speeds = [(int(entry), float(value)) for entry, value in map_damages]
+        map_damages = self.db.zrevrangebyscore(
+            MAP_TOP_SPEEDS.format(mapname), "+INF", "-INF", withscores=True
+        )
+        interim_map_speeds = [
+            (int(entry), float(value)) for entry, value in map_damages
+        ]
         interim_map_speeds.sort(key=itemgetter(1), reverse=True)
 
         return interim_map_speeds
@@ -1683,9 +1928,16 @@ class weird_stats(Plugin):
         player = self.player(steam_id)
 
         player_alive_time = self.alive_times.get(steam_id, 0.0)
-        if not self.in_round or self.round_start_datetime is None or not player or not player.is_alive:
+        if (
+            not self.in_round
+            or self.round_start_datetime is None
+            or not player
+            or not player.is_alive
+        ):
             return player_alive_time
 
         current_datetime = datetime.now()
         player_alive_timedelta: timedelta = current_datetime - self.round_start_datetime
-        return self.alive_times.get(steam_id, 0.0) + player_alive_timedelta.total_seconds()
+        return (
+            self.alive_times.get(steam_id, 0.0) + player_alive_timedelta.total_seconds()
+        )

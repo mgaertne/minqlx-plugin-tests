@@ -183,9 +183,8 @@ class bday(Plugin):
         return player.name, player.steam_id
 
     def resolve_player_name(self, item):
-        if isinstance(item, str):
-            if not item.isdigit():
-                return item
+        if isinstance(item, str) and not item.isdigit():
+            return item
 
         steam_id = int(item)
 
@@ -451,19 +450,17 @@ class bday(Plugin):
             return mapstring
 
         matched_maps = sorted(
-            list(
-                set(
-                    [
-                        key
-                        for key, value in long_map_names_lookup.items()
-                        if value.find(mapstring) != -1 and key in logged_maps
-                    ]
-                    + [
-                        _mapname
-                        for _mapname in logged_maps
-                        if _mapname.lower().find(mapstring) != -1
-                    ]
-                )
+            set(
+                [
+                    key
+                    for key, value in long_map_names_lookup.items()
+                    if value.find(mapstring) != -1 and key in logged_maps
+                ]
+                + [
+                    _mapname
+                    for _mapname in logged_maps
+                    if _mapname.lower().find(mapstring) != -1
+                ]
             )
         )
 
