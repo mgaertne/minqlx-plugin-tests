@@ -3047,7 +3047,7 @@ class balancetwo(Plugin):
             ]
             self.twovstwo_iter = RandomIterator(self.twovstwo_combinations)
 
-            next_twovstwo = sorted(list(next(self.twovstwo_iter)))
+            next_twovstwo = sorted(next(self.twovstwo_iter))
             other_twovstwo = sorted(
                 [steam_id for steam_id in steam_ids if steam_id not in next_twovstwo]
             )
@@ -3057,7 +3057,7 @@ class balancetwo(Plugin):
                 next_twovstwo in (red_steam_ids, blue_steam_ids)
                 or other_twovstwo in (red_steam_ids, blue_steam_ids)
             ):
-                next_twovstwo = sorted(list(next(self.twovstwo_iter)))
+                next_twovstwo = sorted(next(self.twovstwo_iter))
                 other_twovstwo = sorted(
                     [
                         steam_id
