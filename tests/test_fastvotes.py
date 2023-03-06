@@ -30,8 +30,8 @@ class TestFastVotes:
 
         self.plugin = fastvotes()
 
-    @staticmethod
-    def teardown_method():
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
         unstub()
 
     # noinspection PyMethodMayBeStatic

@@ -23,8 +23,8 @@ class TestCustomModesVote:
 
         self.plugin = custom_modes_vote()
 
-    @staticmethod
-    def teardown_method():
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
         unstub()
 
     def test_handle_map_change(self):
@@ -62,7 +62,9 @@ class TestCustomModesVote:
     def test_handle_vote_called_for_unavailable_mode(self):
         voting_player = fake_player(123, "Voting Player", _id=3)
 
-        return_code = self.plugin.handle_vote_called(voting_player, "mode", "unavailable")
+        return_code = self.plugin.handle_vote_called(
+            voting_player, "mode", "unavailable"
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         verify(Plugin, times=0).callvote(any_, any_)
@@ -82,7 +84,9 @@ class TestCustomModesVote:
     def test_handle_vote_called_for_not_for_mode_change(self):
         voting_player = fake_player(123, "Voting Player", _id=3)
 
-        return_code = self.plugin.handle_vote_called(voting_player, "map", "campgrounds ca")
+        return_code = self.plugin.handle_vote_called(
+            voting_player, "map", "campgrounds ca"
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         verify(Plugin, times=0).callvote(any_, any_)
@@ -115,25 +119,33 @@ class TestCustomModesVote:
 
     def test_cmd_switch_mode_no_mode_given(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_too_many_parameters_given(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_unavailable_mode(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "unavailable"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "unavailable"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     def test_cmd_switch_mode_to_available_mode(self):
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_mode(fake_player(123, "Admin"), ["!mode", "pql"], None)
+        return_code = self.plugin.cmd_switch_mode(
+            fake_player(123, "Admin"), ["!mode", "pql"], None
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.mode, equal_to("pql"))

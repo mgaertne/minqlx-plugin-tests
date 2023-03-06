@@ -38,8 +38,8 @@ class TestDuelArenaTests:
     def activate_duelarena(self):
         self.plugin.duelarena_game.duelmode = True
 
-    @staticmethod
-    def teardown_method():
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
         unstub()
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
@@ -1085,8 +1085,8 @@ class TestDuelArenaGame:
         connected_players()
         self.duelarena_game = DuelArenaGame()
 
-    @staticmethod
-    def teardown_method():
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
         unstub()
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)

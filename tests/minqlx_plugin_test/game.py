@@ -15,7 +15,9 @@ def setup_no_game():
     **Make sure to use :func:`mockito.unstub()` after calling this assertion to avoid side effects spilling into the
     next test.**
     """
-    when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
+    when2(minqlx.Game).thenRaise(
+        NonexistentGameError("Tried to instantiate a game while no game is active.")
+    )
 
 
 def setup_game_in_warmup(
@@ -45,7 +47,9 @@ def setup_game_in_warmup(
     mock_game.map_title = map_title
     mock_game.roundlimit = roundlimit
     mock_game.maxclients = maxclients
-    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore, mock_game)
+    mock_game.assert_addteamscore = functools.partial(
+        assert_game_addteamscore, mock_game
+    )
 
 
 def setup_game_in_progress(

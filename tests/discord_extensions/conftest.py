@@ -49,7 +49,9 @@ def _context():
 
 @pytest.fixture(name="interaction")
 def _interaction():
-    interaction = mock({"original_response": AsyncMock(), "edit_original_response": AsyncMock()})
+    interaction = mock(
+        {"original_response": AsyncMock(), "edit_original_response": AsyncMock()}
+    )
     interaction.original_response.reply = AsyncMock()
     interaction.response = mock({"send_message": AsyncMock(), "defer": AsyncMock()})
 
