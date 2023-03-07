@@ -81,8 +81,8 @@ class OpenAIBridge(Cog):
             )
             # noinspection PyProtectedMember,PyUnresolvedReferences
             Plugin.msg(
-                f"{self.bot_clanprefix}{self.bot_name}: "
-                f"{openai_bot_plugin._ql_cleaned_up(response)}"
+                f"{self.bot_clanprefix}^7{self.bot_name}^7: "
+                f"^2{openai_bot_plugin._ql_cleaned_up(response)}"
             )
             await message.channel.send(
                 content=Plugin.clean_text(
