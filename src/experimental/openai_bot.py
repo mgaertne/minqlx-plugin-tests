@@ -256,7 +256,7 @@ class openai_bot(Plugin):
     def _send_message(self, communication_channel, message):
         communication_channel.reply(
             f"{self.bot_clanprefix}^7{self.bot_name}^7: "
-            f"^2{emoji.demojize(message, delimiters=('#', ' ')).replace('  ', ' ')}"
+            f"^2{self._ql_cleaned_up(message)}"
         )
 
         # noinspection PyProtectedMember
@@ -269,6 +269,15 @@ class openai_bot(Plugin):
                     f"**{self.bot_clanprefix}{self.bot_name}**: {message}"
                 )
             )
+
+    def _ql_cleaned_up(self, message):
+        cleaned_up = emoji.demojize(message, delimiters=("#", " ")).replace("  ", " ")
+        if self.db.exists("minqlx:openai_bot:message_replacements"):
+            replacements = self.db.hgetall("minqlx:openai_bot:message_replacements")
+            for original, replacement in replacements.items():
+                if original in cleaned_up:
+                    cleaned_up = cleaned_up.replace(original, replacement)
+        return cleaned_up
 
     def handle_chat(self, player, msg, channel):
         @minqlx.thread
@@ -378,12 +387,23 @@ class openai_bot(Plugin):
             return ""
 
         teams = Plugin.teams()
+        vs = min(len(teams["red"]), len(teams["blue"]))
         team_status = ""
         if len(teams["red"]) > 0:
-            red_names = ", ".join([player.clean_name for player in teams["red"]])
+            red_names = ", ".join(
+                [
+                    f"{player.clean_name}({int(player.stats.damage_dealt/player.stats.time)}+{player.stats.kills})"
+                    for player in teams["red"]
+                ]
+            )
             team_status += f"Team Red: {red_names}\n"
         if len(teams["blue"]) > 0:
-            blue_names = ", ".join([player.clean_name for player in teams["blue"]])
+            blue_names = ", ".join(
+                [
+                    f"{player.clean_name}({int(player.stats.damage_dealt/player.stats.time)}+{player.stats.kills})"
+                    for player in teams["blue"]
+                ]
+            )
             team_status += f"Team Blue: {blue_names}\n"
         team_status += f"Spectators: {self.bot_name}"
         if len(teams["spectator"]) > 0:
@@ -395,7 +415,8 @@ class openai_bot(Plugin):
         map_title = game.map_title if game.map_title else game.map
 
         return (
-            f"{team_status}\nMatch state: {game.state.replace('_', ' ').lower()}\n"
+            f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
+            f"dmg/s+frags\n{team_status}\n"
             f"Current map: {map_title}\nGame type: {game.factory_title}"
         )
 

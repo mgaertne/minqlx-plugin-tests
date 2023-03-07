@@ -3,7 +3,6 @@ import re
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog
 
-import emoji
 
 from minqlx import Plugin
 
@@ -80,9 +79,10 @@ class OpenAIBridge(Cog):
             openai_bot_plugin._record_chat_line(
                 f"{self.bot_name}: {response}", lock=openai_bot_plugin.queue_lock
             )
+            # noinspection PyProtectedMember,PyUnresolvedReferences
             Plugin.msg(
                 f"{self.bot_clanprefix}{self.bot_name}: "
-                f"{emoji.demojize(response, delimiters=('#', ' ')).replace('  ', ' ')}"
+                f"{openai_bot_plugin._ql_cleaned_up(response)}"
             )
             await message.channel.send(
                 content=Plugin.clean_text(
