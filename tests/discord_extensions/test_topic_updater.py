@@ -157,8 +157,8 @@ class TestTopicUpdater:
 
         await extension.cog_load()
 
-        verify(threading).Timer(305, extension._topic_updater)  # pylint: disable=W0212
-        verify(timer_mock.start).__call__()  # pylint: disable=C2801
+        verify(threading).Timer(305, extension._topic_updater)
+        verify(timer_mock.start).__call__()
 
     @pytest.mark.asyncio
     async def test_timer_is_started_on_cog_load_no_game_running(
@@ -173,8 +173,8 @@ class TestTopicUpdater:
 
         await extension.cog_load()
 
-        verify(threading).Timer(305, extension._topic_updater)  # pylint: disable=W0212
-        verify(timer_mock.start).__call__()  # pylint: disable=C2801
+        verify(threading).Timer(305, extension._topic_updater)
+        verify(timer_mock.start).__call__()
 
     def test_when_bot_is_none_discord_is_not_logged_in(self, bot):
         extension = TopicUpdater(bot)

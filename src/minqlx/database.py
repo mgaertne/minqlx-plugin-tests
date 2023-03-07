@@ -397,8 +397,8 @@ class Redis(AbstractDatabase):
             amount = value_or_amount
 
         if redis.VERSION < (3, 0):
-            return self.r.zincrby(name, value, amount)  # pylint: disable=W1114
-        return self.r.zincrby(name, amount, value)  # pylint: disable=W1114
+            return self.r.zincrby(name, value, amount)
+        return self.r.zincrby(name, amount, value)
 
     def setex(self, name, value_or_time, time_or_value):
         if not isinstance(value_or_time, (int, timedelta)):
@@ -409,8 +409,8 @@ class Redis(AbstractDatabase):
             time = value_or_time
 
         if redis.VERSION < (3, 0):
-            return self.r.setex(name, time, value)  # pylint: disable=W1114
-        return self.r.setex(name, value, time)  # pylint: disable=W1114
+            return self.r.setex(name, time, value)
+        return self.r.setex(name, value, time)
 
     def lrem(self, name, value_or_count, num_or_value=0):
         if not isinstance(value_or_count, int):
@@ -421,5 +421,5 @@ class Redis(AbstractDatabase):
             count = value_or_count
 
         if redis.VERSION < (3, 0):
-            return self.r.lrem(name, count, value)  # pylint: disable=W1114
-        return self.r.lrem(name, value, count)  # pylint: disable=W1114
+            return self.r.lrem(name, count, value)
+        return self.r.lrem(name, value, count)

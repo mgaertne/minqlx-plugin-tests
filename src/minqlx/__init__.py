@@ -386,7 +386,7 @@ else:
     # noinspection PyBroadException
     try:
         __version_info__ = int(temp.group(1)), int(temp.group(2)), int(temp.group(3))
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         __version_info__ = (999, 999, 999)
 del temp
 

@@ -22,7 +22,7 @@ class TestFragStats:
     def fragstats_db(self):
         self.plugin.database = redis.Redis  # type: ignore
         db = mock(spec=redis.StrictRedis)
-        self.plugin._db_instance = db  # pylint: disable=protected-access
+        self.plugin._db_instance = db
 
         when(db).zincrby(any_, any_, any_).thenReturn(None)
         when(db).zincrby(any_, any_, any_).thenReturn(None)

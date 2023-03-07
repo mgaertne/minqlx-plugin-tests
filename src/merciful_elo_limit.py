@@ -49,20 +49,16 @@ def identify_reply_channel(channel):
 
 def is_player_in_exception_list(player):
     # noinspection PyProtectedMember
-    if "mybalance" in Plugin._loaded_plugins:  # pylint: disable=protected-access
+    if "mybalance" in Plugin._loaded_plugins:
         # noinspection PyProtectedMember
-        mybalance_plugin = Plugin._loaded_plugins[  # pylint: disable=protected-access
-            "mybalance"
-        ]
+        mybalance_plugin = Plugin._loaded_plugins["mybalance"]
         # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions
 
     # noinspection PyProtectedMember
-    if "balancetwo" in Plugin._loaded_plugins:  # pylint: disable=protected-access
+    if "balancetwo" in Plugin._loaded_plugins:
         # noinspection PyProtectedMember
-        balancetwo_plugin = Plugin._loaded_plugins[  # pylint: disable=protected-access
-            "balancetwo"
-        ]
+        balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]
         # noinspection PyUnresolvedReferences
         return player.steam_id in balancetwo_plugin.exceptions
 

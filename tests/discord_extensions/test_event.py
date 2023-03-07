@@ -199,5 +199,5 @@ class TestEvent:
 
         await event.setup(bot)
 
-        verify(threading).Thread(target=event.run_schedule)  # pylint: disable=W0212
-        verify(threading_mock.start).__call__()  # pylint: disable=C2801
+        verify(threading).Thread(target=event.run_schedule)
+        verify(threading_mock.start).__call__()

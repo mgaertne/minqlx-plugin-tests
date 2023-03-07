@@ -45,9 +45,9 @@ class TestMercifulEloLimit:
     def merciful_db(self):
         self.plugin.database = redis.Redis  # type: ignore
         db = mock(spec=redis.Redis)
-        self.plugin._db_instance = db  # pylint: disable=protected-access
+        self.plugin._db_instance = db
 
-        when(db).__getitem__(any_).thenReturn("42")  # pylint: disable=C2801
+        when(db).__getitem__(any_).thenReturn("42")
         when(db).exists(any_).thenReturn(False)
         when(db).zremrangebyscore(any_, any_, any_).thenReturn(None)
         when(db).zadd(any_, any_, any_).thenReturn(None)
@@ -76,22 +76,12 @@ class TestMercifulEloLimit:
         self.plugin.remove_thread = lambda _: None
 
     def teardown_method(self):
-        if (
-            "mybalance" in self.plugin._loaded_plugins  # pylint: disable=protected-access
-        ):
-            del minqlx.Plugin._loaded_plugins[
-                "mybalance"
-            ]  # pylint: disable=protected-access
-        if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
-            del minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                "balance"
-            ]
-        if (
-            "balancetwo" in self.plugin._loaded_plugins  # pylint: disable=protected-access
-        ):
-            del minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                "balancetwo"
-            ]
+        if "mybalance" in self.plugin._loaded_plugins:
+            del minqlx.Plugin._loaded_plugins["mybalance"]
+        if "balance" in self.plugin._loaded_plugins:
+            del minqlx.Plugin._loaded_plugins["balance"]
+        if "balancetwo" in self.plugin._loaded_plugins:
+            del minqlx.Plugin._loaded_plugins["balancetwo"]
         unstub()
 
     def setup_balance_ratings(self, player_elos):
@@ -101,32 +91,20 @@ class TestMercifulEloLimit:
         ratings = {}
         for player, elo in player_elos:
             ratings[player.steam_id] = {gametype: {"elo": elo}}
-        minqlx.Plugin._loaded_plugins["balance"] = mock(  # pylint: disable=protected-access
-            {"ratings": ratings}
-        )
+        minqlx.Plugin._loaded_plugins["balance"] = mock({"ratings": ratings})
 
     # noinspection PyMethodMayBeStatic
     def setup_no_balance_plugin(self):
-        if (
-            "balance" in minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
-        ):
-            del minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                "balance"
-            ]
-        if (
-            "balancetwo" in minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
-        ):
-            del minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                "balancetwo"
-            ]
+        if "balance" in minqlx.Plugin._loaded_plugins:
+            del minqlx.Plugin._loaded_plugins["balance"]
+        if "balancetwo" in minqlx.Plugin._loaded_plugins:
+            del minqlx.Plugin._loaded_plugins["balancetwo"]
 
     # noinspection PyMethodMayBeStatic
     def setup_exception_list(self, plugin, players):
         balance_plugin = mock(Plugin)
         balance_plugin.exceptions = [player.steam_id for player in players]
-        minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-            plugin
-        ] = balance_plugin
+        minqlx.Plugin._loaded_plugins[plugin] = balance_plugin
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_map_change_resets_tracked_player_ids(self):
@@ -157,9 +135,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_map_change("thunderstruck", "ca")
 
-        verify(
-            self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
-        ).add_request(
+        verify(self.plugin._loaded_plugins["balance"]).add_request(
             {player1.steam_id: "ca", player2.steam_id: "ca"},
             self.plugin.callback_ratings,
             CHAT_CHANNEL,
@@ -254,7 +230,7 @@ class TestMercifulEloLimit:
         self.plugin.fetch_elos_of_players([])
 
         verify(
-            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"],
             times=0,
         ).add_request(any_, any_, any_)
 
@@ -372,7 +348,7 @@ class TestMercifulEloLimit:
         self.plugin.fetch_elos_of_players([])
 
         verify(
-            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"],
             times=0,
         ).add_request(any_, any_, any_)
 
@@ -398,7 +374,7 @@ class TestMercifulEloLimit:
         self.plugin.handle_round_countdown(1)
 
         verify(
-            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"],
             times=0,
         ).add_request(any_, any_, any_)
 
@@ -412,9 +388,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_round_countdown(4)
 
-        verify(
-            self.plugin._loaded_plugins["balance"]  # pylint: disable=protected-access
-        ).add_request(
+        verify(self.plugin._loaded_plugins["balance"]).add_request(
             {player1.steam_id: "ca", player2.steam_id: "ca"},
             self.plugin.callback_ratings,
             CHAT_CHANNEL,
@@ -703,7 +677,7 @@ class TestMercifulEloLimit:
         self.plugin.handle_round_start(2)
 
         verify(
-            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"],
             times=0,
         ).add_request(any_, any_, any_)
 
@@ -721,7 +695,7 @@ class TestMercifulEloLimit:
         self.plugin.handle_round_start(2)
 
         verify(
-            self.plugin._loaded_plugins["balance"],  # pylint: disable=protected-access
+            self.plugin._loaded_plugins["balance"],
             times=0,
         ).add_request(any_, any_, any_)
 
@@ -1006,17 +980,15 @@ class TestConnectThread:
         assert_that(return_code, equal_to(None))
 
     def test_elo_for_when_result_did_not_contain_elo(self):
-        self.connect_thread._is_parsed.set()  # pylint: disable=protected-access
+        self.connect_thread._is_parsed.set()
 
         return_code = self.connect_thread.elo_for("ca")
 
         assert_that(return_code, equal_to(None))
 
     def test_elo_for_when_ratings_have_been_stored(self):
-        self.connect_thread._is_parsed.set()  # pylint: disable=protected-access
-        self.connect_thread._elo = {  # pylint: disable=protected-access
-            "ca": {"elo": 1234}
-        }
+        self.connect_thread._is_parsed.set()
+        self.connect_thread._elo = {"ca": {"elo": 1234}}
 
         return_code = self.connect_thread.elo_for("ca")
 

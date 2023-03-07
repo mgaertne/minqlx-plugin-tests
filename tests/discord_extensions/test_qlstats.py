@@ -10,7 +10,7 @@ class TestQLStats:
     async def test_qlstats(self, interaction):
         setup_cvars({"qlx_discord_ext_qlstats_url": "https://qlstats.net/asdf"})
 
-        await qlstats._qlstats(interaction)  # pylint: disable=W0212
+        await qlstats._qlstats(interaction)
 
         interaction.response.send_message.assert_awaited_once()
         assert_that(

@@ -244,7 +244,7 @@ def owner():
         if sid == -1:
             raise RuntimeError
         return sid
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         logger = minqlx.get_logger()
         logger.error(
             "Failed to parse the Owner Steam ID. Make sure it's in SteamID64 format."
@@ -395,11 +395,11 @@ def thread(func, force=False):
 
     """
 
-    def f(*args, **kwargs):  # pylint: disable=inconsistent-return-statements
+    def f(*args, **kwargs):
         if not force and threading.current_thread().name.endswith(_thread_name):
             func(*args, **kwargs)
         else:
-            global _thread_count  # pylint: disable=global-statement
+            global _thread_count
             name = func.__name__ + f"-{str(_thread_count)}-{_thread_name}"
             t = threading.Thread(
                 target=func, name=name, args=args, kwargs=kwargs, daemon=True
@@ -464,7 +464,7 @@ def load_plugin(plugin):
     logger = get_logger(None)
     logger.info("Loading plugin '%s'...", plugin)
     # noinspection PyProtectedMember
-    plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
+    plugins = minqlx.Plugin._loaded_plugins
     plugins_path_cvar = minqlx.get_cvar("qlx_pluginsPath")
     if plugins_path_cvar is None:
         raise PluginLoadError("cvar qlx_pluginsPath misconfigured")
@@ -503,7 +503,7 @@ def unload_plugin(plugin):
     logger = get_logger(None)
     logger.info("Unloading plugin '%s'...", plugin)
     # noinspection PyProtectedMember
-    plugins = minqlx.Plugin._loaded_plugins  # pylint: disable=protected-access
+    plugins = minqlx.Plugin._loaded_plugins
     if plugin in plugins:
         try:
             minqlx.EVENT_DISPATCHERS["unload"].dispatch(plugin)
@@ -598,7 +598,7 @@ def late_init():
 
     stats_enable_cvar = minqlx.get_cvar("zmq_stats_enable")
     if stats_enable_cvar is not None and bool(int(stats_enable_cvar)):
-        global _stats  # pylint: disable=global-statement
+        global _stats
         _stats = minqlx.StatsListener()
         logger.info("Stats listener started on %s.", _stats.address)
         # Start polling. Not blocking due to decorator magic. Aw yeah.

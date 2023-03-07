@@ -31,9 +31,7 @@ class TestAutoRebalance:
     def mocked_balance_plugin(self):
         mocked_balance_plugin = mock()
         mocked_balance_plugin.callback_teams = lambda: None
-        Plugin._loaded_plugins[  # pylint: disable=protected-access
-            "balance"
-        ] = mocked_balance_plugin
+        Plugin._loaded_plugins["balance"] = mocked_balance_plugin
         yield mocked_balance_plugin
         unstub()
 
@@ -50,15 +48,11 @@ class TestAutoRebalance:
         ratings = {
             player.steam_id: {gametype: {"elo": elo}} for player, elo in player_elos
         }
-        self.plugin._loaded_plugins["balance"] = mock(  # pylint: disable=protected-access
-            {"ratings": ratings}
-        )
+        self.plugin._loaded_plugins["balance"] = mock({"ratings": ratings})
 
     def setup_no_balance_plugin(self):
-        if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
-            del self.plugin._loaded_plugins[  # pylint: disable=protected-access
-                "balance"
-            ]
+        if "balance" in self.plugin._loaded_plugins:
+            del self.plugin._loaded_plugins["balance"]
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_team_switch_attempt_no_game_running(self):

@@ -144,7 +144,7 @@ class TestSubscribe:
     ):
         maps_plugin = mock(spec=Plugin)
         maps_plugin.installed_maps = ["ra3azra1", "campgrounds", "theatreofpain"]
-        Plugin._loaded_plugins = {"maps_manager": maps_plugin}  # pylint: disable=W0212
+        Plugin._loaded_plugins = {"maps_manager": maps_plugin}
 
         setup_db_long_map_names(
             mocked_db,
@@ -171,7 +171,7 @@ class TestSubscribe:
     ):
         maps_plugin = mock(spec=Plugin)
         maps_plugin.logged_maps = ["ra3azra1", "campgrounds", "theatreofpain"]
-        Plugin._loaded_plugins = {"maps": maps_plugin}  # pylint: disable=W0212
+        Plugin._loaded_plugins = {"maps": maps_plugin}
 
         setup_db_long_map_names(
             mocked_db,
@@ -219,7 +219,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._subscribe_map(interaction, "")  # pylint: disable=W0212
+        await extension._subscribe_map(interaction, "")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -232,9 +232,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._subscribe_map(  # pylint: disable=W0212
-            interaction, "not_installed"
-        )
+        await extension._subscribe_map(interaction, "not_installed")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -251,9 +249,7 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._subscribe_map(  # pylint: disable=W0212
-            interaction, "thunderstruck"
-        )
+        await extension._subscribe_map(interaction, "thunderstruck")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -280,9 +276,7 @@ class TestSubscribe:
         extension.formatted_installed_maps = {"theatreofpain": "Theatre of Pain"}
         extension.long_map_names_lookup = {"ra3azra1": "Industrial Rust"}
 
-        await extension._subscribe_map(  # pylint: disable=W0212
-            interaction, "theatreofpain"
-        )
+        await extension._subscribe_map(interaction, "theatreofpain")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -305,9 +299,7 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._subscribe_map(  # pylint: disable=W0212
-            interaction, "thunderstruck"
-        )
+        await extension._subscribe_map(interaction, "thunderstruck")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -341,7 +333,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._subscribe_player(interaction, "")  # pylint: disable=W0212
+        await extension._subscribe_player(interaction, "")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -354,9 +346,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._subscribe_player(  # pylint: disable=W0212
-            interaction, "unknownplayer"
-        )
+        await extension._subscribe_player(interaction, "unknownplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -374,9 +364,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._subscribe_player(  # pylint: disable=W0212
-            interaction, "matchedplayer"
-        )
+        await extension._subscribe_player(interaction, "matchedplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -399,9 +387,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._subscribe_player(  # pylint: disable=W0212
-            interaction, "matchedplayer"
-        )
+        await extension._subscribe_player(interaction, "matchedplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -424,9 +410,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._subscribe_player(  # pylint: disable=W0212
-            interaction, "matchedplayer"
-        )
+        await extension._subscribe_player(interaction, "matchedplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -447,7 +431,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players[123] = "matchedplayer"
 
-        await extension._subscribe_player(interaction, "123")  # pylint: disable=W0212
+        await extension._subscribe_player(interaction, "123")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -507,7 +491,7 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._subscribe_member(interaction, member)  # pylint: disable=W0212
+        await extension._subscribe_member(interaction, member)
 
         verify(mocked_db).sadd("minqlx:discord:42:subscribed_members", 21)
         assert_interaction_deferred_thinking(interaction)
@@ -534,7 +518,7 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._subscribe_member(interaction, member)  # pylint: disable=W0212
+        await extension._subscribe_member(interaction, member)
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -565,7 +549,7 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._subscribe_member(interaction, member)  # pylint: disable=W0212
+        await extension._subscribe_member(interaction, member)
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -583,7 +567,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._unsubscribe_map(interaction, "")  # pylint: disable=W0212
+        await extension._unsubscribe_map(interaction, "")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -600,9 +584,7 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._unsubscribe_map(  # pylint: disable=W0212
-            interaction, "thunderstruck"
-        )
+        await extension._unsubscribe_map(interaction, "thunderstruck")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -632,9 +614,7 @@ class TestSubscribe:
         extension.formatted_installed_maps = {"theatreofpain": "Theatre of Pain"}
         extension.long_map_names_lookup = {"ra3azra1": "Industrial Rust"}
 
-        await extension._unsubscribe_map(  # pylint: disable=W0212
-            interaction, "theatreofpain"
-        )
+        await extension._unsubscribe_map(interaction, "theatreofpain")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -657,9 +637,7 @@ class TestSubscribe:
         extension.installed_maps = ["thunderstruck"]
         extension.formatted_installed_maps["thunderstruck"] = "thunderstruck"
 
-        await extension._unsubscribe_map(  # pylint: disable=W0212
-            interaction, "thunderstruck"
-        )
+        await extension._unsubscribe_map(interaction, "thunderstruck")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -705,7 +683,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._unsubscribe_player(interaction, "")  # pylint: disable=W0212
+        await extension._unsubscribe_player(interaction, "")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -718,9 +696,7 @@ class TestSubscribe:
     ):
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
-        await extension._unsubscribe_player(  # pylint: disable=W0212
-            interaction, "unknownplayer"
-        )
+        await extension._unsubscribe_player(interaction, "unknownplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -738,9 +714,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._unsubscribe_player(  # pylint: disable=W0212
-            interaction, "matchedplayer"
-        )
+        await extension._unsubscribe_player(interaction, "matchedplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -763,9 +737,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._unsubscribe_player(  # pylint: disable=W0212
-            interaction, "matchedplayer"
-        )
+        await extension._unsubscribe_player(interaction, "matchedplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -793,9 +765,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players = known_players
 
-        await extension._unsubscribe_player(  # pylint: disable=W0212
-            interaction, "matchedplayer"
-        )
+        await extension._unsubscribe_player(interaction, "matchedplayer")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -816,7 +786,7 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
         extension.known_players[123] = "matchedplayer"
 
-        await extension._unsubscribe_player(interaction, "123")  # pylint: disable=W0212
+        await extension._unsubscribe_player(interaction, "123")
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -876,9 +846,7 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._unsubscribe_member(  # pylint: disable=W0212
-            interaction, member
-        )
+        await extension._unsubscribe_member(interaction, member)
 
         verify(mocked_db).srem("minqlx:discord:42:subscribed_members", 21)
         assert_interaction_deferred_thinking(interaction)
@@ -905,9 +873,7 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._unsubscribe_member(  # pylint: disable=W0212
-            interaction, member
-        )
+        await extension._unsubscribe_member(interaction, member)
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(
@@ -938,9 +904,7 @@ class TestSubscribe:
 
         extension = SubscriberCog(presences_aware_bot, mocked_db)
 
-        await extension._unsubscribe_member(  # pylint: disable=W0212
-            interaction, member
-        )
+        await extension._unsubscribe_member(interaction, member)
 
         assert_interaction_deferred_thinking(interaction)
         assert_interaction_response_description_matches(

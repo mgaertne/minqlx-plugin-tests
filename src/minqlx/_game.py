@@ -39,7 +39,9 @@ class Game:
         cs = minqlx.get_configstring(0)
         if not cs:
             self._valid = False
-            raise NonexistentGameError("Tried to instantiate a game while no game is active.")
+            raise NonexistentGameError(
+                "Tried to instantiate a game while no game is active."
+            )
 
     def __repr__(self):
         try:
@@ -101,19 +103,19 @@ class Game:
     def map_title(self):
         """The full name of the map. Ex.: ``Longest Yard``."""
         # noinspection PyProtectedMember, PyUnresolvedReferences
-        return minqlx._map_title  # pylint: disable=protected-access
+        return minqlx._map_title
 
     @property
     def map_subtitle1(self):
         """The map's subtitle. Usually either empty or has the author's name."""
         # noinspection PyProtectedMember, PyUnresolvedReferences
-        return minqlx._map_subtitle1  # pylint: disable=protected-access
+        return minqlx._map_subtitle1
 
     @property
     def map_subtitle2(self):
         """The map's second subtitle. Usually either empty or has the author's name."""
         # noinspection PyProtectedMember, PyUnresolvedReferences
-        return minqlx._map_subtitle2  # pylint: disable=protected-access
+        return minqlx._map_subtitle2
 
     @property
     def red_score(self):
@@ -282,7 +284,9 @@ class Game:
         elif hasattr(new_tags, "__iter__"):
             minqlx.set_cvar("sv_tags", ",".join(new_tags))
         else:
-            raise ValueError("tags need to be a string or an iterable returning strings.")
+            raise ValueError(
+                "tags need to be a string or an iterable returning strings."
+            )
 
     @property
     def workshop_items(self):

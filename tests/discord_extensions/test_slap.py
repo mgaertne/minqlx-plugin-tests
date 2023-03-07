@@ -35,7 +35,7 @@ class TestSlap:
         interaction.client = mock(spec=Member)
         interaction.client.user = None
 
-        await slap._slap(interaction, member)  # pylint: disable=W0212
+        await slap._slap(interaction, member)
 
         interaction.response.send_message.assert_awaited_once_with(
             "_@DiscordMember is slapped from the hidden._"
@@ -47,7 +47,7 @@ class TestSlap:
         interaction.client = mock(spec=Member)
         interaction.client.user = bot.client.user
 
-        await slap._slap(interaction, bot.client.user)  # pylint: disable=W0212
+        await slap._slap(interaction, bot.client.user)
 
         interaction.response.send_message.assert_awaited_once_with(
             "_slaps @DiscordMember with a large revenge trout._"
@@ -59,7 +59,7 @@ class TestSlap:
         interaction.client = mock(spec=Member)
         interaction.client.user = bot.client.user
 
-        await slap._slap(interaction, member)  # pylint: disable=W0212
+        await slap._slap(interaction, member)
 
         interaction.response.send_message.assert_awaited_once_with(
             "_@DiscordMember slaps himself for his stupidity._"
@@ -81,7 +81,7 @@ class TestSlap:
             f"_{interaction.user.mention} slaps {other_user.mention} with a large trout._"
         )
 
-        await slap._slap(interaction, other_user)  # pylint: disable=W0212
+        await slap._slap(interaction, other_user)
 
         interaction.response.send_message.assert_awaited_once_with(
             "_@DiscordMember slaps @SlappedDiscordMember with a large trout._"
@@ -112,7 +112,7 @@ class TestSlap:
             f"_{interaction.user.mention} slaps {other_user.mention} with a large trout._"
         )
 
-        await slap._slap(interaction, other_user)  # pylint: disable=W0212
+        await slap._slap(interaction, other_user)
 
         verify(Plugin).msg(
             "[DISCORD]^2 @DiscordMember slaps @SlappedDiscordMember with a large trout."
@@ -147,7 +147,7 @@ class TestSlap:
             f"_{interaction.user.mention} slaps {other_user.mention} with a large trout._"
         )
 
-        await slap._slap(interaction, other_user)  # pylint: disable=W0212
+        await slap._slap(interaction, other_user)
 
         verify(Plugin).msg(
             "[DISCORD] ^5#DiscordGuildChannel^7:^2 @DiscordMember slaps @SlappedDiscordMember with a large trout."

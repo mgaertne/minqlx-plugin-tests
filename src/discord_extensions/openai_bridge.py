@@ -46,16 +46,11 @@ class OpenAIBridge(Cog):
             return
 
         # noinspection PyProtectedMember
-        if (
-            "openai_bot"
-            not in Plugin._loaded_plugins  # pylint: disable=protected-access
-        ):
+        if "openai_bot" not in Plugin._loaded_plugins:
             return
 
         # noinspection PyProtectedMember
-        openai_bot_plugin = Plugin._loaded_plugins[  # pylint: disable=protected-access
-            "openai_bot"
-        ]
+        openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
 
         # noinspection PyUnresolvedReferences
         with openai_bot_plugin.queue_lock:
@@ -67,7 +62,7 @@ class OpenAIBridge(Cog):
             request = f"{author_name}: {message.content}"
 
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            openai_bot_plugin._record_chat_line(  # pylint: disable=protected-access
+            openai_bot_plugin._record_chat_line(
                 request, lock=openai_bot_plugin.queue_lock
             )
 
@@ -78,13 +73,11 @@ class OpenAIBridge(Cog):
             # noinspection PyUnresolvedReferences
             message_history = openai_bot_plugin.contextualized_chat_history(request)
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            response = openai_bot_plugin._gather_completion(  # pylint: disable=protected-access
-                message_history
-            )
+            response = openai_bot_plugin._gather_completion(message_history)
             if response is None:
                 return
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            openai_bot_plugin._record_chat_line(  # pylint: disable=protected-access
+            openai_bot_plugin._record_chat_line(
                 f"{self.bot_name}: {response}", lock=openai_bot_plugin.queue_lock
             )
             Plugin.msg(

@@ -55,10 +55,8 @@ class TestQlstatsPrivacyPolicy:
         spy2(minqlx.console_command)
 
     def teardown_method(self):
-        if "balance" in self.plugin._loaded_plugins:  # pylint: disable=protected-access
-            del minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                "balance"
-            ]
+        if "balance" in self.plugin._loaded_plugins:
+            del minqlx.Plugin._loaded_plugins["balance"]
         unstub()
 
     # noinspection PyMethodMayBeStatic
@@ -66,11 +64,7 @@ class TestQlstatsPrivacyPolicy:
         player_info = {}
         for player, privacy in player_privacy:
             player_info[player.steam_id] = {"privacy": privacy}
-        minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-            "balance"
-        ] = mock(
-            {"player_info": player_info}
-        )
+        minqlx.Plugin._loaded_plugins["balance"] = mock({"player_info": player_info})
 
     @pytest.fixture
     def qlstats_response(self):
@@ -102,7 +96,7 @@ class TestQlstatsPrivacyPolicy:
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_no_balance_plugin(self, mock_channel):
         minqlx.CHAT_CHANNEL = mock_channel
-        minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
+        minqlx.Plugin._loaded_plugins.pop("balance")
         connecting_player = fake_player(123, "Connecting Player")
 
         self.plugin.handle_player_connect(connecting_player)
@@ -112,9 +106,7 @@ class TestQlstatsPrivacyPolicy:
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_connect_wrong_version_of_balance_plugin(self, mock_channel):
         minqlx.CHAT_CHANNEL = mock_channel
-        minqlx.Plugin._loaded_plugins["balance"] = mock(  # pylint: disable=protected-access
-            strict=True
-        )
+        minqlx.Plugin._loaded_plugins["balance"] = mock(strict=True)
         connecting_player = fake_player(123, "Connecting Player")
 
         self.plugin.handle_player_connect(connecting_player)
@@ -475,7 +467,7 @@ class TestQlstatsPrivacyPolicy:
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_no_balance_plugin(self, mock_channel):
         minqlx.CHAT_CHANNEL = mock_channel
-        minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
+        minqlx.Plugin._loaded_plugins.pop("balance")
         switching_player = fake_player(123, "Joining Player")
         connected_players(switching_player)
 
@@ -716,7 +708,7 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_with_no_balance_plugin(self, mock_channel):
-        minqlx.Plugin._loaded_plugins.pop("balance")  # pylint: disable=protected-access
+        minqlx.Plugin._loaded_plugins.pop("balance")
         self.plugin.plugin_enabled = False
         connected_players()
 

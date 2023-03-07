@@ -42,7 +42,7 @@ class StatsListener:
         self.password = minqlx.get_cvar("zmq_stats_password")
 
         # Initialize socket, connect, and subscribe.
-        self.context = zmq.Context()  # pylint: disable=E0110
+        self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
         if self.password:
             self.socket.plain_username = b"stats"
@@ -130,10 +130,10 @@ class StatsListener:
 
         except zmq.error.Again:
             pass
-        except Exception:  # pylint: disable=broad-except
+        except Exception:
             minqlx.log_exception()
             # Reconnect, just in case. GC will clean up for us.
-            self.__init__()  # type: ignore  # pylint: disable=unnecessary-dunder-call
+            self.__init__()  # type: ignore
 
         self.keep_receiving()
 

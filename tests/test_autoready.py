@@ -723,7 +723,7 @@ class TestCountdownThread:
         self.fake_thread_runtime = datetime(
             year=2022, month=4, day=4, hour=11, minute=11, second=11
         )
-        self.countdown_thread._now = self.fake_thread_runtime  # pylint: disable=W0212
+        self.countdown_thread._now = self.fake_thread_runtime
 
     # noinspection PyMethodMayBeStatic
     def teardown_method(self):
@@ -735,7 +735,7 @@ class TestCountdownThread:
         )
 
     def test_seconds_left_when_thread_has_been_stopped_before(self):
-        self.countdown_thread._remaining = 7  # pylint: disable=W0212
+        self.countdown_thread._remaining = 7
 
         assert_that(self.countdown_thread.seconds_left, equal_to(7))
 
@@ -743,7 +743,7 @@ class TestCountdownThread:
         test_target_time = self.fake_thread_runtime + timedelta(
             seconds=11, milliseconds=999, microseconds=999
         )
-        self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
+        self.countdown_thread._target_time = test_target_time
 
         assert_that(self.countdown_thread.seconds_left, equal_to(11))
 
@@ -771,7 +771,7 @@ class TestCountdownThread:
         test_target_time = self.fake_thread_runtime + timedelta(
             seconds=11, milliseconds=999, microseconds=999
         )
-        self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
+        self.countdown_thread._target_time = test_target_time
 
         self.countdown_thread.stop()
 
@@ -798,13 +798,11 @@ class TestCountdownThread:
 
     def test_run_inner_loop_function(self):
         test_target_time = self.fake_thread_runtime + timedelta(seconds=35)
-        self.countdown_thread._target_time = test_target_time  # pylint: disable=W0212
+        self.countdown_thread._target_time = test_target_time
 
         self.countdown_thread.run_loop_step()
 
-        verify(self.mocked_function21, times=1).__call__(  # pylint: disable=C2801
-            any_(int)
-        )
+        verify(self.mocked_function21, times=1).__call__(any_(int))
         verify(time).sleep(0.0)
 
     def test_calculate_target_time(self):

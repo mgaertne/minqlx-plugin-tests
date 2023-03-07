@@ -382,11 +382,7 @@ class bday(Plugin):
     def play_birthday_song(self):
         if "karaoke" in self.plugins:
             # noinspection PyProtectedMember
-            karaoke_plugin = (
-                minqlx.Plugin._loaded_plugins[  # pylint: disable=protected-access
-                    "karaoke"
-                ]
-            )
+            karaoke_plugin = minqlx.Plugin._loaded_plugins["karaoke"]
             karaoke_plugin.double = True
             karaoke_plugin.currentsong = "happybirthday"
             # noinspection PyUnresolvedReferences

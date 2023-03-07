@@ -41,7 +41,9 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         if self.embed.description is None:
             self.embed.description = content
         else:
-            self.embed.description = f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
+            self.embed.description = (
+                f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
+            )
 
         await self.message.edit(embed=self.embed)
 
@@ -51,7 +53,9 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
 
         :param: msg: the msg to send to this player
         """
-        self.loop.create_task(self.expand_original_reply(content=Plugin.clean_text(msg)))
+        self.loop.create_task(
+            self.expand_original_reply(content=Plugin.clean_text(msg))
+        )
 
     def reply(self, msg, _limit=100, _delimiter=" "):
         """
@@ -59,7 +63,9 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
 
         :param: msg: the message to send to this channel
         """
-        self.loop.create_task(self.expand_original_reply(content=Plugin.clean_text(msg)))
+        self.loop.create_task(
+            self.expand_original_reply(content=Plugin.clean_text(msg))
+        )
 
 
 class AdminCog(Cog):
@@ -148,7 +154,10 @@ class AdminCog(Cog):
 
         :param: ctx: the context the trigger happened in
         """
-        return ctx.message.author.id in self.auth_attempts and self.auth_attempts[ctx.message.author.id] <= 0
+        return (
+            ctx.message.author.id in self.auth_attempts
+            and self.auth_attempts[ctx.message.author.id] <= 0
+        )
 
     async def auth(self, ctx, *_args, **_kwargs):
         """
@@ -201,15 +210,21 @@ class AdminCog(Cog):
         """
         command_length = self.command_length(ctx)
         qlx_command = ctx.message.content[command_length:]
-        message = await ctx.reply(content=f"executing command `{qlx_command}`", ephemeral=False)
+        message = await ctx.reply(
+            content=f"executing command `{qlx_command}`", ephemeral=False
+        )
         self.execute_qlx_command(ctx.author, message, qlx_command)
 
     @minqlx.next_frame
     def execute_qlx_command(self, user, message, qlx_command):
-        discord_interaction = DiscordInteractionChannel(user, message, loop=self.bot.loop)
+        discord_interaction = DiscordInteractionChannel(
+            user, message, loop=self.bot.loop
+        )
         try:
-            minqlx.COMMANDS.handle_input(discord_interaction, qlx_command, discord_interaction)
-        except Exception as e:  # pylint: disable=broad-except
+            minqlx.COMMANDS.handle_input(
+                discord_interaction, qlx_command, discord_interaction
+            )
+        except Exception as e:
             send_message = message.edit(content=f"{e.__class__.__name__}: {e}")
             self.bot.loop.create_task(send_message)
             minqlx.log_exception()
@@ -219,13 +234,15 @@ class AdminCog(Cog):
         if interaction.user.id not in self.authed_discord_ids:
             await interaction.response.send_message(
                 content="Sorry, you are not authed with the bot",
-                ephemeral=interaction.channel is not None and interaction.channel.guild is not None,
+                ephemeral=interaction.channel is not None
+                and interaction.channel.guild is not None,
             )
             return
 
         await interaction.response.send_message(
             content=f"executing command `{command}`",
-            ephemeral=interaction.channel is not None and interaction.channel.guild is not None,
+            ephemeral=interaction.channel is not None
+            and interaction.channel.guild is not None,
         )
         message = await interaction.original_response()
         self.execute_qlx_command(interaction.user, message, command)

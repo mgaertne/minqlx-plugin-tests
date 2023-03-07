@@ -41,7 +41,7 @@ _re_userinfo = re.compile(r"^userinfo \"(?P<vars>.+)\"$")
 #                         LOW-LEVEL HANDLERS
 #        These are all called by the C code, not within Python.
 # ====================================================================
-def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
+def handle_rcon(cmd):
     """Console commands that are to be processed as regular pyminqlx
     commands as if the owner executes it. This allows the owner to
     interact with the Python part of minqlx without having to connect.
@@ -52,7 +52,7 @@ def handle_rcon(cmd):  # pylint: disable=inconsistent-return-statements
         minqlx.COMMANDS.handle_input(
             minqlx.RconDummyPlayer(), cmd, minqlx.CONSOLE_CHANNEL
         )
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -186,7 +186,7 @@ def handle_client_command(client_id, cmd):
                     cmd = f'userinfo "{formatted_key_values}"'
 
         return cmd
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -214,7 +214,7 @@ def handle_server_command(client_id, cmd):
                 minqlx.EVENT_DISPATCHERS["vote_ended"].dispatch(False)
 
         return cmd
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -241,13 +241,13 @@ def handle_frame():
         try:
             frame_tasks.run(blocking=False)
             break
-        except:  # pylint: disable=bare-except  # noqa: E722
+        except:  # noqa: E722
             minqlx.log_exception()
             continue
     # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["frame"].dispatch()
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -264,16 +264,16 @@ _first_game = True
 _ad_round_number = 0
 
 
-def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statements
+def handle_new_game(is_restart):
     # This is called early in the launch process, so it's a good place to initialize
     # minqlx stuff that needs QLDS to be initialized.
-    global _first_game  # pylint: disable=global-statement
+    global _first_game
     if _first_game:
         minqlx.late_init()
         _first_game = False
 
         # A good place to warn the owner if ZMQ stats are disabled.
-        global _zmq_warning_issued  # pylint: disable=global-statement
+        global _zmq_warning_issued
         stats_enabled_cvar = minqlx.get_cvar("zmq_stats_enable")
         if (
             stats_enabled_cvar is None or not bool(int(stats_enabled_cvar))
@@ -293,26 +293,24 @@ def handle_new_game(is_restart):  # pylint: disable=inconsistent-return-statemen
             minqlx.EVENT_DISPATCHERS["map"].dispatch(
                 minqlx.get_cvar("mapname"), minqlx.get_cvar("g_factory")
             )
-        except:  # pylint: disable=bare-except  # noqa: E722
+        except:  # noqa: E722
             minqlx.log_exception()
             return True
 
     # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["new_game"].dispatch()
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
 
-def handle_set_configstring(  # pylint: disable=inconsistent-return-statements
-    index, value
-):
+def handle_set_configstring(index, value):
     """Called whenever the server tries to set a configstring. Can return
     False to stop the event.
 
     """
-    global _ad_round_number  # pylint: disable=global-statement
+    global _ad_round_number
 
     # noinspection PyBroadException
     try:
@@ -345,7 +343,8 @@ def handle_set_configstring(  # pylint: disable=inconsistent-return-statements
                     _ad_round_number = 1
                     minqlx.EVENT_DISPATCHERS["game_countdown"].dispatch()
                 elif (
-                    old_state == "COUNT_DOWN" and new_state == "IN_PROGRESS"  # noqa: SIM114
+                    old_state == "COUNT_DOWN"  # noqa: SIM114
+                    and new_state == "IN_PROGRESS"
                 ):
                     pass
                     # minqlx.EVENT_DISPATCHERS["game_start"].dispatch()
@@ -384,7 +383,7 @@ def handle_set_configstring(  # pylint: disable=inconsistent-return-statements
                     return
 
         return res
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -405,7 +404,7 @@ def handle_player_connect(client_id, _is_bot):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_connect"].dispatch(player)
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -423,7 +422,7 @@ def handle_player_loaded(client_id):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_loaded"].dispatch(player)
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -441,7 +440,7 @@ def handle_player_disconnect(client_id, reason):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_disconnect"].dispatch(player, reason)
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -456,7 +455,7 @@ def handle_player_spawn(client_id):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["player_spawn"].dispatch(player)
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -472,7 +471,7 @@ def handle_kamikaze_use(client_id):
     try:
         player = minqlx.Player(client_id)
         return minqlx.EVENT_DISPATCHERS["kamikaze_use"].dispatch(player)
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -493,12 +492,12 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
         return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(
             player, bool(is_used_on_demand)
         )
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
 
-def handle_console_print(text):  # pylint: disable=inconsistent-return-statements
+def handle_console_print(text):
     """Called whenever the server prints something to the console and when rcon is used."""
     if not text:
         return
@@ -513,14 +512,14 @@ def handle_console_print(text):  # pylint: disable=inconsistent-return-statement
             return False
 
         if _print_redirection:
-            global _print_buffer  # pylint: disable=global-statement
-            _print_buffer += text  # pylint: disable=undefined-variable
+            global _print_buffer
+            _print_buffer += text
 
         if isinstance(res, str):
             return res
 
         return text
-    except:  # pylint: disable=bare-except  # noqa: E722
+    except:  # noqa: E722
         minqlx.log_exception()
         return True
 
@@ -552,16 +551,16 @@ def redirect_print(channel):
             self.channel = _channel
 
         def __enter__(self):
-            global _print_redirection  # pylint: disable=global-statement
+            global _print_redirection
             _print_redirection = self.channel
 
         def __exit__(self, exc_type, exc_val, exc_tb):
-            global _print_redirection  # pylint: disable=global-statement
+            global _print_redirection
             self.flush()
             _print_redirection = None
 
         def flush(self):
-            global _print_buffer  # pylint: disable=global-statement
+            global _print_buffer
             self.channel.reply(_print_buffer)
             _print_buffer = ""
 
