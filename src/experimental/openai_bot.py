@@ -255,8 +255,7 @@ class openai_bot(Plugin):
 
     def _send_message(self, communication_channel, message):
         communication_channel.reply(
-            f"{self.bot_clanprefix}^7{self.bot_name}^7: "
-            f"^2{self._ql_cleaned_up(message)}"
+            f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{self._ql_cleaned_up(message)}"
         )
 
         # noinspection PyProtectedMember
