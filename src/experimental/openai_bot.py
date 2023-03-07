@@ -275,7 +275,7 @@ class openai_bot(Plugin):
             replacements = self.db.hgetall("minqlx:openai_bot:message_replacements")
             for original, replacement in replacements.items():
                 if original in cleaned_up:
-                    cleaned_up = cleaned_up.replace(original, replacement)
+                    cleaned_up = cleaned_up.replace(f"{original} ", f"{replacement} ")
         return cleaned_up
 
     def handle_chat(self, player, msg, channel):
@@ -391,7 +391,7 @@ class openai_bot(Plugin):
         if len(teams["red"]) > 0:
             red_names = ", ".join(
                 [
-                    f"{player.clean_name}({int(player.stats.damage_dealt/player.stats.time)}+{player.stats.kills})"
+                    f"{player.clean_name}({player.stats.damage_dealt*1000/player.stats.time:.2f}+{player.stats.kills})"
                     for player in teams["red"]
                 ]
             )
@@ -399,7 +399,7 @@ class openai_bot(Plugin):
         if len(teams["blue"]) > 0:
             blue_names = ", ".join(
                 [
-                    f"{player.clean_name}({int(player.stats.damage_dealt/player.stats.time)}+{player.stats.kills})"
+                    f"{player.clean_name}({player.stats.damage_dealt*1000/player.stats.time:.2f}+{player.stats.kills})"
                     for player in teams["blue"]
                 ]
             )
