@@ -149,16 +149,25 @@ class openai_bot(Plugin):
         self.greet_joiners = self.get_cvar("qlx_openai_greet_joiners", bool)
         self.greeting_delay = self.get_cvar("qlx_openai_greeting_delay", int) or 60
         self.recently_connected_steam_ids = set()
+        self.map_authors_cache = {}
+        self.cache_map_authors_from_db()
 
         self.add_hook("chat", self.handle_chat)
         self.add_hook("player_connect", self.handle_player_connect)
         self.add_hook("game_countdown", self.handle_game_countdown)
         self.add_hook("round_end", self.handle_round_end)
+        self.add_hook("game_end", self.handle_game_end)
 
         self.add_command("listmodels", self.cmd_list_models, permission=5)
         self.add_command(
             "switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]"
         )
+
+    @minqlx.thread
+    def cache_map_authors_from_db(self):
+        for key in self.db.keys("minqlx:maps:*:authors"):
+            mapname = key.replace("minqlx:maps:", "").replace(":authors", "")
+            self.map_authors_cache[mapname] = self.db[key]
 
     def summarize_game_end_stats(self, announcements):
         @minqlx.thread
@@ -312,16 +321,18 @@ class openai_bot(Plugin):
         if msg.startswith("!"):
             return
 
-        if len(Plugin.clean_text(msg)) < 3:
+        matcher = re.compile(r"\w")
+        if len(set(matcher.findall(Plugin.clean_text(msg)))) <= 3:
             return
 
         threaded_response(channel, player, msg)
 
     def contextualized_chat_history(self, request):
+        game_state = self.current_game_state()
         chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, "-INF", "+INF")
         if self.model.startswith("text-"):
             returned = (
-                f"\n{self.system_context.format(bot_name=self.bot_name, game_state=self.current_game_state())}"
+                f"\n{self.system_context.format(bot_name=self.bot_name, game_state=game_state)}"
                 f"{request}\n\n"
                 f"{self.bot_name}:"
             )
@@ -342,14 +353,14 @@ class openai_bot(Plugin):
         system_context = {
             "role": "system",
             "content": self.system_context.format(
-                bot_name=self.bot_name, game_state=self.current_game_state()
+                bot_name=self.bot_name, game_state=game_state
             ),
         }
         chat_history_messages = [{"role": "user", "content": request}]
         if (
             len(
                 self.bot_mood.format(
-                    bot_name=self.bot_name, game_state=self.current_game_state()
+                    bot_name=self.bot_name, game_state=game_state
                 ).strip()
             )
             > 0
@@ -358,7 +369,7 @@ class openai_bot(Plugin):
                 {
                     "role": "user",
                     "content": self.bot_mood.format(
-                        bot_name=self.bot_name, game_state=self.current_game_state()
+                        bot_name=self.bot_name, game_state=game_state
                     ),
                 }
             )
@@ -385,38 +396,61 @@ class openai_bot(Plugin):
         if game is None:
             return ""
 
+        ratings = {}
+        # noinspection PyProtectedMember
+        if "balance" in Plugin._loaded_plugins:
+            # noinspection PyUnresolvedReferences,PyProtectedMember
+            ratings = Plugin._loaded_plugins["balance"].ratings
+
+        # noinspection PyProtectedMember
+        if "balancetwo" in Plugin._loaded_plugins:
+            # noinspection PyProtectedMember
+            balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]
+            balance_api = self.get_cvar("qlx_balanceApi")
+            # noinspection PyUnresolvedReferences
+            ratings = (
+                balancetwo_plugin.ratings["Elo"]
+                if balance_api == "elo"
+                else balancetwo_plugin.ratings["B-Elo"]
+            )
+
         teams = Plugin.teams()
         vs = min(len(teams["red"]), len(teams["blue"]))
-        team_status = ""
-        if len(teams["red"]) > 0:
-            red_names = ", ".join(
-                [
-                    f"{player.clean_name}({player.stats.damage_dealt*1000/player.stats.time:.2f}+{player.stats.kills})"
-                    for player in teams["red"]
-                ]
-            )
-            team_status += f"Team Red: {red_names}\n"
-        if len(teams["blue"]) > 0:
-            blue_names = ", ".join(
-                [
-                    f"{player.clean_name}({player.stats.damage_dealt*1000/player.stats.time:.2f}+{player.stats.kills})"
-                    for player in teams["blue"]
-                ]
-            )
-            team_status += f"Team Blue: {blue_names}\n"
-        team_status += f"Spectators: {self.bot_name}"
-        if len(teams["spectator"]) > 0:
-            spectator_names = ", ".join(
-                [player.clean_name for player in teams["spectator"]]
-            )
-            team_status += f", {spectator_names}"
+        team_status = "nick|team|dmg/s|frags|elo\n"
+        for team in ["red", "blue", "spectator"]:
+            if len(teams[team]) == 0:
+                continue
+            for player in teams[team]:
+                dmg_per_second = (
+                    player.stats.damage_dealt * 1000 / player.stats.time
+                    if player.stats.time > 0
+                    else 0.0
+                )
+                player_elo = "n/a"
+                if (
+                    player.steam_id in ratings
+                    and game.type_short in ratings[player.steam_id]
+                ):
+                    player_elo = ratings[player.steam_id][game.type_short]["elo"]
+                team_status += (
+                    f"{player.clean_name}|{player.team}|"
+                    f"{dmg_per_second:.2f}|{player.stats.kills}|{player_elo}\n"
+                )
 
+        team_status += f"{self.bot_name}|spectator|0|0.00|69"
         map_title = game.map_title if game.map_title else game.map
+        author = self.map_authors_cache.get(game.map, None)
+
+        if author is not None:
+            return (
+                f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
+                f"{team_status}\nCurrent map(author): {map_title}({Plugin.clean_text(author)})\n"
+                f"Game type: {game.factory_title}"
+            )
 
         return (
             f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
-            f"dmg/s+frags\n{team_status}\n"
-            f"Current map: {map_title}\nGame type: {game.factory_title}"
+            f"{team_status}\nCurrent map: {map_title}\nGame type: {game.factory_title}"
         )
 
     def handle_player_connect(self, player):
@@ -439,14 +473,10 @@ class openai_bot(Plugin):
                 request = f"Match starting on {map_title}"
 
                 message_history = self.contextualized_chat_history(request)
-                self._record_chat_line(request, lock=self.queue_lock)
 
                 response = self._gather_completion(message_history)
                 if response is None:
                     return
-                self._record_chat_line(
-                    f"{self.bot_name}: {response}", lock=self.queue_lock
-                )
                 self._send_message(minqlx.CHAT_CHANNEL, response)
 
         threaded_response()
@@ -462,6 +492,20 @@ class openai_bot(Plugin):
                 self._record_chat_line(request, lock=self.queue_lock)
 
         record_match_state()
+
+    def handle_game_end(self, _data):
+        @minqlx.thread
+        def record_match_state():
+            with self.queue_lock:
+                if not self.game:
+                    return
+
+                mapname = self.game.map_title if self.game.map_title else self.game.map
+                request = f"Match ended {self.game.red_score}(red) - {self.game.blue_score}(blue) on {mapname}"
+                self._record_chat_line(request, lock=self.queue_lock)
+
+        record_match_state()
+        self.cache_map_authors_from_db()
 
     def cmd_list_models(self, player, _msg, _channel):
         self._list_models_in_thread(player)
