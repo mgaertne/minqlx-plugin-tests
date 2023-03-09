@@ -5,7 +5,7 @@ on:
   - pull_request
 
 jobs:
-  test:
+  coverage:
     runs-on: [ubuntu-latest]
 
     steps:
