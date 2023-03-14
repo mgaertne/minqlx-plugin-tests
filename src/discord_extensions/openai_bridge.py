@@ -28,9 +28,11 @@ class OpenAIBridge(Cog):
 
         Plugin.set_cvar_once("qlx_openai_botname", "Bob")
         Plugin.set_cvar_once("qlx_openai_clanprefix", "")
+        Plugin.set_cvar_once("qlx_openai_bot_triggers", "")
 
         self.bot_name = Plugin.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = Plugin.get_cvar("qlx_openai_clanprefix") or ""
+        self.bot_triggers = Plugin.get_cvar("qlx_openai_bot_triggers", list) or []
 
     @Cog.listener(name="on_message")
     async def on_message(self, message):
@@ -65,7 +67,11 @@ class OpenAIBridge(Cog):
                 request, lock=openai_bot_plugin.queue_lock
             )
 
-            pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
+            matchers = [
+                rf"^{trigger}\W|\W{trigger}\W|\W{trigger}$"
+                for trigger in self.bot_triggers + [Plugin.clean_text(self.bot_name)]
+            ]
+            pattern = "|".join(matchers)
             if not re.search(pattern, message.content, flags=re.IGNORECASE):
                 return
 
@@ -77,7 +83,8 @@ class OpenAIBridge(Cog):
                 return
             # noinspection PyProtectedMember,PyUnresolvedReferences
             openai_bot_plugin._record_chat_line(
-                f"{self.bot_name}: {response}", lock=openai_bot_plugin.queue_lock
+                f"{Plugin.clean_text(self.bot_name)}: {response}",
+                lock=openai_bot_plugin.queue_lock,
             )
             # noinspection PyProtectedMember,PyUnresolvedReferences
             Plugin.msg(

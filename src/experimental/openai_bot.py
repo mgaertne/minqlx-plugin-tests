@@ -9,7 +9,7 @@ You need to install openai in your python installation, i.e. python3 -m pip inst
 """
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import RLock
 
 import emoji
@@ -63,6 +63,7 @@ class openai_bot(Plugin):
     Uses:
     * qlx_openai_botname (default: "Bob") The name of the bot as it will appear in in-game chat.
     * qlx_openai_clanprefix (default: "") An optional clan prefix that will show up whenever your bot says something.
+    * qlx_openai_bot_triggers (default: "") Comma-separated list of bot triggers to use in addition to the bot's name
     * qlx_openai_model (default: "gpt-3.5-turbo") The AI model used for creating chat interactions.
     * qlx_openai_max_tokens (default: 1024, max: 4096) The maximum amount of tokens a completion may consume.
     * qlx_openai_max_chat_history_tokens (default: 512) Maximum number of tokens the chat history may consume.
@@ -77,6 +78,7 @@ class openai_bot(Plugin):
     * qlx_openai_system_context A template string that provides the overall system context for the chat. You can use
             {bot_name} to dynamically fill in the name of the bot here.
             {game_state} to dynamically insert the current game state
+            {current_timestamp} the current system timestamp in the format "dd/mm/yy HH:MM TZ"
             Defaults to: "You are {bot_name}, a spectator on a QuakeLive server."
     * qlx_openai_bot_mood A template string that provides the overall bot mood or instructions on how to react to
             different types of messages and questions. You can use
@@ -96,6 +98,7 @@ class openai_bot(Plugin):
         self.queue_lock = RLock()
         self.set_cvar_once("qlx_openai_botname", "Bob")
         self.set_cvar_once("qlx_openai_clanprefix", "")
+        self.set_cvar_once("qlx_openai_bot_triggers", "")
         self.set_cvar_once("qlx_openai_model", "gpt-3.5-turbo")
         self.set_cvar_limit_once("qlx_openai_max_tokens", 1024, 0, 4096)
         self.set_cvar_limit_once("qlx_openai_max_chat_history_tokens", 512, 0, 4096)
@@ -113,6 +116,7 @@ class openai_bot(Plugin):
 
         self.bot_api_key = self.get_cvar("qlx_openai_apikey")
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
+        self.bot_triggers = self.get_cvar("qlx_openai_bot_triggers", list) or []
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
         self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
@@ -243,15 +247,15 @@ class openai_bot(Plugin):
             )
             if len(response) == 0:
                 return None
-            if response.startswith(f"{self.bot_name}: "):
-                response = response.replace(f"{self.bot_name}: ", "")
+            if response.startswith(f"{Plugin.clean_text(self.bot_name)}: "):
+                response = response.replace(f"{Plugin.clean_text(self.bot_name)}: ", "")
             return response
 
         response = completion.choices[0]["message"]["content"].lstrip().rstrip()
         if len(response) == 0:
             return None
-        if response.startswith(f"{self.bot_name}: "):
-            response = response.replace(f"{self.bot_name}: ", "")
+        if response.startswith(f"{Plugin.clean_text(self.bot_name)}: "):
+            response = response.replace(f"{Plugin.clean_text(self.bot_name)}: ", "")
         return response
 
     def _record_chat_line(self, message, *, lock):
@@ -293,8 +297,15 @@ class openai_bot(Plugin):
             with self.queue_lock:
                 request = f"{chatter.clean_name}: {message}"
 
-                pattern = rf"^{self.bot_name}\W|\W{self.bot_name}\W|\W{self.bot_name}$"
-                if not re.search(pattern, msg, flags=re.IGNORECASE) and (
+                matchers = [
+                    rf"^{trigger}\W|\W{trigger}\W|\W{trigger}$"
+                    for trigger in self.bot_triggers
+                    + [Plugin.clean_text(self.bot_name)]
+                ]
+                pattern = "|".join(matchers)
+                if not re.search(
+                    pattern, Plugin.clean_text(msg), flags=re.IGNORECASE
+                ) and (
                     not self.greet_joiners
                     or chatter.steam_id not in self.recently_connected_steam_ids
                 ):
@@ -311,7 +322,8 @@ class openai_bot(Plugin):
                 if response is None:
                     return
                 self._record_chat_line(
-                    f"{self.bot_name}: {response}", lock=self.queue_lock
+                    f"{Plugin.clean_text(self.bot_name)}: {response}",
+                    lock=self.queue_lock,
                 )
                 self._send_message(communication_channel, response)
 
@@ -329,13 +341,18 @@ class openai_bot(Plugin):
 
     def contextualized_chat_history(self, request):
         game_state = self.current_game_state()
+        current_timestamp = datetime.now(
+            datetime.now(timezone.utc).astimezone().tzinfo
+        ).strftime("%m/%d/%y %H:%M %Z")
         chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, "-INF", "+INF")
+        formatted_system_context = self.system_context.format(
+            bot_name=Plugin.clean_text(self.bot_name),
+            game_state=game_state,
+            current_timestamp=current_timestamp,
+        )
+
         if self.model.startswith("text-"):
-            returned = (
-                f"\n{self.system_context.format(bot_name=self.bot_name, game_state=game_state)}"
-                f"{request}\n\n"
-                f"{self.bot_name}:"
-            )
+            returned = f"\n{formatted_system_context}{request}\n\n{Plugin.clean_text(self.bot_name)}:"
 
             encoding = tiktoken.encoding_for_model(self.model)
             for message in reversed(chat_log):
@@ -352,15 +369,13 @@ class openai_bot(Plugin):
 
         system_context = {
             "role": "system",
-            "content": self.system_context.format(
-                bot_name=self.bot_name, game_state=game_state
-            ),
+            "content": formatted_system_context,
         }
         chat_history_messages = [{"role": "user", "content": request}]
         if (
             len(
                 self.bot_mood.format(
-                    bot_name=self.bot_name, game_state=game_state
+                    bot_name=Plugin.clean_text(self.bot_name), game_state=game_state
                 ).strip()
             )
             > 0
@@ -369,7 +384,7 @@ class openai_bot(Plugin):
                 {
                     "role": "user",
                     "content": self.bot_mood.format(
-                        bot_name=self.bot_name, game_state=game_state
+                        bot_name=Plugin.clean_text(self.bot_name), game_state=game_state
                     ),
                 }
             )
@@ -384,7 +399,11 @@ class openai_bot(Plugin):
                 score = self.db.zscore(CHAT_BOT_LOG, message)
                 self.db.zremrangebyscore(CHAT_BOT_LOG, "-INF", score)
                 break
-            role = "assistant" if message.startswith(self.bot_name) else "user"
+            role = (
+                "assistant"
+                if message.startswith(Plugin.clean_text(self.bot_name))
+                else "user"
+            )
             chat_history_messages.append({"role": role, "content": message})
         chat_history_messages.append(system_context)
         chat_history_messages.reverse()
@@ -392,6 +411,29 @@ class openai_bot(Plugin):
         return chat_history_messages
 
     def current_game_state(self):
+        game = self.game
+        if game is None:
+            return ""
+
+        teams = Plugin.teams()
+        vs = min(len(teams["red"]), len(teams["blue"]))
+        team_status = self.team_status()
+        map_title = game.map_title if game.map_title else game.map
+        author = self.map_authors_cache.get(game.map, None)
+
+        if author is not None:
+            return (
+                f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
+                f"{team_status}\nCurrent map(author): {map_title}({Plugin.clean_text(author)})\n"
+                f"Game type: {game.factory_title}"
+            )
+
+        return (
+            f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
+            f"{team_status}\nCurrent map: {map_title}\nGame type: {game.factory_title}"
+        )
+
+    def team_status(self):
         game = self.game
         if game is None:
             return ""
@@ -414,44 +456,62 @@ class openai_bot(Plugin):
                 else balancetwo_plugin.ratings["B-Elo"]
             )
 
+        player_speeds = {}
+        # noinspection PyProtectedMember
+        if "weird_stats" in Plugin._loaded_plugins:
+            # noinspection PyUnresolvedReferences,PyProtectedMember
+            player_speeds = Plugin._loaded_plugins[
+                "weird_stats"
+            ].determine_player_speeds()
+
         teams = Plugin.teams()
-        vs = min(len(teams["red"]), len(teams["blue"]))
-        team_status = "nick|team|dmg/s|frags|elo\n"
+        team_status = (
+            "nick|team|dmg|playtime (s)|frags|km/h|elo|matches|bday mmdd\n"
+            if self.game.state == "in_progress"
+            else "nick|team|elo|matches|bday mmdd\n"
+        )
         for team in ["red", "blue", "spectator"]:
             if len(teams[team]) == 0:
                 continue
             for player in teams[team]:
-                dmg_per_second = (
-                    player.stats.damage_dealt * 1000 / player.stats.time
-                    if player.stats.time > 0
-                    else 0.0
-                )
+                player_speed = player_speeds.get(player.steam_id, "n/a")
+
                 player_elo = "n/a"
                 if (
                     player.steam_id in ratings
                     and game.type_short in ratings[player.steam_id]
                 ):
                     player_elo = ratings[player.steam_id][game.type_short]["elo"]
-                team_status += (
-                    f"{player.clean_name}|{player.team}|"
-                    f"{dmg_per_second:.2f}|{player.stats.kills}|{player_elo}\n"
-                )
 
-        team_status += f"{self.bot_name}|spectator|0|0.00|69"
-        map_title = game.map_title if game.map_title else game.map
-        author = self.map_authors_cache.get(game.map, None)
+                player_matches = 0
+                if self.db.exists(f"minqlx:players:{player.steam_id}:games_completed"):
+                    player_matches = int(
+                        self.db.get(f"minqlx:players:{player.steam_id}:games_completed")
+                    )
 
-        if author is not None:
-            return (
-                f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
-                f"{team_status}\nCurrent map(author): {map_title}({Plugin.clean_text(author)})\n"
-                f"Game type: {game.factory_title}"
-            )
+                player_bday = "n/a"
+                if self.db.exists(f"minqlx:players:{player.steam_id}:bday"):
+                    birthdate = datetime.strptime(
+                        self.db[f"minqlx:players:{player.steam_id}:bday"], "%d.%m."
+                    )
+                    player_bday = birthdate.strftime("%m%d")
 
-        return (
-            f"Match state: {vs}v{vs} {game.state.replace('_', ' ').lower()}\n"
-            f"{team_status}\nCurrent map: {map_title}\nGame type: {game.factory_title}"
+                if self.game.state == "in_progress":
+                    team_status += (
+                        f"{player.clean_name}|{player.team}|"
+                        f"{player.stats.damage_dealt}|{player.stats.time}|{player.stats.kills}|"
+                        f"{player_speed}|{player_elo}|"
+                        f"{player_matches}|{player_bday}\n"
+                    )
+                else:
+                    team_status += f"{player.clean_name}|{player.team}|{player_elo}|{player_matches}|{player_bday}\n"
+
+        team_status += (
+            f"{Plugin.clean_text(self.bot_name)}|spectator|0|0|0|n/a|69|0|0207"
+            if self.game.state == "in_progress"
+            else f"{Plugin.clean_text(self.bot_name)}|spectator|69|0|0207"
         )
+        return team_status
 
     def handle_player_connect(self, player):
         self.recently_connected_steam_ids.add(player.steam_id)
