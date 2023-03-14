@@ -402,9 +402,7 @@ class Plugin:
         """Get a dictionary with the teams as keys and players as values."""
         players = player_list if player_list else cls.players()
 
-        res: dict[str, list[minqlx.Player]] = {
-            team_value: [] for team_value in minqlx.TEAMS.values()
-        }
+        res = {team_value: [] for team_value in minqlx.TEAMS.values()}  # type: ignore
 
         for p in players:
             res[p.team].append(p)
