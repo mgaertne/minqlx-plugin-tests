@@ -2,7 +2,7 @@ import time
 from operator import itemgetter
 
 import minqlx
-from minqlx import Plugin
+from minqlx import Plugin, NonexistentPlayerError
 
 MIN_ACTIVE_PLAYERS = 3  # min players for duelarena
 MAX_ACTIVE_PLAYERS = 4  # max players for duelarena
@@ -48,7 +48,10 @@ class duelarena(Plugin):
         if not self.game:
             return
 
-        player.update()
+        try:
+            player.update()
+        except NonexistentPlayerError:
+            return
         if player.team != "spectator":
             return
 
@@ -557,15 +560,10 @@ class DuelArenaGame:
 
     def record_scores(self, red_score, blue_score):
         teams = Plugin.teams()
-        try:  # noqa: SIM105
+        if len(teams["red"]) > 0:
             self.scores[teams["red"][-1].steam_id] = max(red_score, 0)
-        except IndexError:
-            pass
-
-        try:  # noqa: SIM105
+        if len(teams["blue"]) > 0:
             self.scores[teams["blue"][-1].steam_id] = max(blue_score, 0)
-        except IndexError:
-            pass
 
     def exchange_player(self, losing_team):
         teams = Plugin.teams()
