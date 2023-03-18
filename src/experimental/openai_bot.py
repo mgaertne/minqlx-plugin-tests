@@ -117,7 +117,9 @@ class openai_bot(Plugin):
         self.bot_api_key = self.get_cvar("qlx_openai_apikey")
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_triggers = self.get_cvar("qlx_openai_bot_triggers", list) or []
-        self.bot_triggers = [trigger for trigger in self.bot_triggers if len(trigger) > 0]
+        self.bot_triggers = [
+            trigger for trigger in self.bot_triggers if len(trigger) > 0
+        ]
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
         self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
