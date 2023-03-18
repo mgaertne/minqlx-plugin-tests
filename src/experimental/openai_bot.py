@@ -117,6 +117,7 @@ class openai_bot(Plugin):
         self.bot_api_key = self.get_cvar("qlx_openai_apikey")
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_triggers = self.get_cvar("qlx_openai_bot_triggers", list) or []
+        self.bot_triggers = [trigger for trigger in self.bot_triggers if len(trigger) > 0]
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
         self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
@@ -466,9 +467,9 @@ class openai_bot(Plugin):
 
         teams = Plugin.teams()
         team_status = (
-            "nick|team|dmg|playtime (s)|frags|km/h|elo|matches|bday mmdd\n"
+            "nick|team|dmg|playtime(s)|frags|km/h|elo|matches|bday\n"
             if self.game.state == "in_progress"
-            else "nick|team|elo|matches|bday mmdd\n"
+            else "nick|team|elo|matches|bday\n"
         )
         for team in ["red", "blue", "spectator"]:
             if len(teams[team]) == 0:
@@ -489,7 +490,7 @@ class openai_bot(Plugin):
                         self.db.get(f"minqlx:players:{player.steam_id}:games_completed")
                     )
 
-                player_bday = "n/a"
+                player_bday = ""
                 if self.db.exists(f"minqlx:players:{player.steam_id}:bday"):
                     birthdate = datetime.strptime(
                         self.db[f"minqlx:players:{player.steam_id}:bday"], "%d.%m."
