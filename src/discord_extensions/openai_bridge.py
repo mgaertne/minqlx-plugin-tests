@@ -33,6 +33,7 @@ class OpenAIBridge(Cog):
         self.bot_name = Plugin.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = Plugin.get_cvar("qlx_openai_clanprefix") or ""
         self.bot_triggers = Plugin.get_cvar("qlx_openai_bot_triggers", list) or []
+        self.bot_triggers = [trigger for trigger in self.bot_triggers if len(trigger) > 0]
 
     @Cog.listener(name="on_message")
     async def on_message(self, message):
