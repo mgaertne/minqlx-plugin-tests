@@ -327,8 +327,6 @@ from ._events import (
     UserinfoDispatcher,
     KamikazeUseDispatcher,
     KamikazeExplodeDispatcher,
-    PlayerInactivityKickDispatcher,
-    PlayerInactivityKickWarningDispatcher,
     PlayerItemsTossDispatcher,
     EVENT_DISPATCHERS,
 )
@@ -609,8 +607,6 @@ __all__ = [
     "UserinfoDispatcher",
     "KamikazeUseDispatcher",
     "KamikazeExplodeDispatcher",
-    "PlayerInactivityKickDispatcher",
-    "PlayerInactivityKickWarningDispatcher",
     "PlayerItemsTossDispatcher",
     "EVENT_DISPATCHERS",
     # _handlers
