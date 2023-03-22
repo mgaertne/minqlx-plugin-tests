@@ -1,4 +1,3 @@
-import re
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog
@@ -29,6 +28,7 @@ class OpenAIBridge(Cog):
         Plugin.set_cvar_once("qlx_openai_botname", "Bob")
         Plugin.set_cvar_once("qlx_openai_clanprefix", "")
         Plugin.set_cvar_once("qlx_openai_bot_triggers", "")
+        Plugin.set_cvar_once("qlx_openai_bot_role_chat", "")
 
         self.bot_name = Plugin.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = Plugin.get_cvar("qlx_openai_clanprefix") or ""
@@ -36,6 +36,11 @@ class OpenAIBridge(Cog):
         self.bot_triggers = [
             trigger for trigger in self.bot_triggers if len(trigger) > 0
         ]
+        self.bot_role_chat = (
+            Plugin.get_cvar("qlx_openai_bot_role_chat")
+            .encode("raw_unicode_escape")
+            .decode("unicode_escape")
+        )
 
     @Cog.listener(name="on_message")
     async def on_message(self, message):
@@ -65,21 +70,23 @@ class OpenAIBridge(Cog):
             )
             request = f"{author_name}: {message.content}"
 
+            # noinspection PyUnresolvedReferences
+            if not openai_bot_plugin.is_triggered_message(message.content):
+                # noinspection PyProtectedMember,PyUnresolvedReferences
+                openai_bot_plugin._record_chat_line(
+                    request, lock=openai_bot_plugin.queue_lock
+                )
+                return
+
+            # noinspection PyUnresolvedReferences
+            message_history = openai_bot_plugin.contextualized_chat_history(
+                request, trigger_template=self.bot_role_chat
+            )
             # noinspection PyProtectedMember,PyUnresolvedReferences
             openai_bot_plugin._record_chat_line(
                 request, lock=openai_bot_plugin.queue_lock
             )
 
-            matchers = [
-                rf"^{trigger}\W|\W{trigger}\W|\W{trigger}$"
-                for trigger in self.bot_triggers + [Plugin.clean_text(self.bot_name)]
-            ]
-            pattern = "|".join(matchers)
-            if not re.search(pattern, message.content, flags=re.IGNORECASE):
-                return
-
-            # noinspection PyUnresolvedReferences
-            message_history = openai_bot_plugin.contextualized_chat_history(request)
             # noinspection PyProtectedMember,PyUnresolvedReferences
             response = openai_bot_plugin._gather_completion(message_history)
             if response is None:

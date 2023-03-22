@@ -14,6 +14,7 @@ class OpenAIBridge(Cog):
     bot_name: str
     bot_clanprefix: str
     bot_triggers: list[str]
+    bot_role_chat: str
     def __init__(self, bot: Bot) -> None: ...
     async def on_message(self, message: Message) -> None: ...
 
