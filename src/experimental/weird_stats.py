@@ -1584,8 +1584,8 @@ class weird_stats(Plugin):
             return ""
 
         alive_time_delta = timedelta(seconds=alive_time)
-        player = self.player(steam_id)
-        quickest_death_name = player.name if player else str(steam_id)
+        player = self.resolve_player_name(steam_id)
+        quickest_death_name = player if player else str(steam_id)
 
         return f"  ^5Quickest death^7: {quickest_death_name} (^5{alive_time_delta.total_seconds():.02f} seconds^7)"
 
@@ -1611,11 +1611,11 @@ class weird_stats(Plugin):
 
         most_environmental_deaths_names = []
         for steam_id in most_entrironmental_deaths_steam_ids:
-            player = self.player(steam_id)
+            player = self.resolve_player_name(steam_id)
             if player is None:
                 most_environmental_deaths_names.append(str(steam_id))
             else:
-                most_environmental_deaths_names.append(player.name)
+                most_environmental_deaths_names.append(player)
 
         formatted_names = "^7, ".join(most_environmental_deaths_names)
 
