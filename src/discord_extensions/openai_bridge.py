@@ -1,4 +1,3 @@
-
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog
 
