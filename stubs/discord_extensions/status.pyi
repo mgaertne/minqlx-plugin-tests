@@ -1,11 +1,14 @@
 from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot, Cog, Context
+from discord.ext.commands import Cog
 
 if TYPE_CHECKING:
     # noinspection PyPackageRequirements
     from discord import Interaction
+
+    # noinspection PyPackageRequirements
+    from discord.ext.commands import Bot, Context
 
     from minqlx import Game, Player
 
@@ -23,7 +26,9 @@ class Status(Cog):
     discord_triggered_channel_ids: set[int]
     def __init__(self, bot: Bot) -> None: ...
     def is_message_in_relay_or_triggered_channel(self, ctx: Context) -> bool: ...
-    async def trigger_status(self, ctx: Context, *_args: list, **_kwargs: dict) -> None: ...
+    async def trigger_status(
+        self, ctx: Context, *_args: list, **_kwargs: dict
+    ) -> None: ...
     async def slash_trigger_status(self, interaction: Interaction) -> None: ...
     def is_message_in_triggered_channel(self, ctx: Context) -> bool: ...
 

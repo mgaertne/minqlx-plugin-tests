@@ -1,15 +1,14 @@
-from typing import (
-    Callable,
-    Iterable,
-    Type,
-    overload,
-    ClassVar,
-    Mapping,
-    TYPE_CHECKING,
-    Literal,
-)
+from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
+    from typing import (
+        Callable,
+        Iterable,
+        Type,
+        ClassVar,
+        Mapping,
+        Literal,
+    )
     from logging import Logger
 
     from minqlx.database import Redis
@@ -18,6 +17,8 @@ if TYPE_CHECKING:
         Player,
         Game,
         AbstractChannel,
+        UncancellableEventReturn,
+        CancellableEventReturn,
     )
 
 class Plugin:
@@ -212,7 +213,7 @@ class Plugin:
         event: Literal["console_print"],
         handler: Callable[
             [str],
-            str | Literal[0, 1, 2, 3] | None,
+            str | CancellableEventReturn,
         ],
         priority: int = ...,
     ) -> None: ...
@@ -222,7 +223,7 @@ class Plugin:
         event: Literal["command"],
         handler: Callable[
             [Player, Command, str],
-            Literal[0, 1, 2, 3] | None,
+            CancellableEventReturn,
         ],
         priority: int = ...,
     ) -> None: ...
@@ -230,221 +231,219 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["client_command"],
-        handler: Callable[
-            [Player | None, str], str | bool | Literal[0, 1, 2, 3] | None
-        ],
+        handler: Callable[[Player | None, str], str | bool | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["server_command"],
-        handler: Callable[[Player | None, str], str | Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player | None, str], str | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["frame"],
-        handler: Callable[[], Literal[0] | None],
+        handler: Callable[[], UncancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["set_configstring"],
-        handler: Callable[[int, str], str | Literal[0, 1, 2, 3] | None],
+        handler: Callable[[int, str], str | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["chat"],
-        handler: Callable[
-            [Player, str, AbstractChannel], str | Literal[0, 1, 2, 3] | None
-        ],
+        handler: Callable[[Player, str, AbstractChannel], str | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["unload"],
-        handler: Callable[[Plugin], Literal[0] | None],
+        handler: Callable[[Plugin], UncancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["player_connect"],
-        handler: Callable[[Player], str | Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player], str | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["player_loaded"],
-        handler: Callable[[Player], Literal[0] | None],
+        handler: Callable[[Player], UncancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["player_disconnect"],
-        handler: Callable[[Player, str | None], Literal[0] | None],
+        handler: Callable[[Player, str | None], UncancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["player_spawn"],
-        handler: Callable[[Player], Literal[0] | None],
+        handler: Callable[[Player], UncancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["stats"],
-        handler: Callable[[dict], Literal[0] | None],
+        handler: Callable[[dict], UncancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["vote_called"],
-        handler: Callable[[Player, str, str | None], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, str, str | None], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["vote_started"],
-        handler: Callable[[Player, str, str | None], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, str, str | None], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["vote_ended"],
-        handler: Callable[[bool], Literal[0, 1, 2, 3] | None],
+        handler: Callable[
+            [tuple[int, int], str, str | None, bool], CancellableEventReturn
+        ],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["vote"],
-        handler: Callable[[Player, bool], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, bool], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["game_countdown"],
-        handler: Callable[[], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["game_start"],
-        handler: Callable[[dict], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[dict], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["game_end"],
-        handler: Callable[[dict], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[dict], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["round_countdown"],
-        handler: Callable[[int], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[int], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["round_start"],
-        handler: Callable[[int], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[int], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["round_end"],
-        handler: Callable[[dict], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[dict], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["team_switch"],
-        handler: Callable[[Player, str, str], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, str, str], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["team_switch_attempt"],
-        handler: Callable[[Player, str, str], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, str, str], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["map"],
-        handler: Callable[[str, str], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[str, str], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["new_game"],
-        handler: Callable[[], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["kill"],
-        handler: Callable[[Player, Player | None, dict], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, Player | None, dict], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["death"],
-        handler: Callable[[Player, Player | None, dict], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, Player | None, dict], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["userinfo"],
-        handler: Callable[[Player, dict], dict | Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, dict], dict | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["kamikaze_use"],
-        handler: Callable[[Player], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["kamikaze_explde"],
-        handler: Callable[[Player, bool], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player, bool], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["player_items_toss"],
-        handler: Callable[[Player], Literal[0, 1, 2, 3] | None],
+        handler: Callable[[Player], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     def remove_hook(

@@ -1,6 +1,7 @@
-from typing import Type, Callable, Protocol, TYPE_CHECKING
+from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Type, Callable
     from types import TracebackType, ModuleType
     from datetime import datetime, timedelta
     from logging import Logger

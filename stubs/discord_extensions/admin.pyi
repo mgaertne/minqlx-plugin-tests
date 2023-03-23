@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Bot as Bot, Cog, Context as Context
+from discord.ext.commands import Cog
 
 from minqlx import AbstractChannel, AbstractDummyPlayer
 
@@ -9,17 +9,22 @@ if TYPE_CHECKING:
     from asyncio import AbstractEventLoop
 
     # noinspection PyPackageRequirements
-    import discord.utils
-    # noinspection PyPackageRequirements
-    from discord import Interaction as Interaction, Message as Message, User as User, Embed
+    from discord import Interaction as Interaction, Message, User, Embed
 
+    # noinspection PyPackageRequirements
+    from discord.ext.commands import Bot, Context
+
+    # noinspection PyPackageRequirements
+    import discord.utils
 
 class DiscordInteractionChannel(AbstractChannel, AbstractDummyPlayer):
     user: User
     message: Message
     loop: AbstractEventLoop
     embed: Embed
-    def __init__(self, user: User, message: Message, *, loop: AbstractEventLoop) -> None: ...
+    def __init__(
+        self, user: User, message: Message, *, loop: AbstractEventLoop
+    ) -> None: ...
     @property
     def steam_id(self) -> int | None: ...
     @property
@@ -45,7 +50,9 @@ class AdminCog(Cog):
     @staticmethod
     def command_length(ctx: Context) -> int: ...
     async def qlx(self, ctx: Context, *_args: list, **_kwargs: dict) -> None: ...
-    def execute_qlx_command(self, user: discord.User, message: Message, qlx_command: str) -> None: ...
+    def execute_qlx_command(
+        self, user: discord.User, message: Message, qlx_command: str
+    ) -> None: ...
     async def slash_qlx(self, interaction: Interaction, command: str) -> None: ...
 
 async def setup(bot: Bot) -> None: ...

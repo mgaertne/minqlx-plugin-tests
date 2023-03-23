@@ -197,6 +197,8 @@ from ._events import (
     KamikazeExplodeDispatcher,
     PlayerItemsTossDispatcher,
     EVENT_DISPATCHERS,
+    UncancellableEventReturn,
+    CancellableEventReturn,
 )
 from ._handlers import (
     frame_tasks,
@@ -467,6 +469,8 @@ __all__ = [
     "KamikazeExplodeDispatcher",
     "PlayerItemsTossDispatcher",
     "EVENT_DISPATCHERS",
+    "UncancellableEventReturn",
+    "CancellableEventReturn",
     # _handlers
     "frame_tasks",
     "next_frame_tasks",

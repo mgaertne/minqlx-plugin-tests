@@ -1,6 +1,7 @@
-from typing import Pattern, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Pattern, Type
     from collections import deque
     from sched import scheduler
     from types import TracebackType

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # noinspection PyPackageRequirements
     from discord import Interaction, Member, User
+
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot
 

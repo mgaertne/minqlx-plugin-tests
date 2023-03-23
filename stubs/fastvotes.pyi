@@ -1,6 +1,11 @@
-from typing import Protocol
+from typing import TYPE_CHECKING
 
-from minqlx import Plugin, Player
+from minqlx import Plugin
+
+if TYPE_CHECKING:
+    from typing import Protocol
+
+    from minqlx import Player
 
 # noinspection PyPep8Naming
 class fastvotes(Plugin):
@@ -10,7 +15,9 @@ class fastvotes(Plugin):
     def __init__(self) -> None: ...
     def resolve_strategy_for_fastvote(self, strategy: str) -> FastVoteStrategy: ...
     def handle_vote(self, _player: Player, vote: str, _args: str) -> None: ...
-    def handle_vote_ended(self, _votes: tuple[int, int], _vote: str, _args: str, _passed: bool) -> None: ...
+    def handle_vote_ended(
+        self, _votes: tuple[int, int], _vote: str, _args: str, _passed: bool
+    ) -> None: ...
     def process_vote(self, _player: Player, yes: bool) -> None: ...
 
 class FastVoteStrategy(Protocol):

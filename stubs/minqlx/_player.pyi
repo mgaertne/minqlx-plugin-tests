@@ -1,6 +1,7 @@
-from typing import Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Iterable
     from minqlx import (
         PlayerInfo,
         PlayerState,

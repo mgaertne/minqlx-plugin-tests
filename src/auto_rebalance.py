@@ -61,6 +61,7 @@ class auto_rebalance(Plugin):
         )
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
         for event in ["map", "game_countdown"]:
+            # noinspection PyTypeChecker
             self.add_hook(event, self.handle_reset_winning_teams)
         self.winning_teams = []
 
@@ -279,7 +280,7 @@ class auto_rebalance(Plugin):
         :return True if the team is on a winning streak or False if not
         """
         return self.winning_teams[
-            -self.winning_streak_suggestion_threshold :
+            -self.winning_streak_suggestion_threshold:
         ] == self.winning_streak_suggestion_threshold * [team]
 
     def announced_often_enough(self, winning_team):

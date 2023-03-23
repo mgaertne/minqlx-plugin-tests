@@ -1,12 +1,13 @@
 from typing import TYPE_CHECKING
 
-from openai import ChatCompletion
-
-from minqlx import Plugin, Player, AbstractChannel
+from minqlx import Plugin
 
 if TYPE_CHECKING:
     from threading import RLock
 
+    from openai import ChatCompletion
+
+    from minqlx import Player, AbstractChannel
     from minqlx.database import Redis
 
 DATETIMEFORMAT: str

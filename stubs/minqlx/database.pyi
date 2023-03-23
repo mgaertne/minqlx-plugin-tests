@@ -1,6 +1,7 @@
-from typing import overload, Mapping, TYPE_CHECKING
+from typing import overload, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Mapping
     from datetime import timedelta
     from logging import Logger
 

@@ -1,9 +1,13 @@
-from typing import Type, Callable, Iterable, Mapping, Pattern, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Type, Callable, Iterable, Mapping, Pattern, Literal
     from minqlx import Plugin, Player, AbstractChannel, Command
 
 _re_vote: Pattern
+
+UncancellableEventReturn = Literal["RET_NONE"] | None
+CancellableEventReturn = Literal[0, 1, 2, 3] | None
 
 class EventDispatcher:
     name: str

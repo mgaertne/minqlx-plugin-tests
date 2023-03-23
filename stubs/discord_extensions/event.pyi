@@ -1,6 +1,8 @@
-from typing import NoReturn, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import NoReturn
+
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot
 

@@ -1,4 +1,7 @@
-from typing import Callable, Any, Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Callable, Any, Iterable
 
 __version__: str
 DEBUG: bool

@@ -1,6 +1,7 @@
-from typing import Iterable, Mapping, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Iterable, Mapping
     from minqlx import Player
 
 class NonexistentGameError(Exception): ...
