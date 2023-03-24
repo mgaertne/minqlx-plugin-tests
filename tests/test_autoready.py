@@ -231,6 +231,7 @@ class TestAutoReady:
     def test_handle_game_start_with_no_timer(self, timer):
         self.plugin.timer = None
 
+        # noinspection PyTypeChecker
         self.plugin.handle_game_start({})
 
         verify(timer, times=0).stop()
@@ -242,6 +243,7 @@ class TestAutoReady:
 
         self.plugin.current_timer = 45
 
+        # noinspection PyTypeChecker
         self.plugin.handle_game_start({})
 
         verify(timer).stop()

@@ -931,7 +931,7 @@ class TestDuelArenaTests:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_game_end_with_no_game_ending(self):
-        # noinspection PyNoneFunctionAssignment
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.handle_game_end({})
 
         assert_that(return_code, equal_to(None))
@@ -940,7 +940,7 @@ class TestDuelArenaTests:
     def test_handle_game_end_which_was_aborted(self, game_in_progress):
         self.activate_duelarena()
 
-        # noinspection PyNoneFunctionAssignment
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.handle_game_end({"ABORTED": True})
 
         assert_that(return_code, equal_to(None))
@@ -949,7 +949,7 @@ class TestDuelArenaTests:
     def test_handle_game_end_with_not_duelarena_active(self, game_in_progress):
         self.deactivate_duelarena()
 
-        # noinspection PyNoneFunctionAssignment
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.handle_game_end({"ABORTED": False})
 
         assert_that(return_code, equal_to(None))
@@ -969,6 +969,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 7, blue_player: 5, spec_player: 7})
 
+        # noinspection PyTypeChecker
         self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 8, "TSCORE1": 5})
 
         assert_plugin_sent_to_console("DuelArena results:")
@@ -986,7 +987,7 @@ class TestDuelArenaTests:
         )
         self.queue_up_players(spec_player)
 
-        # noinspection PyNoneFunctionAssignment
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.handle_game_end(
             {"ABORTED": False, "TSCORE0": 8, "TSCORE1": 3}
         )
@@ -1003,7 +1004,7 @@ class TestDuelArenaTests:
         )
         self.queue_up_players(spec_player)
 
-        # noinspection PyNoneFunctionAssignment
+        # noinspection PyNoneFunctionAssignment,PyTypeChecker
         return_code = self.plugin.handle_game_end(
             {"ABORTED": False, "TSCORE0": 6, "TSCORE1": 8}
         )

@@ -64,6 +64,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder((killer.steam_id, victim.steam_id)))  # type: ignore
@@ -75,6 +76,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
         verify(fragstats_db).zincrby(
@@ -88,6 +90,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
         verify(fragstats_db).zincrby(
@@ -100,6 +103,7 @@ class TestFragStats:
 
         connected_players(victim)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, victim, {"MOD": "ROCKET"})
 
         assert_that(self.plugin.frag_log, not_(contains_exactly(victim.steam_id)))  # type: ignore
@@ -111,6 +115,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
         assert_that(self.plugin.frag_log, not_(contains_inanyorder((killer.steam_id, victim.steam_id))))  # type: ignore
@@ -122,6 +127,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "LAVA"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))  # type: ignore
@@ -139,6 +145,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "HURT"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))  # type: ignore
@@ -156,6 +163,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "SLIME"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))  # type: ignore
@@ -173,6 +181,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "WATER"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))  # type: ignore
@@ -190,6 +199,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "CRUSH"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))  # type: ignore
@@ -207,6 +217,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "UNKNOWN"})
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))  # type: ignore
@@ -224,6 +235,7 @@ class TestFragStats:
 
         connected_players(victim, killer)
 
+        # noinspection PyTypeChecker
         self.plugin.handle_death(victim, victim, {"MOD": "SWITCHTEAM"})
 
         assert_that(self.plugin.frag_log, not_(contains_inanyorder((victim.steam_id, victim.steam_id))))  # type: ignore
