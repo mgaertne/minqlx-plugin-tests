@@ -131,7 +131,6 @@ class mydiscordbot(Plugin):
             self.handle_game_countdown_or_end,
             priority=minqlx.PRI_LOWEST,
         )
-        # noinspection PyTypeChecker
         self.add_hook(
             "game_end", self.handle_game_countdown_or_end, priority=minqlx.PRI_LOWEST
         )

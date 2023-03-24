@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     # noinspection PyPackageRequirements
     from discord.ext.commands import Context
 
-    from minqlx import Game as minqlxGame
+    from minqlx import Game as minqlxGame, GameEndData
 
 plugin_version: str
 
@@ -59,7 +59,9 @@ class mydiscordbot(Plugin):
     def handle_vote_ended(
         self, votes: tuple[int, int], _vote: str, _args: str, passed: bool
     ) -> None: ...
-    def handle_game_countdown_or_end(self, *_args: list, **_kwargs: dict) -> None: ...
+    def handle_game_countdown_or_end(
+        self, *_args: GameEndData, **_kwargs: str
+    ) -> None: ...
     def cmd_discord(
         self, player: Player, msg: list[str], _channel: AbstractChannel
     ) -> int: ...

@@ -8,6 +8,7 @@ if TYPE_CHECKING:
         ClassVar,
         Mapping,
         Literal,
+        TypedDict,
     )
     from logging import Logger
 
@@ -19,7 +20,411 @@ if TYPE_CHECKING:
         AbstractChannel,
         UncancellableEventReturn,
         CancellableEventReturn,
+        UserInfo,
     )
+
+PlayerSummaryData = TypedDict(
+    "PlayerSummaryData",
+    {
+        "NAME": str,
+        "STEAM_ID": str,
+        "TEAM": int,
+    },
+)
+GameStartData = TypedDict(
+    "GameStartData",
+    {
+        "CAPTURE_LIMIT": int,
+        "FACTORY": str,
+        "FACTORY_TITLE": str,
+        "FRAG_LIMIT": int,
+        "GAME_TYPE": str,
+        "INFECTED": int,
+        "INSTAGIB": int,
+        "MAP": str,
+        "MATCH_GUID": str,
+        "MERCY_LIMIT": int,
+        "PLAYERS": list[PlayerSummaryData],
+        "QUADHOG": int,
+        "ROUND_LIMIT": int,
+        "SCORE_LIMIT": int,
+        "SERVER_TITLE": str,
+        "TIME_LIMIT": int,
+        "TRAINING": int,
+    },
+)
+GameEndData = TypedDict(
+    "GameEndData",
+    {
+        "ABORTED": bool,
+        "CAPTURE_LIMIT": int,
+        "EXIT_MSG": str,
+        "FACTORY": str,
+        "FACTORY_TITLE": str,
+        "FIRST_SCORER": str,
+        "FRAG_LIMIT": int,
+        "GAME_LENGTH": int,
+        "GAME_TYPE": str,
+        "INFECTED": int,
+        "INSTAGIB": int,
+        "LAST_LEAD_CHANGE_TIME": int,
+        "LAST_SCORER": str,
+        "LAST_TEAMSCORER": str,
+        "MAP": str,
+        "MATCH_GUID": str,
+        "MERCY_LIMIT": int,
+        "QUADHOG": int,
+        "RESTARTED": int,
+        "ROUND_LIMIT": int,
+        "SCORE_LIMIT": int,
+        "SERVER_TITLE": str,
+        "TIME_LIMIT": int,
+        "TRAINING": int,
+        "TSCORE0": int,
+        "TSCORE1": int,
+    },
+)
+RoundEndData = TypedDict(
+    "RoundEndData",
+    {
+        "MATCH_GUID": str,
+        "ROUND": int,
+        "TEAM_WON": Literal["RED", "BLUE", "DRAW"],
+        "TIME": int,
+        "WARMUP": bool,
+    },
+)
+Vector = TypedDict("Vector", {"x": float, "y": float, "z": float})
+PowerUps = Literal[
+    "QUAD", "BATTLESUIT", "HASTE", "INVISIBILITY", "REGENERATION", "INVULNERABILITY"
+]
+Holdable = Literal[
+    "TELEPORTER", "MEDKIT", "FLIGHT", "KAMIKAZE", "PORTAL", "INVULNERABILITY"
+]
+Weapon = Literal[
+    "GAUNTLET",
+    "MACHINEGUN",
+    "SHOTGUN",
+    "GRENADE",
+    "ROCKET",
+    "LIGHTNING",
+    "RAILGUN",
+    "PLASMA",
+    "BFG",
+    "GRAPPLE",
+    "NAIL",
+    "PROXIMITY",
+    "CHAINGUN",
+    "HMG",
+    "HANDS",
+]
+PlayerData = TypedDict(
+    "PlayerData",
+    {
+        "AIRBORNE": bool,
+        "AMMO": int,
+        "ARMOR": int,
+        "BOT": bool,
+        "BOT_SKILL": int | None,
+        "HEALTH": int,
+        "HOLDABLE": Holdable | None,
+        "NAME": str,
+        "POSITION": Vector,
+        "POWERUPS": list[PowerUps] | None,
+        "SPEED": float,
+        "STEAM_ID": str,
+        "SUBMERGED": bool,
+        "TEAM": int,
+        "VIEW": Vector,
+        "WEAPON": Weapon,
+    },
+)
+MeansOfDeath = Literal[
+    "UNKNOWN",
+    "SHOTGUN",
+    "GAUNTLET",
+    "MACHINEGUN",
+    "GRENADE",
+    "GRENADE_SPLASH",
+    "ROCKET",
+    "ROCKET_SPLASH",
+    "PLASMA",
+    "PLASMA_SPLASH",
+    "RAILGUN",
+    "LIGHTNING",
+    "BFG",
+    "BFG_SPLASH",
+    "WATER",
+    "SLIME",
+    "LAVA",
+    "CRUSH",
+    "TELEFRAG",
+    "FALLING",
+    "SUICIDE",
+    "TARGET_LASER",
+    "HURT",
+    "NAIL",
+    "CHAINGUN",
+    "PROXIMITY_MINE",
+    "KAMIKAZE",
+    "JUICED",
+    "GRAPPLE",
+    "SWITCH_TEAMS",
+    "THAW",
+    "LIGHTNING_DISCHARGE",
+    "HMG",
+    "RAILGUN_HEADSHOT",
+]
+KillData = TypedDict(
+    "KillData",
+    {
+        "KILLER": PlayerData,
+        "VICTIM": PlayerData,
+        "MATCH_GUID": str,
+        "MOD": MeansOfDeath,
+        "OTHER_TEAM_ALIVE": int,
+        "OTHER_TEAM_DEAD": int,
+        "ROUND": int,
+        "SUICIDE": bool,
+        "TEAMKILL": bool,
+        "TEAM_ALIVE": int,
+        "TEAM_DEAD": int,
+        "TIME": int,
+        "WARMUP": bool,
+    },
+)
+DeathData = TypedDict(
+    "DeathData",
+    {
+        "KILLER": PlayerData | None,
+        "VICTIM": PlayerData,
+        "MATCH_GUID": str,
+        "MOD": MeansOfDeath,
+        "OTHER_TEAM_ALIVE": int,
+        "OTHER_TEAM_DEAD": int,
+        "ROUND": int,
+        "SUICIDE": bool,
+        "TEAMKILL": bool,
+        "TEAM_ALIVE": int,
+        "TEAM_DEAD": int,
+        "TIME": int,
+        "WARMUP": bool,
+    },
+)
+UserInfoEventInput = TypedDict(
+    "UserInfoEventInput",
+    {
+        "ip": str,
+        "ui_singlePlayerActive": str,
+        "cg_autoAction": str,
+        "cg_autoHop": str,
+        "cg_predictItems": str,
+        "model": str,
+        "headmodel": str,
+        "cl_anonymous": str,
+        "countr<": str,
+        "color1": str,
+        "rate": str,
+        "color2": str,
+        "sex": str,
+        "teamtask": str,
+        "name": str,
+        "handicap": str,
+        "password": str,
+    },
+    total=False,
+)
+PlayerKillStats = TypedDict(
+    "PlayerKillStats", {"DATA": KillData, "TYPE": Literal["PLAYER_KILL"]}
+)
+PlayerDeathStats = TypedDict(
+    "PlayerDeathStats", {"DATA": DeathData, "TYPE": Literal["PLAYER_DEATH"]}
+)
+MedalData = TypedDict(
+    "MedalData",
+    {
+        "MATCH_GUID": str,
+        "MEDAL": Literal[
+            "ACCURACY",
+            "ASSISTS",
+            "CAPTURES",
+            "COMBOKILL",
+            "DEFENDS",
+            "EXCELLENT",
+            "FIRSTFRAG",
+            "HEADSHOT",
+            "HUMILIATION",
+            "IMPRESSIVE",
+            "MIDAIR",
+            "PERFECT",
+            "PERFORATED",
+            "QUADGOD",
+            "RAMPAGE",
+            "REVENGE",
+        ],
+        "NAME": str,
+        "STEAM_ID": str,
+        "TIME": int,
+        "TOTAL": int,
+        "WARMUP": bool,
+    },
+)
+PlayerMedalStats = TypedDict(
+    "PlayerMedalStats", {"DATA": MedalData, "TYPE": Literal["PLAYER_MEDAL"]}
+)
+RoundOverStats = TypedDict(
+    "RoundOverStats", {"DATA": RoundEndData, "TYPE": Literal["ROUND_OVER"]}
+)
+PlayerGameData = TypedDict(
+    "PlayerGameData",
+    {"MATCH_GUID": str, "NAME": str, "STEAM_ID": str, "TIME": int, "WARMUP": bool},
+)
+PlayerConnectStats = TypedDict(
+    "PlayerConnectStats", {"DATA": PlayerGameData, "TYPE": Literal["PLAYER_CONNECT"]}
+)
+PlayerDisconnectStats = TypedDict(
+    "PlayerDisconnectStats",
+    {"DATA": PlayerGameData, "TYPE": Literal["PLAYER_DICCONNECT"]},
+)
+TeamSwitchEvent = TypedDict(
+    "TeamSwitchEvent", {"NAME": str, "OLD_TEAM": str, "STEAM_ID": str, "TEAM": str}
+)
+TeamSwitchGameData = TypedDict(
+    "TeamSwitchGameData",
+    {"KILLER": TeamSwitchEvent, "MATCH_GUID": str, "TIME": int, "WARMUP": bool},
+)
+PlayerSwitchTeamStats = TypedDict(
+    "PlayerSwitchTeamStats",
+    {"DATA": TeamSwitchGameData, "TYPE": Literal["PLAYER_SWITCHTEAM"]},
+)
+MatchStartedStats = TypedDict(
+    "MatchStartedStats", {"DATA": GameStartData, "TYPE": Literal["MATCH_STARTED"]}
+)
+MatchReportStats = TypedDict(
+    "MatchReportStats", {"DATA": GameEndData, "TYPE": Literal["MATCH_REPORT"]}
+)
+DamageEntry = TypedDict("DamageEntry", {"DEALT": int, "TAKEN": int})
+MedalsEntry = TypedDict(
+    "MedalsEntry",
+    {
+        "ACCURACY": int,
+        "ASSISTS": int,
+        "CAPTURES": int,
+        "COMBOKILL": int,
+        "DEFENDS": int,
+        "EXCELLENT": int,
+        "FIRSTFRAG": int,
+        "HEADSHOT": int,
+        "HUMILIATION": int,
+        "IMPRESSIVE": int,
+        "MIDAIR": int,
+        "PERFECT": int,
+        "PERFORATED": int,
+        "QUADGOD": int,
+        "RAMPAGE": int,
+        "REVENGE": int,
+    },
+)
+PickupsEntry = TypedDict(
+    "PickupsEntry",
+    {
+        "AMMO": int,
+        "ARMOR": int,
+        "ARMOR_REGEN": int,
+        "BATTLESUIT": int,
+        "DOUBLER": int,
+        "FLIGHT": int,
+        "GREEN_ARMOR": int,
+        "GUARD": int,
+        "HASTE": int,
+        "HEALTH": int,
+        "INVIS": int,
+        "INVULNERABILITY": int,
+        "KAMIKAZE": int,
+        "MEDKIT": int,
+        "MEGA_HEALTH": int,
+        "OTHER_HOLDABLE": int,
+        "OTHER_POWERUP": int,
+        "PORTAL": int,
+        "QUAD": int,
+        "RED_ARMOR": int,
+        "REGEN": int,
+        "SCOUT": int,
+        "TELEPORTER": int,
+        "YELLOW_ARMOR": int,
+    },
+)
+SingleWeaponStatsEntry = TypedDict(
+    "SingleWeaponStatsEntry",
+    {"D": int, "DG": int, "DR": int, "H": int, "K": int, "P": int, "S": int, "T": int},
+)
+WeaponsStatsEntry = TypedDict(
+    "WeaponsStatsEntry",
+    {
+        "BFG": SingleWeaponStatsEntry,
+        "CHAINGUN": SingleWeaponStatsEntry,
+        "GAUNTLET": SingleWeaponStatsEntry,
+        "GRENADE": SingleWeaponStatsEntry,
+        "HMG": SingleWeaponStatsEntry,
+        "LIGHTNING": SingleWeaponStatsEntry,
+        "MACHINEGUN": SingleWeaponStatsEntry,
+        "NAILGUN": SingleWeaponStatsEntry,
+        "OTHER_WEAPON": SingleWeaponStatsEntry,
+        "PLASMA": SingleWeaponStatsEntry,
+        "PROXMINE": SingleWeaponStatsEntry,
+        "RAILGUN": SingleWeaponStatsEntry,
+        "ROCKET": SingleWeaponStatsEntry,
+        "SHOTGUN": SingleWeaponStatsEntry,
+    },
+)
+PlayerStatsEntry = TypedDict(
+    "PlayerStatsEntry",
+    {
+        "ABORTED": bool,
+        "BLUE_FLAG_PICKUPS": int,
+        "DAMAGE": DamageEntry,
+        "DEATHS": int,
+        "HOLY_SHITS": int,
+        "KILLS": int,
+        "LOSE": int,
+        "MATCH_GUID": str,
+        "MAX_STREAK": int,
+        "MEDALS": MedalsEntry,
+        "MODEL": str,
+        "NAME": str,
+        "NEUTRAL_FLAG_PICKUPS": int,
+        "PICKUPS": PickupsEntry,
+        "PLAY_TIME": int,
+        "QUIT": int,
+        "RANK": int,
+        "RED_FLAG_PICKUPS": int,
+        "SCORE": int,
+        "STEAM_ID": str,
+        "TEAM": int,
+        "TEAM_JOIN_TIME": int,
+        "TEAM_RANK": int,
+        "TIED_RANK": int,
+        "TIED_TEAM_RANK": int,
+        "WARMUP": bool,
+        "WEAPONS": WeaponsStatsEntry,
+        "WIN": int,
+    },
+)
+PlayerStatsStats = TypedDict(
+    "PlayerStatsStats", {"DATA": PlayerStatsEntry, "TYPE": Literal["PLAYER_STATS"]}
+)
+StatsData = (
+    PlayerKillStats
+    | PlayerDeathStats
+    | PlayerMedalStats
+    | RoundOverStats
+    | PlayerConnectStats
+    | PlayerDisconnectStats
+    | PlayerSwitchTeamStats
+    | MatchStartedStats
+    | MatchReportStats
+    | PlayerStatsStats
+)
 
 class Plugin:
     _loaded_plugins: ClassVar[dict[str, Plugin]] = ...
@@ -345,14 +750,14 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["game_start"],
-        handler: Callable[[dict], CancellableEventReturn],
+        handler: Callable[[GameStartData], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["game_end"],
-        handler: Callable[[dict], CancellableEventReturn],
+        handler: Callable[[GameEndData], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -373,7 +778,7 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["round_end"],
-        handler: Callable[[dict], CancellableEventReturn],
+        handler: Callable[[RoundEndData], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -408,21 +813,23 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["kill"],
-        handler: Callable[[Player, Player | None, dict], CancellableEventReturn],
+        handler: Callable[[Player, Player, KillData], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["death"],
-        handler: Callable[[Player, Player | None, dict], CancellableEventReturn],
+        handler: Callable[[Player, Player | None, DeathData], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
     def add_hook(
         self,
         event: Literal["userinfo"],
-        handler: Callable[[Player, dict], dict | CancellableEventReturn],
+        handler: Callable[
+            [Player, UserInfoEventInput], UserInfo | CancellableEventReturn
+        ],
         priority: int = ...,
     ) -> None: ...
     @overload

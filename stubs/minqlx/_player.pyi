@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable
+    from typing import Iterable, TypedDict, NotRequired
     from minqlx import (
         PlayerInfo,
         PlayerState,
@@ -15,6 +15,29 @@ if TYPE_CHECKING:
 
 _DUMMY_USERINFO: Iterable[str]
 
+UserInfo = TypedDict(
+    "UserInfo",
+    {
+        "ip": str,
+        "ui_singlePlayerActive": str,
+        "cg_autoAction": str,
+        "cg_autoHop": str,
+        "cg_predictItems": str,
+        "model": str,
+        "headmodel": str,
+        "cl_anonymous": str,
+        "countr<": str,
+        "color1": str,
+        "rate": str,
+        "color2": str,
+        "sex": str,
+        "teamtask": str,
+        "name": str,
+        "handicap": str,
+        "password": NotRequired[str],
+    },
+)
+
 class NonexistentPlayerError(Exception): ...
 
 class Player:
@@ -24,7 +47,7 @@ class Player:
     _valid: bool
     _id: int
     _info: PlayerInfo | None
-    _userinfo: dict[str, str] | None
+    _userinfo: UserInfo | None
     _steam_id = int
     _name: str
 

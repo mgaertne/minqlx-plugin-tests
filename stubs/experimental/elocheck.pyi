@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from typing import Callable, Awaitable, Iterable, Iterator
     from requests import Session
 
-    from minqlx import AbstractChannel, Player
+    from minqlx import AbstractChannel, Player, GameEndData
     from minqlx.database import Redis
 
 SteamId = int
@@ -51,7 +51,7 @@ class elocheck(Plugin):
         self, rating_provider_name: str, steam_id: SteamId
     ) -> str | None: ...
     def wants_to_be_informed(self, steam_id: SteamId) -> bool: ...
-    def handle_game_end(self, data: dict) -> None: ...
+    def handle_game_end(self, data: GameEndData) -> None: ...
     def cmd_elocheck(
         self, player: Player, msg: str, channel: AbstractChannel
     ) -> int | None: ...

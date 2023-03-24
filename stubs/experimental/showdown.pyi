@@ -5,7 +5,7 @@ from minqlx import Plugin
 if TYPE_CHECKING:
     from typing import Iterator, Callable, Generic, TypeVar, Sequence
 
-    from minqlx import Player, AbstractChannel
+    from minqlx import Player, AbstractChannel, RoundEndData
 
 SteamId = int
 
@@ -71,7 +71,7 @@ class showdown(Plugin):
         self, _victim: Player, _killer: Player | None, _data: dict
     ) -> None: ...
     def handle_round_start(self, _round_number: int) -> None: ...
-    def handle_round_end(self, _data: dict) -> None: ...
+    def handle_round_end(self, _data: RoundEndData) -> None: ...
     def cmd_showdown(
         self, player: Player, msg: str, _channel: AbstractChannel
     ) -> None: ...

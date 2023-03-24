@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
     from collections import Counter
 
-    from minqlx import Player, AbstractChannel
+    from minqlx import Player, AbstractChannel, DeathData
 
 COLLECTED_SOULZ_KEY: str
 REAPERZ_KEY: str
@@ -23,7 +23,7 @@ class frag_stats(Plugin):
     def handle_player_disconnect(self, player: Player, _reason: str) -> None: ...
     def handle_game_countdown(self) -> None: ...
     def handle_death(
-        self, victim: Player, killer: Player | None, data: dict
+        self, victim: Player, killer: Player | None, data: DeathData
     ) -> None: ...
     def record_frag(self, recorded_killer: str | int, victim: str | int) -> None: ...
     def determine_killer(

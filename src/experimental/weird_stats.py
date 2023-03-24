@@ -211,6 +211,7 @@ class PlayerStatsEntry:
             if "DATA" not in stats_entry:
                 continue
 
+            # noinspection PyTypedDict
             returned += stats_entry["DATA"].get(entry, 0)
 
         return returned
