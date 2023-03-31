@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.2"]
+requires = ["setuptools>=61.2", "tox"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,17 +13,10 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 requires-python = ">=3.7"
-dependencies = [
-    "tox",
-    "zmq",
-    "redis>=2.10",
-    "urllib3>=1.24.3",
-    "requests>=2.20",
-    "aiohttp>=3.7.4",
-    "aiohttp_retry>=2.4",
-    "discord.py>=2.0; python_version >= '3.8'",
-    "schedule>=1.0.0; python_version >= '3.8'",
-]
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
 
 [project.readme]
 file = "README.md"
@@ -71,14 +64,12 @@ legacy_tox_ini = """
 
     [testenv:ruff]
     deps =
-        ruff
+        -rrequirements-dev.txt
     commands = ruff {posargs:src stubs tests}
 
     [testenv:mypy]
     deps =
-        mypy
-        types-redis
-        types-requests
+        -rrequirements-dev.txt
     commands = mypy {posargs}
 """
 
