@@ -1,8 +1,20 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Type, Callable, Iterable, Mapping, Pattern, Literal
-    from minqlx import Plugin, Player, AbstractChannel, Command
+    from typing import Type, Callable, Iterable, Pattern, Mapping, Literal
+    from minqlx import (
+        Plugin,
+        Player,
+        AbstractChannel,
+        Command,
+        StatsData,
+        GameStartData,
+        GameEndData,
+        RoundEndData,
+        KillData,
+        DeathData,
+        UserInfoEventInput,
+    )
 
 _re_vote: Pattern
 
@@ -117,7 +129,7 @@ class PlayerSpawnDispatcher(EventDispatcher):
     def dispatch(self, player: Player) -> str | bool | Iterable | None: ...
 
 class StatsDispatcher(EventDispatcher):
-    def dispatch(self, stats: Mapping) -> str | bool | Iterable | None: ...
+    def dispatch(self, stats: StatsData) -> str | bool | Iterable | None: ...
 
 class VoteCalledDispatcher(EventDispatcher):
     def dispatch(
@@ -141,10 +153,10 @@ class GameCountdownDispatcher(EventDispatcher):
     def dispatch(self) -> str | bool | Iterable | None: ...
 
 class GameStartDispatcher(EventDispatcher):
-    def dispatch(self, data: Mapping) -> str | bool | Iterable | None: ...
+    def dispatch(self, data: GameStartData) -> str | bool | Iterable | None: ...
 
 class GameEndDispatcher(EventDispatcher):
-    def dispatch(self, data: Mapping) -> str | bool | Iterable | None: ...
+    def dispatch(self, data: GameEndData) -> str | bool | Iterable | None: ...
 
 class RoundCountdownDispatcher(EventDispatcher):
     def dispatch(self, round_number: int) -> str | bool | Iterable | None: ...
@@ -153,7 +165,7 @@ class RoundStartDispatcher(EventDispatcher):
     def dispatch(self, round_number: int) -> str | bool | Iterable | None: ...
 
 class RoundEndDispatcher(EventDispatcher):
-    def dispatch(self, data: Mapping) -> str | bool | Iterable | None: ...
+    def dispatch(self, data: RoundEndData) -> str | bool | Iterable | None: ...
 
 class TeamSwitchDispatcher(EventDispatcher):
     def dispatch(
@@ -173,17 +185,17 @@ class NewGameDispatcher(EventDispatcher):
 
 class KillDispatcher(EventDispatcher):
     def dispatch(
-        self, victim: Player, killer: Player | None, data: Mapping
+        self, victim: Player, killer: Player | None, data: KillData
     ) -> str | bool | Iterable | None: ...
 
 class DeathDispatcher(EventDispatcher):
     def dispatch(
-        self, victim: Player, killer: Player | None, data: Mapping
+        self, victim: Player, killer: Player | None, data: DeathData
     ) -> str | bool | Iterable | None: ...
 
 class UserinfoDispatcher(EventDispatcher):
     def dispatch(
-        self, playe: Player, changed: Mapping
+        self, playe: Player, changed: UserInfoEventInput
     ) -> str | bool | Iterable | None: ...
     def handle_return(
         self, handler: Callable, value: int | str | None

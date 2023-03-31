@@ -70,7 +70,7 @@ class Command:
     def __init__(
         self,
         plugin: Plugin,
-        name: str | list[str] | tuple[str],
+        name: str | Iterable[str],
         handler: Callable,
         permission: int,
         channels: Iterable[AbstractChannel] | None,
