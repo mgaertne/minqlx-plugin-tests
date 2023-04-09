@@ -14,6 +14,7 @@ from threading import RLock
 
 import emoji
 import openai
+# noinspection PyPackageRequirements
 import tiktoken
 from openai import OpenAIError, Model, ChatCompletion
 
@@ -488,7 +489,9 @@ class openai_bot(Plugin):
             if len(teams[team]) == 0:
                 continue
             for player in teams[team]:
-                player_speed = player_speeds.get(player.steam_id, "n/a")
+                player_speed = "n/a"
+                if player.steam_id in player_speeds:
+                    player_speed = f"{player_speeds.get(player.steam_id):.0f}"
 
                 player_elo = "n/a"
                 if (
@@ -513,7 +516,7 @@ class openai_bot(Plugin):
                 if self.game.state == "in_progress":
                     team_status += (
                         f"{player.clean_name}|{player.team}|"
-                        f"{player.stats.damage_dealt}|{player.stats.time}|{player.stats.kills}|"
+                        f"{player.stats.damage_dealt}|{(player.stats.time/1000.0):.0f}|{player.stats.kills}|"
                         f"{player_speed}|{player_elo}|"
                         f"{player_matches}|{player_bday}\n"
                     )
