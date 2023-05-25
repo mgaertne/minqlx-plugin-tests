@@ -213,7 +213,7 @@ class PlayerState(tuple):
     powerups: Powerups
     """The player's powerups."""
 
-    holdable: int
+    holdable: str
     """The player's holdable item."""
 
     flight: Flight
