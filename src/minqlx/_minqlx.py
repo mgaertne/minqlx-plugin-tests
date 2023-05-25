@@ -84,6 +84,13 @@ MOD_LIGHTNING_DISCHARGE = 31
 MOD_HMG = 32
 MOD_RAILGUN_HEADSHOT = 33
 
+# damage flags
+DAMAGE_RADIUS = 1  # damage was indirect
+DAMAGE_NO_ARMOR = 2  # armor does not protect from this damage
+DAMAGE_NO_KNOCKBACK = 4  # do not affect velocity, just view angles
+DAMAGE_NO_PROTECTION = 8  # armor, shields, invulnerability, and godmode have no effect
+DAMAGE_NO_TEAM_PROTECTION = 16  # armor, shields, invulnerability, and godmode have no effect
+
 
 # classes
 class Vector3(tuple):

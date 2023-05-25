@@ -854,6 +854,15 @@ class Plugin:
         priority: int = ...,
     ) -> None: ...
     @overload
+    def add_hook(
+        self,
+        event: Literal["damage"],
+        handler: Callable[
+            [Player, Player | None, int, int, int], UncancellableEventReturn
+        ],
+        priority: int = ...,
+    ) -> None: ...
+    @overload
     def remove_hook(
         self,
         event: Literal["console_print"],
@@ -1094,10 +1103,19 @@ class Plugin:
         handler: Callable[[Player], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
+    @overload
+    def remove_hook(
+        self,
+        event: Literal["damage"],
+        handler: Callable[
+            [Player, Player | None, int, int, int], UncancellableEventReturn
+        ],
+        priority: int = ...,
+    ) -> None: ...
     def add_command(
         self,
         name: str | Iterable[str],
-        handler: Callable,
+        handler: Callable[[Player, str, AbstractChannel], CancellableEventReturn],
         permission: int = ...,
         channels: Iterable[AbstractChannel] | None = ...,
         exclude_channels: Iterable[AbstractChannel] = ...,
@@ -1107,4 +1125,8 @@ class Plugin:
         prefix: bool = ...,
         usage: str = ...,
     ) -> None: ...
-    def remove_command(self, name: Iterable[str], handler: Callable) -> None: ...
+    def remove_command(
+        self,
+        name: Iterable[str],
+        handler: Callable[[Player, str, AbstractChannel], CancellableEventReturn],
+    ) -> None: ...

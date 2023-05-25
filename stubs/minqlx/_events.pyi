@@ -215,4 +215,14 @@ class PlayerItemsTossDispatcher(EventDispatcher):
         self, handler: Callable, value: int | str | None
     ) -> str | None: ...
 
+class DamageDispatcher(EventDispatcher):
+    def dispatch(
+        self,
+        target: Player,
+        attacker: Player | None,
+        damage: int,
+        dflags: int,
+        means_of_death: int,
+    ) -> str | bool | Iterable | None: ...
+
 EVENT_DISPATCHERS: EventDispatcherManager

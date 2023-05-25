@@ -76,6 +76,11 @@ try:
         MOD_LIGHTNING_DISCHARGE,
         MOD_HMG,
         MOD_RAILGUN_HEADSHOT,
+        DAMAGE_RADIUS,
+        DAMAGE_NO_ARMOR,
+        DAMAGE_NO_KNOCKBACK,
+        DAMAGE_NO_PROTECTION,
+        DAMAGE_NO_TEAM_PROTECTION,
         Vector3,
         Flight,
         Powerups,
@@ -328,6 +333,7 @@ from ._events import (
     KamikazeUseDispatcher,
     KamikazeExplodeDispatcher,
     PlayerItemsTossDispatcher,
+    DamageDispatcher,
     EVENT_DISPATCHERS,
 )
 from ._handlers import (
@@ -346,6 +352,7 @@ from ._handlers import (
     handle_kamikaze_use,
     handle_kamikaze_explode,
     handle_console_print,
+    handle_damage,
     redirect_print,
     register_handlers,
 )
@@ -464,6 +471,11 @@ __all__ = [
     "MOD_LIGHTNING_DISCHARGE",
     "MOD_HMG",
     "MOD_RAILGUN_HEADSHOT",
+    "DAMAGE_RADIUS",
+    "DAMAGE_NO_ARMOR",
+    "DAMAGE_NO_KNOCKBACK",
+    "DAMAGE_NO_PROTECTION",
+    "DAMAGE_NO_TEAM_PROTECTION",
     "Vector3",
     "Flight",
     "Powerups",
@@ -608,6 +620,7 @@ __all__ = [
     "KamikazeUseDispatcher",
     "KamikazeExplodeDispatcher",
     "PlayerItemsTossDispatcher",
+    "DamageDispatcher",
     "EVENT_DISPATCHERS",
     # _handlers
     "frame_tasks",
@@ -625,6 +638,7 @@ __all__ = [
     "handle_kamikaze_use",
     "handle_kamikaze_explode",
     "handle_console_print",
+    "handle_damage",
     "redirect_print",
     "register_handlers",
     # _zmq

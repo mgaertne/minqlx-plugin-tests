@@ -41,6 +41,7 @@ class EventDispatcher:
         "kill",
         "command",
         "console_print",
+        "damage",
     )
     need_zmq_stats_enabled = False
 
@@ -719,6 +720,16 @@ class PlayerItemsTossDispatcher(EventDispatcher):
             return super().handle_return(handler, value)
 
 
+class DamageDispatcher(EventDispatcher):
+    """Event that goes off when someone is inflicted with damage."""
+
+    name = "damage"
+    need_zmq_stats_enabled = False
+
+    def dispatch(self, target, attacker, damage, dflags, mod):
+        return super().dispatch(target, attacker, damage, dflags, mod)
+
+
 EVENT_DISPATCHERS = EventDispatcherManager()
 EVENT_DISPATCHERS.add_dispatcher(ConsolePrintDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(CommandDispatcher)
@@ -753,3 +764,4 @@ EVENT_DISPATCHERS.add_dispatcher(NewGameDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(KillDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(DeathDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(UserinfoDispatcher)
+EVENT_DISPATCHERS.add_dispatcher(DamageDispatcher)
