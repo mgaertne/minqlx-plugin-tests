@@ -219,6 +219,9 @@ class PlayerState(tuple):
     flight: Flight
     """A struct sequence with flight parameters."""
 
+    is_chatting: bool
+    """Whether the player is currently chatting."""
+
     is_frozen: bool
     """Whether the player is frozen(freezetag)."""
 

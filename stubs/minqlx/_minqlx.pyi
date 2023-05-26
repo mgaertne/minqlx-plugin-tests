@@ -148,6 +148,7 @@ class PlayerState(tuple):
     powerups: Powerups
     holdable: int
     flight: Flight
+    is_chatting: bool
     is_frozen: bool
 
 class PlayerStats(tuple):
