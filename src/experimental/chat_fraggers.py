@@ -1,11 +1,11 @@
 from minqlx import Plugin
 
 
-def warn_player(player):
-    player.center_print("^1Shoot Chatters = Insta-Ban")
+def warn_player(player, warning):
+    player.center_print(warning)
 
 
-def punish_player(player):
+def punish_player(player, punish_text):
     player.armor = 0
     player.health = 1
     player.weapons(
@@ -25,7 +25,7 @@ def punish_player(player):
         hmg=False,
     )
     player.weapon(15)
-    player.center_print("^1You have been warned!")
+    player.center_print(punish_text)
 
 
 # noinspection PyPep8Naming
@@ -36,6 +36,16 @@ class chat_fraggers(Plugin):
         self.set_cvar_once("qlx_chatFraggers_punishment_threshold", "250")
         self.punishment_threshold = (
             self.get_cvar("qlx_chatFraggers_punishment_threshold", int) or 250
+        )
+
+        self.set_cvar_once("qlx_chatFraggers_warning_text", "^1Shoot Chatters = Insta-Ban")
+        self.warning_text = (
+            self.get_cvar("qlx_chatFraggers_warning_text") or "^1Shoot Chatters = Insta-Ban"
+        )
+
+        self.set_cvar_once("qlx_chatFraggers_punish_text", "^1You have been warned!")
+        self.punish_text = (
+            self.get_cvar("qlx_chatFraggers_warning_text") or "^1You have been warned!"
         )
 
         self.chat_tracker = {}
@@ -64,6 +74,9 @@ class chat_fraggers(Plugin):
         if target.team == attacker.team:
             return
 
+        if not target.is_alive:
+            return
+        
         if not hasattr(target.state, "is_chatting") or not target.state.is_chatting:
             return
 
@@ -77,10 +90,10 @@ class chat_fraggers(Plugin):
             self.chat_tracker[attacker.steam_id][target.steam_id]
             < self.punishment_threshold
         ):
-            warn_player(attacker)
+            warn_player(attacker, self.warning_text)
             return
 
-        punish_player(attacker)
+        punish_player(attacker, self.punish_text)
 
     def handle_kill(self, victim, killer, _data):
         if not self.game:
@@ -105,7 +118,7 @@ class chat_fraggers(Plugin):
             self.chat_tracker[killer.steam_id][victim.steam_id]
             < self.punishment_threshold
         ):
-            warn_player(killer)
+            warn_player(killer, self.warning_text)
             return
 
-        punish_player(killer)
+        punish_player(killer, self.punish_text)
