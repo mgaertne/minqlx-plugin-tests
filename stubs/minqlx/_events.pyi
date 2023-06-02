@@ -218,7 +218,7 @@ class PlayerItemsTossDispatcher(EventDispatcher):
 class DamageDispatcher(EventDispatcher):
     def dispatch(
         self,
-        target: Player,
+        target: Player | None,
         attacker: Player | None,
         damage: int,
         dflags: int,
