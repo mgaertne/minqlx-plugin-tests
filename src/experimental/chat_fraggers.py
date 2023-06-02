@@ -65,6 +65,9 @@ class chat_fraggers(Plugin):
         if self.game.state != "in_progress":
             return
 
+        if target is None:
+            return
+        
         if attacker is None:
             return
 
