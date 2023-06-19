@@ -14,6 +14,7 @@ from threading import RLock
 
 import emoji
 import openai
+
 # noinspection PyPackageRequirements
 import tiktoken
 from openai import OpenAIError, Model, ChatCompletion
@@ -406,7 +407,7 @@ class openai_bot(Plugin):
                 num_tokens_from_messages(
                     chat_history_messages + [system_context], model=self.model
                 )
-                > self.max_chat_history_tokens
+                >= self.max_chat_history_tokens
             ):
                 score = self.db.zscore(CHAT_BOT_LOG, message)
                 self.db.zremrangebyscore(CHAT_BOT_LOG, "-INF", score)
@@ -453,80 +454,26 @@ class openai_bot(Plugin):
         if game is None:
             return ""
 
-        ratings = {}
-        # noinspection PyProtectedMember
-        if "balance" in Plugin._loaded_plugins:
-            # noinspection PyUnresolvedReferences,PyProtectedMember
-            ratings = Plugin._loaded_plugins["balance"].ratings
-
-        # noinspection PyProtectedMember
-        if "balancetwo" in Plugin._loaded_plugins:
-            # noinspection PyProtectedMember
-            balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]
-            balance_api = self.get_cvar("qlx_balanceApi")
-            # noinspection PyUnresolvedReferences
-            ratings = (
-                balancetwo_plugin.ratings["Elo"]
-                if balance_api == "elo"
-                else balancetwo_plugin.ratings["B-Elo"]
-            )
-
-        player_speeds = {}
-        # noinspection PyProtectedMember
-        if "weird_stats" in Plugin._loaded_plugins:
-            # noinspection PyUnresolvedReferences,PyProtectedMember
-            player_speeds = Plugin._loaded_plugins[
-                "weird_stats"
-            ].determine_player_speeds()
-
         teams = Plugin.teams()
         team_status = (
-            "nick|team|dmg|playtime(s)|frags|km/h|elo|matches|bday\n"
-            if self.game.state == "in_progress"
-            else "nick|team|elo|matches|bday\n"
+            "nick|team|dmg\n" if self.game.state == "in_progress" else "nick|team\n"
         )
         for team in ["red", "blue", "spectator"]:
             if len(teams[team]) == 0:
                 continue
             for player in teams[team]:
-                player_speed = "n/a"
-                if player.steam_id in player_speeds:
-                    player_speed = f"{player_speeds.get(player.steam_id):.0f}"
-
-                player_elo = "n/a"
-                if (
-                    player.steam_id in ratings
-                    and game.type_short in ratings[player.steam_id]
-                ):
-                    player_elo = ratings[player.steam_id][game.type_short]["elo"]
-
-                player_matches = 0
-                if self.db.exists(f"minqlx:players:{player.steam_id}:games_completed"):
-                    player_matches = int(
-                        self.db.get(f"minqlx:players:{player.steam_id}:games_completed")
-                    )
-
-                player_bday = ""
-                if self.db.exists(f"minqlx:players:{player.steam_id}:bday"):
-                    birthdate = datetime.strptime(
-                        self.db[f"minqlx:players:{player.steam_id}:bday"], "%d.%m."
-                    )
-                    player_bday = birthdate.strftime("%m%d")
-
                 if self.game.state == "in_progress":
                     team_status += (
                         f"{player.clean_name}|{player.team}|"
-                        f"{player.stats.damage_dealt}|{(player.stats.time/1000.0):.0f}|{player.stats.kills}|"
-                        f"{player_speed}|{player_elo}|"
-                        f"{player_matches}|{player_bday}\n"
+                        f"{player.stats.damage_dealt}\n"
                     )
                 else:
-                    team_status += f"{player.clean_name}|{player.team}|{player_elo}|{player_matches}|{player_bday}\n"
+                    team_status += f"{player.clean_name}|{player.team}\n"
 
         team_status += (
-            f"{Plugin.clean_text(self.bot_name)}|spectator|0|0|0|n/a|69|0|0207"
+            f"{Plugin.clean_text(self.bot_name)}|spectator|0"
             if self.game.state == "in_progress"
-            else f"{Plugin.clean_text(self.bot_name)}|spectator|69|0|0207"
+            else f"{Plugin.clean_text(self.bot_name)}|spectator"
         )
         return team_status
 
@@ -549,9 +496,7 @@ class openai_bot(Plugin):
         with self.queue_lock:
             if len(attribute) == 0:
                 return
-            message_history = self.contextualized_chat_history(
-                self.get_role_template(trigger)
-            )
+            message_history = self.contextualized_chat_history(attribute)
 
             response = self._gather_completion(message_history)
             if response is None:
@@ -572,11 +517,6 @@ class openai_bot(Plugin):
         if not self.game:
             return
         self.threaded_response("roundend")
-
-        self._record_chat_line(
-            f"Red: {self.game.red_score}, Blue: {self.game.blue_score}",
-            lock=self.queue_lock,
-        )
 
     def handle_game_end(self, _data):
         self.cache_map_authors_from_db()
