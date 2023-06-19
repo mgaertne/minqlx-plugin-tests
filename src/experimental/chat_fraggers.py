@@ -38,9 +38,12 @@ class chat_fraggers(Plugin):
             self.get_cvar("qlx_chatFraggers_punishment_threshold", int) or 250
         )
 
-        self.set_cvar_once("qlx_chatFraggers_warning_text", "^1Shoot Chatters = Insta-Ban")
+        self.set_cvar_once(
+            "qlx_chatFraggers_warning_text", "^1Shoot Chatters = Insta-Ban"
+        )
         self.warning_text = (
-            self.get_cvar("qlx_chatFraggers_warning_text") or "^1Shoot Chatters = Insta-Ban"
+            self.get_cvar("qlx_chatFraggers_warning_text")
+            or "^1Shoot Chatters = Insta-Ban"
         )
 
         self.set_cvar_once("qlx_chatFraggers_punish_text", "^1You have been warned!")
@@ -67,7 +70,7 @@ class chat_fraggers(Plugin):
 
         if target is None:
             return
-        
+
         if attacker is None:
             return
 
@@ -79,7 +82,10 @@ class chat_fraggers(Plugin):
 
         if not target.is_alive:
             return
-        
+
+        if target.health <= 0:
+            return
+
         if not hasattr(target.state, "is_chatting") or not target.state.is_chatting:
             return
 
