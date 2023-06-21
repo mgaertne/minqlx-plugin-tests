@@ -1,4 +1,4 @@
-from minqlx import Plugin
+from minqlx import Plugin, Player
 
 
 def warn_player(player, warning):
@@ -68,10 +68,10 @@ class chat_fraggers(Plugin):
         if self.game.state != "in_progress":
             return
 
-        if target is None:
+        if not isinstance(target, Player):
             return
 
-        if attacker is None:
+        if not isinstance(attacker, Player):
             return
 
         if target.id == attacker.id:

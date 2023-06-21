@@ -6,6 +6,7 @@ if TYPE_CHECKING:
 __version__: str
 DEBUG: bool
 
+# Variables with simple values
 RET_NONE: int
 RET_STOP: int
 RET_STOP_EVENT: int
@@ -18,6 +19,7 @@ PRI_NORMAL: int
 PRI_LOW: int
 PRI_LOWEST: int
 
+# Cvar flags
 CVAR_ARCHIVE: int
 CVAR_USERINFO: int
 CVAR_SERVERINFO: int
@@ -30,23 +32,27 @@ CVAR_TEMP: int
 CVAR_CHEAT: int
 CVAR_NORESTART: int
 
+# Privileges
 PRIV_NONE: int
 PRIV_MOD: int
 PRIV_ADMIN: int
 PRIV_ROOT: int
 PRIV_BANNED: int
 
+# Connection states
 CS_FREE: int
 CS_ZOMBIE: int
 CS_CONNECTED: int
 CS_PRIMED: int
 CS_ACTIVE: int
 
+# Teams
 TEAM_FREE: int
 TEAM_RED: int
 TEAM_BLUE: int
 TEAM_SPECTATOR: int
 
+# Means of death
 MOD_UNKNOWN: int
 MOD_SHOTGUN: int
 MOD_GAUNTLET: int
@@ -81,6 +87,13 @@ MOD_THAW: int
 MOD_LIGHTNING_DISCHARGE: int
 MOD_HMG: int
 MOD_RAILGUN_HEADSHOT: int
+
+# damage flags
+DAMAGE_RADIUS: int
+DAMAGE_NO_ARMOR: int
+DAMAGE_NO_KNOCKBACK: int
+DAMAGE_NO_PROTECTION: int
+DAMAGE_NO_TEAM_PROTECTION: int
 
 # classes
 class Vector3(tuple):
@@ -207,3 +220,4 @@ def slay_with_mod(_client_id: int, _mod: int) -> bool: ...
 def replace_items(_item1: int | str, _item2: int | str) -> bool: ...
 def dev_print_items() -> None: ...
 def force_weapon_respawn_time(_respawn_time: int) -> bool: ...
+def get_targetting_entities(_entity_id: int) -> list[int]: ...

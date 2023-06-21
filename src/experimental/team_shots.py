@@ -2,7 +2,7 @@ import time
 from ast import literal_eval
 from operator import itemgetter
 
-from minqlx import Plugin
+from minqlx import Plugin, Player
 
 
 # noinspection PyPep8Naming
@@ -46,10 +46,10 @@ class team_shots(Plugin):
         if self.game.state != "in_progress":
             return
 
-        if target is None:
+        if not isinstance(target, Player):
             return
 
-        if attacker is None:
+        if not isinstance(attacker, Player):
             return
 
         if target.id == attacker.id:

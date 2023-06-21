@@ -422,3 +422,7 @@ def dev_print_items():
 
 def force_weapon_respawn_time(_respawn_time):
     """Force all weapons to have a specified respawn time, overriding custom map respawn times set for them."""
+
+
+def get_targetting_entities(_entity_id):
+    """get a list of entities that target a given entity"""
