@@ -22,18 +22,18 @@ class env_dmg(Plugin):
     def handle_damage(self, target, attacker, _dmg, _dflags, means_of_death):
         timestamp = int(time.time() * 1000)
         if (
-                target is not None
-                and not isinstance(target, Player)
-                and isinstance(attacker, Player)
+            target is not None
+            and not isinstance(target, Player)
+            and isinstance(attacker, Player)
         ):
             if target not in self.recorded_entity_dmg:
                 self.recorded_entity_dmg[target] = []
             self.recorded_entity_dmg[target].append((timestamp, attacker.steam_id))
 
         if (
-                isinstance(target, Player)
-                and attacker is not None
-                and not isinstance(attacker, Player)
+            isinstance(target, Player)
+            and attacker is not None
+            and not isinstance(attacker, Player)
         ):
             self.scan_targetting_entities(attacker, means_of_death, timestamp)
 
@@ -48,9 +48,9 @@ class env_dmg(Plugin):
                     if timestamp - inflict_timestamp <= 5000
                 ]
                 if len(list_of_inflictors) == 1:
-                    self.means_of_death_watchlist[
-                        means_of_death
-                    ] = list_of_inflictors[0]
+                    self.means_of_death_watchlist[means_of_death] = list_of_inflictors[
+                        0
+                    ]
             self.scan_targetting_entities(targetting_entity, means_of_death, timestamp)
 
     def handle_death(self, victim, killer, data):
@@ -68,9 +68,7 @@ class env_dmg(Plugin):
         potential_killer = self.player(self.means_of_death_watchlist[means_of_death])
         if potential_killer is not None:
             if potential_killer.steam_id == victim.steam_id:
-                self.msg(
-                    f"Uh, looks like {victim.name}^7 may have killed himself^7"
-                )
+                self.msg(f"Uh, looks like {victim.name}^7 may have killed himself^7")
             else:
                 self.msg(
                     f"Uh, looks like {potential_killer.name}^7 may have killed {victim.name}^7"
