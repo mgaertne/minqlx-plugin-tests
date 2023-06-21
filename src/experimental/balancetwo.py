@@ -3148,11 +3148,10 @@ class SkillRatingProvider:
             raise_for_status=False,
             retry_options=retry_options,
             timeout=ClientTimeout(total=5, connect=3, sock_connect=3, sock_read=5),
-        ) as retry_client:
-            async with retry_client.get(request_url, headers=headers) as result:
-                if result.status != 200:
-                    return None
-                return await result.json()
+        ) as retry_client, retry_client.get(request_url, headers=headers) as result:
+            if result.status != 200:
+                return None
+            return await result.json()
 
 
 TRUSKILLS = SkillRatingProvider(
