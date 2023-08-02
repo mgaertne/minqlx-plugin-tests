@@ -211,7 +211,6 @@ class PlayerStatsEntry:
             if "DATA" not in stats_entry:
                 continue
 
-            # noinspection PyTypedDict
             returned += stats_entry["DATA"].get(entry, 0)
 
         return returned
@@ -1350,20 +1349,23 @@ class weird_stats(Plugin):
         ]
         self.record_alive_time(*surviving_players)
 
+        game = self.game
+        if game.roundlimit in [game.blue_score, game.red_score]:
+            now = datetime.now()
+            recorded_players = [
+                player
+                for player in teams["red"] + teams["blue"]
+                if player.steam_id in self.join_times
+            ]
+            for player in recorded_players:
+                self.play_times[player.steam_id] = (
+                    now - self.join_times[player.steam_id]
+                ).total_seconds() + self.play_times.get(player.steam_id, 0.0)
+
         self.round_start_datetime = None
 
-    @minqlx.delay(3)
     def handle_game_end(self, _data):
         self.game_ended = True
-
-        teams = self.teams()
-        for player in teams["red"] + teams["blue"]:
-            if player.steam_id not in self.join_times:
-                continue
-            self.play_times[player.steam_id] = (
-                datetime.now() - self.join_times[player.steam_id]
-            ).total_seconds() + self.play_times.get(player.steam_id, 0.0)
-
         self.announce_match_end_stats()
 
     def handle_stats(self, stats):
@@ -1382,6 +1384,7 @@ class weird_stats(Plugin):
 
         self.announce_match_end_stats()
 
+    @minqlx.delay(5)
     def announce_match_end_stats(self):
         if self.match_end_announced:
             return
@@ -1407,11 +1410,17 @@ class weird_stats(Plugin):
         ]
 
         if len(player_speed_announcements) > 0:
-            self.msg(
+            announcements = [
                 f"  ^5Top {self.stats_top_display} player speeds^7 {player_speed_announcements[0]}"
-            )
-            for msg in player_speed_announcements[1:]:
-                self.msg(msg)
+            ] + player_speed_announcements[1:]
+            self.msg("\n".join(announcements))
+
+        team_shots_summary = self.gather_team_shots_summary()
+        if len(team_shots_summary) > 0:
+            announcements = ["  ^5Top 3 team damage inflicters:"] + team_shots_summary[
+                1:
+            ]
+            self.msg("\n".join(announcements))
 
         # noinspection PyProtectedMember
         if "openai_bot" in Plugin._loaded_plugins:
@@ -1445,8 +1454,58 @@ class weird_stats(Plugin):
             self.msg(most_environmental_deaths_announcement)
 
         if stats_announcements is not None and len(stats_announcements) > 0:
-            for stats_announcement in stats_announcements:
-                self.msg(stats_announcement)
+            announcements = "\n".join(stats_announcements)
+            self.msg(announcements)
+
+    def gather_team_shots_summary(self):
+        # noinspection PyProtectedMember
+        if "team_shots" not in Plugin._loaded_plugins:
+            return []
+
+        returned = ["  ^5Top 3 team damage inflicters:"]
+        # noinspection PyProtectedMember
+        team_shots_plugin = Plugin._loaded_plugins["team_shots"]
+        # noinspection PyUnresolvedReferences
+        team_damages = team_shots_plugin.team_damages
+
+        if len(team_damages) == 0:
+            return []
+
+        collected_team_damages = {}
+        for steam_id in team_damages:
+            collected_team_damages[steam_id] = sum(
+                [dmg for _, dmg in team_damages[steam_id]]
+            )
+
+        grouped_team_damages = itertools.groupby(
+            sorted(collected_team_damages, key=collected_team_damages.get, reverse=True),  # type: ignore
+            key=collected_team_damages.get,
+        )
+        grouped_team_damages_dict = {
+            team_dmg: list(steam_ids) for team_dmg, steam_ids in grouped_team_damages
+        }
+
+        extra = 0
+        for counter, (team_damage, steam_ids) in enumerate(
+            grouped_team_damages_dict.items(), start=1
+        ):
+            if counter + extra > 3:
+                break
+
+            prefix = f"^5{counter + extra:2}^7."
+            extra += max(0, len(steam_ids) - 1)
+
+            for steam_id in steam_ids:
+                player = self.player(steam_id)
+                if player is None:
+                    continue
+                returned.append(
+                    f"  {prefix} {player.name}^7 (^5{team_damage} team damage^7, "
+                    f"^5{len(team_damages[steam_id])} shots^7)"
+                )
+                prefix = "   "
+
+        return returned
 
     def stats_from_all_players_collected(self):
         steam_ids_in_stats = self.player_stats.keys()
