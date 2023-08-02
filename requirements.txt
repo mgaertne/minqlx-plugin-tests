@@ -1,4 +1,4 @@
-zmq
+pyzmq
 
 redis>=2.10
 
@@ -13,3 +13,7 @@ schedule>=1.0.0; python_version >= '3.8'
 openai>=0.27.0
 tiktoken>=0.3.0; python_version >= '3.8'
 emoji>=2.2.0
+
+psutil>=5.9.5
+distro>=1.8.0
+humanize>=4.7.0
