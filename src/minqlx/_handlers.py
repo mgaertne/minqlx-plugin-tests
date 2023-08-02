@@ -345,13 +345,14 @@ def handle_set_configstring(index, value):
                 elif (
                     old_state == "COUNT_DOWN"  # noqa: SIM114
                     and new_state == "IN_PROGRESS"
+                ) or (
+                    new_state == "PRE_GAME"
+                    and old_state
+                    in [
+                        "IN_PROGRESS",
+                        "COUNT_DOWN",
+                    ]
                 ):
-                    pass
-                    # minqlx.EVENT_DISPATCHERS["game_start"].dispatch()
-                elif new_state == "PRE_GAME" and old_state in [
-                    "IN_PROGRESS",
-                    "COUNT_DOWN",
-                ]:
                     pass
                 else:
                     logger = minqlx.get_logger()
