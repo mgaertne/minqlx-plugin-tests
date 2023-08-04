@@ -262,6 +262,64 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
+    async def test_qlx_execute_for_command_not_in_whitelist(
+        self, bot, exec_context, user
+    ):
+        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
+
+        setup_cvars(
+            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
+        )
+
+        exec_context.message.content = "!exec !blocked_commmand exec to minqlx"
+        exec_context.message.author = user
+        exec_context.author = user
+
+        spy2(minqlx.COMMANDS.handle_input)
+        when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
+
+        extension = AdminCog(bot)
+        extension.execute_qlx_command = functools.partial(
+            undecorated(extension.execute_qlx_command), extension
+        )
+
+        await extension.qlx(exec_context)
+
+        exec_context.reply.assert_awaited_once()
+        assert_that(
+            exec_context.reply.await_args.kwargs["content"],
+            matches_regexp(".*`blocked_commmand` cannot be used.*"),
+        )
+
+    @pytest.mark.asyncio
+    async def test_qlx_execute_for_command_allowed_in_whitelist(
+        self, bot, exec_context, user
+    ):
+        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
+
+        setup_cvars(
+            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
+        )
+
+        exec_context.message.content = "!exec !allowed_command exec to minqlx"
+        exec_context.message.author = user
+        exec_context.author = user
+
+        spy2(minqlx.COMMANDS.handle_input)
+        when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
+
+        extension = AdminCog(bot)
+        extension.execute_qlx_command = functools.partial(
+            undecorated(extension.execute_qlx_command), extension
+        )
+
+        await extension.qlx(exec_context)
+
+        verify(minqlx.COMMANDS).handle_input(
+            any, "!allowed_command exec to minqlx", any
+        )
+
+    @pytest.mark.asyncio
     async def test_slash_qlx_executes_command_when_user_is_not_authed(
         self, bot, interaction, user, guild_channel
     ):
@@ -365,6 +423,66 @@ class TestAdmin:
         assert_that(
             interaction.response.send_message.await_args.kwargs["content"],
             equal_to("executing command `exec to minqlx`"),
+        )
+
+    @pytest.mark.asyncio
+    async def test_slash_qlx_execute_for_command_not_in_whitelist(
+        self, bot, interaction, user, guild_channel
+    ):
+        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
+
+        setup_cvars(
+            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
+        )
+
+        interaction.user = user
+        guild_channel.guild = 123
+        interaction.channel = guild_channel
+
+        spy2(minqlx.COMMANDS.handle_input)
+        when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
+
+        extension = AdminCog(bot)
+        extension.execute_qlx_command = functools.partial(
+            undecorated(extension.execute_qlx_command), extension
+        )
+        extension.authed_discord_ids.add(user.id)
+
+        await extension.slash_qlx(interaction, "!blocked_command")
+
+        interaction.response.send_message.assert_awaited_once()
+        assert_that(
+            interaction.response.send_message.await_args.kwargs["content"],
+            matches_regexp(".*`blocked_command` cannot be used.*"),
+        )
+
+    @pytest.mark.asyncio
+    async def test_slash_qlx_execute_for_command_allowed_in_whitelist(
+        self, bot, interaction, user, guild_channel
+    ):
+        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
+
+        setup_cvars(
+            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
+        )
+
+        interaction.user = user
+        guild_channel.guild = 123
+        interaction.channel = guild_channel
+
+        spy2(minqlx.COMMANDS.handle_input)
+        when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
+
+        extension = AdminCog(bot)
+        extension.execute_qlx_command = functools.partial(
+            undecorated(extension.execute_qlx_command), extension
+        )
+        extension.authed_discord_ids.add(user.id)
+
+        await extension.slash_qlx(interaction, "!allowed_command exec to minqlx")
+
+        verify(minqlx.COMMANDS).handle_input(
+            any, "!allowed_command exec to minqlx", any
         )
 
     @pytest.mark.asyncio

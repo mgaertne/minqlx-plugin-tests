@@ -40,6 +40,7 @@ class AdminCog(Cog):
     discord_admin_password: str
     discord_auth_command: str
     discord_exec_prefix: str
+    discord_commands_whitelist: list[str]
     def __init__(self, bot: Bot) -> None: ...
     @staticmethod
     def is_private_message(ctx: Context) -> bool: ...

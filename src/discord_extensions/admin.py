@@ -76,13 +76,15 @@ class AdminCog(Cog):
     * qlx_discordAuthCommand (default: "auth") command for authenticating a discord user to the plugin via private
     message
     * qlx_discordExecPrefix (default: "qlx") command for authenticated users to execute server commands from discord
-
+    * qlx_discordCommandsWhitelist (default: "", i.e. allow all commands) allow commands to issue through the discord
+    bot, for example "kick, spec, teams, elos" would restrict to these four commands through discord.
     """
 
     def __init__(self, bot):
         Plugin.set_cvar_once("qlx_discordAdminPassword", "supersecret")
         Plugin.set_cvar_once("qlx_discordAuthCommand", "auth")
         Plugin.set_cvar_once("qlx_discordExecPrefix", "qlx")
+        Plugin.set_cvar_once("qlx_discordCommandsWhitelist", "")
 
         self.bot = bot
 
@@ -92,6 +94,11 @@ class AdminCog(Cog):
         self.discord_admin_password = Plugin.get_cvar("qlx_discordAdminPassword") or ""
         self.discord_auth_command = Plugin.get_cvar("qlx_discordAuthCommand") or ""
         self.discord_exec_prefix = Plugin.get_cvar("qlx_discordExecPrefix") or ""
+        self.discord_commands_whitelist = (
+            Plugin.get_cvar("qlx_discordCommandsWhitelist", list) or []
+        )
+        if "" in self.discord_commands_whitelist:
+            self.discord_commands_whitelist.remove("")
 
         self.bot.add_command(
             Command(
@@ -210,6 +217,17 @@ class AdminCog(Cog):
         """
         command_length = self.command_length(ctx)
         qlx_command = ctx.message.content[command_length:]
+        command_literal = qlx_command.split(" ")[0].lstrip("!")
+        if (
+            len(self.discord_commands_whitelist) > 0
+            and command_literal not in self.discord_commands_whitelist
+        ):
+            await ctx.reply(
+                content=f"`{command_literal}` cannot be used through the bot. "
+                f"Permitted commands are ´{', '.join(self.discord_commands_whitelist)}`"
+            )
+            return
+
         message = await ctx.reply(
             content=f"executing command `{qlx_command}`", ephemeral=False
         )
@@ -234,6 +252,19 @@ class AdminCog(Cog):
         if interaction.user.id not in self.authed_discord_ids:
             await interaction.response.send_message(
                 content="Sorry, you are not authed with the bot",
+                ephemeral=interaction.channel is not None
+                and interaction.channel.guild is not None,
+            )
+            return
+
+        command_literal = command.split(" ")[0].lstrip("!")
+        if (
+            len(self.discord_commands_whitelist) > 0
+            and command_literal not in self.discord_commands_whitelist
+        ):
+            await interaction.response.send_message(
+                content=f"`{command_literal}` cannot be used through the bot. "
+                f"Permitted commands are ´{', '.join(self.discord_commands_whitelist)}`",
                 ephemeral=interaction.channel is not None
                 and interaction.channel.guild is not None,
             )
