@@ -1,6 +1,6 @@
 # minqlx-plugin-tests
 ![python](https://img.shields.io/badge/python-3.7%7C3.8%7C3.9%7C3.10%7C3.11-blue.svg)
-![Tests](https://github.com/mgaertne/minqlx-plugin-tests/actions/workflows/test.yml/badge.svg)
+![Tests](https://github.com/mgaertne/minqlx-plugin-tests/actions/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/mgaertne/minqlx-plugin-tests/branch/master/graph/badge.svg?token=4Lfg3k3LJ0)](https://codecov.io/gh/mgaertne/minqlx-plugin-tests)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
