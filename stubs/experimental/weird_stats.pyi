@@ -230,6 +230,7 @@ class weird_stats(Plugin):
     stats_top_display: int
     fastestmaps_display_ingame: int
     fastestmaps_display_warmup: int
+    openai_announce_stats: bool
     game_start_time: datetime | None
     join_times: dict[SteamId, datetime]
     play_times: dict[SteamId, float]

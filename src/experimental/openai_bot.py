@@ -232,6 +232,9 @@ class openai_bot(Plugin):
             response = response.replace("%", " percent")
             self._send_message(minqlx.CHAT_CHANNEL, response)
 
+        if len(self.bot_role_weird_stats) == 0:
+            return
+
         weird_stats_context = self.bot_role_weird_stats.format(
             bot_name=Plugin.clean_text(self.bot_name),
             game_state=self.current_game_state(),
@@ -493,9 +496,10 @@ class openai_bot(Plugin):
     @minqlx.thread
     def threaded_response(self, trigger):
         attribute = self.get_role_template(trigger)
+        if len(attribute) == 0:
+            return
+
         with self.queue_lock:
-            if len(attribute) == 0:
-                return
             message_history = self.contextualized_chat_history(attribute)
 
             response = self._gather_completion(message_history)

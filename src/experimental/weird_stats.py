@@ -1137,6 +1137,7 @@ class weird_stats(Plugin):
         self.set_cvar_once("qlx_weirdstats_topdisplay", "3")
         self.set_cvar_once("qlx_weirdstats_fastestmaps_display_ingame", "10")
         self.set_cvar_once("qlx_weirdstats_fastestmaps_display_warmup", "30")
+        self.set_cvar_once("qlx_weirdstats_openai_announce_stats", "1")
 
         self.stats_play_time_fraction = (
             self.get_cvar("qlx_weirdstats_playtime_fraction", float) or 0.75
@@ -1149,6 +1150,9 @@ class weird_stats(Plugin):
         )
         self.fastestmaps_display_warmup = (
             self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int) or 30
+        )
+        self.openai_announce_stats = (
+            self.get_cvar("qlx_weirdstats_openai_announce_stats, bool") or True
         )
 
         self.game_start_time = None
@@ -1423,7 +1427,7 @@ class weird_stats(Plugin):
             self.msg("\n".join(announcements))
 
         # noinspection PyProtectedMember
-        if "openai_bot" in Plugin._loaded_plugins:
+        if "openai_bot" in Plugin._loaded_plugins and self.openai_announce_stats:
             # noinspection PyProtectedMember
             openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
             # noinspection PyUnresolvedReferences
@@ -1454,7 +1458,9 @@ class weird_stats(Plugin):
             self.msg(most_environmental_deaths_announcement)
 
         if stats_announcements is not None and len(stats_announcements) > 0:
-            announcements = "\n".join(stats_announcements)
+            announcements = "\n".join(
+                [stats for stats in [*stats_announcements] if stats is not None]
+            )
             self.msg(announcements)
 
     def gather_team_shots_summary(self):
