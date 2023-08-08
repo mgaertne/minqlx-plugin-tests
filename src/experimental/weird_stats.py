@@ -1152,7 +1152,7 @@ class weird_stats(Plugin):
             self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int) or 30
         )
         self.openai_announce_stats = (
-            self.get_cvar("qlx_weirdstats_openai_announce_stats, bool") or True
+            self.get_cvar("qlx_weirdstats_openai_announce_stats", bool) or True
         )
 
         self.game_start_time = None
