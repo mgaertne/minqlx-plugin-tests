@@ -211,6 +211,7 @@ class PlayerStatsEntry:
             if "DATA" not in stats_entry:
                 continue
 
+            # noinspection PyTypedDict
             returned += stats_entry["DATA"].get(entry, 0)
 
         return returned
@@ -489,6 +490,8 @@ class PlayerStatsEntry:
 
 
 def filter_stats_for_max_value(stats, func):
+    if len(stats) == 0:
+        return []
     max_value = max(stats, key=func)
     return list(filter(lambda stats_entry: func(stats_entry) == func(max_value), stats))
 
@@ -1151,9 +1154,8 @@ class weird_stats(Plugin):
         self.fastestmaps_display_warmup = (
             self.get_cvar("qlx_weirdstats_fastestmaps_display_warmup", int) or 30
         )
-        self.openai_announce_stats = (
-            self.get_cvar("qlx_weirdstats_openai_announce_stats", bool) or True
-        )
+        cvar_value = self.get_cvar("qlx_weirdstats_openai_announce_stats", bool)
+        self.openai_announce_stats = True if cvar_value is None else cvar_value
 
         self.game_start_time = None
         self.join_times = {}  # type: ignore
@@ -1426,41 +1428,27 @@ class weird_stats(Plugin):
             ]
             self.msg("\n".join(announcements))
 
+        announcements = "\n".join(
+            [
+                stats
+                for stats in [
+                    quickest_death_announcement,
+                    most_environmental_deaths_announcement,
+                    *stats_announcements,
+                ]
+                if stats is not None and len(stats) > 0
+            ]
+        )
+
         # noinspection PyProtectedMember
         if "openai_bot" in Plugin._loaded_plugins and self.openai_announce_stats:
             # noinspection PyProtectedMember
             openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
             # noinspection PyUnresolvedReferences
-            openai_bot_plugin.summarize_game_end_stats(
-                "\n".join(
-                    [
-                        stats
-                        for stats in [
-                            quickest_death_announcement,
-                            most_environmental_deaths_announcement,
-                            *stats_announcements,
-                        ]
-                        if stats is not None
-                    ]
-                )
-            )
+            openai_bot_plugin.summarize_game_end_stats(announcements)
             return
 
-        if (
-            quickest_death_announcement is not None
-            and len(quickest_death_announcement) > 0
-        ):
-            self.msg(quickest_death_announcement)
-        if (
-            most_environmental_deaths_announcement is not None
-            and len(most_environmental_deaths_announcement) > 0
-        ):
-            self.msg(most_environmental_deaths_announcement)
-
-        if stats_announcements is not None and len(stats_announcements) > 0:
-            announcements = "\n".join(
-                [stats for stats in [*stats_announcements] if stats is not None]
-            )
+        if len(announcements) > 0:
             self.msg(announcements)
 
     def gather_team_shots_summary(self):
