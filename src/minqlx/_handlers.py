@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 
-import collections
+import queue
 import sched
 import re
 
@@ -223,7 +223,7 @@ def handle_server_command(client_id, cmd):
 # weird behavior if you were to use threading. This list will act as a task queue.
 # Tasks can be added by simply adding the @minqlx.next_frame decorator to functions.
 frame_tasks = sched.scheduler()
-next_frame_tasks = collections.deque()  # type: ignore
+next_frame_tasks = queue.Queue()  # type: ignore
 
 
 def handle_frame():
@@ -251,12 +251,9 @@ def handle_frame():
         minqlx.log_exception()
         return True
 
-    try:
-        while True:
-            func, args, kwargs = next_frame_tasks.popleft()
-            frame_tasks.enter(0, 0, func, args, kwargs)
-    except IndexError:
-        pass
+    while not next_frame_tasks.empty():
+        func, args, kwargs = next_frame_tasks.get(block=False)
+        frame_tasks.enter(0, 1, func, args, kwargs)
 
 
 _zmq_warning_issued = False
@@ -342,10 +339,7 @@ def handle_set_configstring(index, value):
                 elif old_state == "PRE_GAME" and new_state == "COUNT_DOWN":
                     _ad_round_number = 1
                     minqlx.EVENT_DISPATCHERS["game_countdown"].dispatch()
-                elif (
-                    old_state == "COUNT_DOWN"  # noqa: SIM114
-                    and new_state == "IN_PROGRESS"
-                ) or (
+                elif (old_state == "COUNT_DOWN" and new_state == "IN_PROGRESS") or (
                     new_state == "PRE_GAME"
                     and old_state
                     in [
@@ -500,13 +494,13 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
 
 def handle_damage(target_id, attacker_id, damage, dflags, mod):
     target_player = minqlx.Player(target_id) if target_id in range(0, 64) else target_id
-    inflictor_player = (
+    attacker_player = (
         minqlx.Player(attacker_id) if attacker_id in range(0, 64) else attacker_id
     )
     # noinspection PyBroadException
     try:
         minqlx.EVENT_DISPATCHERS["damage"].dispatch(
-            target_player, inflictor_player, damage, dflags, mod
+            target_player, attacker_player, damage, dflags, mod
         )
     except:  # noqa: E722
         minqlx.log_exception()
