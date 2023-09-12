@@ -27,6 +27,7 @@ class elocheck(Plugin):
     database: Redis
     reply_channel: str
     show_steam_ids: bool
+    use_truskill_bn: bool
     balance_api: str
     previous_map: str | None
     previous_gametype: str | None
@@ -35,6 +36,7 @@ class elocheck(Plugin):
     rating_diffs: dict[str, dict[SteamId, dict]]
     informed_players: list[SteamId]
     def __init__(self) -> None: ...
+    def get_truskill_provider(self) -> SkillRatingProvider: ...
     def fetch_elos_from_all_players(self) -> None: ...
     async def fetch_ratings(
         self, steam_ids: list[SteamId], mapname: str | None = ...

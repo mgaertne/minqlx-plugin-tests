@@ -74,6 +74,8 @@ class elocheck(Plugin):
     * qlx_elocheckReplyChannel (default: "public") The reply channel where the elocheck output is put to.
         Possible values: "public" or "private". Any other value leads to public announcements
     * qlx_elocheckShowSteamids (default: "0") Also lists the steam ids of the players checked
+    * qlx_elocheckUseTruskillbn (default "0") Use truskill numbers normalized to qlstats elo values
+        (around 1500 rather than 25.0)
     """
 
     database = Redis
@@ -81,6 +83,7 @@ class elocheck(Plugin):
     __slots__ = (
         "reply_channel",
         "show_steam_ids",
+        "use_truskill_bn",
         "balance_api",
         "previous_gametype",
         "previous_map",
@@ -96,13 +99,16 @@ class elocheck(Plugin):
         self.set_cvar_once("qlx_elocheckPermission", "0")
         self.set_cvar_once("qlx_elocheckReplyChannel", "public")
         self.set_cvar_once("qlx_elocheckShowSteamids", "0")
+        self.set_cvar_once("qlx_elocheckUseTruskillbn", "0")
 
         self.reply_channel = self.get_cvar("qlx_elocheckReplyChannel") or "public"
         if self.reply_channel != "private":
             self.reply_channel = "public"
         self.show_steam_ids = self.get_cvar("qlx_elocheckShowSteamids", bool) or False
+        self.use_truskill_bn = self.get_cvar("qlx_elocheckUseTruskillbn", bool) or False
 
         elocheck_permission_level = self.get_cvar("qlx_elocheckPermission", int) or 0
+
         self.add_command(
             "elocheck",
             self.cmd_elocheck,
@@ -137,6 +143,11 @@ class elocheck(Plugin):
 
         self.informed_players = []
 
+    def get_truskill_provider(self):
+        if self.use_truskill_bn:
+            return TRUSKILLS_BN
+        return TRUSKILLS
+
     @minqlx.thread
     def fetch_elos_from_all_players(self):
         asyncio.run(self.fetch_ratings([player.steam_id for player in self.players()]))
@@ -144,7 +155,7 @@ class elocheck(Plugin):
     async def fetch_ratings(self, steam_ids, mapname=None):
         async_requests = []
 
-        for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
+        for rating_provider in [self.get_truskill_provider(), A_ELO, B_ELO]:
             missing_steam_ids = steam_ids
             if rating_provider.name in self.ratings:
                 rated_steam_ids = self.ratings[rating_provider.name].rated_steam_ids()
@@ -160,7 +171,11 @@ class elocheck(Plugin):
             steam_ids, mapname
         )
 
-        fetched_rating_providers = [TRUSKILLS.name, A_ELO.name, B_ELO.name]
+        fetched_rating_providers = [
+            self.get_truskill_provider().name,
+            A_ELO.name,
+            B_ELO.name,
+        ]
         if mapbased_rating_provider_name is not None:
             fetched_rating_providers.append(mapbased_rating_provider_name)
             async_requests.append(mapbased_fetching)
@@ -180,7 +195,7 @@ class elocheck(Plugin):
                 return None, None
             mapname = self.game.map.lower()
 
-        rating_provider_name = f"{mapname} {TRUSKILLS.name}"
+        rating_provider_name = f"{mapname} {self.get_truskill_provider().name}"
         missing_steam_ids = steam_ids
         if rating_provider_name in self.ratings:
             rated_steam_ids = self.ratings[rating_provider_name].rated_steam_ids()
@@ -191,7 +206,7 @@ class elocheck(Plugin):
         if len(missing_steam_ids) == 0:
             return None, None
 
-        return rating_provider_name, TRUSKILLS.fetch_elos(
+        return rating_provider_name, self.get_truskill_provider().fetch_elos(
             missing_steam_ids, headers={"X-QuakeLive-Map": mapname}
         )
 
@@ -216,7 +231,7 @@ class elocheck(Plugin):
         async def _fetch_and_diff_ratings():
             rating_providers_fetched = []
             async_requests = []
-            for rating_provider in [TRUSKILLS, A_ELO, B_ELO]:
+            for rating_provider in [self.get_truskill_provider(), A_ELO, B_ELO]:
                 if rating_provider.name in self.previous_ratings:
                     rating_providers_fetched.append(rating_provider.name)
                     async_requests.append(
@@ -228,11 +243,13 @@ class elocheck(Plugin):
                     )
 
             if self.previous_map is not None:
-                mapbased_rating_provider_name = f"{self.previous_map} {TRUSKILLS.name}"
+                mapbased_rating_provider_name = (
+                    f"{self.previous_map} {self.get_truskill_provider().name}"
+                )
                 if mapbased_rating_provider_name in self.previous_ratings:
                     rating_providers_fetched.append(mapbased_rating_provider_name)
                     async_requests.append(
-                        TRUSKILLS.fetch_elos(
+                        self.get_truskill_provider().fetch_elos(
                             self.previous_ratings[
                                 mapbased_rating_provider_name
                             ].rated_steam_ids(),
@@ -286,11 +303,11 @@ class elocheck(Plugin):
             return
 
         changed_ratings = []
-        previous_truskills = f"{self.previous_map} {TRUSKILLS.name}"
+        previous_truskills = f"{self.previous_map} {self.get_truskill_provider().name}"
 
         for rating_provider_name in [
             previous_truskills,
-            TRUSKILLS.name,
+            self.get_truskill_provider().name,
             A_ELO.name,
             B_ELO.name,
         ]:
@@ -332,7 +349,7 @@ class elocheck(Plugin):
         rating_diff = self.rating_diffs[rating_provider_name][steam_id][
             self.previous_gametype
         ]
-        if rating_provider_name.endswith(TRUSKILLS.name):
+        if rating_provider_name.endswith(self.get_truskill_provider().name):
             if rating_diff < 0.0:
                 return f"^3{rating_provider_name}^7: ^4{current_rating:.02f}^7 (^1{rating_diff:+.02f}^7)"
 
@@ -416,13 +433,13 @@ class elocheck(Plugin):
             aliases = self.fetch_aliases(used_steam_ids)
 
             async_requests = [
-                TRUSKILLS.fetch_elos(used_steam_ids),
+                self.get_truskill_provider().fetch_elos(used_steam_ids),
                 A_ELO.fetch_elos(used_steam_ids),
                 B_ELO.fetch_elos(used_steam_ids),
             ]
             if self.game is not None and self.game.map is not None:
                 async_requests.append(
-                    TRUSKILLS.fetch_elos(
+                    self.get_truskill_provider().fetch_elos(
                         used_steam_ids,
                         headers={"X-QuakeLive-Map": self.game.map.lower()},
                     )
@@ -771,6 +788,9 @@ class SkillRatingProvider:
 
 TRUSKILLS = SkillRatingProvider(
     "Truskill", "http://stats.houseofquake.com/", "elo/map_based"
+)
+TRUSKILLS_BN = SkillRatingProvider(
+    "Truskill", "http://stats.houseofquake.com/", "elo/bn,map_based"
 )
 A_ELO = SkillRatingProvider("Elo", "http://qlstats.net/", "elo", timeout=15)
 B_ELO = SkillRatingProvider("B-Elo", "http://qlstats.net/", "elo_b", timeout=15)
