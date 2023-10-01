@@ -2,14 +2,14 @@ from datetime import datetime, timezone, timedelta
 
 import humanize
 
-import minqlx
+from minqlx import Plugin, thread
 from minqlx.database import Redis
 
 TIMESTAMP_FORMAT = "%Y%m%d%H%M%S%z"
 
 
 # noinspection PyPep8Naming
-class last_played(minqlx.Plugin):
+class last_played(Plugin):
     database = Redis
 
     def __init__(self):
@@ -26,7 +26,7 @@ class last_played(minqlx.Plugin):
         if data["TYPE"] == "PLAYER_STATS":
             self.log_player_map(data["DATA"])
 
-    @minqlx.thread
+    @thread
     def log_played_map(self, data):
         if data["ABORTED"]:
             return
@@ -36,7 +36,7 @@ class last_played(minqlx.Plugin):
         mapname = data["MAP"].lower()
         self.db.set(f"minqlx:maps:{mapname}:last_played", timestamp)
 
-    @minqlx.thread
+    @thread
     def log_player_map(self, data):
         if data["ABORTED"]:
             return
