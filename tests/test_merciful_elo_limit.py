@@ -740,7 +740,7 @@ class TestMercifulEloLimit:
         ).thenReturn([1] * 3)
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_mercis(player, "!mercis", mock_channel)
+        self.plugin.cmd_mercis(player, "!mercis".split(), mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Fake Player2 \(elo: 799\):.*7.*application matches left")
@@ -773,7 +773,7 @@ class TestMercifulEloLimit:
         ).thenReturn([1] * 3)
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_mercis(player, "!mercis", minqlx.BLUE_TEAM_CHAT_CHANNEL)
+        self.plugin.cmd_mercis(player, "!mercis".split(), minqlx.BLUE_TEAM_CHAT_CHANNEL)
 
         verify(minqlx.CHAT_CHANNEL).reply(
             matches(r"Fake Player2 \(elo: 799\):.*7.*application matches left")
@@ -790,7 +790,7 @@ class TestMercifulEloLimit:
         when(merciful_db).zrangebyscore(any_, any_, any_).thenReturn([])
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_mercis(player, "!mercis", minqlx.CHAT_CHANNEL)
+        self.plugin.cmd_mercis(player, "!mercis".split(), minqlx.CHAT_CHANNEL)
 
         verify(minqlx.CHAT_CHANNEL).reply(
             "There is currently no player within their application period connected."
@@ -802,7 +802,9 @@ class TestMercifulEloLimit:
         connected_players(player)
 
         # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_merci(player, "!merci", minqlx.CHAT_CHANNEL)
+        return_code = self.plugin.cmd_merci(
+            player, "!merci".split(), minqlx.CHAT_CHANNEL
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
@@ -813,7 +815,7 @@ class TestMercifulEloLimit:
 
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_merci(
-            player, ["!merci", "non-existing-player"], minqlx.CHAT_CHANNEL
+            player, "!merci non-existing-player".split(), minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
@@ -829,7 +831,7 @@ class TestMercifulEloLimit:
 
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_merci(
-            player, ["!merci", "matching"], minqlx.CHAT_CHANNEL
+            player, "!merci matching".split(), minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
@@ -864,7 +866,7 @@ class TestMercifulEloLimit:
 
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_merci(
-            player, ["!merci", "TrackedPlayer"], minqlx.CHAT_CHANNEL
+            player, "!merci TrackedPlayer".split(), minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
@@ -891,7 +893,7 @@ class TestMercifulEloLimit:
 
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_merci(
-            player, ["!merci", f"{tracked_player.steam_id}"], minqlx.CHAT_CHANNEL
+            player, f"!merci {tracked_player.steam_id}".split(), minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
@@ -918,7 +920,7 @@ class TestMercifulEloLimit:
 
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_merci(
-            player, ["!merci", f"{tracked_player.id}"], minqlx.CHAT_CHANNEL
+            player, f"!merci {tracked_player.id}".split(), minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))

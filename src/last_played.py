@@ -57,17 +57,16 @@ class last_played(minqlx.Plugin):
         if self.game is None:
             return
 
-        mapname = (
-            self.game.map.lower()
-            if len(msg.split(" ")) == 1
-            else " ".join(msg.split(" ")[1:])
-        )
+        mapname = self.game.map.lower() if len(msg) == 1 else " ".join(msg[1:])
         if len(self.long_map_names_lookup) == 0 and self.db.exists(
             "minqlx:maps:longnames"
         ):
             self.long_map_names_lookup = self.db.hgetall("minqlx:maps:longnames")
 
-        if mapname in self.long_map_names_lookup:
+        if (
+            mapname in self.long_map_names_lookup
+            and mapname.lower() != self.long_map_names_lookup[mapname].lower()
+        ):
             mapname_str = f"^3{self.long_map_names_lookup[mapname]}^7 (^3{mapname}^7)"
         else:
             mapname_str = f"^3{mapname}^7"

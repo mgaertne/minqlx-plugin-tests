@@ -1062,7 +1062,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        self.plugin.cmd_join(joining_player, "!join", mock_channel)
+        self.plugin.cmd_join(joining_player, "!join".split(), mock_channel)
 
         self.assert_playerset_contains(
             red_player, blue_player, spec_player, joining_player

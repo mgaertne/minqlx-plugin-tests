@@ -858,7 +858,8 @@ class Plugin:
         self,
         event: Literal["damage"],
         handler: Callable[
-            [Player | int | None, Player | int | None, int, int, int], UncancellableEventReturn
+            [Player | int | None, Player | int | None, int, int, int],
+            UncancellableEventReturn,
         ],
         priority: int = ...,
     ) -> None: ...
@@ -1108,14 +1109,15 @@ class Plugin:
         self,
         event: Literal["damage"],
         handler: Callable[
-            [Player | int | None, Player | int | None, int, int, int], UncancellableEventReturn
+            [Player | int | None, Player | int | None, int, int, int],
+            UncancellableEventReturn,
         ],
         priority: int = ...,
     ) -> None: ...
     def add_command(
         self,
         name: str | Iterable[str],
-        handler: Callable[[Player, str, AbstractChannel], CancellableEventReturn],
+        handler: Callable[[Player, list[str], AbstractChannel], CancellableEventReturn],
         permission: int = ...,
         channels: Iterable[AbstractChannel] | None = ...,
         exclude_channels: Iterable[AbstractChannel] = ...,
