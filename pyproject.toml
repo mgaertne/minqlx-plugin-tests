@@ -45,8 +45,9 @@ legacy_tox_ini = """
         3.9: py39
         3.10: py310
         3.11: py311
+        3.12: py312
 
-   [testenv:py3{7,8,9,10,11}]
+   [testenv:py3{7,8,9,10,11,12}]
     deps =
         -rrequirements-tests.txt
     commands =
