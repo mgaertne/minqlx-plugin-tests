@@ -9,6 +9,7 @@ from minqlx_plugin_test import (
     setup_cvars,
     fake_player,
     connected_players,
+    assert_plugin_sent_to_console,
 )
 
 from last_played import last_played
@@ -106,6 +107,74 @@ class TestLastPlayed:
 
         verify(lastplayed_db).hset(
             "minqlx:players:1234:last_played", "thunderstruck", any_
+        )
+
+    def test_handle_game_end_no_game_running(self, no_minqlx_game):
+        # noinspection PyTypeChecker
+        self.plugin.handle_game_end({})
+
+        assert_plugin_sent_to_console(any_, times=0)
+
+    def test_handle_game_end_roundlimit_not_hit(self, game_in_progress):
+        game_in_progress.roundlimit = 8
+        game_in_progress.red_score = 2
+        game_in_progress.blue_score = 1
+
+        # noinspection PyTypeChecker
+        self.plugin.handle_game_end({})
+
+        assert_plugin_sent_to_console(any_, times=0)
+
+    def test_handle_game_end_maps_not_in_last_played_and_long_mapnames(
+        self, game_in_progress, lastplayed_db
+    ):
+        setup_cvars(
+            {"nextmaps": r"\map_0\campgrounds\map_1\thunderstruck\map_2\asylum"}
+        )
+
+        game_in_progress.roundlimit = 8
+        game_in_progress.red_score = 2
+        game_in_progress.blue_score = 8
+
+        # noinspection PyTypeChecker
+        self.plugin.handle_game_end({})
+
+        assert_plugin_sent_to_console(matches(".*VOTE.*"))
+        assert_plugin_sent_to_console(matches(".*campgrounds.*thunderstruck.*asylum.*"))
+
+    def test_handle_game_end_maps_in_last_played_and_long_mapnames(
+        self, game_in_progress, lastplayed_db
+    ):
+        setup_cvars({"nextmaps": r"\map_0\ct3_20b2\map_1\ra3fusy1d\map_2\ra3azra1"})
+
+        when(lastplayed_db).exists("minqlx:maps:longnames").thenReturn(True)
+        when(lastplayed_db).hgetall("minqlx:maps:longnames").thenReturn(
+            {"ra3fusy1d": "Let Chaos Entwine", "ct3_20b2": "La Petite"}
+        )
+        when(lastplayed_db).exists("minqlx:maps:ct3_20b2:last_played").thenReturn(False)
+        when(lastplayed_db).exists("minqlx:maps:ra3fusy1d:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:ra3fusy1d:last_played").thenReturn(
+            "20230928010203+0000"
+        )
+        when(lastplayed_db).exists("minqlx:maps:ra3azra1:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:ra3azra1:last_played").thenReturn(
+            "20230930010203+0000"
+        )
+
+        game_in_progress.roundlimit = 8
+        game_in_progress.red_score = 2
+        game_in_progress.blue_score = 8
+
+        # noinspection PyTypeChecker
+        self.plugin.handle_game_end({})
+
+        assert_plugin_sent_to_console(matches(".*VOTE.*"))
+        assert_plugin_sent_to_console(
+            matches(
+                r"\^\d1: \^\dLa Petite \^\d\(\^\dct3_20b2\^\d\) "
+                r"\^\d2: \^\dLet Chaos Entwine \^\d\(\^\dra3fusy1d\^\d, last played .* ago\) "
+                r"\^\d3: \^\dra3azra1 \^\d\(last played .* ago\)"
+            )
         )
 
     def test_handle_last_played_no_game_running(
