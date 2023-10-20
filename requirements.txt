@@ -1,3 +1,4 @@
+setuptools>=61.2
 pyzmq
 
 redis>=2.10
