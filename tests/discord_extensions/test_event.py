@@ -38,6 +38,7 @@ class TestEvent:
     def _event(self):
         mocked_event = mock(spec=ScheduledEvent)
         mocked_event.end = AsyncMock()
+        mocked_event.delete = AsyncMock()
         mocked_event.name = "event name"
         mocked_event.status = EventStatus.active
 
@@ -86,6 +87,18 @@ class TestEvent:
         await event.create_and_start_event(bot)
 
         mocked_guild.create_scheduled_event.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_create_and_start_event_deletes_existing_event_that_did_not_start_yet(
+        self, bot, mocked_guild, mocked_active_event
+    ):
+        mocked_active_event.status = EventStatus.scheduled
+        mocked_guild.scheduled_events.append(mocked_active_event)
+
+        await event.create_and_start_event(bot)
+
+        mocked_active_event.delete.assert_awaited_once()
+        mocked_guild.create_scheduled_event.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_create_and_start_event_event_misconfigured_event_name_cvar(
@@ -141,7 +154,7 @@ class TestEvent:
 
         await event.end_event(bot)
 
-        mocked_active_event.end.assert_not_awaited()
+        mocked_active_event.end.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_end_event_with_non_configured_event_name(

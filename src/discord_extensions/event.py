@@ -9,7 +9,6 @@ from discord import PrivacyLevel, EntityType, EventStatus
 # noinspection PyPackageRequirements
 from discord.utils import utcnow
 
-# noinspection PyPackageRequirements
 import schedule  # type: ignore
 
 from minqlx import Plugin
@@ -20,9 +19,18 @@ async def create_and_start_event(bot):
     if event_name is None:
         return
 
+    active_event_found = False
+    end_events = []
     for scheduled_event in bot.guilds[0].scheduled_events:
-        if event_name in scheduled_event.name and scheduled_event.status == EventStatus.active:
-            return
+        if event_name in scheduled_event.name:
+            if not active_event_found and scheduled_event.status == EventStatus.active:
+                active_event_found = True
+            else:
+                end_events.append(scheduled_event.delete())
+
+    await asyncio.gather(*end_events)
+    if active_event_found:
+        return
 
     event_location = Plugin.get_cvar("qlx_discord_ext_event_location")
     if event_location is None:
@@ -30,7 +38,7 @@ async def create_and_start_event(bot):
 
     start_date = utcnow() + timedelta(seconds=1)
     end_date = utcnow() + timedelta(hours=8)
-    await bot.guilds[0].create_scheduled_event(
+    event = await bot.guilds[0].create_scheduled_event(
         name=event_name,
         privacy_level=PrivacyLevel.guild_only,
         start_time=start_date,
@@ -38,6 +46,7 @@ async def create_and_start_event(bot):
         entity_type=EntityType.external,
         location=event_location,
     )
+    await event.start()
 
 
 async def end_event(bot):
@@ -47,7 +56,7 @@ async def end_event(bot):
 
     end_events = []
     for scheduled_event in bot.guilds[0].scheduled_events:
-        if event_name in scheduled_event.name and scheduled_event.status == EventStatus.active:
+        if event_name in scheduled_event.name:
             end_events.append(scheduled_event.end())
 
     await asyncio.gather(*end_events)
