@@ -701,9 +701,9 @@ class SimpleAsyncDiscord(threading.Thread):
             not self.discord_show_relay_channel_names
             and channel.id in self.discord_relay_channel_ids
         ):
-            return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content}"
+            return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content.replace('%', '％')}"
         return (
-            f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content}"
+            f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content.replace('%', '％')}"
         )
 
     async def on_ready(self):
