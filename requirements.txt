@@ -1,5 +1,5 @@
 setuptools>=61.2
-pyzmq
+pyzmq>=23
 
 redis>=2.10
 
