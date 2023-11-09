@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from threading import RLock
 
 import emoji
-import openai
 
 # noinspection PyPackageRequirements
 import tiktoken
@@ -250,9 +249,9 @@ class openai_bot(Plugin):
         threaded_summary(contextualized_messages)
 
     def _gather_completion(self, messages):
-        openai.api_key = self.bot_api_key
+        client = OpenAI(api_key=self.bot_api_key)
         try:
-            completion = OpenAI().chat.completions.create(
+            completion = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 max_tokens=self.max_tokens,
@@ -270,7 +269,7 @@ class openai_bot(Plugin):
 
     @staticmethod
     def _pick_choice(completion):
-        return completion.choices[0]["message"]["content"].lstrip().rstrip()
+        return completion.choices.pop().message.content.lstrip().rstrip()
 
     @staticmethod
     def _cleanup_choice(response):
@@ -540,8 +539,8 @@ class openai_bot(Plugin):
 
     @minqlx.thread
     def _list_models_in_thread(self, player):
-        openai.api_key = self.bot_api_key
-        available_models = OpenAI().models.list()
+        client = OpenAI(api_key=self.bot_api_key)
+        available_models = client.models.list()
         formatted_models = ", ".join(
             [model.id for model in available_models.data]
         )
@@ -556,8 +555,8 @@ class openai_bot(Plugin):
 
     @minqlx.thread
     def _switch_model_in_thread(self, player, model):
-        openai.api_key = self.bot_api_key
-        available_models = OpenAI().models.list()
+        client = OpenAI(api_key=self.bot_api_key)
+        available_models = client.models.list()
         available_model_names = [model.id for model in available_models.data]
 
         if model not in available_model_names:
