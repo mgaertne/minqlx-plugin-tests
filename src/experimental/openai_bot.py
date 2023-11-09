@@ -17,7 +17,7 @@ import openai
 
 # noinspection PyPackageRequirements
 import tiktoken
-from openai import OpenAIError, Model, ChatCompletion
+from openai import OpenAIError, OpenAI
 
 import minqlx
 from minqlx import Plugin, CHAT_CHANNEL
@@ -252,7 +252,7 @@ class openai_bot(Plugin):
     def _gather_completion(self, messages):
         openai.api_key = self.bot_api_key
         try:
-            completion = ChatCompletion.create(
+            completion = OpenAI().chat.completions.create(
                 model=self.model,
                 messages=messages,
                 max_tokens=self.max_tokens,
@@ -541,9 +541,9 @@ class openai_bot(Plugin):
     @minqlx.thread
     def _list_models_in_thread(self, player):
         openai.api_key = self.bot_api_key
-        available_models = Model.list()
+        available_models = OpenAI().models.list()
         formatted_models = ", ".join(
-            [model["id"] for model in available_models["data"]]
+            [model.id for model in available_models.data]
         )
         player.tell(f"Available models: {formatted_models}")
 
@@ -557,8 +557,8 @@ class openai_bot(Plugin):
     @minqlx.thread
     def _switch_model_in_thread(self, player, model):
         openai.api_key = self.bot_api_key
-        available_models = Model.list()
-        available_model_names = [model["id"] for model in available_models["data"]]
+        available_models = OpenAI().models.list()
+        available_model_names = [model.id for model in available_models.data]
 
         if model not in available_model_names:
             formatted_models = ", ".join(available_model_names)

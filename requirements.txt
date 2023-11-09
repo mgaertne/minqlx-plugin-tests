@@ -11,7 +11,7 @@ aiohttp_retry>=2.4
 discord.py>=2.0; python_version >= '3.8'
 schedule>=1.0.0; python_version >= '3.8'
 
-openai>=0.27.0
+openai>=1.2.0
 tiktoken>=0.3.0; python_version >= '3.8'
 emoji>=2.2.0
 

@@ -5,7 +5,7 @@ from minqlx import Plugin
 if TYPE_CHECKING:
     from threading import RLock
 
-    from openai import ChatCompletion
+    from openai.types.chat import ChatCompletion
 
     from minqlx import Player, AbstractChannel, RoundEndData, GameEndData
     from minqlx.database import Redis
