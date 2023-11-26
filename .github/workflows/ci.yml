@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
@@ -44,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
@@ -62,4 +62,4 @@ jobs:
         path: coverage.xml
         if-no-files-found: error
     - name: Upload coverage.xml to codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
