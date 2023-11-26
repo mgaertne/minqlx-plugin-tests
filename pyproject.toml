@@ -35,7 +35,7 @@ find = {namespaces = false}
 [tool.tox]
 legacy_tox_ini = """
     [tox]
-    envlist = py3{7,8,9,10,11},coverage,ruff,mypy
+    envlist = py3{7,8,9,10,11,12},coverage,ruff,mypy
     usedevelop = true
 
     [gh-actions]
