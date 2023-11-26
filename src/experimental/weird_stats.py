@@ -1347,6 +1347,9 @@ class weird_stats(Plugin):
     def handle_round_end(self, _data):
         self.in_round = False
 
+        if not self.game:
+            return
+
         teams = self.teams()
         surviving_players = [
             player
