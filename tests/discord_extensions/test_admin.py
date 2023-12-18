@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import threading
 import time
@@ -520,10 +521,10 @@ class TestDiscordInteractionChannel:
         assert_that(channel.channel, equal_to(channel))
 
     @pytest.mark.asyncio
-    async def test_expand_original_reply_fills_initial_description(
-        self, user, event_loop, message
-    ):
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+    async def test_expand_original_reply_fills_initial_description(self, user, message):
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
 
         await channel.expand_original_reply(content="Hi there")
 
@@ -534,10 +535,10 @@ class TestDiscordInteractionChannel:
         )
 
     @pytest.mark.asyncio
-    async def test_expand_original_reply_extends_original_reply(
-        self, user, event_loop, message
-    ):
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+    async def test_expand_original_reply_extends_original_reply(self, user, message):
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
         channel.embed.description = "initial text"
 
         await channel.expand_original_reply(content="Hi there")
@@ -549,8 +550,10 @@ class TestDiscordInteractionChannel:
         )
 
     @pytest.mark.asyncio
-    async def test_tell(self, user, event_loop, message):
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+    async def test_tell(self, user, message):
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
         spy2(channel.expand_original_reply)
 
         channel.tell("Hi there")
@@ -558,8 +561,10 @@ class TestDiscordInteractionChannel:
         verify(channel).expand_original_reply(content="Hi there")
 
     @pytest.mark.asyncio
-    async def test_reply(self, user, event_loop, message):
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+    async def test_reply(self, user, message):
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
         spy2(channel.expand_original_reply)
 
         channel.reply("Hi there")
