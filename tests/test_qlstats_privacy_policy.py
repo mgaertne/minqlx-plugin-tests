@@ -136,7 +136,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -158,7 +157,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -180,7 +178,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -190,7 +187,7 @@ class TestQlstatsPrivacyPolicy:
             self.plugin.handle_player_connect(connecting_player)
 
         verify(requests.Session).get(
-            f"http://qlstats.net/belo/{connecting_player.steam_id}", timeout=any_()
+            f"http://qlstats.net/elo/{connecting_player.steam_id}", timeout=any_()
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -205,7 +202,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
         self.plugin = qlstats_privacy_policy()
@@ -231,7 +227,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -256,7 +251,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -281,7 +275,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -310,7 +303,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
@@ -342,7 +334,6 @@ class TestQlstatsPrivacyPolicy:
                 "qlx_qlstatsPrivacyBlock": "1",
                 "qlx_qlstatsPrivacyWhitelist": "public, anonymous",
                 "qlx_qlstatsPrivacyJoinAttempts": "5",
-                "qlx_balanceApi": "belo",
             }
         )
 
