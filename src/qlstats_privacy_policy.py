@@ -8,8 +8,10 @@ from requests.packages.urllib3.util.retry import Retry  # type: ignore
 import minqlx
 from minqlx import Plugin
 
-COLORED_QLSTATS_INSTRUCTIONS = "Error: Open qlstats.net, click Login/Sign-up, " \
-                               "set privacy settings to ^6{}^7, click save and reconnect!"
+COLORED_QLSTATS_INSTRUCTIONS = (
+    "Error: Open qlstats.net, click Login/Sign-up, "
+    "set privacy settings to ^6{}^7, click save and reconnect!"
+)
 
 
 def requests_retry_session(
@@ -127,9 +129,7 @@ class qlstats_privacy_policy(Plugin):
             return minqlx.RET_NONE
 
         if player.steam_id not in self.connectthreads:
-            ct = ConnectThread(
-                player.steam_id, self.get_cvar("qlx_balanceApi") or "elo"
-            )
+            ct = ConnectThread(player.steam_id)
             self.connectthreads[player.steam_id] = ct
             ct.start()
             self.remove_thread(player.steam_id)  # remove it after a while
@@ -384,14 +384,13 @@ class qlstats_privacy_policy(Plugin):
 
 
 class ConnectThread(Thread):
-    def __init__(self, steam_id, balance_api):
+    def __init__(self, steam_id):
         super().__init__()
-        self._balance_api = balance_api
         self._steam_id = steam_id
         self._result = None
 
     def run(self):
-        url = f"http://qlstats.net/{self._balance_api}/{self._steam_id}"
+        url = f"http://qlstats.net/elo/{self._steam_id}"
         try:
             self._result = requests_retry_session().get(url, timeout=15)
         except RequestException as exception:

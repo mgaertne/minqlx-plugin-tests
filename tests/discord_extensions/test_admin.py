@@ -522,8 +522,9 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_expand_original_reply_fills_initial_description(self, user, message):
-        event_loop = asyncio.get_running_loop()
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
 
         await channel.expand_original_reply(content="Hi there")
 
@@ -535,8 +536,9 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_expand_original_reply_extends_original_reply(self, user, message):
-        event_loop = asyncio.get_running_loop()
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
         channel.embed.description = "initial text"
 
         await channel.expand_original_reply(content="Hi there")
@@ -549,8 +551,9 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_tell(self, user, message):
-        event_loop = asyncio.get_running_loop()
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
         spy2(channel.expand_original_reply)
 
         channel.tell("Hi there")
@@ -559,8 +562,9 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_reply(self, user, message):
-        event_loop = asyncio.get_running_loop()
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
+        channel = DiscordInteractionChannel(
+            user, message, loop=asyncio.get_running_loop()
+        )
         spy2(channel.expand_original_reply)
 
         channel.reply("Hi there")
