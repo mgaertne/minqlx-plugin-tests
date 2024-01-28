@@ -214,7 +214,6 @@ class TestMyDiscordBotTests:
         )
 
         verify(self.discord).triggered_message(triggering_player, "asdf")
-        assert_plugin_sent_to_console("Message 'asdf' sent to discord chat!")
 
     @staticmethod
     def test_get_game_info_in_warmup(game_in_warmup):
@@ -1293,6 +1292,9 @@ class TestSimpleAsyncDiscord:
         assert_text_was_sent_to_discord_channel(
             trigger_channel2, "**Chatting player**: QL is great!"
         )
+        assert_plugin_sent_to_console(
+            "Message ^1QL is great!^7 sent to discord channels ^5#triggered-channel^7, ^5#channel-name^7!"
+        )
 
     def test_triggered_message_with_escaped_playername(self):
         triggered_channel = self.triggered_channel()
@@ -1329,6 +1331,9 @@ class TestSimpleAsyncDiscord:
         assert_text_was_sent_to_discord_channel(
             triggered_channel,
             f"**Chatting player**: QL is great, {mentioned_user.mention} {mentioned_channel.mention} !",
+        )
+        assert_plugin_sent_to_console(
+            "Message ^1QL is great, @chatter #mention !^7 sent to discord channel ^5#triggered-channel^7!"
         )
 
     def test_triggered_message_no_triggered_channels_configured(self):

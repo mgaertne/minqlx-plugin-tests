@@ -11,6 +11,7 @@ fragstealers_inc discord tech channel of the Bus Station server(s).
 
 You need to install discord.py in your python installation, i.e. python3 -m pip install -U discord.py
 """
+
 import re
 import asyncio
 import threading
@@ -34,7 +35,7 @@ import discord.ext.tasks
 import minqlx
 from minqlx import Plugin
 
-plugin_version = "v2.0.0"
+plugin_version = "v2.0.1"
 
 
 # noinspection PyPep8Naming
@@ -398,7 +399,6 @@ class mydiscordbot(Plugin):
 
         quake_message = Plugin.clean_text(" ".join(msg[1:]))
         self.discord.triggered_message(player, quake_message)
-        self.msg(f"Message '{quake_message}' sent to discord chat!")
         return minqlx.RET_NONE
 
     def cmd_discordbot(self, _player, msg, channel):
@@ -702,9 +702,7 @@ class SimpleAsyncDiscord(threading.Thread):
             and channel.id in self.discord_relay_channel_ids
         ):
             return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content.replace('%', '％')}"
-        return (
-            f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content.replace('%', '％')}"
-        )
+        return f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content.replace('%', '％')}"
 
     async def on_ready(self):
         """
@@ -1040,9 +1038,10 @@ class SimpleAsyncDiscord(threading.Thread):
         if not self.discord_triggered_channel_ids:
             return
 
+        discord_message = message
         if self.discord_replace_triggered_mentions:
-            message = self.replace_user_mentions(message, player)
-            message = self.replace_channel_mentions(message, player)
+            discord_message = self.replace_user_mentions(discord_message, player)
+            discord_message = self.replace_channel_mentions(discord_message, player)
 
         if (
             self.discord_triggered_channel_message_prefix is not None
@@ -1051,12 +1050,34 @@ class SimpleAsyncDiscord(threading.Thread):
             content = (
                 f"{self.discord_triggered_channel_message_prefix} "
                 f"**{discord.utils.escape_markdown(player.clean_name)}**: "
-                f"{discord.utils.escape_markdown(message)}"
+                f"{discord.utils.escape_markdown(discord_message)}"
             )
         else:
             content = (
                 f"**{discord.utils.escape_markdown(player.clean_name)}**: "
-                f"{discord.utils.escape_markdown(message)}"
+                f"{discord.utils.escape_markdown(discord_message)}"
             )
 
         self.send_to_discord_channels(self.discord_triggered_channel_ids, content)
+
+        triggered_channels = (
+            []
+            if self.discord is None
+            else [
+                self.discord.get_channel(channel_id)
+                for channel_id in self.discord_triggered_channel_ids
+            ]
+        )
+        channel_names = [
+            f"#{channel.name}" for channel in triggered_channels if channel is not None
+        ]
+
+        formatted_channel_names = "^7, ^5".join(channel_names)
+        if len(channel_names) == 1:
+            Plugin.msg(
+                f"Message ^1{message}^7 sent to discord channel ^5{formatted_channel_names}^7!"
+            )
+        else:
+            Plugin.msg(
+                f"Message ^1{message}^7 sent to discord channels ^5{formatted_channel_names}^7!"
+            )
