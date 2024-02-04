@@ -97,12 +97,6 @@ omit = [
 ]
 
 [tool.ruff]
-select = ["C40", "E", "F", "SIM", "TCH"]
-ignore = []
-
-fixable = ["A", "B", "C", "D", "E", "F"]
-unfixable = []
-
 exclude = [
     ".eggs",
     ".git",
@@ -115,16 +109,21 @@ exclude = [
     "dist",
     "venv",
 ]
-per-file-ignores = {}
-
 line-length = 120
+target-version = "py37"
+
+[tool.ruff.lint]
+select = ["C40", "E", "F", "SIM", "TCH"]
+ignore = []
+
+fixable = ["A", "B", "C", "D", "E", "F"]
+unfixable = []
+
+per-file-ignores = {}
 
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-target-version = "py37"
-
-[tool.ruff.mccabe]
-max-complexity = 10
+mccabe.max-complexity = 10
 
 [tool.mypy]
 packages = ["stubs","src","tests"]
