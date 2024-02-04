@@ -115,14 +115,10 @@ target-version = "py37"
 [tool.ruff.lint]
 select = ["C40", "E", "F", "SIM", "TCH"]
 ignore = []
-
 fixable = ["A", "B", "C", "D", "E", "F"]
 unfixable = []
-
 per-file-ignores = {}
-
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
 mccabe.max-complexity = 10
 
 [tool.mypy]
