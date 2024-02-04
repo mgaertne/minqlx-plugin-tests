@@ -165,13 +165,11 @@ def handle_client_command(client_id, cmd):
         if res:
             new_info = minqlx.parse_variables(res.group("vars"), ordered=True)
             old_info = player.cvars
-            changed = {}
-
-            for key in new_info:
-                if key not in old_info or (
-                    key in old_info and new_info[key] != old_info[key]
-                ):
-                    changed[key] = new_info[key]
+            changed = {
+                key: value
+                for key, value in new_info.items()
+                if key not in old_info or old_info[key] != value
+            }
 
             if changed:
                 ret = minqlx.EVENT_DISPATCHERS["userinfo"].dispatch(player, changed)
