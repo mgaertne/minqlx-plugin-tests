@@ -61,5 +61,6 @@ jobs:
         name: tox-gh-actions-coverage
         path: coverage.xml
         if-no-files-found: error
+        token: ${{secrets.CODECOV_TOKEN}}
     - name: Upload coverage.xml to codecov
       uses: codecov/codecov-action@v4
