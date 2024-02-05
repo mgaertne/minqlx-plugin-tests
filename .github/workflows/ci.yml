@@ -62,4 +62,4 @@ jobs:
         path: coverage.xml
         if-no-files-found: error
     - name: Upload coverage.xml to codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
