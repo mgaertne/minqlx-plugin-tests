@@ -2,12 +2,13 @@ import random
 import time
 
 import pytest
-from mockito import unstub, patch, verify  # type: ignore
+from mockito import unstub, patch, verify, spy2, when2  # type: ignore
 from mockito.matchers import any_  # type: ignore
 from hamcrest import assert_that, equal_to
 
 from undecorated import undecorated  # type: ignore
 
+import minqlx
 from minqlx_plugin_test import setup_cvars, setup_cvar, assert_plugin_played_sound
 
 from thirtysecwarn import thirtysecwarn
@@ -15,6 +16,11 @@ from thirtysecwarn import thirtysecwarn
 
 class TestThirtySecondWarnPlugin:
     def setup_method(self):
+        spy2(minqlx.get_configstring)
+        when2(minqlx.get_configstring, 662).thenReturn("42")
+        when2(minqlx.get_configstring, 669).thenReturn("")
+        when2(minqlx.get_configstring, 670).thenReturn("")
+
         self.warner = thirtysecwarn()
         setup_cvars({"qlx_thirtySecondWarnAnnouncer": "standard"})
 
@@ -87,6 +93,45 @@ class TestThirtySecondWarnPlugin:
         )
 
         assert_plugin_played_sound(any_(str), times=0)
+
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
+    def test_plays_no_sound_when_round_is_still_paused(self, game_in_progress):
+        when2(minqlx.get_configstring, 669).thenReturn("69")
+
+        warner_thread_name = "test_plays_sound_when_round_still_running1"
+        self.warner.warner_thread_name = warner_thread_name
+
+        undecorated(self.warner.play_thirty_second_warning)(
+            self.warner, warner_thread_name
+        )
+
+        assert_plugin_played_sound(any_(str), times=0)
+
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
+    def test_plays_no_sound_when_round_was_paused_but_is_running_again(self, game_in_progress):
+        when2(minqlx.get_configstring, 670).thenReturn("69")
+
+        warner_thread_name = "test_plays_sound_when_round_still_running1"
+        self.warner.warner_thread_name = warner_thread_name
+
+        undecorated(self.warner.play_thirty_second_warning)(
+            self.warner, warner_thread_name
+        )
+
+        assert_plugin_played_sound(any_(str), times=0)
+
+    @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
+    def test_plays_no_sound_when_round_was_paused_in_round_before(self, game_in_progress):
+        when2(minqlx.get_configstring, 670).thenReturn("21")
+
+        warner_thread_name = "test_plays_sound_when_round_still_running1"
+        self.warner.warner_thread_name = warner_thread_name
+
+        undecorated(self.warner.play_thirty_second_warning)(
+            self.warner, warner_thread_name
+        )
+
+        assert_plugin_played_sound(any_(str))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_plays_sound_when_round_still_running(self, game_in_progress):

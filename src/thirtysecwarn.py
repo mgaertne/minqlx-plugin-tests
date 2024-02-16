@@ -67,6 +67,13 @@ class thirtysecwarn(Plugin):
             return
         if self.warner_thread_name != warner_thread_name:
             return
+        timeout_begin = minqlx.get_configstring(669)
+        if len(timeout_begin) != 0:
+            return
+        round_start = int(minqlx.get_configstring(662))
+        timeout_end = minqlx.get_configstring(670)
+        if len(timeout_end) != 0 and round_start < int(timeout_end):
+            return
 
         # passed all conditions, play sound
         Plugin.play_sound(self.get_announcer_sound())
