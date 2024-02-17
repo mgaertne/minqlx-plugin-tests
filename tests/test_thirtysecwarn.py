@@ -108,7 +108,9 @@ class TestThirtySecondWarnPlugin:
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_plays_no_sound_when_round_was_paused_but_is_running_again(self, game_in_progress):
+    def test_plays_no_sound_when_round_was_paused_but_is_running_again(
+        self, game_in_progress
+    ):
         when2(minqlx.get_configstring, 670).thenReturn("69")
 
         warner_thread_name = "test_plays_sound_when_round_still_running1"
@@ -121,7 +123,9 @@ class TestThirtySecondWarnPlugin:
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_plays_no_sound_when_round_was_paused_in_round_before(self, game_in_progress):
+    def test_plays_no_sound_when_round_was_paused_in_round_before(
+        self, game_in_progress
+    ):
         when2(minqlx.get_configstring, 670).thenReturn("21")
 
         warner_thread_name = "test_plays_sound_when_round_still_running1"
