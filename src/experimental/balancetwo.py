@@ -5,6 +5,7 @@ Copyright (c) 2020 ShiN0
 
 You are free to modify this plugin to your own one.
 """
+
 import os
 import math
 import random
