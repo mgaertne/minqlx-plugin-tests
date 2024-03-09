@@ -193,7 +193,7 @@ class EventDispatcher:
             )
 
         if self.name in hot_plugged_events and len(self.plugins) == 0:
-            minqlx.register_handler(self.name, getattr(minqlx, f"handle_{self.name}"))
+            minqlx.register_handler(self.name, getattr(minqlx, f"handle_{self.name}"))  # type: ignore
 
         if plugin not in self.plugins:
             # Initialize tuple.
@@ -225,7 +225,7 @@ class EventDispatcher:
             if handler == hook:
                 self.plugins[plugin][priority].remove(handler)
                 if self.name in hot_plugged_events and len(self.plugins) == 0:
-                    minqlx.register_handler(self.name, None)
+                    minqlx.register_handler(self.name, None)  # type: ignore
 
                 return
 
