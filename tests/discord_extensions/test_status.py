@@ -116,7 +116,8 @@ class TestStatus:
 
         assert_that(game_info, equal_to("Warmup"))
 
-    def test_game_status_information_when_no_game_is_running(self, no_minqlx_game):
+    @pytest.mark.usefixtures("no_minqlx_game")
+    def test_game_status_information_when_no_game_is_running(self):
         game_status = status.game_status_with_teams()
 
         assert_that(

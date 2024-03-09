@@ -161,9 +161,8 @@ class TestTopicUpdater:
         verify(timer_mock.start).__call__()
 
     @pytest.mark.asyncio
-    async def test_timer_is_started_on_cog_load_no_game_running(
-        self, bot, no_minqlx_game
-    ):
+    @pytest.mark.usefixtures("no_minqlx_game")
+    async def test_timer_is_started_on_cog_load_no_game_running(self, bot):
         timer_mock = mock(spec=threading.Timer)
         timer_mock.start = mock()
         spy2(threading.Timer)

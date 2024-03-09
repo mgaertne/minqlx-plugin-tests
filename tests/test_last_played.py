@@ -58,9 +58,8 @@ class TestLastPlayed:
 
         verify(lastplayed_db).set("minqlx:maps:thunderstruck:last_played", any_)
 
-    def test_handle_stats_player_stats_for_aborted_match(
-        self, lastplayed_db, game_in_progress
-    ):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_stats_player_stats_for_aborted_match(self, lastplayed_db):
         match_report = {
             "DATA": {"ABORTED": True, "WARMUP": False, "STEAM_ID": "1234"},
             "TYPE": "PLAYER_STATS",
@@ -71,9 +70,8 @@ class TestLastPlayed:
             "minqlx:players:1234:last_played", any_, any_
         )
 
-    def test_handle_stats_player_stats_for_warmup_stats(
-        self, lastplayed_db, game_in_progress
-    ):
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_stats_player_stats_for_warmup_stats(self, lastplayed_db):
         match_report = {
             "DATA": {"ABORTED": False, "WARMUP": True, "STEAM_ID": "1234"},
             "TYPE": "PLAYER_STATS",
@@ -84,9 +82,8 @@ class TestLastPlayed:
             "minqlx:players:1234:last_played", any_, any_
         )
 
-    def test_handle_stats_player_stats_no_game_running(
-        self, lastplayed_db, no_minqlx_game
-    ):
+    @pytest.mark.usefixtures("no_minqlx_game")
+    def test_handle_stats_player_stats_no_game_running(self, lastplayed_db):
         match_report = {
             "DATA": {"ABORTED": False, "WARMUP": False, "STEAM_ID": "1234"},
             "TYPE": "PLAYER_STATS",
@@ -109,7 +106,8 @@ class TestLastPlayed:
             "minqlx:players:1234:last_played", "thunderstruck", any_
         )
 
-    def test_handle_game_end_no_game_running(self, no_minqlx_game):
+    @pytest.mark.usefixtures("no_minqlx_game")
+    def test_handle_game_end_no_game_running(self):
         # noinspection PyTypeChecker
         self.plugin.handle_game_end({})
 
@@ -177,9 +175,8 @@ class TestLastPlayed:
             )
         )
 
-    def test_handle_last_played_no_game_running(
-        self, lastplayed_db, no_minqlx_game, mock_channel
-    ):
+    @pytest.mark.usefixtures("no_minqlx_game")
+    def test_handle_last_played_no_game_running(self, lastplayed_db, mock_channel):
         when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
             False
         )

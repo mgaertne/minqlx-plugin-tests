@@ -981,8 +981,9 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.usefixtures("no_minqlx_game")
     async def test_check_subscriptions_no_game_running(
-        self, no_presences_bot, mocked_db, no_minqlx_game, user
+        self, no_presences_bot, mocked_db, user
     ):
         when(no_presences_bot).get_user(user.id).thenReturn(user)
 
@@ -1047,8 +1048,9 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.usefixtures("game_in_warmup")
     async def test_check_subscriptions_informs_about_player_connected(
-        self, no_presences_bot, mocked_db, game_in_warmup, user
+        self, no_presences_bot, mocked_db, user
     ):
         new_player = fake_player(123, "newplayer")
 
@@ -1073,8 +1075,9 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.usefixtures("game_in_warmup")
     async def test_check_subscriptions_player_already_informed(
-        self, no_presences_bot, mocked_db, game_in_warmup, user
+        self, no_presences_bot, mocked_db, user
     ):
         new_player = fake_player(123, "newplayer")
 

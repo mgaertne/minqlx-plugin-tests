@@ -140,7 +140,7 @@ class TestAutoRebalance:
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_handle_team_switch_attempt_first_player_joins(self, game_in_progress):
+    def test_handle_team_switch_attempt_first_player_joins(self):
         self.setup_balance_ratings([])
         player = fake_player(42, "Fake Player")
         connected_players(player)

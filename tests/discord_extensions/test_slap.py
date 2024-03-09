@@ -31,7 +31,7 @@ class TestSlap:
         unstub()
 
     @pytest.mark.asyncio
-    async def test_hidden_slap(self, bot, interaction, member):
+    async def test_hidden_slap(self, _bot, interaction, member):
         interaction.client = mock(spec=Member)
         interaction.client.user = None
 
