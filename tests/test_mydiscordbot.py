@@ -44,8 +44,7 @@ class TestMyDiscordBotTests:
     def teardown_method(self):
         unstub()
 
-    @staticmethod
-    def test_constructor():
+    def test_constructor(self):
         assert_plugin_sent_to_console(matches("mydiscordbot Version: "), atleast=1)
 
     def test_handle_unload_for_plugin(self):
@@ -215,80 +214,71 @@ class TestMyDiscordBotTests:
 
         verify(self.discord).triggered_message(triggering_player, "asdf")
 
-    @staticmethod
-    def test_get_game_info_in_warmup(game_in_warmup):
+    def test_get_game_info_in_warmup(self, game_in_warmup):
         game_info = mydiscordbot.get_game_info(game_in_warmup)
 
         assert_that(game_info, equal_to("Warmup"))
 
-    @staticmethod
-    def test_get_game_info_in_countdown(game_in_countdown):
+    def test_get_game_info_in_countdown(self, game_in_countdown):
         game_info = mydiscordbot.get_game_info(game_in_countdown)
 
         assert_that(game_info, equal_to("Match starting"))
 
-    @staticmethod
     @pytest.mark.parametrize(
         "game_in_progress", ["roundlimit=8, red_score=1, blue_score=2"], indirect=True
     )
-    def test_get_game_info_in_progress(game_in_progress):
+    def test_get_game_info_in_progress(self, game_in_progress):
         game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match in progress: **1** - **2**"))
 
-    @staticmethod
     @pytest.mark.parametrize(
         "game_in_progress", ["roundlimit=8, red_score=8, blue_score=2"], indirect=True
     )
-    def test_get_game_info_red_hit_roundlimit(game_in_progress):
+    def test_get_game_info_red_hit_roundlimit(self, game_in_progress):
         game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **8** - **2**"))
 
-    @staticmethod
     @pytest.mark.parametrize(
         "game_in_progress", ["roundlimit=8, red_score=5, blue_score=8"], indirect=True
     )
-    def test_get_game_info_blue_hit_roundlimit(game_in_progress):
+    def test_get_game_info_blue_hit_roundlimit(self, game_in_progress):
         game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **5** - **8**"))
 
-    @staticmethod
     @pytest.mark.parametrize(
         "game_in_progress",
         ["roundlimit=8, red_score=-999, blue_score=3"],
         indirect=True,
     )
-    def test_get_game_info_red_player_dropped_out(game_in_progress):
+    def test_get_game_info_red_player_dropped_out(self, game_in_progress):
         game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **-999** - **3**"))
 
-    @staticmethod
     @pytest.mark.parametrize(
         "game_in_progress",
         ["roundlimit=8, red_score=5, blue_score=-999"],
         indirect=True,
     )
-    def test_get_game_info_blue_player_dropped_out(game_in_progress):
+    def test_get_game_info_blue_player_dropped_out(self, game_in_progress):
         game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Match ended: **5** - **-999**"))
 
-    @staticmethod
     @pytest.mark.parametrize(
         "game_in_progress",
         ["state=asdf, roundlimit=8, red_score=1, blue_score=2"],
         indirect=True,
     )
-    def test_get_game_info_unknown_game_state(game_in_progress):
+    def test_get_game_info_unknown_game_state(self, game_in_progress):
         game_info = mydiscordbot.get_game_info(game_in_progress)
 
         assert_that(game_info, equal_to("Warmup"))
 
-    @staticmethod
-    def test_player_data_with_players_on_both_teams():
+    def test_player_data_with_players_on_both_teams(self):
         connected_players(
             fake_player(1, "Player1", "red", score=1),
             fake_player(2, "Player2", "blue", score=3),
@@ -305,8 +295,7 @@ class TestMyDiscordBotTests:
             ),
         )
 
-    @staticmethod
-    def test_player_data_with_just_red_players():
+    def test_player_data_with_just_red_players(self):
         connected_players(
             fake_player(1, "Player1", "red"), fake_player(4, "Player4", "red")
         )
@@ -315,8 +304,7 @@ class TestMyDiscordBotTests:
 
         assert_that(player_data, equal_to("\n**R:** **Player1**(0) **Player4**(0) "))
 
-    @staticmethod
-    def test_player_data_with_just_blue_players():
+    def test_player_data_with_just_blue_players(self):
         connected_players(
             fake_player(2, "Player2", "blue"), fake_player(3, "Player3", "blue")
         )
@@ -325,14 +313,12 @@ class TestMyDiscordBotTests:
 
         assert_that(player_data, equal_to("\n**B:** **Player2**(0) **Player3**(0) "))
 
-    @staticmethod
-    def test_team_data_with_empty_player_list():
+    def test_team_data_with_empty_player_list(self):
         team_data = mydiscordbot.team_data([])
 
         assert_that(team_data, equal_to(""))
 
-    @staticmethod
-    def test_team_data_with_limit():
+    def test_team_data_with_limit(self):
         player_list = [
             fake_player(1, "Player1", "red", score=1),
             fake_player(2, "Player2", "red", score=52),
@@ -1087,8 +1073,7 @@ class TestSimpleAsyncDiscord:
 
         verify(relay_teamchat_channel, times=0).send(any)
 
-    @staticmethod
-    def test_find_user_match_exact_match():
+    def test_find_user_match_exact_match(self):
         exact_matching_user = mocked_discord_user(name="user")
         other_user = mocked_discord_user(name="non-exact-match-User")
 
@@ -1098,8 +1083,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(exact_matching_user))
 
-    @staticmethod
-    def test_find_user_match_case_insensitive_match():
+    def test_find_user_match_case_insensitive_match(self):
         case_insensitive_matching_user = mocked_discord_user(name="uSeR")
         other_user = mocked_discord_user(name="non-matched user")
 
@@ -1109,8 +1093,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(case_insensitive_matching_user))
 
-    @staticmethod
-    def test_find_user_match_exact_nick_match():
+    def test_find_user_match_exact_nick_match(self):
         exact_matching_user = mocked_discord_user(name="non-matching name", nick="user")
         other_user = mocked_discord_user(name="non-exact-match-User")
 
@@ -1120,8 +1103,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(exact_matching_user))
 
-    @staticmethod
-    def test_find_user_match_case_insensitive_nick_match():
+    def test_find_user_match_case_insensitive_nick_match(self):
         exact_matching_user = mocked_discord_user(name="non-matching name", nick="UseR")
         other_user = mocked_discord_user(
             name="non-matched user", nick="non-matched nick"
@@ -1133,8 +1115,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(exact_matching_user))
 
-    @staticmethod
-    def test_find_user_match_fuzzy_match_on_name():
+    def test_find_user_match_fuzzy_match_on_name(self):
         fuzzy_matching_user = mocked_discord_user(name="matching-GeneRal-user")
         other_user = mocked_discord_user(name="non-matched channel")
 
@@ -1144,8 +1125,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(fuzzy_matching_user))
 
-    @staticmethod
-    def test_find_user_match_fuzzy_match_on_nick():
+    def test_find_user_match_fuzzy_match_on_nick(self):
         fuzzy_matching_user = mocked_discord_user(
             name="non-matchin-usr", nick="matching-General-uSeR"
         )
@@ -1157,8 +1137,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(fuzzy_matching_user))
 
-    @staticmethod
-    def test_find_user_match_no_match_found():
+    def test_find_user_match_no_match_found(self):
         matched_user = SimpleAsyncDiscord.find_user_that_matches(
             "awesome",
             [
@@ -1169,8 +1148,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(None))
 
-    @staticmethod
-    def test_find_user_match_more_than_one_user_found():
+    def test_find_user_match_more_than_one_user_found(self):
         matched_user = SimpleAsyncDiscord.find_user_that_matches(
             "user",
             [
@@ -1181,8 +1159,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_user, equal_to(None))
 
-    @staticmethod
-    def test_find_user_match_more_than_one_user_found_and_player_informed():
+    def test_find_user_match_more_than_one_user_found_and_player_informed(self):
         sending_player = fake_player(steam_id=1, name="Player")
         matched_user = SimpleAsyncDiscord.find_user_that_matches(
             "user",
@@ -1197,8 +1174,7 @@ class TestSimpleAsyncDiscord:
         verify(sending_player).tell("@matched_user @another-matched-uSEr ")
         assert_that(matched_user, equal_to(None))
 
-    @staticmethod
-    def test_find_channel_match_exact_match():
+    def test_find_channel_match_exact_match(self):
         exact_matching_channel = mocked_discord_channel(name="general")
         other_channel = mocked_discord_channel(name="General")
 
@@ -1208,8 +1184,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_channel, equal_to(exact_matching_channel))
 
-    @staticmethod
-    def test_find_channel_match_case_insensitive_match():
+    def test_find_channel_match_case_insensitive_match(self):
         case_insensitive_matching_channel = mocked_discord_channel(name="GeNeRaL")
         other_channel = mocked_discord_channel(name="non-matched General")
 
@@ -1219,8 +1194,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_channel, equal_to(case_insensitive_matching_channel))
 
-    @staticmethod
-    def test_find_channel_match_fuzzy_match():
+    def test_find_channel_match_fuzzy_match(self):
         fuzzy_matching_channel = mocked_discord_channel(name="matching-GeneRal-channel")
         other_channel = mocked_discord_channel(name="non-matched channel")
 
@@ -1230,8 +1204,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_channel, equal_to(fuzzy_matching_channel))
 
-    @staticmethod
-    def test_find_channel_match_no_match_found():
+    def test_find_channel_match_no_match_found(self):
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches(
             "general",
             [
@@ -1242,8 +1215,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_channel, equal_to(None))
 
-    @staticmethod
-    def test_find_channel_match_more_than_one_channel_found():
+    def test_find_channel_match_more_than_one_channel_found(self):
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches(
             "general",
             [
@@ -1254,8 +1226,7 @@ class TestSimpleAsyncDiscord:
 
         assert_that(matched_channel, equal_to(None))
 
-    @staticmethod
-    def test_find_channel_match_more_than_one_channel_found_and_player_informed():
+    def test_find_channel_match_more_than_one_channel_found_and_player_informed(self):
         sending_player = fake_player(steam_id=1, name="Player")
         matched_channel = SimpleAsyncDiscord.find_channel_that_matches(
             "general",
