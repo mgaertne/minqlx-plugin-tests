@@ -2210,7 +2210,7 @@ class balancetwo(Plugin):
                 )
                 if player_ratings < ratingLimit_min:
                     return (
-                        f"Your {rating_provider_name } skill rating ({player_ratings}) is too low "
+                        f"Your {rating_provider_name} skill rating ({player_ratings}) is too low "
                         f"to play on this server. "
                         f"{rating_provider_name} rating of at least {ratingLimit_min} required."
                     )
@@ -2225,7 +2225,7 @@ class balancetwo(Plugin):
                 )
                 if player_ratings > ratingLimit_max:
                     return (
-                        f"Your {rating_provider_name } skill rating ({player_ratings}) is too high "
+                        f"Your {rating_provider_name} skill rating ({player_ratings}) is too high "
                         f"to play on this server. "
                         f"{rating_provider_name} rating of at most {ratingLimit_max} required."
                     )
@@ -2277,7 +2277,7 @@ class balancetwo(Plugin):
                 )
                 if player_ratings < ratingLimit_min:
                     return (
-                        f"Your {rating_provider_name } skill rating ({player_ratings}) is too low "
+                        f"Your {rating_provider_name} skill rating ({player_ratings}) is too low "
                         f"to play on this server. "
                         f"{rating_provider_name} rating of at least {ratingLimit_min} required."
                     )
@@ -2292,7 +2292,7 @@ class balancetwo(Plugin):
                 )
                 if player_ratings > ratingLimit_max:
                     return (
-                        f"Your {rating_provider_name } skill rating ({player_ratings}) is too high "
+                        f"Your {rating_provider_name} skill rating ({player_ratings}) is too high "
                         f"to play on this server. "
                         f"{rating_provider_name} rating of at most {ratingLimit_max} required."
                     )
@@ -2861,7 +2861,7 @@ class balancetwo(Plugin):
                     continue
                 move_announcements.append(
                     f"server will move {'^7, '.join(result[moved_to])}^7 to"
-                    f" {format_team(moved_to) }"
+                    f" {format_team(moved_to)}"
                 )
 
         if "spectator" in result:
