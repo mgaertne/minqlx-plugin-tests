@@ -66,7 +66,7 @@ legacy_tox_ini = """
     [testenv:ruff]
     deps =
         -rrequirements-dev.txt
-    commands = ruff {posargs:src stubs tests}
+    commands = ruff check {posargs:src stubs tests}
 
     [testenv:mypy]
     deps =
