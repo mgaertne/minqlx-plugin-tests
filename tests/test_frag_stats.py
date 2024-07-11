@@ -21,10 +21,9 @@ class TestFragStats:
     @pytest.fixture(name="fragstats_db")
     def fragstats_db(self):
         self.plugin.database = redis.Redis  # type: ignore
-        db = mock(spec=redis.StrictRedis)
+        db = mock(spec=redis.StrictRedis, strict=False)
         self.plugin._db_instance = db
 
-        when(db).zincrby(any_, any_, any_).thenReturn(None)
         when(db).zincrby(any_, any_, any_).thenReturn(None)
         when(db).set(any_, any_).thenReturn(None)
         yield db
@@ -80,7 +79,9 @@ class TestFragStats:
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{killer.steam_id}:soulz", 1, str(victim.steam_id)
+            f"minqlx:players:{killer.steam_id}:soulz",
+            value=str(victim.steam_id),
+            amount=1,
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -94,7 +95,9 @@ class TestFragStats:
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, str(killer.steam_id)
+            f"minqlx:players:{victim.steam_id}:reaperz",
+            amount=1,
+            value=str(killer.steam_id),
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -132,10 +135,10 @@ class TestFragStats:
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))  # type: ignore
         verify(fragstats_db).zincrby(
-            "minqlx:players:lava:soulz", 1, str(victim.steam_id)
+            "minqlx:players:lava:soulz", amount=1, value=str(victim.steam_id)
         )
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, "lava"
+            f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="lava"
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -150,10 +153,10 @@ class TestFragStats:
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))  # type: ignore
         verify(fragstats_db).zincrby(
-            "minqlx:players:void:soulz", 1, str(victim.steam_id)
+            "minqlx:players:void:soulz", amount=1, value=str(victim.steam_id)
         )
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, "void"
+            f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="void"
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -168,10 +171,10 @@ class TestFragStats:
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))  # type: ignore
         verify(fragstats_db).zincrby(
-            "minqlx:players:acid:soulz", 1, str(victim.steam_id)
+            "minqlx:players:acid:soulz", amount=1, value=str(victim.steam_id)
         )
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, "acid"
+            f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="acid"
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -186,10 +189,10 @@ class TestFragStats:
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))  # type: ignore
         verify(fragstats_db).zincrby(
-            "minqlx:players:drowning:soulz", 1, str(victim.steam_id)
+            "minqlx:players:drowning:soulz", amount=1, value=str(victim.steam_id)
         )
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, "drowning"
+            f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="drowning"
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -204,10 +207,10 @@ class TestFragStats:
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))  # type: ignore
         verify(fragstats_db).zincrby(
-            "minqlx:players:squished:soulz", 1, str(victim.steam_id)
+            "minqlx:players:squished:soulz", amount=1, value=str(victim.steam_id)
         )
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, "squished"
+            f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="squished"
         )
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -222,10 +225,10 @@ class TestFragStats:
 
         assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))  # type: ignore
         verify(fragstats_db).zincrby(
-            "minqlx:players:unknown:soulz", 1, str(victim.steam_id)
+            "minqlx:players:unknown:soulz", amount=1, value=str(victim.steam_id)
         )
         verify(fragstats_db).zincrby(
-            f"minqlx:players:{victim.steam_id}:reaperz", 1, "unknown"
+            f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="unknown"
         )
 
     @pytest.mark.usefixtures("game_in_progress")
