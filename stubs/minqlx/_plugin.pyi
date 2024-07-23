@@ -169,7 +169,7 @@ MeansOfDeath = Literal[
     "KAMIKAZE",
     "JUICED",
     "GRAPPLE",
-    "SWITCH_TEAMS",
+    "SWITCHTEAM",
     "THAW",
     "LIGHTNING_DISCHARGE",
     "HMG",
