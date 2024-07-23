@@ -47,9 +47,7 @@ def setup_game_in_warmup(
     mock_game.map_title = map_title
     mock_game.roundlimit = roundlimit
     mock_game.maxclients = maxclients
-    mock_game.assert_addteamscore = functools.partial(
-        assert_game_addteamscore, mock_game
-    )
+    mock_game.assert_addteamscore = functools.partial(assert_game_addteamscore)
 
 
 def setup_game_in_progress(
