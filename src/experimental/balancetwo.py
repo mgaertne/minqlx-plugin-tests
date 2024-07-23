@@ -5,7 +5,7 @@ Copyright (c) 2020 ShiN0
 
 You are free to modify this plugin to your own one.
 """
-
+import contextlib
 import os
 import math
 import random
@@ -2444,12 +2444,9 @@ class balancetwo(Plugin):
         if steam_id in self.exceptions:
             return True
 
-        if self.db is not None and self.db.get_flag(
+        return self.db is not None and self.db.get_flag(
             steam_id, "balancetwo:ratinglimit_exception", default=False
-        ):
-            return True
-
-        return False
+        )
 
     def handle_player_disconnect(self, player, _reason):
         if self.last_new_player_id == player.steam_id:
@@ -3013,7 +3010,7 @@ class balancetwo(Plugin):
 
             return [(player, moved_to) for player in sorted_team[:amount_players_moved]]
 
-        sorted_team = sorted(  # noqa: C414
+        sorted_team = sorted(
             sorted(relevant_players, key=lambda player: player.stats.damage_dealt),
             key=lambda player: max(player.score, 0),
         )
@@ -3555,10 +3552,8 @@ class KickThread(threading.Thread):
     def try_mute(self):
         @minqlx.next_frame
         def execute(_player):
-            try:  # noqa: SIM105
+            with contextlib.suppress(ValueError):
                 _player.mute()
-            except ValueError:
-                pass
 
         time.sleep(5)
         player = Plugin.player(self.steam_id)
@@ -3573,10 +3568,8 @@ class KickThread(threading.Thread):
     def try_kick(self):
         @minqlx.next_frame
         def execute(_player):
-            try:  # noqa: SIM105
+            with contextlib.suppress(ValueError):
                 _player.kick(f"^1GOT KICKED!^7 {self.kickmsg}")
-            except ValueError:
-                pass
 
         time.sleep(30)
         player = Plugin.player(self.steam_id)

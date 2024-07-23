@@ -29,10 +29,14 @@ class autoready(Plugin):
         self.set_cvar_once("qlx_autoready_disable_manual_readyup", "0")
 
         self.min_players = self.get_cvar("qlx_autoready_min_players", int) or 10
-        self.autostart_delay = self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        self.autostart_delay = (
+            self.get_cvar("qlx_autoready_autostart_delay", int) or 180
+        )
         self.min_counter = self.get_cvar("qlx_autoready_min_seconds", int) or 30
         self.timer_visible = self.get_cvar("qlx_autoready_timer_visible", int) or 60
-        self.disable_player_ready = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
+        self.disable_player_ready = (
+            self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
+        )
 
         self.timer: Union["CountdownThread", None] = None
         self.current_timer = -1
@@ -51,10 +55,7 @@ class autoready(Plugin):
         if len(self.players()) < self.min_players:
             return True
 
-        if self.disable_player_ready and command == "readyup":
-            return False
-
-        return True
+        return not self.disable_player_ready or command != "readyup"
 
     def handle_map_change(self, _mapname, _factory):
         if self.timer is None or not self.timer.is_alive():
@@ -87,7 +88,9 @@ class autoready(Plugin):
         else:
             self.current_timer = self.autostart_delay
 
-        self.timer = CountdownThread(self.current_timer, timed_actions=self.timed_actions())
+        self.timer = CountdownThread(
+            self.current_timer, timed_actions=self.timed_actions()
+        )
         self.timer.start()
 
     def timed_actions(self):
@@ -129,14 +132,18 @@ class autoready(Plugin):
 
         if self.game and self.game.state == "warmup":
             pending_players = [
-                player for player in self.players() if player.stats.ping == -1 and player.team in ["red", "blue"]
+                player
+                for player in self.players()
+                if player.stats.ping == -1 and player.team in ["red", "blue"]
             ]
             for player in pending_players:
                 player.put("spectator")
 
         with self.timer_lock:
             self.timer.stop()
-            self.timer = CountdownThread(self.min_counter, timed_actions=self.timed_actions())
+            self.timer = CountdownThread(
+                self.min_counter, timed_actions=self.timed_actions()
+            )
             self.timer.start()
 
     def handle_game_start(self, _data):
@@ -170,7 +177,8 @@ class CountdownThread(Thread):
         self._remaining = -1
         self._lock = RLock()
         self.timed_actions = {
-            duration: timed_actions[duration] for duration in sorted(timed_actions.keys(), reverse=True)
+            duration: timed_actions[duration]
+            for duration in sorted(timed_actions.keys(), reverse=True)
         }
         self._now = None
 
@@ -192,7 +200,9 @@ class CountdownThread(Thread):
             return
 
         with self._lock:
-            self._remaining = max(int((self._target_time - self._determine_now()).total_seconds()), 0)
+            self._remaining = max(
+                int((self._target_time - self._determine_now()).total_seconds()), 0
+            )
 
     def run(self):
         self._target_time = self.calculate_target_time()
@@ -206,10 +216,14 @@ class CountdownThread(Thread):
 
         remaining = int((self._target_time - self._determine_now()).total_seconds())
 
-        remaining_function = self.determine_timed_action_for_remaining_seconds(remaining)
+        remaining_function = self.determine_timed_action_for_remaining_seconds(
+            remaining
+        )
         remaining_function(remaining)
 
-        sleep_delay = self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        sleep_delay = (
+            self._target_time - timedelta(seconds=remaining) - self._determine_now()
+        )
         if sleep_delay < timedelta(seconds=0.0):
             return
 

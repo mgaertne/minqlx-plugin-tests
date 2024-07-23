@@ -188,10 +188,7 @@ class showdown(Plugin):
         if len(alive_opponents) < self.min_opp:
             return False
 
-        if showdown_player.health < 100:
-            return False
-
-        return True
+        return showdown_player.health >= 100
 
     # noinspection PyMethodMayBeStatic
     def alive_players(self, players):
@@ -403,13 +400,10 @@ class showdown(Plugin):
         if not self.game:
             return False
 
-        if self.game.blue_score == self.game.roundlimit - 1:
-            return False
-
-        if self.game.red_score == self.game.roundlimit - 1:
-            return False
-
-        return True
+        return (
+            self.game.blue_score != self.game.roundlimit - 1
+            and self.game.red_score != self.game.roundlimit - 1
+        )
 
     def announce_player_died(self, alive_r, alive_b):
         if self.showdown_votes is not None:
