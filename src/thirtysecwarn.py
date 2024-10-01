@@ -67,11 +67,11 @@ class thirtysecwarn(Plugin):
             return
         if self.warner_thread_name != warner_thread_name:
             return
-        timeout_begin = minqlx.get_configstring(669)
+        timeout_begin = minqlx.get_configstring(669) or ""
         if len(timeout_begin) != 0:
             return
         round_start = int(minqlx.get_configstring(662))
-        timeout_end = minqlx.get_configstring(670)
+        timeout_end = minqlx.get_configstring(670) or ""
         if len(timeout_end) != 0 and round_start < int(timeout_end):
             return
 
