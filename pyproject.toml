@@ -46,8 +46,9 @@ legacy_tox_ini = """
         3.10: py310
         3.11: py311
         3.12: py312
+        3.13: py313
 
-   [testenv:py3{7,8,9,10,11,12}]
+   [testenv:py3{7,8,9,10,11,12,13}]
     deps =
         -rrequirements-tests.txt
     commands =
@@ -82,6 +83,7 @@ pythonpath = [
     "src",
     "tests",
 ]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.paths]
 source = [
