@@ -37,7 +37,14 @@ env_list = [ "py38", "py39", "py310", "py311", "py312", "coverage", "ruff", "myp
 use_develop = true
 
 [tool.tox.gh-actions]
-python = { "3.8" = "py38", "3.9" = "py39", "3.10" = "py310", "3.11" = "py311", "3.12" = "py312", "3.13 "= "py313" }
+python = """
+    3.8: py38
+    3.9: py39
+    3.10: py310
+    3.11: py311
+    3.12: py312
+    3.13: py313
+"""
 
 [tool.tox.env_run_base]
 deps = ["-rrequirements-tests.txt"]
