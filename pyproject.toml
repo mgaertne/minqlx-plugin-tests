@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.2", "tox"]
+requires = ["setuptools>=61.2", "tox>=4.21"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -33,47 +33,33 @@ include-package-data = false
 find = {namespaces = false}
 
 [tool.tox]
-legacy_tox_ini = """
-    [tox]
-    envlist = py3{7,8,9,10,11,12},coverage,ruff,mypy
-    usedevelop = true
+env_list = [ "py38", "py39", "py310", "py311", "py312", "coverage", "ruff", "mypy" ]
+use_develop = true
 
-    [gh-actions]
-    python =
-        3.7: py37
-        3.8: py38
-        3.9: py39
-        3.10: py310
-        3.11: py311
-        3.12: py312
-        3.13: py313
+[tool.tox.gh-actions]
+python = { "3.8" = "py38", "3.9" = "py39", "3.10" = "py310", "3.11" = "py311", "3.12" = "py312", "3.13 "= "py313" }
 
-   [testenv:py3{7,8,9,10,11,12,13}]
-    deps =
-        -rrequirements-tests.txt
-    commands =
-        pytest {posargs:tests}
+[tool.tox.env_run_base]
+deps = ["-rrequirements-tests.txt"]
+commands = [["pytest", { replace = "posargs", default = [], extend = true }]]
 
-    [testenv:coverage]
-    deps =
-        -rrequirements-dev.txt
-    commands =
-        coverage erase
-        coverage run -m pytest {posargs:tests}
-        coverage report
-        coverage xml
-        coverage html
+[tool.tox.env.coverage]
+deps = ["-rrequirements-dev.txt"]
+commands = [
+    ["coverage", "erase"],
+    ["coverage", "run", "-m", "pytest", { replace = "posargs", default = ["tests"], extend = true }],
+    ["coverage", "report"],
+    ["coverage", "xml"],
+    ["coverage", "html"],
+]
 
-    [testenv:ruff]
-    deps =
-        -rrequirements-dev.txt
-    commands = ruff check {posargs:src stubs tests}
+[tool.tox.env.ruff]
+deps = ["-rrequirements-dev.txt"]
+commands = [[ "ruff", "check", { replace = "posargs", default = ["src", "stubs", "tests"], extend = true }]]
 
-    [testenv:mypy]
-    deps =
-        -rrequirements-dev.txt
-    commands = mypy {posargs}
-"""
+[tool.tox.env.mypy]
+deps = ["-rrequirements-dev.txt"]
+commands = [[ "mypy", { replace = "posargs", default = [], extend = true }]]
 
 [tool.pytest.ini_options]
 testpaths = [
