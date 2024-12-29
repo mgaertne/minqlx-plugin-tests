@@ -1,10 +1,12 @@
 import asyncio
 import threading
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
+from contextlib import suppress
 
 # noinspection PyPackageRequirements
 from discord import PrivacyLevel, EntityType, EventStatus
+from discord.errors import NotFound, Forbidden
 
 # noinspection PyPackageRequirements
 from discord.utils import utcnow
@@ -20,15 +22,25 @@ async def create_and_start_event(bot):
         return
 
     active_event_found = False
+
+    now = datetime.now(timezone.utc)
+
     end_events = []
     for scheduled_event in bot.guilds[0].scheduled_events:
-        if event_name in scheduled_event.name:
-            if not active_event_found and scheduled_event.status == EventStatus.active:
+        if (
+            event_name in scheduled_event.name
+            and scheduled_event.status
+            not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
+            and scheduled_event.end_time is not None
+            and scheduled_event.end_time >= now
+        ):
+            if not active_event_found:
                 active_event_found = True
             else:
                 end_events.append(scheduled_event.delete())
 
-    await asyncio.gather(*end_events)
+    with suppress(NotFound):
+        await asyncio.gather(*end_events)
     if active_event_found:
         return
 
@@ -54,12 +66,21 @@ async def end_event(bot):
     if event_name is None:
         return
 
+    now = datetime.now(timezone.utc)
+
     end_events = []
     for scheduled_event in bot.guilds[0].scheduled_events:
-        if event_name in scheduled_event.name:
+        if (
+            event_name in scheduled_event.name
+            and scheduled_event.status
+            not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
+            and scheduled_event.end_time is not None
+            and scheduled_event.end_time >= now
+        ):
             end_events.append(scheduled_event.end())
 
-    await asyncio.gather(*end_events)
+    with suppress(Forbidden):
+        await asyncio.gather(*end_events)
 
 
 def check_playing_activity(bot):
