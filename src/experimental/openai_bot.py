@@ -7,16 +7,20 @@ You are free to modify this plugin to your own one.
 
 You need to install openai in your python installation, i.e. python3 -m pip install -U openai
 """
+
 import re
 import time
+import asyncio
 from datetime import datetime, timezone
 from threading import RLock
+
+import redis
 
 import emoji
 
 # noinspection PyPackageRequirements
 import tiktoken
-from openai import OpenAIError, OpenAI
+from openai import OpenAIError, AsyncOpenAI
 
 import minqlx
 from minqlx import Plugin, CHAT_CHANNEL
@@ -33,9 +37,6 @@ def num_tokens_from_messages(messages, *, model="gpt-3.5-turbo-0301"):
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
         encoding = tiktoken.get_encoding("cl100k_base")
-
-    if model not in ["gpt-3.5-turbo-0301", "gpt-3.5-turbo"]:
-        return -1
 
     num_tokens = 0
     for message in messages:
@@ -249,22 +250,25 @@ class openai_bot(Plugin):
         threaded_summary(contextualized_messages)
 
     def _gather_completion(self, messages):
-        client = OpenAI(api_key=self.bot_api_key)
-        try:
-            completion = client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                max_tokens=self.max_tokens,
-                n=1,
-                top_p=self.top_p,
-                stop=None,
-                temperature=self.temperature,
-                frequency_penalty=self.frequency_penalty,
-                presence_penalty=self.presence_penalty,
-            )
-        except OpenAIError as e:
-            self.logger.debug(f"Exception from openai API: {e}")
-            return None
+        async def completion():
+            client = AsyncOpenAI(api_key=self.bot_api_key)
+            try:
+                return await client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    max_tokens=self.max_tokens,
+                    n=1,
+                    top_p=self.top_p,
+                    stop=None,
+                    temperature=self.temperature,
+                    frequency_penalty=self.frequency_penalty,
+                    presence_penalty=self.presence_penalty,
+                )
+            except OpenAIError as e:
+                self.logger.debug(f"Exception from openai API: {e}")
+                return None
+
+        completion = asyncio.run(completion())
         return self._cleanup_choice(self._pick_choice(completion))
 
     @staticmethod
@@ -287,11 +291,17 @@ class openai_bot(Plugin):
     @minqlx.thread
     def _record_chat_line(self, message, *, lock):
         with lock:
-            self.db.zadd(
-                CHAT_BOT_LOG,
-                int(datetime.strftime(datetime.now(), DATETIMEFORMAT)),
-                message,
-            )
+            if redis.VERSION >= (3,):
+                self.db.zadd(
+                    CHAT_BOT_LOG,
+                    {message: int(datetime.strftime(datetime.now(), DATETIMEFORMAT))},
+                )
+            else:
+                self.db.zadd(
+                    CHAT_BOT_LOG,
+                    int(datetime.strftime(datetime.now(), DATETIMEFORMAT)),
+                    message,
+                )
 
     def _send_message(self, communication_channel, message):
         communication_channel.reply(
@@ -480,6 +490,7 @@ class openai_bot(Plugin):
         return team_status
 
     def handle_player_connect(self, player):
+        self.logger.debug("enter")
         self.recently_connected_steam_ids.add(player.steam_id)
         self._remove_recently_connected(player.steam_id)
 
@@ -539,11 +550,13 @@ class openai_bot(Plugin):
 
     @minqlx.thread
     def _list_models_in_thread(self, player):
-        client = OpenAI(api_key=self.bot_api_key)
-        available_models = client.models.list()
-        formatted_models = ", ".join(
-            [model.id for model in available_models.data]
-        )
+        async def _list_models_async():
+            client = AsyncOpenAI(api_key=self.bot_api_key)
+            return await client.models.list()
+
+        available_models = asyncio.run(_list_models_async())
+
+        formatted_models = ", ".join([model.id for model in available_models.data])
         player.tell(f"Available models: {formatted_models}")
 
     def cmd_switch_model(self, player, msg, _channel):
@@ -555,8 +568,11 @@ class openai_bot(Plugin):
 
     @minqlx.thread
     def _switch_model_in_thread(self, player, model):
-        client = OpenAI(api_key=self.bot_api_key)
-        available_models = client.models.list()
+        async def _list_models_async():
+            client = AsyncOpenAI(api_key=self.bot_api_key)
+            return await client.models.list()
+
+        available_models = asyncio.run(_list_models_async())
         available_model_names = [model.id for model in available_models.data]
 
         if model not in available_model_names:
