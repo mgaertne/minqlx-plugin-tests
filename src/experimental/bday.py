@@ -421,9 +421,7 @@ class bday(Plugin):
         if this_years_map_picks_key not in self.db:
             return True
 
-        maps_picked_this_year = int(
-            self.db[f"{BDAY_KEY.format(player.steam_id)}:{datetime.today().year}"]
-        )
+        maps_picked_this_year = int(self.db[this_years_map_picks_key])
         return maps_picked_this_year < self.number_of_bday_maps
 
     def resolve_short_mapname(self, mapstring, player):
