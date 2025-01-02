@@ -1,4 +1,5 @@
 import threading
+from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -37,6 +38,7 @@ class TestEvent:
     @pytest.fixture(name="mocked_active_event")
     def _event(self):
         mocked_event = mock(spec=ScheduledEvent)
+        mocked_event.end_time = datetime.now(timezone.utc) + timedelta(hours=5)
         mocked_event.end = AsyncMock()
         mocked_event.delete = AsyncMock()
         mocked_event.name = "event name"
@@ -89,7 +91,7 @@ class TestEvent:
         mocked_guild.create_scheduled_event.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_create_and_start_event_deletes_existing_event_that_did_not_start_yet(
+    async def test_create_and_start_event_with_existing_event_that_did_not_start_yet(
         self, bot, mocked_guild, mocked_active_event
     ):
         mocked_active_event.status = EventStatus.scheduled
@@ -97,7 +99,7 @@ class TestEvent:
 
         await event.create_and_start_event(bot)
 
-        mocked_active_event.delete.assert_awaited_once()
+        mocked_active_event.delete.assert_not_awaited()
         mocked_guild.create_scheduled_event.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -154,7 +156,7 @@ class TestEvent:
 
         await event.end_event(bot)
 
-        mocked_active_event.end.assert_awaited_once()
+        mocked_active_event.end.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_end_event_with_non_configured_event_name(
