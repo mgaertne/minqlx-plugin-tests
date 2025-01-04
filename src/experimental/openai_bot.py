@@ -249,26 +249,26 @@ class openai_bot(Plugin):
         ]
         threaded_summary(contextualized_messages)
 
-    def _gather_completion(self, messages):
-        async def completion():
-            client = AsyncOpenAI(api_key=self.bot_api_key)
-            try:
-                return await client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=self.max_tokens,
-                    n=1,
-                    top_p=self.top_p,
-                    stop=None,
-                    temperature=self.temperature,
-                    frequency_penalty=self.frequency_penalty,
-                    presence_penalty=self.presence_penalty,
-                )
-            except OpenAIError as e:
-                self.logger.debug(f"Exception from openai API: {e}")
-                return None
+    async def _completion(self, messages):
+        client = AsyncOpenAI(api_key=self.bot_api_key)
+        try:
+            return await client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                max_tokens=self.max_tokens,
+                n=1,
+                top_p=self.top_p,
+                stop=None,
+                temperature=self.temperature,
+                frequency_penalty=self.frequency_penalty,
+                presence_penalty=self.presence_penalty,
+            )
+        except OpenAIError as e:
+            self.logger.debug(f"Exception from openai API: {e}")
+            return None
 
-        completion = asyncio.run(completion())
+    def _gather_completion(self, messages):
+        completion = asyncio.run(self._completion(messages))
         return self._cleanup_choice(self._pick_choice(completion))
 
     @staticmethod

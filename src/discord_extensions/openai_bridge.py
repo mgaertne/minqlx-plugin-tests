@@ -87,7 +87,11 @@ class OpenAIBridge(Cog):
             )
 
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            response = openai_bot_plugin._gather_completion(message_history)
+            completion = await openai_bot_plugin._completion(message_history)
+            # noinspection PyProtectedMember,PyUnresolvedReferences
+            response = openai_bot_plugin._cleanup_choice(
+                openai_bot_plugin._pick_choice(completion)
+            )
             if response is None:
                 return
             # noinspection PyProtectedMember,PyUnresolvedReferences
