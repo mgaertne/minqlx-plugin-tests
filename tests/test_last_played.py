@@ -184,7 +184,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(player, "!last_played".split(), mock_channel)
+        self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(any_, times=0)
 
@@ -199,7 +199,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(player, "!last_played".split(), mock_channel)
+        self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("I don't know when map .*campgrounds.* was played the last time.")
@@ -223,7 +223,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(player, "!last_played".split(), mock_channel)
+        self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("Map .*campgrounds.* was last played .* ago here.")
@@ -244,7 +244,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(player, "!last_played".split(), mock_channel)
+        self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("Map .*campgrounds.* was last played .* ago here.")
@@ -268,7 +268,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(player, "!last_played".split(), mock_channel)
+        self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -294,7 +294,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(player, "!last_played".split(), mock_channel)
+        self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("Map .*campgrounds.* was last played .* ago here. So did you.")
@@ -319,7 +319,7 @@ class TestLastPlayed:
         connected_players(player)
 
         self.plugin.cmd_last_played(
-            player, "!last_played thunderstruck".split(), mock_channel
+            player, ["!last_played", "thunderstruck"], mock_channel
         )
 
         mock_channel.assert_was_replied(
@@ -348,9 +348,7 @@ class TestLastPlayed:
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(
-            player, "!last_played ra3fusy1d".split(), mock_channel
-        )
+        self.plugin.cmd_last_played(player, ["!last_played", "ra3fusy1d"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -381,7 +379,7 @@ class TestLastPlayed:
         connected_players(player)
 
         self.plugin.cmd_last_played(
-            player, "!last_played ethra3map1".split(), mock_channel
+            player, ["!last_played", "ethra3map1"], mock_channel
         )
 
         mock_channel.assert_was_replied(

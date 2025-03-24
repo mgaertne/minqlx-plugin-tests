@@ -43,6 +43,7 @@ class TestCustomModesVote:
 
     def test_handle_map_change_no_default_mode_configured(self):
         self.plugin.mode = "vql"
+        # noinspection PyTypeChecker
         self.plugin.default_mode = None
 
         self.plugin.handle_map_change("campgrounds", "ca")
@@ -120,7 +121,7 @@ class TestCustomModesVote:
     def test_cmd_switch_mode_no_mode_given(self):
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_switch_mode(
-            fake_player(123, "Admin"), "!mode".split(), None
+            fake_player(123, "Admin"), ["!mode"], None
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -128,7 +129,7 @@ class TestCustomModesVote:
     def test_cmd_switch_mode_too_many_parameters_given(self):
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_switch_mode(
-            fake_player(123, "Admin"), "!mode asdf qwertz".split(), None
+            fake_player(123, "Admin"), ["!mode", "asdf", "qwertz"], None
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -136,7 +137,7 @@ class TestCustomModesVote:
     def test_cmd_switch_mode_unavailable_mode(self):
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_switch_mode(
-            fake_player(123, "Admin"), "!mode unavailable".split(), None
+            fake_player(123, "Admin"), ["!mode", "unavailable"], None
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -144,7 +145,7 @@ class TestCustomModesVote:
     def test_cmd_switch_mode_to_available_mode(self):
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_switch_mode(
-            fake_player(123, "Admin"), "!mode pql".split(), None
+            fake_player(123, "Admin"), ["!mode", "pql"], None
         )
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))

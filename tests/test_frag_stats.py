@@ -249,7 +249,7 @@ class TestFragStats:
 
         connected_players(player)
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("Issuing Player.* didn't reap any soulz, yet.")
@@ -275,7 +275,7 @@ class TestFragStats:
             f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name"
         ).thenReturn(disconnected_killed2.name)
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -314,7 +314,7 @@ class TestFragStats:
             (player.steam_id, killed3.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -341,7 +341,7 @@ class TestFragStats:
             (fragging_player.steam_id, killed3.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz Fragging".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "Fragging"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -422,7 +422,7 @@ class TestFragStats:
 
         connected_players(player)
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz Non-existent".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "Non-existent"], mock_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
 
@@ -432,7 +432,7 @@ class TestFragStats:
 
         connected_players(player)
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz lava".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "lava"], mock_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
         mock_channel.assert_was_replied(any_, times=0)  # type: ignore
@@ -447,7 +447,7 @@ class TestFragStats:
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz Killed".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "Killed"], mock_channel)
 
         assert_player_was_told(player, matches(".*4.* players matched.*"))
 
@@ -466,7 +466,7 @@ class TestFragStats:
             ("void", player.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz !lava".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!lava"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaped soulz for lava.*: Fragged Player.* \(2\)")
@@ -491,7 +491,7 @@ class TestFragStats:
             ("void", player.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz !void".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!void"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaped soulz for void.*: Issuing Player.* \(1\)")
@@ -516,7 +516,7 @@ class TestFragStats:
             ("void", player.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz !drowning".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!drowning"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaped soulz for drowning.*: Issuing Player.* \(1\)")
@@ -541,7 +541,7 @@ class TestFragStats:
             ("void", player.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz !acid".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!acid"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaped soulz for acid.*: Fragged Player.* \(1\)")
@@ -566,7 +566,7 @@ class TestFragStats:
             ("void", player.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz !unknown".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!unknown"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaped soulz for unknown.*: Fragged Player.* \(1\)")
@@ -587,7 +587,7 @@ class TestFragStats:
             ("void", player.steam_id),
         ]
 
-        self.plugin.cmd_mapsoulz(player, "!mapsoulz !telefrag".split(), mock_channel)
+        self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "!telefrag"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaped soulz for telefrag.*: Fragged Player.* \(2\)")
@@ -599,7 +599,7 @@ class TestFragStats:
 
         connected_players(player)
 
-        self.plugin.cmd_mapreaperz(player, "!mapreaperz".split(), mock_channel)
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("Issuing Player.*'s soul was not reaped by anyone, yet.")
@@ -635,7 +635,7 @@ class TestFragStats:
             (killer3.steam_id, player.steam_id),
         ]
 
-        self.plugin.cmd_mapreaperz(player, "!mapreaperz".split(), mock_channel)
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -662,7 +662,7 @@ class TestFragStats:
             (killer3.steam_id, fragged_player.steam_id),
         ]
 
-        self.plugin.cmd_mapreaperz(player, "!mapreaperz fragged".split(), mock_channel)
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz", "fragged"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -677,7 +677,7 @@ class TestFragStats:
         connected_players(player)
 
         self.plugin.cmd_mapreaperz(
-            player, "!mapreaperz Non-existent".split(), mock_channel
+            player, ["!mapreaperz", "Non-existent"], mock_channel
         )
 
         assert_player_was_told(player, matches(".*no players matched.*"))
@@ -692,7 +692,7 @@ class TestFragStats:
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        self.plugin.cmd_mapreaperz(player, "!mapreaperz Killed".split(), mock_channel)
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz", "Killed"], mock_channel)
 
         assert_player_was_told(player, matches(".*4.* players matched.*"))
 
@@ -711,7 +711,7 @@ class TestFragStats:
             ("void", fragged_player.steam_id),
         ]
 
-        self.plugin.cmd_mapreaperz(player, "!mapreaperz Fragged".split(), mock_channel)
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz", "Fragged"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -734,9 +734,7 @@ class TestFragStats:
             ("void", fragged_player.steam_id),
         ]
 
-        self.plugin.cmd_mapreaperz(
-            player, "!mapreaperz !telefrag".split(), mock_channel
-        )
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz", "!telefrag"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Top 10 reaperz of telefrag.*'s soul: Fragged Player\^7 \(2\)")
@@ -764,7 +762,7 @@ class TestFragStats:
             f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name"
         ).thenReturn(disconnected_killed2.name)
 
-        self.plugin.cmd_mapreaperz(player, "!mapreaperz".split(), mock_channel)
+        self.plugin.cmd_mapreaperz(player, ["!mapreaperz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -791,7 +789,7 @@ class TestFragStats:
             withscores=True,
         ).thenReturn([])
 
-        self.plugin.cmd_soulzbalance(player, "!soulz".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches("Issuing Player.* didn't reap any soulz.*, yet.")
@@ -826,7 +824,7 @@ class TestFragStats:
             f"minqlx:players:{disconnected_killed2.steam_id}:last_used_name"
         ).thenReturn(disconnected_killed2.name)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -872,7 +870,7 @@ class TestFragStats:
             ]
         )
 
-        self.plugin.cmd_soulzbalance(player, "!soulz".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -907,7 +905,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", fragging_player.steam_id
         ).thenReturn(None)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz Fragging".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "Fragging"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(
@@ -981,9 +979,7 @@ class TestFragStats:
 
         connected_players(player)
 
-        self.plugin.cmd_soulzbalance(
-            player, "!soulz Non-existent".split(), mock_channel
-        )
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "Non-existent"], mock_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
 
@@ -993,7 +989,7 @@ class TestFragStats:
 
         connected_players(player)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz lava".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "lava"], mock_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
         mock_channel.assert_was_replied(any_, times=0)  # type: ignore
@@ -1010,7 +1006,7 @@ class TestFragStats:
         killed4 = fake_player(7, "Killed4", team="blue")
         connected_players(player, killed1, killed2, killed3, killed4)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz Killed".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "Killed"], mock_channel)
 
         assert_player_was_told(player, matches(".*4.* players matched.*"))
 
@@ -1029,7 +1025,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", "lava"
         ).thenReturn(2)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz !lava".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "!lava"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"lava.* leads by \^12\^7 soulz vs. Issuing Player.* \(2/0\)")
@@ -1050,7 +1046,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", "void"
         ).thenReturn(1)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz !void".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "!void"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"void.* leads by \^11\^7 soulz vs. Issuing Player.* \(1/0\)")
@@ -1071,7 +1067,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", "drowning"
         ).thenReturn(1)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz !drowning".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "!drowning"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"drowning.* leads by \^11\^7 soulz vs. Issuing Player.* \(1/0\)")
@@ -1092,7 +1088,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", "acid"
         ).thenReturn(1)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz !acid".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "!acid"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"acid.* leads by \^11\^7 soulz vs. Issuing Player.* \(1/0\)")
@@ -1113,7 +1109,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", "unknown"
         ).thenReturn(1)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz !unknown".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "!unknown"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"unknown.* leads by \^11\^7 soulz vs. Issuing Player.* \(1/0\)")
@@ -1134,7 +1130,7 @@ class TestFragStats:
             f"minqlx:players:{player.steam_id}:reaperz", "telefrag"
         ).thenReturn(5)
 
-        self.plugin.cmd_soulzbalance(player, "!soulz !telefrag".split(), mock_channel)
+        self.plugin.cmd_soulzbalance(player, ["!soulz", "!telefrag"], mock_channel)
 
         mock_channel.assert_was_replied(
             matches(r"Issuing Player.* leads by \^22\^7 soulz vs. telefrag.* \(7/5\)")
@@ -1178,9 +1174,7 @@ class TestFragStats:
             ]
         )
 
-        self.plugin.cmd_soulzbalance(
-            player, "!soulz".split(), minqlx.RED_TEAM_CHAT_CHANNEL
-        )
+        self.plugin.cmd_soulzbalance(player, ["!soulz"], minqlx.RED_TEAM_CHAT_CHANNEL)
 
         mock_channel.assert_was_replied(
             matches(r"Best 5 soul balance for Issuing Player.*")

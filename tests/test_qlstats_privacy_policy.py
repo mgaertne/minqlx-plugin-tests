@@ -642,9 +642,8 @@ class TestQlstatsPrivacyPolicy:
         admin_player = fake_player(123, "Admin Player")
         connected_players(admin_player)
 
-        # noinspection PyTypeChecker
         return_code = self.plugin.cmd_policy_exception(
-            admin_player, "!except".split(), mock_channel
+            admin_player, ["!except"], mock_channel
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -655,9 +654,8 @@ class TestQlstatsPrivacyPolicy:
         exception_player = fake_player(456, "Excepted Player")
         connected_players(admin_player, exception_player)
 
-        # noinspection PyTypeChecker
         self.plugin.cmd_policy_exception(
-            admin_player, "!except except".split(), mock_channel
+            admin_player, ["!except", "except"], mock_channel
         )
 
         assert_that(self.plugin.exceptions, equal_to({exception_player.steam_id}))
@@ -667,9 +665,8 @@ class TestQlstatsPrivacyPolicy:
         admin_player = fake_player(123, "Admin Player")
         connected_players(admin_player)
 
-        # noinspection PyTypeChecker
         self.plugin.cmd_policy_exception(
-            admin_player, "!except except".split(), mock_channel
+            admin_player, ["!except", "except"], mock_channel
         )
 
         assert_player_was_told(admin_player, matches(".*Could not find player.*"))
@@ -682,7 +679,7 @@ class TestQlstatsPrivacyPolicy:
 
         # noinspection PyTypeChecker
         self.plugin.cmd_policy_exception(
-            admin_player, "!except player".split(), mock_channel
+            admin_player, ["!except", "player"], mock_channel
         )
 
         assert_player_was_told(
@@ -692,7 +689,7 @@ class TestQlstatsPrivacyPolicy:
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_disable_policy_check(self, mock_channel):
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*QLStats policy check disabled.*"))
         assert_that(self.plugin.plugin_enabled, equal_to(False))
@@ -704,7 +701,7 @@ class TestQlstatsPrivacyPolicy:
         connected_players()
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         assert_that(self.plugin.plugin_enabled, equal_to(False))
 
@@ -714,7 +711,7 @@ class TestQlstatsPrivacyPolicy:
         connected_players()
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         assert_that(self.plugin.plugin_enabled, equal_to(True))
         mock_channel.assert_was_replied(matches(".*QLStats policy check enabled.*"))
@@ -730,7 +727,7 @@ class TestQlstatsPrivacyPolicy:
         )
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         assert_player_was_put_on(red_player, "spectator", times=0)
         assert_player_was_told(red_player, any, times=0)
@@ -753,7 +750,7 @@ class TestQlstatsPrivacyPolicy:
         self.setup_balance_playerprivacy([])
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         assert_player_was_put_on(red_player, "spectator")
         assert_player_was_told(red_player, matches(".*couldn't fetch your ratings.*"))
@@ -769,7 +766,7 @@ class TestQlstatsPrivacyPolicy:
         when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
 
         verify(self.plugin).delayed_kick(kicked_player.steam_id, any_)
 
@@ -778,7 +775,7 @@ class TestQlstatsPrivacyPolicy:
         self.plugin.plugin_enabled = True
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy status".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy", "status"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*enabled.*"))
 
@@ -787,7 +784,7 @@ class TestQlstatsPrivacyPolicy:
         self.plugin.plugin_enabled = False
 
         # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, "!policy status".split(), mock_channel)
+        self.plugin.cmd_switch_plugin(None, ["!policy", "status"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*disabled.*"))
 
@@ -795,7 +792,7 @@ class TestQlstatsPrivacyPolicy:
     def test_cmd_switch_plugin_shows_usage(self, mock_channel):
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_switch_plugin(
-            None, "!policy asdf".split(), mock_channel
+            None, ["!policy", "asdf"], mock_channel
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -804,7 +801,7 @@ class TestQlstatsPrivacyPolicy:
     def test_cmd_switch_plugin_shows_usage_for_too_many_parameters(self, mock_channel):
         # noinspection PyTypeChecker
         return_code = self.plugin.cmd_switch_plugin(
-            None, "!policy too many parameters".split(), mock_channel
+            None, ["!policy", "too", "many", "parameters"], mock_channel
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))

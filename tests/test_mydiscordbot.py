@@ -201,7 +201,7 @@ class TestMyDiscordBotTests:
 
     def test_cmd_discord_message_too_short(self):
         response = self.plugin.cmd_discord(
-            fake_player(1, "Triggering Player"), "!discord".split(), minqlx.CHAT_CHANNEL
+            fake_player(1, "Triggering Player"), ["!discord"], minqlx.CHAT_CHANNEL
         )
 
         assert_that(response, equal_to(minqlx.RET_USAGE))
@@ -209,7 +209,7 @@ class TestMyDiscordBotTests:
     def test_cmd_discord_message_triggered(self):
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discord(
-            triggering_player, "!discord asdf".split(), minqlx.CHAT_CHANNEL
+            triggering_player, ["!discord", "asdf"], minqlx.CHAT_CHANNEL
         )
 
         verify(self.discord).triggered_message(triggering_player, "asdf")
@@ -339,7 +339,7 @@ class TestMyDiscordBotTests:
     def test_cmd_discordbot_invalid(self):
         triggering_player = fake_player(1, "Triggering Player")
         return_code = self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot asdf".split(), minqlx.CHAT_CHANNEL
+            triggering_player, ["!discordbot", "asdf"], minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -347,7 +347,7 @@ class TestMyDiscordBotTests:
     def test_cmd_discordbot_too_many_arguments(self):
         triggering_player = fake_player(1, "Triggering Player")
         return_code = self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot statusasdf".split(), minqlx.CHAT_CHANNEL
+            triggering_player, ["!discordbot", "statusasdf"], minqlx.CHAT_CHANNEL
         )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
@@ -356,7 +356,7 @@ class TestMyDiscordBotTests:
         when(self.discord).status().thenReturn("Discord status message")
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot status".split(), mock_channel
+            triggering_player, ["!discordbot", "status"], mock_channel
         )
 
         mock_channel.assert_was_replied("Discord status message")
@@ -364,16 +364,14 @@ class TestMyDiscordBotTests:
     def test_cmd_discordbot_status2(self, mock_channel):
         when(self.discord).status().thenReturn("Discord status message")
         triggering_player = fake_player(1, "Triggering Player")
-        self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot".split(), mock_channel
-        )
+        self.plugin.cmd_discordbot(triggering_player, ["!discordbot"], mock_channel)
 
         mock_channel.assert_was_replied("Discord status message")
 
     def test_cmd_discordbot_connect(self, mock_channel):
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot connect".split(), mock_channel
+            triggering_player, ["!discordbot", "connect"], mock_channel
         )
 
         mock_channel.assert_was_replied("Connecting to Discord...")
@@ -383,7 +381,7 @@ class TestMyDiscordBotTests:
         when(self.discord).is_discord_logged_in().thenReturn(True)
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot connect".split(), mock_channel
+            triggering_player, ["!discordbot", "connect"], mock_channel
         )
 
         mock_channel.assert_was_replied("Connecting to Discord...")
@@ -393,7 +391,7 @@ class TestMyDiscordBotTests:
         when(self.discord).is_discord_logged_in().thenReturn(True)
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot disconnect".split(), mock_channel
+            triggering_player, ["!discordbot", "disconnect"], mock_channel
         )
 
         mock_channel.assert_was_replied("Disconnecting from Discord...")
@@ -403,7 +401,7 @@ class TestMyDiscordBotTests:
         when(self.discord).is_discord_logged_in().thenReturn(False)
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot disconnect".split(), mock_channel
+            triggering_player, ["!discordbot", "disconnect"], mock_channel
         )
 
         mock_channel.assert_was_replied("Disconnecting from Discord...")
@@ -413,7 +411,7 @@ class TestMyDiscordBotTests:
         when(self.discord).is_discord_logged_in().thenReturn(True).thenReturn(False)
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot reconnect".split(), mock_channel
+            triggering_player, ["!discordbot", "reconnect"], mock_channel
         )
 
         mock_channel.assert_was_replied("Reconnecting to Discord...")
@@ -424,7 +422,7 @@ class TestMyDiscordBotTests:
         when(self.discord).is_discord_logged_in().thenReturn(False)
         triggering_player = fake_player(1, "Triggering Player")
         self.plugin.cmd_discordbot(
-            triggering_player, "!discordbot reconnect".split(), mock_channel
+            triggering_player, ["!discordbot", "reconnect"], mock_channel
         )
 
         mock_channel.assert_was_replied("Reconnecting to Discord...")
