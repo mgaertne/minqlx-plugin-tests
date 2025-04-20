@@ -16,7 +16,11 @@ from minqlx_plugin_test import setup_cvars
 import minqlx
 
 from discord_extensions import admin
-from discord_extensions.admin import AdminCog, DiscordInteractionChannel, DiscordInteractionPlayer
+from discord_extensions.admin import (
+    AdminCog,
+    DiscordInteractionChannel,
+    DiscordInteractionPlayer,
+)
 
 
 class ThreadContextManager:
@@ -462,7 +466,9 @@ class TestAdmin:
 
         await extension.slash_qlx(interaction, "!allowed_command exec to minqlx")
 
-        verify(minqlx.COMMANDS).handle_input(any, "!allowed_command exec to minqlx", any)
+        verify(minqlx.COMMANDS).handle_input(
+            any, "!allowed_command exec to minqlx", any
+        )
 
     @pytest.mark.asyncio
     async def test_bot_setup_called(self, bot):
@@ -547,13 +553,13 @@ class TestDiscordInteractionPlayer:
 
     @pytest.mark.asyncio
     async def test_tell(self, user, message, event_loop):
-        player = DiscordInteractionPlayer(
-            user, message, loop=event_loop
-        )
+        player = DiscordInteractionPlayer(user, message, loop=event_loop)
 
         player.tell("Hi there")
 
         while len(asyncio.all_tasks(loop=event_loop)) > 1:
             await asyncio.sleep(0.1)
         message.edit.assert_awaited_once()
-        assert_that(message.edit.await_args.kwargs["embed"].description, equal_to("Hi there"))
+        assert_that(
+            message.edit.await_args.kwargs["embed"].description, equal_to("Hi there")
+        )
