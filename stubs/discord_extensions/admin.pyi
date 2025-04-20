@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     # noinspection PyPackageRequirements
     import discord.utils
 
-class DiscordInteractionChannel(AbstractChannel, AbstractDummyPlayer):
+class DiscordInteractionChannel(AbstractChannel):
     user: User
     message: Message
     loop: AbstractEventLoop
@@ -25,13 +25,21 @@ class DiscordInteractionChannel(AbstractChannel, AbstractDummyPlayer):
     def __init__(
         self, user: User, message: Message, *, loop: AbstractEventLoop
     ) -> None: ...
+    async def expand_original_reply(self, content: str) -> None: ...
+    def reply(self, msg: str, _limit: int = ..., _delimiter: str = ...) -> None: ...
+
+class DiscordInteractionPlayer(AbstractDummyPlayer):
+    user: User
+    message: Message
+    loop: AbstractEventLoop
+    def __init__(
+        self, user: User, message: Message, *, loop: AbstractEventLoop
+    ) -> None: ...
     @property
     def steam_id(self) -> int | None: ...
     @property
     def channel(self) -> AbstractChannel: ...
-    async def expand_original_reply(self, content: str) -> None: ...
     def tell(self, msg: str, **_kwargs: dict) -> None: ...
-    def reply(self, msg: str, _limit: int = ..., _delimiter: str = ...) -> None: ...
 
 class AdminCog(Cog):
     bot: Bot

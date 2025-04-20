@@ -16,7 +16,7 @@ from minqlx_plugin_test import setup_cvars
 import minqlx
 
 from discord_extensions import admin
-from discord_extensions.admin import AdminCog, DiscordInteractionChannel
+from discord_extensions.admin import AdminCog, DiscordInteractionChannel, DiscordInteractionPlayer
 
 
 class ThreadContextManager:
@@ -192,8 +192,6 @@ class TestAdmin:
 
     @pytest.mark.asyncio
     async def test_qlx_executes_command(self, bot, exec_context, user):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         exec_context.message.content = "!exec exec to minqlx"
         exec_context.message.author = user
         exec_context.author = user
@@ -219,7 +217,6 @@ class TestAdmin:
         spy2(minqlx.COMMANDS.handle_input)
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenRaise(Exception())
 
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
@@ -240,8 +237,6 @@ class TestAdmin:
     async def test_qlx_notifies_discord_user_about_execution(
         self, bot, exec_context, user
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         exec_context.message.content = "!exec exec to minqlx"
         exec_context.message.author = user
         exec_context.author = user
@@ -266,8 +261,6 @@ class TestAdmin:
     async def test_qlx_execute_for_command_not_in_whitelist(
         self, bot, exec_context, user
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         setup_cvars(
             {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
         )
@@ -296,8 +289,6 @@ class TestAdmin:
     async def test_qlx_execute_for_command_allowed_in_whitelist(
         self, bot, exec_context, user
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         setup_cvars(
             {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
         )
@@ -324,8 +315,6 @@ class TestAdmin:
     async def test_slash_qlx_executes_command_when_user_is_not_authed(
         self, bot, interaction, user, guild_channel
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -350,8 +339,6 @@ class TestAdmin:
     async def test_slash_qlx_executes_command(
         self, bot, interaction, user, guild_channel
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -380,7 +367,6 @@ class TestAdmin:
         spy2(minqlx.COMMANDS.handle_input)
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenRaise(Exception())
 
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
@@ -403,8 +389,6 @@ class TestAdmin:
     async def test_slash_qlx_notifies_discord_user_about_execution(
         self, bot, interaction, user, guild_channel
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -430,8 +414,6 @@ class TestAdmin:
     async def test_slash_qlx_execute_for_command_not_in_whitelist(
         self, bot, interaction, user, guild_channel
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         setup_cvars(
             {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
         )
@@ -461,8 +443,6 @@ class TestAdmin:
     async def test_slash_qlx_execute_for_command_allowed_in_whitelist(
         self, bot, interaction, user, guild_channel
     ):
-        patch(minqlx.PlayerInfo, lambda *args: mock(spec=minqlx.PlayerInfo))
-
         setup_cvars(
             {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
         )
@@ -482,9 +462,7 @@ class TestAdmin:
 
         await extension.slash_qlx(interaction, "!allowed_command exec to minqlx")
 
-        verify(minqlx.COMMANDS).handle_input(
-            any, "!allowed_command exec to minqlx", any
-        )
+        verify(minqlx.COMMANDS).handle_input(any, "!allowed_command exec to minqlx", any)
 
     @pytest.mark.asyncio
     async def test_bot_setup_called(self, bot):
@@ -494,31 +472,20 @@ class TestAdmin:
         assert_that(isinstance(bot.add_cog.call_args.args[0], AdminCog), equal_to(True))
 
 
+@pytest.fixture(name="message")
+def _message():
+    message = mock(spec=InteractionResponse)
+    message.edit = AsyncMock()
+
+    yield message
+
+    unstub(message)
+
+
 class TestDiscordInteractionChannel:
-    @pytest.fixture(name="message")
-    def message(self):
-        message = mock(spec=InteractionResponse)
-        message.edit = AsyncMock()
-
-        yield message
-
-        unstub(message)
-
     # noinspection PyMethodMayBeStatic
     def teardown_method(self):
         unstub()
-
-    def test_steam_id(self, user, event_loop, message):
-        setup_cvars({"qlx_owner": "42"})
-
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
-
-        assert_that(channel.steam_id, equal_to(42))
-
-    def test_channel(self, user, event_loop, message):
-        channel = DiscordInteractionChannel(user, message, loop=event_loop)
-
-        assert_that(channel.channel, equal_to(channel))
 
     @pytest.mark.asyncio
     async def test_expand_original_reply_fills_initial_description(self, user, message):
@@ -550,17 +517,6 @@ class TestDiscordInteractionChannel:
         )
 
     @pytest.mark.asyncio
-    async def test_tell(self, user, message):
-        channel = DiscordInteractionChannel(
-            user, message, loop=asyncio.get_running_loop()
-        )
-        spy2(channel.expand_original_reply)
-
-        channel.tell("Hi there")
-
-        verify(channel).expand_original_reply(content="Hi there")
-
-    @pytest.mark.asyncio
     async def test_reply(self, user, message):
         channel = DiscordInteractionChannel(
             user, message, loop=asyncio.get_running_loop()
@@ -570,3 +526,34 @@ class TestDiscordInteractionChannel:
         channel.reply("Hi there")
 
         verify(channel).expand_original_reply(content="Hi there")
+
+
+class TestDiscordInteractionPlayer:
+    # noinspection PyMethodMayBeStatic
+    def teardown_method(self):
+        unstub()
+
+    def test_steam_id(self, user, event_loop, message):
+        setup_cvars({"qlx_owner": "42"})
+
+        player = DiscordInteractionPlayer(user, message, loop=event_loop)
+
+        assert_that(player.steam_id, equal_to(42))
+
+    def test_channel(self, user, event_loop, message):
+        player = DiscordInteractionPlayer(user, message, loop=event_loop)
+
+        assert_that(isinstance(player.channel, minqlx.AbstractChannel))
+
+    @pytest.mark.asyncio
+    async def test_tell(self, user, message, event_loop):
+        player = DiscordInteractionPlayer(
+            user, message, loop=event_loop
+        )
+
+        player.tell("Hi there")
+
+        while len(asyncio.all_tasks(loop=event_loop)) > 1:
+            await asyncio.sleep(0.1)
+        message.edit.assert_awaited_once()
+        assert_that(message.edit.await_args.kwargs["embed"].description, equal_to("Hi there"))

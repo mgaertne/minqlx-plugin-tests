@@ -13,7 +13,7 @@ import minqlx
 from minqlx import Plugin
 
 
-class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlayer):
+class DiscordInteractionChannel(minqlx.AbstractChannel):
     """
     a minqlx channel class to respond to from within minqlx for interactions with discord
     """
@@ -27,15 +27,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         super().__init__(name=f"Discord-{self.user.display_name}")
 
     def __repr__(self):
-        return f"{str(self)} {self.user.display_name}"
-
-    @property
-    def steam_id(self):
-        return minqlx.owner()
-
-    @property
-    def channel(self):
-        return self
+        return f"{self.user.display_name}"
 
     async def expand_original_reply(self, *, content):
         if self.embed.description is None:
@@ -47,16 +39,6 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
 
         await self.message.edit(embed=self.embed)
 
-    def tell(self, msg, **_kwargs):
-        """
-        overwrites the ```player.tell``` function to relay messages to discord
-
-        :param: msg: the msg to send to this player
-        """
-        self.loop.create_task(
-            self.expand_original_reply(content=Plugin.clean_text(msg))
-        )
-
     def reply(self, msg, _limit=100, _delimiter=" "):
         """
         overwrites the ```channel.reply``` function to relay messages to discord
@@ -66,6 +48,38 @@ class DiscordInteractionChannel(minqlx.AbstractChannel, minqlx.AbstractDummyPlay
         self.loop.create_task(
             self.expand_original_reply(content=Plugin.clean_text(msg))
         )
+
+
+class DiscordInteractionPlayer(minqlx.AbstractDummyPlayer):
+    """
+    a minqlx player class to respond to from within minqlx for interactions with discord
+    """
+
+    def __init__(self, user, message, *, loop):
+        self.user = user
+        self.message = message
+        self.loop = loop
+
+        super().__init__(name=f"Discord-{self.user.display_name}")
+
+    def __repr__(self):
+        return f"{str(self)} {self.user.display_name}"
+
+    @property
+    def steam_id(self):
+        return minqlx.owner()
+
+    @property
+    def channel(self):
+        return DiscordInteractionChannel(self.user, self.message, loop=self.loop)
+
+    def tell(self, msg, **_kwargs):
+        """
+        overwrites the ```player.tell``` function to relay messages to discord
+
+        :param: msg: the msg to send to this player
+        """
+        self.channel.reply(msg)
 
 
 class AdminCog(Cog):
@@ -235,12 +249,10 @@ class AdminCog(Cog):
 
     @minqlx.next_frame
     def execute_qlx_command(self, user, message, qlx_command):
-        discord_interaction = DiscordInteractionChannel(
-            user, message, loop=self.bot.loop
-        )
+        interaction_player = DiscordInteractionPlayer(user, message, loop=self.bot.loop)
         try:
             minqlx.COMMANDS.handle_input(
-                discord_interaction, qlx_command, discord_interaction
+                interaction_player, qlx_command, interaction_player.channel
             )
         except Exception as e:
             send_message = message.edit(content=f"{e.__class__.__name__}: {e}")
