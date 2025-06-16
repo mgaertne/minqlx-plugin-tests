@@ -31,13 +31,17 @@ class cmdlist(Plugin):
                 continue
             if isinstance(command.name, str):
                 if command.usage is not None:
-                    available_commands[command.permission].append(f"{command.name} {command.usage}".strip())
+                    available_commands[command.permission].append(
+                        f"{command.name} {command.usage}".strip()
+                    )
                 else:
                     available_commands[command.permission].append(command.name.strip())
             else:
                 for name in command.name:
                     if command.usage is not None:
-                        available_commands[command.permission].append(f"{name} {command.usage}".strip())
+                        available_commands[command.permission].append(
+                            f"{name} {command.usage}".strip()
+                        )
                     else:
                         available_commands[command.permission].append(name.strip())
 
@@ -47,7 +51,11 @@ class cmdlist(Plugin):
 
             level_colorcode = level % 6 + 1
             player.tell(f"^{level_colorcode}Permission level {level}^7 commands:")
-            formatted_commands = f"^7, ^{level_colorcode}".join(available_commands[level])
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_commands, delimiter=","):
+            formatted_commands = f"^7, ^{level_colorcode}".join(
+                available_commands[level]
+            )
+            for line in minqlx.CHAT_CHANNEL.split_long_lines(
+                formatted_commands, delimiter=","
+            ):
                 player.tell(f"^{level_colorcode}  {line}")
                 time.sleep(0.005)

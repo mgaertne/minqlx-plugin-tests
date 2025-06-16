@@ -10,6 +10,7 @@ This plugin automatically rebalances new-joiners at round start based upon the r
 It's intended to run with the default balance plugin, and will print an error on every round countdown if the
 balance plugin is not loaded together with this one.
 """
+
 import minqlx
 from minqlx import Plugin
 
@@ -280,7 +281,7 @@ class auto_rebalance(Plugin):
         :return True if the team is on a winning streak or False if not
         """
         return self.winning_teams[
-            -self.winning_streak_suggestion_threshold:
+            -self.winning_streak_suggestion_threshold :
         ] == self.winning_streak_suggestion_threshold * [team]
 
     def announced_often_enough(self, winning_team):

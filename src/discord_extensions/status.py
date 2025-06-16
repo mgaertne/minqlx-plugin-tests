@@ -23,7 +23,11 @@ def get_game_info(game):
         return "Warmup"
     if game.state == "countdown":
         return "Match starting"
-    if game.roundlimit in [game.blue_score, game.red_score] or game.red_score < 0 or game.blue_score < 0:
+    if (
+        game.roundlimit in [game.blue_score, game.red_score]
+        or game.red_score < 0
+        or game.blue_score < 0
+    ):
         return f"Match ended: **{game.red_score}** - **{game.blue_score}**"
     if game.state == "in_progress":
         return f"Match in progress: **{game.red_score}** - **{game.blue_score}**"
@@ -44,7 +48,9 @@ def player_data():
         _player_data += f"\n**R:** {team_data(teams['red'])}"
     if len(teams["blue"]) > 0:
         _player_data += f"\n**B:** {team_data(teams['blue'])}"
-    show_specs: bool = Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool) or False
+    show_specs: bool = (
+        Plugin.get_cvar("qlx_discord_ext_status_show_spectators", bool) or False
+    )
     if show_specs and len(teams["spectator"]) > 0:
         _player_data += f"\n**S:** {team_data(teams['spectator'])}"
     return _player_data
@@ -65,7 +71,9 @@ def team_data(player_list):
 
     _team_data = ""
     for player in players_by_score:
-        _team_data += f"**{discord.utils.escape_markdown(player.clean_name)}**({player.score}) "
+        _team_data += (
+            f"**{discord.utils.escape_markdown(player.clean_name)}**({player.score}) "
+        )
 
     return _team_data
 
@@ -127,10 +135,18 @@ class Status(Cog):
         Plugin.set_cvar_once("qlx_discordRelayChannelIds", "")
         Plugin.set_cvar_once("qlx_discordTriggeredChannelIds", "")
 
-        self.discord_trigger_status = Plugin.get_cvar("qlx_discordTriggerStatus") or "status"
-        self.discord_triggered_channel_message_prefix = Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
-        self.discord_relay_channel_ids = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
-        self.discord_triggered_channel_ids = int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
+        self.discord_trigger_status = (
+            Plugin.get_cvar("qlx_discordTriggerStatus") or "status"
+        )
+        self.discord_triggered_channel_message_prefix = (
+            Plugin.get_cvar("qlx_discordTriggeredChatMessagePrefix") or ""
+        )
+        self.discord_relay_channel_ids = int_set(
+            Plugin.get_cvar("qlx_discordRelayChannelIds", set)
+        )
+        self.discord_triggered_channel_ids = int_set(
+            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
+        )
 
         self.bot.add_command(
             Command(
@@ -162,7 +178,10 @@ class Status(Cog):
 
         :param: ctx: the context the trigger happened in
         """
-        return ctx.message.channel.id in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        return (
+            ctx.message.channel.id
+            in self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+        )
 
     async def trigger_status(self, ctx, *_args, **_kwargs):
         """

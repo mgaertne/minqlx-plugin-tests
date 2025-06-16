@@ -106,10 +106,8 @@ class SimpleAsyncDiscord(Thread):
     ) -> None: ...
     def _format_message_to_quake(
         self,
-        channel: (
-            (TextChannel | VoiceChannel | Thread | DMChannel | PartialMessageable)
-            | GroupChannel
-        ),
+        channel: (TextChannel | VoiceChannel | Thread | DMChannel | PartialMessageable)
+        | GroupChannel,
         author: Member | User,
         content: str,
     ) -> str: ...

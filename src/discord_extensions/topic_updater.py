@@ -20,7 +20,11 @@ def get_game_info(game):
         return "Warmup"
     if game.state == "countdown":
         return "Match starting"
-    if game.roundlimit in [game.blue_score, game.red_score] or game.red_score < 0 or game.blue_score < 0:
+    if (
+        game.roundlimit in [game.blue_score, game.red_score]
+        or game.red_score < 0
+        or game.blue_score < 0
+    ):
         return f"Match ended: **{game.red_score}** - **{game.blue_score}**"
     if game.state == "in_progress":
         return f"Match in progress: **{game.red_score}** - **{game.blue_score}**"
@@ -48,7 +52,8 @@ def game_status_information(game):
     #          :func:`TopicUpdater.update_topic_on_triggered_channels(self, topic)` to keep the right portion
     #          of the triggered relay channels' topics!
     return (
-        f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) " f"with **{num_players}/{max_players}** players. "
+        f"{ginfo} on **{Plugin.clean_text(maptitle)}** ({gametype}) "
+        f"with **{num_players}/{max_players}** players. "
     )
 
 
@@ -84,14 +89,22 @@ class TopicUpdater(Cog):
         Plugin.set_cvar_once("qlx_discordUpdateTopicInterval", "305")
         Plugin.set_cvar_once("qlx_discordKeptTopicSuffixes", "{}")
 
-        self.discord_relay_channel_ids = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
-        self.discord_triggered_channel_ids = int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
+        self.discord_relay_channel_ids = int_set(
+            Plugin.get_cvar("qlx_discordRelayChannelIds", set)
+        )
+        self.discord_triggered_channel_ids = int_set(
+            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
+        )
 
         self.discord_update_triggered_channels_topic = (
             Plugin.get_cvar("qlx_discordUpdateTopicOnTriggeredChannels", bool) or True
         )
-        self.discord_topic_update_interval = Plugin.get_cvar("qlx_discordUpdateTopicInterval", int) or 305
-        self.discord_kept_topic_suffixes = literal_eval(Plugin.get_cvar("qlx_discordKeptTopicSuffixes", str) or "{}")
+        self.discord_topic_update_interval = (
+            Plugin.get_cvar("qlx_discordUpdateTopicInterval", int) or 305
+        )
+        self.discord_kept_topic_suffixes = literal_eval(
+            Plugin.get_cvar("qlx_discordKeptTopicSuffixes", str) or "{}"
+        )
 
         super().__init__()
 
@@ -106,7 +119,9 @@ class TopicUpdater(Cog):
         except NonexistentGameError:
             pass
         finally:
-            threading.Timer(self.discord_topic_update_interval, self._topic_updater).start()
+            threading.Timer(
+                self.discord_topic_update_interval, self._topic_updater
+            ).start()
 
     def update_topics_on_relay_and_triggered_channels(self, topic):
         """
@@ -118,12 +133,16 @@ class TopicUpdater(Cog):
             return
 
         if self.discord_update_triggered_channels_topic:
-            topic_channel_ids = self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+            topic_channel_ids = (
+                self.discord_relay_channel_ids | self.discord_triggered_channel_ids
+            )
         else:
             topic_channel_ids = self.discord_relay_channel_ids
 
         # directly set the topic on channels with no topic suffix
-        self.set_topic_on_discord_channels(topic_channel_ids - self.discord_kept_topic_suffixes.keys(), topic)
+        self.set_topic_on_discord_channels(
+            topic_channel_ids - self.discord_kept_topic_suffixes.keys(), topic
+        )
         # keep the topic suffix on the channels that are configured accordingly
         self.update_topic_on_channels_and_keep_channel_suffix(
             topic_channel_ids & self.discord_kept_topic_suffixes.keys(), topic

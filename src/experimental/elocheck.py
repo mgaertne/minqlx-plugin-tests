@@ -5,6 +5,7 @@ Copyright (c) 2020 ShiN0
 
 You are free to modify this plugin to your own one.
 """
+
 import asyncio
 
 import aiohttp
@@ -349,7 +350,10 @@ class elocheck(Plugin):
         rating_diff = self.rating_diffs[rating_provider_name][steam_id][
             self.previous_gametype
         ]
-        if rating_provider_name.endswith(self.get_truskill_provider().name) and not self.use_truskill_bn:
+        if (
+            rating_provider_name.endswith(self.get_truskill_provider().name)
+            and not self.use_truskill_bn
+        ):
             if rating_diff < 0.0:
                 return f"^3{rating_provider_name}^7: ^4{current_rating:.02f}^7 (^1{rating_diff:+.02f}^7)"
 
