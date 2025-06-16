@@ -1,6 +1,8 @@
 import sys
+import asyncio
 
 import pytest
+import pytest_asyncio
 from mockito import mock, unstub
 
 if sys.version_info < (3, 8):
@@ -15,14 +17,14 @@ else:
     from discord.abc import GuildChannel, PrivateChannel
 
 
-@pytest.fixture(name="bot")
-def _bot(event_loop):
+@pytest_asyncio.fixture(name="bot")
+async def _bot():
     bot = mock(
         {
             "add_command": mock(),
             "tree": mock(),
             "add_cog": AsyncMock(),
-            "loop": event_loop,
+            "loop": asyncio.get_running_loop(),
             "client": mock(spec=Client),
         }
     )
