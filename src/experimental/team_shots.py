@@ -20,12 +20,8 @@ class team_shots(Plugin):
         punishment_cvar_value = self.get_cvar("qlx_teamShots_punishments") or "{}"
         self.punishment_lookup = literal_eval(punishment_cvar_value) or {}
         self.min_damage = self.get_cvar("qlx_teamShots_min_damage", int) or 15
-        self.warning_text = (
-            self.get_cvar("qlx_teamShots_warning_text") or "^1watch your fire!"
-        )
-        filtered_mod_strings = self.get_cvar(
-            "qlx_teamShots_filtered_means_of_death", list
-        ) or ["18"]
+        self.warning_text = self.get_cvar("qlx_teamShots_warning_text") or "^1watch your fire!"
+        filtered_mod_strings = self.get_cvar("qlx_teamShots_filtered_means_of_death", list) or ["18"]
         self.filtered_means_of_death = [int(entry) for entry in filtered_mod_strings]
 
         self.team_damages = {}
@@ -78,9 +74,7 @@ class team_shots(Plugin):
 
             if (
                 attacker.steam_id in self.team_damages
-                and timestamp
-                - max(self.team_damages[attacker.steam_id], key=itemgetter(1))[0]
-                < 2000
+                and timestamp - max(self.team_damages[attacker.steam_id], key=itemgetter(1))[0] < 2000
             ):
                 attacker.center_print(self.warning_text)
 

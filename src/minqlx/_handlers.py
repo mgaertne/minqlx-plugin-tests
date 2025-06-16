@@ -28,9 +28,7 @@ import minqlx
 
 _re_say = re.compile(r"^say +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
 _re_say_team = re.compile(r"^say_team +\"?(?P<msg>.+)\"?$", flags=re.IGNORECASE)
-_re_callvote = re.compile(
-    r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$", flags=re.IGNORECASE
-)
+_re_callvote = re.compile(r"^(?:cv|callvote) +(?P<cmd>[^ ]+)(?: \"?(?P<args>.+?)\"?)?$", flags=re.IGNORECASE)
 _re_vote = re.compile(r"^vote +(?P<arg>.)", flags=re.IGNORECASE)
 _re_team = re.compile(r"^team +(?P<arg>.)", flags=re.IGNORECASE)
 _re_vote_ended = re.compile(r"^print \"Vote (?P<result>passed|failed).\n\"$")
@@ -49,9 +47,7 @@ def handle_rcon(cmd):
     """
     # noinspection PyBroadException
     try:
-        minqlx.COMMANDS.handle_input(
-            minqlx.RconDummyPlayer(), cmd, minqlx.CONSOLE_CHANNEL
-        )
+        minqlx.COMMANDS.handle_input(minqlx.RconDummyPlayer(), cmd, minqlx.CONSOLE_CHANNEL)
     except:  # noqa: E722
         minqlx.log_exception()
         return True
@@ -90,9 +86,7 @@ def handle_client_command(client_id, cmd):
         res = _re_say_team.match(cmd)
         if res:
             msg = res.group("msg").replace('"', "")
-            if (
-                player.team == "free"
-            ):  # I haven't tried this, but I don't think it's even possible.
+            if player.team == "free":  # I haven't tried this, but I don't think it's even possible.
                 channel = minqlx.FREE_CHAT_CHANNEL
             elif player.team == "red":
                 channel = minqlx.RED_TEAM_CHAT_CHANNEL
@@ -111,25 +105,16 @@ def handle_client_command(client_id, cmd):
             # Set the caller for vote_started in case the vote goes through.
             # noinspection PyUnresolvedReferences
             minqlx.EVENT_DISPATCHERS["vote_started"].caller(player)
-            if (
-                minqlx.EVENT_DISPATCHERS["vote_called"].dispatch(player, vote, args)
-                is False
-            ):
+            if minqlx.EVENT_DISPATCHERS["vote_called"].dispatch(player, vote, args) is False:
                 return False
             return cmd
 
         res = _re_vote.match(cmd)
         if res and minqlx.Plugin.is_vote_active():
             arg = res.group("arg").lower()
-            if (
-                arg in ["y", "1"]
-                and minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, True) is False
-            ):
+            if arg in ["y", "1"] and minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, True) is False:
                 return False
-            if (
-                arg in ["n", "2"]
-                and minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, False) is False
-            ):
+            if arg in ["n", "2"] and minqlx.EVENT_DISPATCHERS["vote"].dispatch(player, False) is False:
                 return False
             return cmd
 
@@ -153,10 +138,7 @@ def handle_client_command(client_id, cmd):
 
             if (
                 target_team
-                and minqlx.EVENT_DISPATCHERS["team_switch_attempt"].dispatch(
-                    player, player.team, target_team
-                )
-                is False
+                and minqlx.EVENT_DISPATCHERS["team_switch_attempt"].dispatch(player, player.team, target_team) is False
             ):
                 return False
             return cmd
@@ -165,11 +147,7 @@ def handle_client_command(client_id, cmd):
         if res:
             new_info = minqlx.parse_variables(res.group("vars"), ordered=True)
             old_info = player.cvars
-            changed = {
-                key: value
-                for key, value in new_info.items()
-                if key not in old_info or old_info[key] != value
-            }
+            changed = {key: value for key, value in new_info.items() if key not in old_info or old_info[key] != value}
 
             if changed:
                 ret = minqlx.EVENT_DISPATCHERS["userinfo"].dispatch(player, changed)
@@ -178,9 +156,7 @@ def handle_client_command(client_id, cmd):
                 if isinstance(ret, dict):
                     for key in ret:
                         new_info[key] = ret[key]
-                    formatted_key_values = "".join(
-                        [f"\\{key}\\{value}" for key, value in new_info.items()]
-                    )
+                    formatted_key_values = "".join([f"\\{key}\\{value}" for key, value in new_info.items()])
                     cmd = f'userinfo "{formatted_key_values}"'
 
         return cmd
@@ -270,9 +246,7 @@ def handle_new_game(is_restart):
         # A good place to warn the owner if ZMQ stats are disabled.
         global _zmq_warning_issued
         stats_enabled_cvar = minqlx.get_cvar("zmq_stats_enable")
-        if (
-            stats_enabled_cvar is None or not bool(int(stats_enabled_cvar))
-        ) and not _zmq_warning_issued:
+        if (stats_enabled_cvar is None or not bool(int(stats_enabled_cvar))) and not _zmq_warning_issued:
             logger = minqlx.get_logger()
             logger.warning(
                 "Some events will not work because ZMQ stats is not enabled. "
@@ -285,9 +259,7 @@ def handle_new_game(is_restart):
     if not is_restart:
         # noinspection PyBroadException
         try:
-            minqlx.EVENT_DISPATCHERS["map"].dispatch(
-                minqlx.get_cvar("mapname"), minqlx.get_cvar("g_factory")
-            )
+            minqlx.EVENT_DISPATCHERS["map"].dispatch(minqlx.get_cvar("mapname"), minqlx.get_cvar("g_factory"))
         except:  # noqa: E722
             minqlx.log_exception()
             return True
@@ -482,9 +454,7 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
     # noinspection PyBroadException
     try:
         player = minqlx.Player(client_id)
-        return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(
-            player, bool(is_used_on_demand)
-        )
+        return minqlx.EVENT_DISPATCHERS["kamikaze_explode"].dispatch(player, bool(is_used_on_demand))
     except:  # noqa: E722
         minqlx.log_exception()
         return True
@@ -492,14 +462,10 @@ def handle_kamikaze_explode(client_id, is_used_on_demand):
 
 def handle_damage(target_id, attacker_id, damage, dflags, mod):
     target_player = minqlx.Player(target_id) if target_id in range(0, 64) else target_id
-    attacker_player = (
-        minqlx.Player(attacker_id) if attacker_id in range(0, 64) else attacker_id
-    )
+    attacker_player = minqlx.Player(attacker_id) if attacker_id in range(0, 64) else attacker_id
     # noinspection PyBroadException
     try:
-        minqlx.EVENT_DISPATCHERS["damage"].dispatch(
-            target_player, attacker_player, damage, dflags, mod
-        )
+        minqlx.EVENT_DISPATCHERS["damage"].dispatch(target_player, attacker_player, damage, dflags, mod)
     except:  # noqa: E722
         minqlx.log_exception()
         return True
@@ -552,9 +518,7 @@ def redirect_print(channel):
     class PrintRedirector:
         def __init__(self, _channel):
             if not isinstance(_channel, minqlx.AbstractChannel):
-                raise ValueError(
-                    "The redirection channel must be an instance of minqlx.AbstractChannel."
-                )
+                raise ValueError("The redirection channel must be an instance of minqlx.AbstractChannel.")
 
             self.channel = _channel
 

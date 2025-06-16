@@ -27,15 +27,11 @@ async def _uptime(interaction):
     now = datetime.datetime.now()
     lsb_info = distro.lsb_release_info()
     os_boottime = datetime.datetime.fromtimestamp(psutil.boot_time())
-    os_uptime = humanize.precisedelta(
-        now - os_boottime, minimum_unit="minutes", format="%d"
-    )
+    os_uptime = humanize.precisedelta(now - os_boottime, minimum_unit="minutes", format="%d")
 
     myself_process = psutil.Process(os.getpid())
     qlserver_starttime = datetime.datetime.fromtimestamp(myself_process.create_time())
-    qlserver_uptime = humanize.precisedelta(
-        now - qlserver_starttime, minimum_unit="minutes", format="%d"
-    )
+    qlserver_uptime = humanize.precisedelta(now - qlserver_starttime, minimum_unit="minutes", format="%d")
 
     minqlx_version = str(minqlx.__version__)[1:-1]
 

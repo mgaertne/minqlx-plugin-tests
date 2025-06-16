@@ -84,9 +84,7 @@ def assert_plugin_sent_to_console(
     verify(Plugin, times=times, atleast=atleast).msg(matcher)
 
 
-def assert_plugin_center_printed(
-    matcher: Union[str, Matcher], *, times: int = 1
-) -> None:
+def assert_plugin_center_printed(matcher: Union[str, Matcher], *, times: int = 1) -> None:
     """Verify that a certain text was printed for each player to see.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**
@@ -102,9 +100,7 @@ def assert_plugin_center_printed(
     verify(Plugin, times=times).center_print(matcher)
 
 
-def assert_plugin_played_sound(
-    matcher: Union[str, Matcher, Any], *, times: int = 1
-) -> None:
+def assert_plugin_played_sound(matcher: Union[str, Matcher, Any], *, times: int = 1) -> None:
     """Verify that a certain sound was played for all players.
 
     **The test needs to be set up via :func:`.setUp_plugin()` before using this assertion.**

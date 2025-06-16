@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.2", "tox>=4.21", "tox-uv>=1.13"]
+requires = [ "setuptools>=61.2", "tox>=4.21", "tox-uv>=1.13" ]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -14,7 +14,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "setuptools>=61.2",
+    "pre-commit>=3.5",
     "pyzmq>=23",
     "redis>=2.10",
     "urllib3>=1.24.3",
@@ -132,7 +132,7 @@ exclude = [
     "venv",
 ]
 line-length = 120
-target-version = "py37"
+target-version = "py38"
 
 [tool.ruff.lint]
 select = ["C40", "E", "F", "SIM", "TCH"]
@@ -142,6 +142,12 @@ unfixable = []
 per-file-ignores = {}
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 mccabe.max-complexity = 10
+
+[tool.ruff.format]
+docstring-code-format = true
+indent-style = "space"
+line-ending = "auto"
+quote-style = "double"
 
 [tool.mypy]
 packages = ["stubs","src","tests"]

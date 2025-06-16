@@ -70,9 +70,7 @@ class bday(Plugin):
             player.tell("^7Invalid date given")
             return minqlx.RET_USAGE
 
-        self.pending_bday_confirmations[
-            player.steam_id
-        ] = f"{birthday.day}.{birthday.month}."
+        self.pending_bday_confirmations[player.steam_id] = f"{birthday.day}.{birthday.month}."
         player.tell(
             f"^7We will remember your birthday as ^6{birthday.day}.{birthday.month}.^7. "
             f"Please confirm with ^6!confirmbday^7 within the next 2 minutes."
@@ -89,8 +87,7 @@ class bday(Plugin):
     def cmd_confirmbday(self, player, _msg, _channel):
         if player.steam_id not in self.pending_bday_confirmations:
             player.tell(
-                "^7No pending confirmation for your birthday found. Use ^6!bday [dd.mm.]^7 to register your "
-                "birthday"
+                "^7No pending confirmation for your birthday found. Use ^6!bday [dd.mm.]^7 to register your birthday"
             )
             return
 
@@ -104,15 +101,11 @@ class bday(Plugin):
 
     def cmd_bmap(self, player, msg, _channel):
         if not self.has_birthday_set(player):
-            player.tell(
-                "^7You did ^1not^7 set your birthday, yet. Please use ^2!bday^7 to set up your birthday"
-            )
+            player.tell("^7You did ^1not^7 set your birthday, yet. Please use ^2!bday^7 to set up your birthday")
             return minqlx.RET_NONE
 
         if not self.has_birthday_today(player):
-            player.tell(
-                "^7Nice try, but it's not your birthday. You can't pick your birthday map now!"
-            )
+            player.tell("^7Nice try, but it's not your birthday. You can't pick your birthday map now!")
             return minqlx.RET_NONE
 
         if not self.can_still_pick_bday_map(player):
@@ -202,9 +195,7 @@ class bday(Plugin):
         # Tell a player which players matched
         def list_alternatives(players, indent=2):
             amount_alternatives = len(players)
-            player.tell(
-                f"A total of ^6{amount_alternatives}^7 players matched for {target}:"
-            )
+            player.tell(f"A total of ^6{amount_alternatives}^7 players matched for {target}:")
             out = ""
             for p in players:
                 out += " " * indent
@@ -279,15 +270,11 @@ class bday(Plugin):
 
             if delta.days < min_delta:
                 min_delta = delta.days + 1
-                min_player_sid = birthday_key.replace("minqlx:players:", "").replace(
-                    ":bday", ""
-                )
+                min_player_sid = birthday_key.replace("minqlx:players:", "").replace(":bday", "")
 
             if today.day == birthdate.day and today.month == birthdate.month:
                 min_delta = 0
-                min_player_sid = birthday_key.replace("minqlx:players:", "").replace(
-                    ":bday", ""
-                )
+                min_player_sid = birthday_key.replace("minqlx:players:", "").replace(":bday", "")
 
         if min_player_sid is None:
             return
@@ -296,19 +283,13 @@ class bday(Plugin):
         player_bday = self.db[BDAY_KEY.format(min_player_sid)]
 
         if min_delta == 0:
-            channel.reply(
-                f"Next birthday: {player_name}^7 has her/his birthday today! ({player_bday}) Happy Birthday!"
-            )
+            channel.reply(f"Next birthday: {player_name}^7 has her/his birthday today! ({player_bday}) Happy Birthday!")
             return
         if min_delta == 1:
-            channel.reply(
-                f"Next birthday: {player_name}^7 ({player_bday}) will be tomorrow!"
-            )
+            channel.reply(f"Next birthday: {player_name}^7 ({player_bday}) will be tomorrow!")
             return
 
-        channel.reply(
-            f"Next birthday: {player_name}^7 ({player_bday}) in {min_delta} days."
-        )
+        channel.reply(f"Next birthday: {player_name}^7 ({player_bday}) in {min_delta} days.")
 
     # noinspection PyMethodMayBeStatic
     def next_birthdate(self, birthday):
@@ -333,18 +314,14 @@ class bday(Plugin):
     def handle_player_connected(self, player):
         if self.has_birthday_today(player) and self.can_still_pick_bday_map(player):
             self.msg(f"It's {player.name}^7's birthday today! Congratulate her/him!")
-            player.tell(
-                "Happy Birthday! You can pick a birthday map by using ^6!bmap^7 <mapname>!"
-            )
+            player.tell("Happy Birthday! You can pick a birthday map by using ^6!bmap^7 <mapname>!")
 
     def handle_game_end(self, _data):
         if self.bmap_steamid is None:
             return
 
         if self.db:
-            self.db.incr(
-                f"{BDAY_KEY.format(self.bmap_steamid)}:{datetime.today().year}"
-            )
+            self.db.incr(f"{BDAY_KEY.format(self.bmap_steamid)}:{datetime.today().year}")
         self.bmap_steamid = None
         self.bmap_map = None
 
@@ -398,9 +375,7 @@ class bday(Plugin):
         if not self.has_birthday_set(player):
             return False
 
-        birthday = datetime.strptime(
-            self.db[BDAY_KEY.format(player.steam_id)], "%d.%m."
-        )
+        birthday = datetime.strptime(self.db[BDAY_KEY.format(player.steam_id)], "%d.%m.")
         today = datetime.now()
 
         return birthday.day == today.day and birthday.month == today.month
@@ -415,9 +390,7 @@ class bday(Plugin):
         if self.db is None:
             return False
 
-        this_years_map_picks_key = (
-            f"{BDAY_KEY.format(player.steam_id)}:{datetime.today().year}"
-        )
+        this_years_map_picks_key = f"{BDAY_KEY.format(player.steam_id)}:{datetime.today().year}"
         if this_years_map_picks_key not in self.db:
             return True
 
@@ -433,8 +406,7 @@ class bday(Plugin):
             return None
         long_map_names_db_lookup = self.db.hgetall(LONG_MAP_NAMES_KEY)
         long_map_names_lookup = {
-            key: self.cleaned_up_longmapname(value)
-            for (key, value) in long_map_names_db_lookup.items()
+            key: self.cleaned_up_longmapname(value) for (key, value) in long_map_names_db_lookup.items()
         }
 
         if mapstring in long_map_names_lookup:
@@ -450,11 +422,7 @@ class bday(Plugin):
                     for key, value in long_map_names_lookup.items()
                     if value.find(mapstring) != -1 and key in logged_maps
                 ]
-                + [
-                    _mapname
-                    for _mapname in logged_maps
-                    if _mapname.lower().find(mapstring) != -1
-                ]
+                + [_mapname for _mapname in logged_maps if _mapname.lower().find(mapstring) != -1]
             )
         )
 
@@ -467,9 +435,7 @@ class bday(Plugin):
         player.tell("More than one map matched your criteria:")
         for _mapname in matched_maps:
             if _mapname in long_map_names_lookup:
-                player.tell(
-                    f"  ^4{long_map_names_db_lookup[_mapname]}^7 (short name: ^4{_mapname}^7)"
-                )
+                player.tell(f"  ^4{long_map_names_db_lookup[_mapname]}^7 (short name: ^4{_mapname}^7)")
             else:
                 player.tell(f"  ^4{_mapname}^7")
 

@@ -81,7 +81,7 @@ class AbstractChannel:
             i = msg.find("\n")
             if 0 <= i <= limit:
                 res.append(msg[:i])
-                msg = msg[i + 1:]
+                msg = msg[i + 1 :]
                 continue
 
             if len(msg) < limit:
@@ -96,7 +96,7 @@ class AbstractChannel:
                     if not length:
                         length = limit + 1
                     res.append(msg[: length - 1])
-                    msg = msg[length + len(delimiter) - 1:]
+                    msg = msg[length + len(delimiter) - 1 :]
                     break
                 length += i + 1
 
@@ -161,11 +161,7 @@ class TeamChatChannel(ChatChannel):
         if self.team == "all":
             return None
 
-        return [
-            player.id
-            for player in minqlx.Player.all_players()
-            if player.team == self.team
-        ]
+        return [player.id for player in minqlx.Player.all_players() if player.team == self.team]
 
 
 class TellChannel(ChatChannel):
@@ -255,9 +251,7 @@ class Command:
         self.handler = handler
         self.permission = permission
         self.channels = list(channels) if channels is not None else []
-        self.exclude_channels = (
-            list(exclude_channels) if exclude_channels is not None else []
-        )
+        self.exclude_channels = list(exclude_channels) if exclude_channels is not None else []
         self.client_cmd_pass = client_cmd_pass
         self.client_cmd_perm = client_cmd_perm
         self.prefix = prefix
@@ -281,7 +275,7 @@ class Command:
                 return False
             if not name.startswith(prefix):
                 return False
-            name = name[len(prefix):]
+            name = name[len(prefix) :]
 
         return name.lower() in self.name
 
@@ -330,9 +324,7 @@ class CommandInvoker:
     """Holds all commands and executes them whenever we get input and should execute."""
 
     def __init__(self):
-        self._commands: tuple[
-            list[Command], list[Command], list[Command], list[Command], list[Command]
-        ] = (
+        self._commands: tuple[list[Command], list[Command], list[Command], list[Command], list[Command]] = (
             [],
             [],
             [],
@@ -398,10 +390,7 @@ class CommandInvoker:
                         pass_through = cmd.client_cmd_pass
 
                     # Dispatch "command" and allow people to stop it from being executed.
-                    if (
-                        minqlx.EVENT_DISPATCHERS["command"].dispatch(player, cmd, msg)
-                        is False
-                    ):
+                    if minqlx.EVENT_DISPATCHERS["command"].dispatch(player, cmd, msg) is False:
                         return True
 
                     res = cmd.execute(player, msg, channel)

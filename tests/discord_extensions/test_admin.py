@@ -150,14 +150,10 @@ class TestAdmin:
 
         # noinspection PyTypeChecker
         assert_that(extension.auth_attempts, has_key(user.id))
-        assert_that(
-            auth_context.send.await_args.args[0], matches_regexp(".*Wrong password.*")
-        )
+        assert_that(auth_context.send.await_args.args[0], matches_regexp(".*Wrong password.*"))
 
     @pytest.mark.asyncio
-    async def test_third_failed_auth_attempt_bars_user_from_auth(
-        self, bot, auth_context, user
-    ):
+    async def test_third_failed_auth_attempt_bars_user_from_auth(self, bot, auth_context, user):
         auth_context.message.content = "!auth wrong password"
         auth_context.message.author = user
 
@@ -176,9 +172,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_third_failed_auth_attempt_bars_user_from_auth_and_resets_attempts(
-        self, bot, auth_context, user
-    ):
+    async def test_third_failed_auth_attempt_bars_user_from_auth_and_resets_attempts(self, bot, auth_context, user):
         auth_context.message.content = "!auth wrong password"
         auth_context.message.author = user
 
@@ -204,9 +198,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -224,9 +216,7 @@ class TestAdmin:
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -238,9 +228,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_qlx_notifies_discord_user_about_execution(
-        self, bot, exec_context, user
-    ):
+    async def test_qlx_notifies_discord_user_about_execution(self, bot, exec_context, user):
         exec_context.message.content = "!exec exec to minqlx"
         exec_context.message.author = user
         exec_context.author = user
@@ -249,9 +237,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -262,12 +248,8 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_qlx_execute_for_command_not_in_whitelist(
-        self, bot, exec_context, user
-    ):
-        setup_cvars(
-            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
-        )
+    async def test_qlx_execute_for_command_not_in_whitelist(self, bot, exec_context, user):
+        setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         exec_context.message.content = "!exec !blocked_commmand exec to minqlx"
         exec_context.message.author = user
@@ -277,9 +259,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -290,12 +270,8 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_qlx_execute_for_command_allowed_in_whitelist(
-        self, bot, exec_context, user
-    ):
-        setup_cvars(
-            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
-        )
+    async def test_qlx_execute_for_command_allowed_in_whitelist(self, bot, exec_context, user):
+        setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         exec_context.message.content = "!exec !allowed_command exec to minqlx"
         exec_context.message.author = user
@@ -305,20 +281,14 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
-        verify(minqlx.COMMANDS).handle_input(
-            any, "!allowed_command exec to minqlx", any
-        )
+        verify(minqlx.COMMANDS).handle_input(any, "!allowed_command exec to minqlx", any)
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_executes_command_when_user_is_not_authed(
-        self, bot, interaction, user, guild_channel
-    ):
+    async def test_slash_qlx_executes_command_when_user_is_not_authed(self, bot, interaction, user, guild_channel):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -327,9 +297,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
 
@@ -340,9 +308,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_executes_command(
-        self, bot, interaction, user, guild_channel
-    ):
+    async def test_slash_qlx_executes_command(self, bot, interaction, user, guild_channel):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -351,9 +317,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -361,9 +325,7 @@ class TestAdmin:
         verify(minqlx.COMMANDS).handle_input(any, "exec to minqlx", any)
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_fails_to_execute_command(
-        self, bot, interaction, user, guild_channel
-    ):
+    async def test_slash_qlx_fails_to_execute_command(self, bot, interaction, user, guild_channel):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -374,9 +336,7 @@ class TestAdmin:
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -390,9 +350,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_notifies_discord_user_about_execution(
-        self, bot, interaction, user, guild_channel
-    ):
+    async def test_slash_qlx_notifies_discord_user_about_execution(self, bot, interaction, user, guild_channel):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -401,9 +359,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -415,12 +371,8 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_execute_for_command_not_in_whitelist(
-        self, bot, interaction, user, guild_channel
-    ):
-        setup_cvars(
-            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
-        )
+    async def test_slash_qlx_execute_for_command_not_in_whitelist(self, bot, interaction, user, guild_channel):
+        setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         interaction.user = user
         guild_channel.guild = 123
@@ -430,9 +382,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "!blocked_command")
@@ -444,12 +394,8 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_execute_for_command_allowed_in_whitelist(
-        self, bot, interaction, user, guild_channel
-    ):
-        setup_cvars(
-            {"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"}
-        )
+    async def test_slash_qlx_execute_for_command_allowed_in_whitelist(self, bot, interaction, user, guild_channel):
+        setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         interaction.user = user
         guild_channel.guild = 123
@@ -459,16 +405,12 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(
-            undecorated(extension.execute_qlx_command), extension
-        )
+        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "!allowed_command exec to minqlx")
 
-        verify(minqlx.COMMANDS).handle_input(
-            any, "!allowed_command exec to minqlx", any
-        )
+        verify(minqlx.COMMANDS).handle_input(any, "!allowed_command exec to minqlx", any)
 
     @pytest.mark.asyncio
     async def test_bot_setup_called(self, bot):
@@ -495,9 +437,7 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_expand_original_reply_fills_initial_description(self, user, message):
-        channel = DiscordInteractionChannel(
-            user, message, loop=asyncio.get_running_loop()
-        )
+        channel = DiscordInteractionChannel(user, message, loop=asyncio.get_running_loop())
 
         await channel.expand_original_reply(content="Hi there")
 
@@ -509,9 +449,7 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_expand_original_reply_extends_original_reply(self, user, message):
-        channel = DiscordInteractionChannel(
-            user, message, loop=asyncio.get_running_loop()
-        )
+        channel = DiscordInteractionChannel(user, message, loop=asyncio.get_running_loop())
         channel.embed.description = "initial text"
 
         await channel.expand_original_reply(content="Hi there")
@@ -524,9 +462,7 @@ class TestDiscordInteractionChannel:
 
     @pytest.mark.asyncio
     async def test_reply(self, user, message):
-        channel = DiscordInteractionChannel(
-            user, message, loop=asyncio.get_running_loop()
-        )
+        channel = DiscordInteractionChannel(user, message, loop=asyncio.get_running_loop())
         spy2(channel.expand_original_reply)
 
         channel.reply("Hi there")
@@ -543,17 +479,13 @@ class TestDiscordInteractionPlayer:
     async def test_steam_id(self, user, message):
         setup_cvars({"qlx_owner": "42"})
 
-        player = DiscordInteractionPlayer(
-            user, message, loop=asyncio.get_running_loop()
-        )
+        player = DiscordInteractionPlayer(user, message, loop=asyncio.get_running_loop())
 
         assert_that(player.steam_id, equal_to(42))
 
     @pytest.mark.asyncio
     async def test_channel(self, user, message):
-        player = DiscordInteractionPlayer(
-            user, message, loop=asyncio.get_running_loop()
-        )
+        player = DiscordInteractionPlayer(user, message, loop=asyncio.get_running_loop())
 
         assert_that(isinstance(player.channel, minqlx.AbstractChannel))
 
@@ -567,6 +499,4 @@ class TestDiscordInteractionPlayer:
         while len(asyncio.all_tasks(loop=event_loop)) > 1:
             await asyncio.sleep(0.1)
         message.edit.assert_awaited_once()
-        assert_that(
-            message.edit.await_args.kwargs["embed"].description, equal_to("Hi there")
-        )
+        assert_that(message.edit.await_args.kwargs["embed"].description, equal_to("Hi there"))

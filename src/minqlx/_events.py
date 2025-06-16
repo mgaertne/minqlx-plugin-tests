@@ -185,12 +185,8 @@ class EventDispatcher:
             raise ValueError(f"'{priority}' is an invalid priority level.")
 
         stats_enable_cvar = minqlx.get_cvar("zmq_stats_enable")
-        if self.need_zmq_stats_enabled and (
-            stats_enable_cvar is None or not bool(int(stats_enable_cvar))
-        ):
-            raise AssertionError(
-                f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value"
-            )
+        if self.need_zmq_stats_enabled and (stats_enable_cvar is None or not bool(int(stats_enable_cvar))):
+            raise AssertionError(f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value")
 
         if self.name in hot_plugged_events and len(self.plugins) == 0:
             minqlx.register_handler(self.name, getattr(minqlx, f"handle_{self.name}"))  # type: ignore
@@ -203,9 +199,7 @@ class EventDispatcher:
             for i in range(len(self.plugins[plugin])):
                 for hook in self.plugins[plugin][i]:
                     if handler == hook:
-                        raise ValueError(
-                            "The event has already been hooked with the same handler and priority."
-                        )
+                        raise ValueError("The event has already been hooked with the same handler and priority.")
 
         self.plugins[plugin][priority].append(handler)
 
@@ -252,9 +246,7 @@ class EventDispatcherManager:
         if dispatcher.name in self:
             raise ValueError("Event name already taken.")
         if not issubclass(dispatcher, EventDispatcher):
-            raise ValueError(
-                "Cannot add an event dispatcher not based on EventDispatcher."
-            )
+            raise ValueError("Cannot add an event dispatcher not based on EventDispatcher.")
 
         self._dispatchers[dispatcher.name] = dispatcher()
 
@@ -322,9 +314,7 @@ class ClientCommandDispatcher(EventDispatcher):
         if ret is False:
             return False
 
-        ret = minqlx.COMMANDS.handle_input(
-            player, cmd, minqlx.ClientCommandChannel(player)
-        )
+        ret = minqlx.COMMANDS.handle_input(player, cmd, minqlx.ClientCommandChannel(player))
         if ret is False:
             return False
 

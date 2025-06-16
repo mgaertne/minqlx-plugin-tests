@@ -38,9 +38,7 @@ class TestSlap:
 
         await slap._slap(interaction, member)
 
-        interaction.response.send_message.assert_awaited_once_with(
-            "_@DiscordMember is slapped from the hidden._"
-        )
+        interaction.response.send_message.assert_awaited_once_with("_@DiscordMember is slapped from the hidden._")
 
     @pytest.mark.asyncio
     async def test_revenge_slap(self, bot, interaction, member):
@@ -50,9 +48,7 @@ class TestSlap:
 
         await slap._slap(interaction, bot.client.user)
 
-        interaction.response.send_message.assert_awaited_once_with(
-            "_slaps @DiscordMember with a large revenge trout._"
-        )
+        interaction.response.send_message.assert_awaited_once_with("_slaps @DiscordMember with a large revenge trout._")
 
     @pytest.mark.asyncio
     async def test_self_slap(self, bot, interaction, member):
@@ -62,9 +58,7 @@ class TestSlap:
 
         await slap._slap(interaction, member)
 
-        interaction.response.send_message.assert_awaited_once_with(
-            "_@DiscordMember slaps himself for his stupidity._"
-        )
+        interaction.response.send_message.assert_awaited_once_with("_@DiscordMember slaps himself for his stupidity._")
 
     @pytest.mark.asyncio
     async def test_slap_of_other_user(self, bot, interaction, member):
@@ -98,9 +92,7 @@ class TestSlap:
         interaction.channel_id = 1234
         mocked_original_message = AsyncMock()
         mocked_response = mock(spec=InteractionMessage)
-        mocked_response.clean_content = (
-            f"{member.mention} slaps {other_user.mention} with a large trout."
-        )
+        mocked_response.clean_content = f"{member.mention} slaps {other_user.mention} with a large trout."
         mocked_original_message.return_value = mocked_response
         mocked_response.mentions = [member, other_user]
         interaction.original_response = mocked_original_message
@@ -115,14 +107,10 @@ class TestSlap:
 
         await slap._slap(interaction, other_user)
 
-        verify(Plugin).msg(
-            "[DISCORD]^2 @DiscordMember slaps @SlappedDiscordMember with a large trout."
-        )
+        verify(Plugin).msg("[DISCORD]^2 @DiscordMember slaps @SlappedDiscordMember with a large trout.")
 
     @pytest.mark.asyncio
-    async def test_slap_is_forwarded_to_relay_channel_with_channel_name(
-        self, bot, interaction, member, guild_channel
-    ):
+    async def test_slap_is_forwarded_to_relay_channel_with_channel_name(self, bot, interaction, member, guild_channel):
         setup_cvars({"qlx_displayChannelForDiscordRelayChannels": "1"})
         other_user = mock(spec=Member)
         other_user.id = 21
@@ -133,9 +121,7 @@ class TestSlap:
         interaction.channel = guild_channel
         mocked_original_message = AsyncMock()
         mocked_response = mock(spec=InteractionMessage)
-        mocked_response.clean_content = (
-            f"{member.mention} slaps {other_user.mention} with a large trout."
-        )
+        mocked_response.clean_content = f"{member.mention} slaps {other_user.mention} with a large trout."
         mocked_original_message.return_value = mocked_response
         mocked_response.mentions = [member, other_user]
         interaction.original_response = mocked_original_message

@@ -33,9 +33,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel):
         if self.embed.description is None:
             self.embed.description = content
         else:
-            self.embed.description = (
-                f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
-            )
+            self.embed.description = f"{self.embed.description}\n{discord.utils.escape_markdown(content)}"
 
         await self.message.edit(embed=self.embed)
 
@@ -45,9 +43,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel):
 
         :param: msg: the message to send to this channel
         """
-        self.loop.create_task(
-            self.expand_original_reply(content=Plugin.clean_text(msg))
-        )
+        self.loop.create_task(self.expand_original_reply(content=Plugin.clean_text(msg)))
 
 
 class DiscordInteractionPlayer(minqlx.AbstractDummyPlayer):
@@ -108,9 +104,7 @@ class AdminCog(Cog):
         self.discord_admin_password = Plugin.get_cvar("qlx_discordAdminPassword") or ""
         self.discord_auth_command = Plugin.get_cvar("qlx_discordAuthCommand") or ""
         self.discord_exec_prefix = Plugin.get_cvar("qlx_discordExecPrefix") or ""
-        self.discord_commands_whitelist = (
-            Plugin.get_cvar("qlx_discordCommandsWhitelist", list) or []
-        )
+        self.discord_commands_whitelist = Plugin.get_cvar("qlx_discordCommandsWhitelist", list) or []
         if "" in self.discord_commands_whitelist:
             self.discord_commands_whitelist.remove("")
 
@@ -175,10 +169,7 @@ class AdminCog(Cog):
 
         :param: ctx: the context the trigger happened in
         """
-        return (
-            ctx.message.author.id in self.auth_attempts
-            and self.auth_attempts[ctx.message.author.id] <= 0
-        )
+        return ctx.message.author.id in self.auth_attempts and self.auth_attempts[ctx.message.author.id] <= 0
 
     async def auth(self, ctx, *_args, **_kwargs):
         """
@@ -214,8 +205,7 @@ class AdminCog(Cog):
 
         threading.Timer(bar_delay, f).start()
         return (
-            f"Maximum authentication attempts reached. "
-            f"You will be barred from authentication for {bar_delay} seconds."
+            f"Maximum authentication attempts reached. You will be barred from authentication for {bar_delay} seconds."
         )
 
     @staticmethod
@@ -232,28 +222,21 @@ class AdminCog(Cog):
         command_length = self.command_length(ctx)
         qlx_command = ctx.message.content[command_length:]
         command_literal = qlx_command.split(" ")[0].lstrip("!")
-        if (
-            len(self.discord_commands_whitelist) > 0
-            and command_literal not in self.discord_commands_whitelist
-        ):
+        if len(self.discord_commands_whitelist) > 0 and command_literal not in self.discord_commands_whitelist:
             await ctx.reply(
                 content=f"`{command_literal}` cannot be used through the bot. "
                 f"Permitted commands are ´{', '.join(self.discord_commands_whitelist)}`"
             )
             return
 
-        message = await ctx.reply(
-            content=f"executing command `{qlx_command}`", ephemeral=False
-        )
+        message = await ctx.reply(content=f"executing command `{qlx_command}`", ephemeral=False)
         self.execute_qlx_command(ctx.author, message, qlx_command)
 
     @minqlx.next_frame
     def execute_qlx_command(self, user, message, qlx_command):
         interaction_player = DiscordInteractionPlayer(user, message, loop=self.bot.loop)
         try:
-            minqlx.COMMANDS.handle_input(
-                interaction_player, qlx_command, interaction_player.channel
-            )
+            minqlx.COMMANDS.handle_input(interaction_player, qlx_command, interaction_player.channel)
         except Exception as e:
             send_message = message.edit(content=f"{e.__class__.__name__}: {e}")
             self.bot.loop.create_task(send_message)
@@ -264,28 +247,22 @@ class AdminCog(Cog):
         if interaction.user.id not in self.authed_discord_ids:
             await interaction.response.send_message(
                 content="Sorry, you are not authed with the bot",
-                ephemeral=interaction.channel is not None
-                and interaction.channel.guild is not None,
+                ephemeral=interaction.channel is not None and interaction.channel.guild is not None,
             )
             return
 
         command_literal = command.split(" ")[0].lstrip("!")
-        if (
-            len(self.discord_commands_whitelist) > 0
-            and command_literal not in self.discord_commands_whitelist
-        ):
+        if len(self.discord_commands_whitelist) > 0 and command_literal not in self.discord_commands_whitelist:
             await interaction.response.send_message(
                 content=f"`{command_literal}` cannot be used through the bot. "
                 f"Permitted commands are ´{', '.join(self.discord_commands_whitelist)}`",
-                ephemeral=interaction.channel is not None
-                and interaction.channel.guild is not None,
+                ephemeral=interaction.channel is not None and interaction.channel.guild is not None,
             )
             return
 
         await interaction.response.send_message(
             content=f"executing command `{command}`",
-            ephemeral=interaction.channel is not None
-            and interaction.channel.guild is not None,
+            ephemeral=interaction.channel is not None and interaction.channel.guild is not None,
         )
         message = await interaction.original_response()
         self.execute_qlx_command(interaction.user, message, command)

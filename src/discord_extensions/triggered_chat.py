@@ -48,12 +48,8 @@ class TriggeredChat(Cog):
         self.discord_trigger_triggered_channel_chat = (
             Plugin.get_cvar("qlx_discordTriggerTriggeredChannelChat") or "quakelive"
         )
-        self.discord_message_prefix = (
-            Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
-        )
-        self.discord_triggered_channel_ids = int_set(
-            Plugin.get_cvar("qlx_discordTriggeredChannelIds", set)
-        )
+        self.discord_message_prefix = Plugin.get_cvar("qlx_discordMessagePrefix") or "[DISCORD]"
+        self.discord_triggered_channel_ids = int_set(Plugin.get_cvar("qlx_discordTriggeredChannelIds", set))
 
         self.bot.add_command(
             Command(
@@ -97,23 +93,17 @@ class TriggeredChat(Cog):
         """
         channel = ctx.channel
         if not isinstance(channel, GuildChannel):
-            await ctx.reply(
-                content="tried to send a message from the wrong channel", ephemeral=True
-            )
+            await ctx.reply(content="tried to send a message from the wrong channel", ephemeral=True)
             return
 
         author = ctx.author
         if not isinstance(author, Member):
-            await ctx.reply(
-                content="tried to send a message from a private message", ephemeral=True
-            )
+            await ctx.reply(content="tried to send a message from a private message", ephemeral=True)
             return
 
         prefix_length = self.command_length(ctx)
         minqlx.CHAT_CHANNEL.reply(
-            self._format_message_to_quake(
-                channel, author, ctx.message.clean_content[prefix_length:]
-            )
+            self._format_message_to_quake(channel, author, ctx.message.clean_content[prefix_length:])
         )
 
     @app_commands.describe(message="message to send to the server")
@@ -157,13 +147,9 @@ class TriggeredChat(Cog):
                 replacement = f"@&{role.name}" if role else "@&deleted-role"
             else:
                 continue
-            quake_message = quake_message.replace(
-                f"<{match[0]}{match[1]}>", replacement
-            )
+            quake_message = quake_message.replace(f"<{match[0]}{match[1]}>", replacement)
 
-        minqlx.CHAT_CHANNEL.reply(
-            self._format_message_to_quake(channel, author, quake_message)
-        )
+        minqlx.CHAT_CHANNEL.reply(self._format_message_to_quake(channel, author, quake_message))
 
     def _format_message_to_quake(self, channel, author, content):
         """
@@ -180,9 +166,7 @@ class TriggeredChat(Cog):
         if author.nick is not None:
             sender = author.nick
 
-        return (
-            f"{self.discord_message_prefix} ^5#{channel.name} ^6{sender}^7:^2 {content}"
-        )
+        return f"{self.discord_message_prefix} ^5#{channel.name} ^6{sender}^7:^2 {content}"
 
 
 async def setup(bot):

@@ -88,9 +88,7 @@ class TestThirtySecondWarnPlugin:
         calling_round_number = 4
         self.warner.timer_round_number = calling_round_number + 1
 
-        undecorated(self.warner.play_thirty_second_warning)(
-            self.warner, calling_round_number
-        )
+        undecorated(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
 
         assert_plugin_played_sound(any_(str), times=0)
 
@@ -101,39 +99,29 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(
-            self.warner, warner_thread_name
-        )
+        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_plays_no_sound_when_round_was_paused_but_is_running_again(
-        self, game_in_progress
-    ):
+    def test_plays_no_sound_when_round_was_paused_but_is_running_again(self, game_in_progress):
         when2(minqlx.get_configstring, 670).thenReturn("69")
 
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(
-            self.warner, warner_thread_name
-        )
+        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
-    def test_plays_no_sound_when_round_was_paused_in_round_before(
-        self, game_in_progress
-    ):
+    def test_plays_no_sound_when_round_was_paused_in_round_before(self, game_in_progress):
         when2(minqlx.get_configstring, 670).thenReturn("21")
 
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(
-            self.warner, warner_thread_name
-        )
+        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str))
 
@@ -142,16 +130,12 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(
-            self.warner, warner_thread_name
-        )
+        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str))
 
     def test_game_start_initializes_timer_round_number(self):
-        self.warner.warner_thread_name = (
-            "test_game_start_initializes_timer_round_number1"
-        )
+        self.warner.warner_thread_name = "test_game_start_initializes_timer_round_number1"
 
         # noinspection PyTypeChecker
         self.warner.handle_game_start({})

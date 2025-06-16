@@ -65,9 +65,7 @@ class last_played(Plugin):
         nextmaps = self.get_nextmaps()
         long_mapnames = (self.long_mapname_for(mapname) for mapname in nextmaps)
         now = datetime.now(timezone.utc)
-        last_played_timestamps = (
-            self.get_map_last_played_timestamp(mapname) for mapname in nextmaps
-        )
+        last_played_timestamps = (self.get_map_last_played_timestamp(mapname) for mapname in nextmaps)
 
         display_strs = []
         for index, (mapname, long_mapname, last_played_timestamp) in enumerate(
@@ -95,15 +93,10 @@ class last_played(Plugin):
         return nextmaps["map_0"], nextmaps["map_1"], nextmaps["map_2"]
 
     def long_mapname_for(self, mapname):
-        if len(self.long_map_names_lookup) == 0 and self.db.exists(
-            "minqlx:maps:longnames"
-        ):
+        if len(self.long_map_names_lookup) == 0 and self.db.exists("minqlx:maps:longnames"):
             self.long_map_names_lookup = self.db.hgetall("minqlx:maps:longnames")
 
-        if (
-            mapname not in self.long_map_names_lookup
-            or mapname.lower() == self.long_map_names_lookup[mapname].lower()
-        ):
+        if mapname not in self.long_map_names_lookup or mapname.lower() == self.long_map_names_lookup[mapname].lower():
             return None
 
         return self.long_map_names_lookup[mapname]
@@ -122,47 +115,29 @@ class last_played(Plugin):
         mapname = self.game.map.lower() if len(msg) == 1 else " ".join(msg[1:])
         long_mapname = self.long_mapname_for(mapname)
 
-        mapname_str = (
-            f"^3{long_mapname}^7 (^3{mapname}^7)"
-            if long_mapname is not None
-            else f"^3{mapname}^7"
-        )
+        mapname_str = f"^3{long_mapname}^7 (^3{mapname}^7)" if long_mapname is not None else f"^3{mapname}^7"
 
         last_played_timestamp = self.get_map_last_played_timestamp(mapname)
         if last_played_timestamp is None:
-            channel.reply(
-                f"I don't know when map {mapname_str} was played the last time."
-            )
+            channel.reply(f"I don't know when map {mapname_str} was played the last time.")
             return
 
-        last_played_str = humanize.naturaldelta(
-            datetime.now(timezone.utc) - last_played_timestamp
-        )
+        last_played_str = humanize.naturaldelta(datetime.now(timezone.utc) - last_played_timestamp)
 
         player_last_played = None
         if self.db.exists(f"minqlx:players:{player.steam_id}:last_played"):
-            player_last_played = self.db.hget(
-                f"minqlx:players:{player.steam_id}:last_played", mapname
-            )
+            player_last_played = self.db.hget(f"minqlx:players:{player.steam_id}:last_played", mapname)
 
         if player_last_played is None:
-            channel.reply(
-                f"Map {mapname_str} was last played {last_played_str} ago here."
-            )
+            channel.reply(f"Map {mapname_str} was last played {last_played_str} ago here.")
             return
 
-        player_last_played_timestamp = datetime.strptime(
-            player_last_played, TIMESTAMP_FORMAT
-        )
+        player_last_played_timestamp = datetime.strptime(player_last_played, TIMESTAMP_FORMAT)
         if last_played_timestamp - player_last_played_timestamp < timedelta(seconds=10):
-            channel.reply(
-                f"Map {mapname_str} was last played {last_played_str} ago here. So did you."
-            )
+            channel.reply(f"Map {mapname_str} was last played {last_played_str} ago here. So did you.")
             return
 
-        player_last_played_str = humanize.naturaldelta(
-            datetime.now(timezone.utc) - player_last_played_timestamp
-        )
+        player_last_played_str = humanize.naturaldelta(datetime.now(timezone.utc) - player_last_played_timestamp)
         channel.reply(
             f"Map {mapname_str} was last played {last_played_str} ago here. "
             f"You played on it {player_last_played_str} ago."

@@ -29,8 +29,7 @@ async def create_and_start_event(bot):
     for scheduled_event in bot.guilds[0].scheduled_events:
         if (
             event_name in scheduled_event.name
-            and scheduled_event.status
-            not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
+            and scheduled_event.status not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
             and scheduled_event.end_time is not None
             and scheduled_event.end_time >= now
         ):
@@ -72,8 +71,7 @@ async def end_event(bot):
     for scheduled_event in bot.guilds[0].scheduled_events:
         if (
             event_name in scheduled_event.name
-            and scheduled_event.status
-            not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
+            and scheduled_event.status not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
             and scheduled_event.end_time is not None
             and scheduled_event.end_time >= now
         ):

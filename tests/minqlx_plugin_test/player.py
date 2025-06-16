@@ -46,9 +46,7 @@ def fake_player(
     player.score = score
     player.assert_was_put_on = functools.partial(assert_player_was_put_on, player)
     player.assert_was_told = functools.partial(assert_player_was_told, player)
-    player.assert_center_print = functools.partial(
-        assert_player_received_center_print, player
-    )
+    player.assert_center_print = functools.partial(assert_player_received_center_print, player)
     return player
 
 
@@ -68,9 +66,7 @@ def connected_players(*players: Player) -> None:
         when2(Plugin.player, player.id).thenReturn(player)
 
 
-def assert_player_was_put_on(
-    player: Player, matcher: Union[str, Matcher], *, times: int = 1
-) -> None:
+def assert_player_was_put_on(player: Player, matcher: Union[str, Matcher], *, times: int = 1) -> None:
     """Assert that the given player was put on the matching team given.
 
     **The player needs to be set up via :func:`.fake_player(steam_id, name, team, ping)` before using this assertion.**
@@ -87,9 +83,7 @@ def assert_player_was_put_on(
     verify(player, times=times).put(matcher)
 
 
-def assert_player_was_told(
-    player: Player, matcher: Union[str, Matcher, Any], *, times: int = 1
-) -> None:
+def assert_player_was_told(player: Player, matcher: Union[str, Matcher, Any], *, times: int = 1) -> None:
     """Verify that a certain text was sent to the console by the player.
 
     **The player needs to be set up via :func:`.fake_player(steam_id, name, team, ping)` before using this assertion.**
@@ -107,9 +101,7 @@ def assert_player_was_told(
     verify(player, times=times).tell(matcher)
 
 
-def assert_player_received_center_print(
-    player: Player, matcher: Union[str, Matcher, Any], *, times: int = 1
-) -> None:
+def assert_player_received_center_print(player: Player, matcher: Union[str, Matcher, Any], *, times: int = 1) -> None:
     """Verify that a certain text was center printed for the player.
 
     **The player needs to be set up via :func:`.fake_player(steam_id, name, team, ping)` before using this assertion.**
@@ -136,10 +128,7 @@ class PlayerMatcher(Matcher):
         self.wanted_player: Player = wanted_player
 
     def matches(self, arg: Player) -> bool:
-        return (
-            self.wanted_player.steam_id == arg.steam_id
-            and self.wanted_player.name == arg.name
-        )
+        return self.wanted_player.steam_id == arg.steam_id and self.wanted_player.name == arg.name
 
     def __repr__(self) -> str:
         return f"<Player: id={self.wanted_player.steam_id}, name={self.wanted_player.name}>"

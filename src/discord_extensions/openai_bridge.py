@@ -32,20 +32,14 @@ class OpenAIBridge(Cog):
         self.bot_name = Plugin.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_clanprefix = Plugin.get_cvar("qlx_openai_clanprefix") or ""
         self.bot_triggers = Plugin.get_cvar("qlx_openai_bot_triggers", list) or []
-        self.bot_triggers = [
-            trigger for trigger in self.bot_triggers if len(trigger) > 0
-        ]
+        self.bot_triggers = [trigger for trigger in self.bot_triggers if len(trigger) > 0]
         self.bot_role_chat = (
-            Plugin.get_cvar("qlx_openai_bot_role_chat")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            Plugin.get_cvar("qlx_openai_bot_role_chat").encode("raw_unicode_escape").decode("unicode_escape")
         )
 
     @Cog.listener(name="on_message")
     async def on_message(self, message):
-        discord_relay_channel_ids = int_set(
-            Plugin.get_cvar("qlx_discordRelayChannelIds", set)
-        )
+        discord_relay_channel_ids = int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
 
         if message.channel.id not in discord_relay_channel_ids:
             return
@@ -62,19 +56,13 @@ class OpenAIBridge(Cog):
 
         # noinspection PyUnresolvedReferences
         with openai_bot_plugin.queue_lock:
-            author_name = (
-                message.author.display_name
-                if message.author.display_name
-                else message.author.name
-            )
+            author_name = message.author.display_name if message.author.display_name else message.author.name
             request = f"{author_name}: {message.content}"
 
             # noinspection PyUnresolvedReferences
             if not openai_bot_plugin.is_triggered_message(message.content):
                 # noinspection PyProtectedMember,PyUnresolvedReferences
-                openai_bot_plugin._record_chat_line(
-                    request, lock=openai_bot_plugin.queue_lock
-                )
+                openai_bot_plugin._record_chat_line(request, lock=openai_bot_plugin.queue_lock)
                 return
 
             # noinspection PyUnresolvedReferences
@@ -82,16 +70,12 @@ class OpenAIBridge(Cog):
                 request, trigger_template=self.bot_role_chat
             )
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            openai_bot_plugin._record_chat_line(
-                request, lock=openai_bot_plugin.queue_lock
-            )
+            openai_bot_plugin._record_chat_line(request, lock=openai_bot_plugin.queue_lock)
 
             # noinspection PyProtectedMember,PyUnresolvedReferences
             completion = await openai_bot_plugin._completion(message_history)
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            response = openai_bot_plugin._cleanup_choice(
-                openai_bot_plugin._pick_choice(completion)
-            )
+            response = openai_bot_plugin._cleanup_choice(openai_bot_plugin._pick_choice(completion))
             if response is None:
                 return
             # noinspection PyProtectedMember,PyUnresolvedReferences
@@ -100,15 +84,8 @@ class OpenAIBridge(Cog):
                 lock=openai_bot_plugin.queue_lock,
             )
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            Plugin.msg(
-                f"{self.bot_clanprefix}^7{self.bot_name}^7: "
-                f"^2{openai_bot_plugin._ql_cleaned_up(response)}"
-            )
-            await message.channel.send(
-                content=Plugin.clean_text(
-                    f"{self.bot_clanprefix}{self.bot_name}: {response}"
-                )
-            )
+            Plugin.msg(f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{openai_bot_plugin._ql_cleaned_up(response)}")
+            await message.channel.send(content=Plugin.clean_text(f"{self.bot_clanprefix}{self.bot_name}: {response}"))
 
 
 async def setup(bot):

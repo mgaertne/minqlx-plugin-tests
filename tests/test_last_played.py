@@ -45,9 +45,7 @@ class TestLastPlayed:
         }
         self.plugin.handle_stats(match_report)
 
-        verify(lastplayed_db, times=0).set(
-            "minqlx:maps:thunderstruck:last_played", any_
-        )
+        verify(lastplayed_db, times=0).set("minqlx:maps:thunderstruck:last_played", any_)
 
     def test_handle_stats_match_report_is_logged(self, lastplayed_db):
         match_report = {
@@ -66,9 +64,7 @@ class TestLastPlayed:
         }
         self.plugin.handle_stats(match_report)
 
-        verify(lastplayed_db, times=0).hset(
-            "minqlx:players:1234:last_played", any_, any_
-        )
+        verify(lastplayed_db, times=0).hset("minqlx:players:1234:last_played", any_, any_)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_stats_player_stats_for_warmup_stats(self, lastplayed_db):
@@ -78,9 +74,7 @@ class TestLastPlayed:
         }
         self.plugin.handle_stats(match_report)
 
-        verify(lastplayed_db, times=0).hset(
-            "minqlx:players:1234:last_played", any_, any_
-        )
+        verify(lastplayed_db, times=0).hset("minqlx:players:1234:last_played", any_, any_)
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_stats_player_stats_no_game_running(self, lastplayed_db):
@@ -90,9 +84,7 @@ class TestLastPlayed:
         }
         self.plugin.handle_stats(match_report)
 
-        verify(lastplayed_db, times=0).hset(
-            "minqlx:players:1234:last_played", any_, any_
-        )
+        verify(lastplayed_db, times=0).hset("minqlx:players:1234:last_played", any_, any_)
 
     def test_handle_stats_player_stats_is_logged(self, lastplayed_db, game_in_progress):
         game_in_progress.map = "thunderstruck"
@@ -102,9 +94,7 @@ class TestLastPlayed:
         }
         self.plugin.handle_stats(match_report)
 
-        verify(lastplayed_db).hset(
-            "minqlx:players:1234:last_played", "thunderstruck", any_
-        )
+        verify(lastplayed_db).hset("minqlx:players:1234:last_played", "thunderstruck", any_)
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_game_end_no_game_running(self):
@@ -123,12 +113,8 @@ class TestLastPlayed:
 
         assert_plugin_sent_to_console(any_, times=0)
 
-    def test_handle_game_end_maps_not_in_last_played_and_long_mapnames(
-        self, game_in_progress, lastplayed_db
-    ):
-        setup_cvars(
-            {"nextmaps": r"\map_0\campgrounds\map_1\thunderstruck\map_2\asylum"}
-        )
+    def test_handle_game_end_maps_not_in_last_played_and_long_mapnames(self, game_in_progress, lastplayed_db):
+        setup_cvars({"nextmaps": r"\map_0\campgrounds\map_1\thunderstruck\map_2\asylum"})
 
         game_in_progress.roundlimit = 8
         game_in_progress.red_score = 2
@@ -140,9 +126,7 @@ class TestLastPlayed:
         assert_plugin_sent_to_console(matches(".*VOTE.*"))
         assert_plugin_sent_to_console(matches(".*campgrounds.*thunderstruck.*asylum.*"))
 
-    def test_handle_game_end_maps_in_last_played_and_long_mapnames(
-        self, game_in_progress, lastplayed_db
-    ):
+    def test_handle_game_end_maps_in_last_played_and_long_mapnames(self, game_in_progress, lastplayed_db):
         setup_cvars({"nextmaps": r"\map_0\ct3_20b2\map_1\ra3fusy1d\map_2\ra3azra1"})
 
         when(lastplayed_db).exists("minqlx:maps:longnames").thenReturn(True)
@@ -151,13 +135,9 @@ class TestLastPlayed:
         )
         when(lastplayed_db).exists("minqlx:maps:ct3_20b2:last_played").thenReturn(False)
         when(lastplayed_db).exists("minqlx:maps:ra3fusy1d:last_played").thenReturn(True)
-        when(lastplayed_db).get("minqlx:maps:ra3fusy1d:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).get("minqlx:maps:ra3fusy1d:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:maps:ra3azra1:last_played").thenReturn(True)
-        when(lastplayed_db).get("minqlx:maps:ra3azra1:last_played").thenReturn(
-            "20230930010203+0000"
-        )
+        when(lastplayed_db).get("minqlx:maps:ra3azra1:last_played").thenReturn("20230930010203+0000")
 
         game_in_progress.roundlimit = 8
         game_in_progress.red_score = 2
@@ -177,9 +157,7 @@ class TestLastPlayed:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_last_played_no_game_running(self, lastplayed_db, mock_channel):
-        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
-            False
-        )
+        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(False)
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
@@ -188,57 +166,35 @@ class TestLastPlayed:
 
         mock_channel.assert_was_replied(any_, times=0)
 
-    def test_handle_last_played_map_never_logged_as_played(
-        self, lastplayed_db, game_in_warmup, mock_channel
-    ):
+    def test_handle_last_played_map_never_logged_as_played(self, lastplayed_db, game_in_warmup, mock_channel):
         game_in_warmup.map = "campgrounds"
-        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
-            False
-        )
+        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(False)
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
         self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
-        mock_channel.assert_was_replied(
-            matches("I don't know when map .*campgrounds.* was played the last time.")
-        )
+        mock_channel.assert_was_replied(matches("I don't know when map .*campgrounds.* was played the last time."))
 
-    def test_handle_last_played_player_never_played_on_map(
-        self, lastplayed_db, game_in_warmup, mock_channel
-    ):
+    def test_handle_last_played_player_never_played_on_map(self, lastplayed_db, game_in_warmup, mock_channel):
         game_in_warmup.map = "campgrounds"
-        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
-            True
-        )
-        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(True)
-        when(lastplayed_db).hget(
-            "minqlx:players:1234:last_played", "campgrounds"
-        ).thenReturn(None)
+        when(lastplayed_db).hget("minqlx:players:1234:last_played", "campgrounds").thenReturn(None)
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
         self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
-        mock_channel.assert_was_replied(
-            matches("Map .*campgrounds.* was last played .* ago here.")
-        )
+        mock_channel.assert_was_replied(matches("Map .*campgrounds.* was last played .* ago here."))
 
-    def test_handle_last_played_player_never_played_on_any_map(
-        self, lastplayed_db, game_in_warmup, mock_channel
-    ):
+    def test_handle_last_played_player_never_played_on_any_map(self, lastplayed_db, game_in_warmup, mock_channel):
         game_in_warmup.map = "campgrounds"
-        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
-            True
-        )
-        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(False)
 
         player = fake_player(name="FakePlayer", steam_id=1234)
@@ -246,24 +202,14 @@ class TestLastPlayed:
 
         self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
-        mock_channel.assert_was_replied(
-            matches("Map .*campgrounds.* was last played .* ago here.")
-        )
+        mock_channel.assert_was_replied(matches("Map .*campgrounds.* was last played .* ago here."))
 
-    def test_handle_last_played_player_played_on_map(
-        self, lastplayed_db, game_in_warmup, mock_channel
-    ):
+    def test_handle_last_played_player_played_on_map(self, lastplayed_db, game_in_warmup, mock_channel):
         game_in_warmup.map = "campgrounds"
-        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
-            True
-        )
-        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(True)
-        when(lastplayed_db).hget(
-            "minqlx:players:1234:last_played", "campgrounds"
-        ).thenReturn("20230921010203+0000")
+        when(lastplayed_db).hget("minqlx:players:1234:last_played", "campgrounds").thenReturn("20230921010203+0000")
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
@@ -271,79 +217,49 @@ class TestLastPlayed:
         self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
         mock_channel.assert_was_replied(
-            matches(
-                "Map .*campgrounds.* was last played .* ago here. You played on it .* ago."
-            )
+            matches("Map .*campgrounds.* was last played .* ago here. You played on it .* ago.")
         )
 
     def test_handle_last_played_player_played_on_map_at_last_played_time(
         self, lastplayed_db, game_in_warmup, mock_channel
     ):
         game_in_warmup.map = "campgrounds"
-        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(
-            True
-        )
-        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).exists("minqlx:maps:campgrounds:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:campgrounds:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(True)
-        when(lastplayed_db).hget(
-            "minqlx:players:1234:last_played", "campgrounds"
-        ).thenReturn("20230928010258+0000")
+        when(lastplayed_db).hget("minqlx:players:1234:last_played", "campgrounds").thenReturn("20230928010258+0000")
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
         self.plugin.cmd_last_played(player, ["!last_played"], mock_channel)
 
-        mock_channel.assert_was_replied(
-            matches("Map .*campgrounds.* was last played .* ago here. So did you.")
-        )
+        mock_channel.assert_was_replied(matches("Map .*campgrounds.* was last played .* ago here. So did you."))
 
-    def test_handle_last_played_with_provided_mapname(
-        self, lastplayed_db, game_in_warmup, mock_channel
-    ):
+    def test_handle_last_played_with_provided_mapname(self, lastplayed_db, game_in_warmup, mock_channel):
         game_in_warmup.map = "campgrounds"
-        when(lastplayed_db).exists("minqlx:maps:thunderstruck:last_played").thenReturn(
-            True
-        )
-        when(lastplayed_db).get("minqlx:maps:thunderstruck:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).exists("minqlx:maps:thunderstruck:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:thunderstruck:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(True)
-        when(lastplayed_db).hget(
-            "minqlx:players:1234:last_played", "thunderstruck"
-        ).thenReturn("20230921010203+0000")
+        when(lastplayed_db).hget("minqlx:players:1234:last_played", "thunderstruck").thenReturn("20230921010203+0000")
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(
-            player, ["!last_played", "thunderstruck"], mock_channel
-        )
+        self.plugin.cmd_last_played(player, ["!last_played", "thunderstruck"], mock_channel)
 
         mock_channel.assert_was_replied(
-            matches(
-                "Map .*thunderstruck.* was last played .* ago here. You played on it .* ago."
-            )
+            matches("Map .*thunderstruck.* was last played .* ago here. You played on it .* ago.")
         )
 
-    def test_handle_last_played_with_provided_mapname_and_longname(
-        self, lastplayed_db, game_in_warmup, mock_channel
-    ):
+    def test_handle_last_played_with_provided_mapname_and_longname(self, lastplayed_db, game_in_warmup, mock_channel):
         game_in_warmup.map = "campgrounds"
         when(lastplayed_db).exists("minqlx:maps:longnames").thenReturn(True)
-        when(lastplayed_db).hgetall("minqlx:maps:longnames").thenReturn(
-            {"ra3fusy1d": "Let Chaos Entwine"}
-        )
+        when(lastplayed_db).hgetall("minqlx:maps:longnames").thenReturn({"ra3fusy1d": "Let Chaos Entwine"})
         when(lastplayed_db).exists("minqlx:maps:ra3fusy1d:last_played").thenReturn(True)
-        when(lastplayed_db).get("minqlx:maps:ra3fusy1d:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).get("minqlx:maps:ra3fusy1d:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(True)
-        when(lastplayed_db).hget(
-            "minqlx:players:1234:last_played", "ra3fusy1d"
-        ).thenReturn("20230921010203+0000")
+        when(lastplayed_db).hget("minqlx:players:1234:last_played", "ra3fusy1d").thenReturn("20230921010203+0000")
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
@@ -351,9 +267,7 @@ class TestLastPlayed:
         self.plugin.cmd_last_played(player, ["!last_played", "ra3fusy1d"], mock_channel)
 
         mock_channel.assert_was_replied(
-            matches(
-                "Map .*Let Chaos Entwine.*(ra3fusy1d.*).* was last played .* ago here. You played on it .* ago."
-            )
+            matches("Map .*Let Chaos Entwine.*(ra3fusy1d.*).* was last played .* ago here. You played on it .* ago.")
         )
 
     def test_handle_last_played_with_provided_mapname_and_longname_not_in_lookup(
@@ -361,29 +275,17 @@ class TestLastPlayed:
     ):
         game_in_warmup.map = "campgrounds"
         when(lastplayed_db).exists("minqlx:maps:longnames").thenReturn(True)
-        when(lastplayed_db).hgetall("minqlx:maps:longnames").thenReturn(
-            {"ra3fusy1d": "Let Chaos Entwine"}
-        )
-        when(lastplayed_db).exists("minqlx:maps:ethra3map1:last_played").thenReturn(
-            True
-        )
-        when(lastplayed_db).get("minqlx:maps:ethra3map1:last_played").thenReturn(
-            "20230928010203+0000"
-        )
+        when(lastplayed_db).hgetall("minqlx:maps:longnames").thenReturn({"ra3fusy1d": "Let Chaos Entwine"})
+        when(lastplayed_db).exists("minqlx:maps:ethra3map1:last_played").thenReturn(True)
+        when(lastplayed_db).get("minqlx:maps:ethra3map1:last_played").thenReturn("20230928010203+0000")
         when(lastplayed_db).exists("minqlx:players:1234:last_played").thenReturn(True)
-        when(lastplayed_db).hget(
-            "minqlx:players:1234:last_played", "ethra3map1"
-        ).thenReturn("20230921010203+0000")
+        when(lastplayed_db).hget("minqlx:players:1234:last_played", "ethra3map1").thenReturn("20230921010203+0000")
 
         player = fake_player(name="FakePlayer", steam_id=1234)
         connected_players(player)
 
-        self.plugin.cmd_last_played(
-            player, ["!last_played", "ethra3map1"], mock_channel
-        )
+        self.plugin.cmd_last_played(player, ["!last_played", "ethra3map1"], mock_channel)
 
         mock_channel.assert_was_replied(
-            matches(
-                "Map .*ethra3map1.* was last played .* ago here. You played on it .* ago."
-            )
+            matches("Map .*ethra3map1.* was last played .* ago here. You played on it .* ago.")
         )

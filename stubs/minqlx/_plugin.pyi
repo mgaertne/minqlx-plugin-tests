@@ -95,12 +95,8 @@ RoundEndData = TypedDict(
     },
 )
 Vector = TypedDict("Vector", {"x": float, "y": float, "z": float})
-PowerUps = Literal[
-    "QUAD", "BATTLESUIT", "HASTE", "INVISIBILITY", "REGENERATION", "INVULNERABILITY"
-]
-Holdable = Literal[
-    "TELEPORTER", "MEDKIT", "FLIGHT", "KAMIKAZE", "PORTAL", "INVULNERABILITY"
-]
+PowerUps = Literal["QUAD", "BATTLESUIT", "HASTE", "INVISIBILITY", "REGENERATION", "INVULNERABILITY"]
+Holdable = Literal["TELEPORTER", "MEDKIT", "FLIGHT", "KAMIKAZE", "PORTAL", "INVULNERABILITY"]
 Weapon = Literal[
     "GAUNTLET",
     "MACHINEGUN",
@@ -234,12 +230,8 @@ UserInfoEventInput = TypedDict(
     },
     total=False,
 )
-PlayerKillStats = TypedDict(
-    "PlayerKillStats", {"DATA": KillData, "TYPE": Literal["PLAYER_KILL"]}
-)
-PlayerDeathStats = TypedDict(
-    "PlayerDeathStats", {"DATA": DeathData, "TYPE": Literal["PLAYER_DEATH"]}
-)
+PlayerKillStats = TypedDict("PlayerKillStats", {"DATA": KillData, "TYPE": Literal["PLAYER_KILL"]})
+PlayerDeathStats = TypedDict("PlayerDeathStats", {"DATA": DeathData, "TYPE": Literal["PLAYER_DEATH"]})
 MedalData = TypedDict(
     "MedalData",
     {
@@ -269,26 +261,18 @@ MedalData = TypedDict(
         "WARMUP": bool,
     },
 )
-PlayerMedalStats = TypedDict(
-    "PlayerMedalStats", {"DATA": MedalData, "TYPE": Literal["PLAYER_MEDAL"]}
-)
-RoundOverStats = TypedDict(
-    "RoundOverStats", {"DATA": RoundEndData, "TYPE": Literal["ROUND_OVER"]}
-)
+PlayerMedalStats = TypedDict("PlayerMedalStats", {"DATA": MedalData, "TYPE": Literal["PLAYER_MEDAL"]})
+RoundOverStats = TypedDict("RoundOverStats", {"DATA": RoundEndData, "TYPE": Literal["ROUND_OVER"]})
 PlayerGameData = TypedDict(
     "PlayerGameData",
     {"MATCH_GUID": str, "NAME": str, "STEAM_ID": str, "TIME": int, "WARMUP": bool},
 )
-PlayerConnectStats = TypedDict(
-    "PlayerConnectStats", {"DATA": PlayerGameData, "TYPE": Literal["PLAYER_CONNECT"]}
-)
+PlayerConnectStats = TypedDict("PlayerConnectStats", {"DATA": PlayerGameData, "TYPE": Literal["PLAYER_CONNECT"]})
 PlayerDisconnectStats = TypedDict(
     "PlayerDisconnectStats",
     {"DATA": PlayerGameData, "TYPE": Literal["PLAYER_DICCONNECT"]},
 )
-TeamSwitchEvent = TypedDict(
-    "TeamSwitchEvent", {"NAME": str, "OLD_TEAM": str, "STEAM_ID": str, "TEAM": str}
-)
+TeamSwitchEvent = TypedDict("TeamSwitchEvent", {"NAME": str, "OLD_TEAM": str, "STEAM_ID": str, "TEAM": str})
 TeamSwitchGameData = TypedDict(
     "TeamSwitchGameData",
     {"KILLER": TeamSwitchEvent, "MATCH_GUID": str, "TIME": int, "WARMUP": bool},
@@ -297,12 +281,8 @@ PlayerSwitchTeamStats = TypedDict(
     "PlayerSwitchTeamStats",
     {"DATA": TeamSwitchGameData, "TYPE": Literal["PLAYER_SWITCHTEAM"]},
 )
-MatchStartedStats = TypedDict(
-    "MatchStartedStats", {"DATA": GameStartData, "TYPE": Literal["MATCH_STARTED"]}
-)
-MatchReportStats = TypedDict(
-    "MatchReportStats", {"DATA": GameEndData, "TYPE": Literal["MATCH_REPORT"]}
-)
+MatchStartedStats = TypedDict("MatchStartedStats", {"DATA": GameStartData, "TYPE": Literal["MATCH_STARTED"]})
+MatchReportStats = TypedDict("MatchReportStats", {"DATA": GameEndData, "TYPE": Literal["MATCH_REPORT"]})
 DamageEntry = TypedDict("DamageEntry", {"DEALT": int, "TAKEN": int})
 MedalsEntry = TypedDict(
     "MedalsEntry",
@@ -410,9 +390,7 @@ PlayerStatsEntry = TypedDict(
         "WIN": int,
     },
 )
-PlayerStatsStats = TypedDict(
-    "PlayerStatsStats", {"DATA": PlayerStatsEntry, "TYPE": Literal["PLAYER_STATS"]}
-)
+PlayerStatsStats = TypedDict("PlayerStatsStats", {"DATA": PlayerStatsEntry, "TYPE": Literal["PLAYER_STATS"]})
 StatsData = (
     PlayerKillStats
     | PlayerDeathStats
@@ -453,9 +431,7 @@ class Plugin:
     def get_cvar(cls, name: str, return_type: Type[set]) -> set[str] | None: ...
     @classmethod
     @overload
-    def get_cvar(
-        cls, name: str, return_type: Type[tuple]
-    ) -> tuple[str, ...] | None: ...
+    def get_cvar(cls, name: str, return_type: Type[tuple]) -> tuple[str, ...] | None: ...
     @classmethod
     def set_cvar(
         cls,
@@ -491,9 +467,7 @@ class Plugin:
     @classmethod
     def players(cls) -> list[Player]: ...
     @classmethod
-    def player(
-        cls, name: str | int | Player, player_list: Iterable[Player] | None = ...
-    ) -> Player | None: ...
+    def player(cls, name: str | int | Player, player_list: Iterable[Player] | None = ...) -> Player | None: ...
     @classmethod
     def msg(cls, msg: str, chat_channel: str = ..., **kwargs: str) -> None: ...
     @classmethod
@@ -501,25 +475,15 @@ class Plugin:
     @classmethod
     def clean_text(cls, text: str) -> str: ...
     @classmethod
-    def colored_name(
-        cls, name: str | Player, player_list: Iterable[Player] | None = ...
-    ) -> str | None: ...
+    def colored_name(cls, name: str | Player, player_list: Iterable[Player] | None = ...) -> str | None: ...
     @classmethod
-    def client_id(
-        cls, name: str | int | Player, player_list: Iterable[Player] | None = ...
-    ) -> int | None: ...
+    def client_id(cls, name: str | int | Player, player_list: Iterable[Player] | None = ...) -> int | None: ...
     @classmethod
-    def find_player(
-        cls, name: str, player_list: Iterable[Player] | None = ...
-    ) -> list[Player]: ...
+    def find_player(cls, name: str, player_list: Iterable[Player] | None = ...) -> list[Player]: ...
     @classmethod
-    def teams(
-        cls, player_list: Iterable[Player] | None = ...
-    ) -> Mapping[str, list[Player]]: ...
+    def teams(cls, player_list: Iterable[Player] | None = ...) -> Mapping[str, list[Player]]: ...
     @classmethod
-    def center_print(
-        cls, msg: str, recipient: str | int | Player | None = ...
-    ) -> None: ...
+    def center_print(cls, msg: str, recipient: str | int | Player | None = ...) -> None: ...
     @classmethod
     def tell(cls, msg: str, recipient: str | int | Player, **kwargs: str) -> None: ...
     @classmethod
@@ -727,9 +691,7 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["vote_ended"],
-        handler: Callable[
-            [tuple[int, int], str, str | None, bool], CancellableEventReturn
-        ],
+        handler: Callable[[tuple[int, int], str, str | None, bool], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -827,9 +789,7 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["userinfo"],
-        handler: Callable[
-            [Player, UserInfoEventInput], UserInfo | CancellableEventReturn
-        ],
+        handler: Callable[[Player, UserInfoEventInput], UserInfo | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -978,9 +938,7 @@ class Plugin:
     def remove_hook(
         self,
         event: Literal["vote_ended"],
-        handler: Callable[
-            [tuple[int, int], str, str | None, bool], CancellableEventReturn
-        ],
+        handler: Callable[[tuple[int, int], str, str | None, bool], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -1078,9 +1036,7 @@ class Plugin:
     def remove_hook(
         self,
         event: Literal["userinfo"],
-        handler: Callable[
-            [Player, UserInfoEventInput], UserInfo | CancellableEventReturn
-        ],
+        handler: Callable[[Player, UserInfoEventInput], UserInfo | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -1117,9 +1073,7 @@ class Plugin:
     def add_command(
         self,
         name: str | Iterable[str],
-        handler: Callable[
-            [Player, str | list[str], AbstractChannel], CancellableEventReturn
-        ],
+        handler: Callable[[Player, str | list[str], AbstractChannel], CancellableEventReturn],
         permission: int = ...,
         channels: Iterable[AbstractChannel] | None = ...,
         exclude_channels: Iterable[AbstractChannel] = ...,

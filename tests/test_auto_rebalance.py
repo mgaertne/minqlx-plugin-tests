@@ -21,9 +21,7 @@ from auto_rebalance import auto_rebalance
 @pytest.mark.usefixtures("cvars")
 @pytest.mark.parametrize(
     "cvars",
-    [
-        "qlx_rebalanceScoreDiffThreshold=3,qlx_rebalanceWinningStreakThreshold=3,qlx_rebalanceNumAnnouncements=2"
-    ],
+    ["qlx_rebalanceScoreDiffThreshold=3,qlx_rebalanceWinningStreakThreshold=3,qlx_rebalanceNumAnnouncements=2"],
     indirect=True,
 )
 class TestAutoRebalance:
@@ -45,9 +43,7 @@ class TestAutoRebalance:
 
     def setup_balance_ratings(self, player_elos):
         gametype = self.plugin.game.type_short  # type: ignore
-        ratings = {
-            player.steam_id: {gametype: {"elo": elo}} for player, elo in player_elos
-        }
+        ratings = {player.steam_id: {gametype: {"elo": elo}} for player, elo in player_elos}
         self.plugin._loaded_plugins["balance"] = mock({"ratings": ratings})
 
     def setup_no_balance_plugin(self):
@@ -72,9 +68,7 @@ class TestAutoRebalance:
 
         self.plugin.last_new_player_id = last_new_player.steam_id
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            last_new_player, "red", "spectator"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(last_new_player, "red", "spectator")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.last_new_player_id, equal_to(None))
@@ -102,9 +96,7 @@ class TestAutoRebalance:
         player = fake_player(42, "Fake Player")
         connected_players(player)
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            player, "blue", "spectator"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(player, "blue", "spectator")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
@@ -160,9 +152,7 @@ class TestAutoRebalance:
         self.setup_balance_ratings([(red_player, 1200), (new_player, 1200)])
         self.plugin.last_new_player_id = red_player.steam_id
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "red"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
         assert_that(self.plugin.last_new_player_id, equal_to(None))
@@ -175,13 +165,9 @@ class TestAutoRebalance:
         new_player = fake_player(42, "New Player", "spectator")
         connected_players(red_player, blue_player, new_player)
 
-        self.setup_balance_ratings(
-            [(red_player, 1200), (blue_player, 1200), (new_player, 1200)]
-        )
+        self.setup_balance_ratings([(red_player, 1200), (blue_player, 1200), (new_player, 1200)])
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "red"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.last_new_player_id, equal_to(new_player.steam_id))
@@ -203,9 +189,7 @@ class TestAutoRebalance:
             ]
         )
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "red"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
@@ -229,9 +213,7 @@ class TestAutoRebalance:
         )
         self.plugin.last_new_player_id = 666
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "red"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
@@ -256,9 +238,7 @@ class TestAutoRebalance:
         )
         self.plugin.last_new_player_id = new_red_player.steam_id
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "blue"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "blue")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
@@ -281,9 +261,7 @@ class TestAutoRebalance:
         )
         self.plugin.last_new_player_id = new_red_player.steam_id
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "red"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
         assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
@@ -309,9 +287,7 @@ class TestAutoRebalance:
         )
         self.plugin.last_new_player_id = new_blue_player.steam_id
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "red"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
         assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
@@ -338,9 +314,7 @@ class TestAutoRebalance:
         )
         self.plugin.last_new_player_id = new_blue_player.steam_id
 
-        return_code = self.plugin.handle_team_switch_attempt(
-            new_player, "spectator", "blue"
-        )
+        return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "blue")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
         assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
@@ -367,43 +341,29 @@ class TestAutoRebalance:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_round_end_no_game_running(self):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=rr"], indirect=True)
     def test_handle_round_end_wrong_gametype(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=8,blue_score=3"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=8,blue_score=3"], indirect=True)
     def test_handle_round_end_roundlimit_reached(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True)
     def test_handle_round_end_suggestion_threshold_not_met(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True)
     def test_handle_round_end_teams_unbalanced(self, game_in_progress):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
@@ -415,18 +375,12 @@ class TestAutoRebalance:
             blue_player1,
         )
 
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True
-    )
-    def test_handle_round_end_teams_callback_called(
-        self, mocked_balance_plugin, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True)
+    def test_handle_round_end_teams_callback_called(self, mocked_balance_plugin, game_in_progress):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
         blue_player1 = fake_player(246, "Blue Player1", "blue")
@@ -441,17 +395,10 @@ class TestAutoRebalance:
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        players = {
-            p.steam_id: "ca"
-            for p in [red_player1, red_player2, blue_player1, blue_player2]
-        }
-        verify(mocked_balance_plugin).add_request(
-            players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL
-        )
+        players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
+        verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=5,blue_score=1"], indirect=True)
     def test_handle_round_end_no_balance_plugin(self, game_in_progress):
         self.setup_no_balance_plugin()
 
@@ -467,18 +414,12 @@ class TestAutoRebalance:
             blue_player2,
         )
 
-        return_code = undecorated(self.plugin.handle_round_end)(
-            self.plugin, {"TEAM_WON": "RED"}
-        )
+        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=3,blue_score=1"], indirect=True
-    )
-    def test_handle_round_end_winner_is_tracked_for_winning_streak(
-        self, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=3,blue_score=1"], indirect=True)
+    def test_handle_round_end_winner_is_tracked_for_winning_streak(self, game_in_progress):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
         blue_player1 = fake_player(246, "Blue Player1", "blue")
@@ -496,12 +437,8 @@ class TestAutoRebalance:
 
         assert_that(self.plugin.winning_teams, equal_to(["red", "blue", "red", "red"]))
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=3,blue_score=1"], indirect=True
-    )
-    def test_handle_round_end_winning_streak_triggers_teams_callback(
-        self, mocked_balance_plugin, game_in_progress
-    ):
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=3,blue_score=1"], indirect=True)
+    def test_handle_round_end_winning_streak_triggers_teams_callback(self, mocked_balance_plugin, game_in_progress):
         red_player1 = fake_player(123, "Red Player1", "red")
         red_player2 = fake_player(456, "Red Player2", "red")
         blue_player1 = fake_player(246, "Blue Player1", "blue")
@@ -517,17 +454,10 @@ class TestAutoRebalance:
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        players = {
-            p.steam_id: "ca"
-            for p in [red_player1, red_player2, blue_player1, blue_player2]
-        }
-        verify(mocked_balance_plugin).add_request(
-            players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL
-        )
+        players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
+        verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
 
-    @pytest.mark.parametrize(
-        "game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True
-    )
+    @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True)
     def test_handle_round_end_winning_streak_triggers_teams_callback_already_called_multiple_times(
         self, mocked_balance_plugin, game_in_progress
     ):
@@ -546,10 +476,7 @@ class TestAutoRebalance:
 
         undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
-        players = {
-            p.steam_id: "ca"
-            for p in [red_player1, red_player2, blue_player1, blue_player2]
-        }
+        players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin, times=0).add_request(
             players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL
         )

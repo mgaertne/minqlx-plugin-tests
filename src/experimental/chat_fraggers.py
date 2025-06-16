@@ -34,22 +34,13 @@ class chat_fraggers(Plugin):
         super().__init__()
 
         self.set_cvar_once("qlx_chatFraggers_punishment_threshold", "250")
-        self.punishment_threshold = (
-            self.get_cvar("qlx_chatFraggers_punishment_threshold", int) or 250
-        )
+        self.punishment_threshold = self.get_cvar("qlx_chatFraggers_punishment_threshold", int) or 250
 
-        self.set_cvar_once(
-            "qlx_chatFraggers_warning_text", "^1Shoot Chatters = Insta-Ban"
-        )
-        self.warning_text = (
-            self.get_cvar("qlx_chatFraggers_warning_text")
-            or "^1Shoot Chatters = Insta-Ban"
-        )
+        self.set_cvar_once("qlx_chatFraggers_warning_text", "^1Shoot Chatters = Insta-Ban")
+        self.warning_text = self.get_cvar("qlx_chatFraggers_warning_text") or "^1Shoot Chatters = Insta-Ban"
 
         self.set_cvar_once("qlx_chatFraggers_punish_text", "^1You have been warned!")
-        self.punish_text = (
-            self.get_cvar("qlx_chatFraggers_warning_text") or "^1You have been warned!"
-        )
+        self.punish_text = self.get_cvar("qlx_chatFraggers_warning_text") or "^1You have been warned!"
 
         self.chat_tracker = {}
 
@@ -95,10 +86,7 @@ class chat_fraggers(Plugin):
             self.chat_tracker[attacker.steam_id].get(target.steam_id, 0) + dmg
         )
 
-        if (
-            self.chat_tracker[attacker.steam_id][target.steam_id]
-            < self.punishment_threshold
-        ):
+        if self.chat_tracker[attacker.steam_id][target.steam_id] < self.punishment_threshold:
             warn_player(attacker, self.warning_text)
             return
 
@@ -123,10 +111,7 @@ class chat_fraggers(Plugin):
         if victim.steam_id not in self.chat_tracker[killer.steam_id]:
             return
 
-        if (
-            self.chat_tracker[killer.steam_id][victim.steam_id]
-            < self.punishment_threshold
-        ):
+        if self.chat_tracker[killer.steam_id][victim.steam_id] < self.punishment_threshold:
             warn_player(killer, self.warning_text)
             return
 

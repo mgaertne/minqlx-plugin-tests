@@ -8,12 +8,8 @@ class ThresholdFastVoteStrategy:
         Plugin.set_cvar_once("qlx_fastvoteThresholdFastPassDiff", 6)
         Plugin.set_cvar_once("qlx_fastvoteThresholdFastFailDiff", 5)
 
-        self.threshold_fast_pass_diff = (
-            Plugin.get_cvar("qlx_fastvoteThresholdFastPassDiff", int) or 0
-        )
-        self.threshold_fast_fail_diff = (
-            Plugin.get_cvar("qlx_fastvoteThresholdFastFailDiff", int) or 5
-        )
+        self.threshold_fast_pass_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastPassDiff", int) or 0
+        self.threshold_fast_fail_diff = Plugin.get_cvar("qlx_fastvoteThresholdFastFailDiff", int) or 5
 
     def evaluate_votes(self, yes_votes, no_votes):
         diff = yes_votes - no_votes
@@ -31,19 +27,14 @@ class ParticipationFastVoteStrategy:
     def __init__(self):
         Plugin.set_cvar_once("qlx_fastvoteParticipationPercentage", 0.67)
 
-        self.participation_percentage = (
-            Plugin.get_cvar("qlx_fastvoteParticipationPercentage", float) or 0.67
-        )
+        self.participation_percentage = Plugin.get_cvar("qlx_fastvoteParticipationPercentage", float) or 0.67
 
     def evaluate_votes(self, yes_votes, no_votes):
         num_connected_players = len(Plugin.players())
 
         current_participation = (yes_votes + no_votes) / num_connected_players
 
-        if (
-            current_participation >= self.participation_percentage
-            and yes_votes != no_votes
-        ):
+        if current_participation >= self.participation_percentage and yes_votes != no_votes:
             return yes_votes > no_votes
 
         return None

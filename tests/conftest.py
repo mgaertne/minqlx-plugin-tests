@@ -60,9 +60,7 @@ def _cvars(request):
 
 @pytest.fixture(name="no_minqlx_game")
 def _no_game():
-    when2(minqlx.Game).thenRaise(
-        NonexistentGameError("Tried to instantiate a game while no game is active.")
-    )
+    when2(minqlx.Game).thenRaise(NonexistentGameError("Tried to instantiate a game while no game is active."))
     yield
     unstub()
 

@@ -46,20 +46,12 @@ class auto_rebalance(Plugin):
         Plugin.set_cvar_once("qlx_rebalanceWinningStreakThreshold", "3")
         Plugin.set_cvar_once("qlx_rebalanceNumAnnouncements", "2")
 
-        self.score_diff_suggestion_threshold = (
-            Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int) or 3
-        )
-        self.winning_streak_suggestion_threshold = (
-            Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int) or 3
-        )
-        self.num_announcements = (
-            Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int) or 2
-        )
+        self.score_diff_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceScoreDiffThreshold", int) or 3
+        self.winning_streak_suggestion_threshold = Plugin.get_cvar("qlx_rebalanceWinningStreakThreshold", int) or 3
+        self.num_announcements = Plugin.get_cvar("qlx_rebalanceNumAnnouncements", int) or 2
 
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
-        self.add_hook(
-            "round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST
-        )
+        self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
         for event in ["map", "game_countdown"]:
             # noinspection PyTypeChecker
@@ -94,9 +86,7 @@ class auto_rebalance(Plugin):
             return minqlx.RET_NONE
 
         if "balance" not in self.plugins:
-            Plugin.msg(
-                "^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible."
-            )
+            Plugin.msg("^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible.")
             return minqlx.RET_NONE
 
         gametype = self.game.type_short
@@ -122,17 +112,9 @@ class auto_rebalance(Plugin):
             gametype, teams[last_new_player.team].copy(), new_player_team
         )
 
-        alternative_team_a = [
-            player
-            for player in teams[last_new_player.team]
-            if player != last_new_player
-        ] + [player]
-        alternative_team_b = teams[other_than_last_players_team].copy() + [
-            last_new_player
-        ]
-        alternative_diff = self.calculate_player_average_difference(
-            gametype, alternative_team_a, alternative_team_b
-        )
+        alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + [player]
+        alternative_team_b = teams[other_than_last_players_team].copy() + [last_new_player]
+        alternative_diff = self.calculate_player_average_difference(gametype, alternative_team_a, alternative_team_b)
 
         self.last_new_player_id = None
         if proposed_diff > alternative_diff:
@@ -252,9 +234,7 @@ class auto_rebalance(Plugin):
 
         if abs(
             self.game.red_score - self.game.blue_score
-        ) < self.score_diff_suggestion_threshold and not self.team_is_on_a_winning_streak(
-            winning_team
-        ):
+        ) < self.score_diff_suggestion_threshold and not self.team_is_on_a_winning_streak(winning_team):
             return minqlx.RET_NONE
 
         if self.announced_often_enough(winning_team):
@@ -288,17 +268,13 @@ class auto_rebalance(Plugin):
         if not self.game:
             return False
 
-        maximum_announcements = (
-            self.winning_streak_suggestion_threshold + self.num_announcements
-        )
+        maximum_announcements = self.winning_streak_suggestion_threshold + self.num_announcements
 
         return abs(
             self.game.red_score - self.game.blue_score
         ) > self.score_diff_suggestion_threshold + self.num_announcements or self.winning_teams[
             -maximum_announcements:
-        ] == maximum_announcements * [
-            winning_team
-        ]
+        ] == maximum_announcements * [winning_team]
 
     def handle_reset_winning_teams(self, *_args, **_kwargs):
         """

@@ -40,9 +40,7 @@ def num_tokens_from_messages(messages, *, model="gpt-3.5-turbo-0301"):
 
     num_tokens = 0
     for message in messages:
-        num_tokens += (
-            4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
-        )
+        num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
         for key, value in message.items():
             num_tokens += len(encoding.encode(value))
             if key == "name":  # if there's a name, the role is omitted
@@ -135,69 +133,45 @@ class openai_bot(Plugin):
         self.bot_api_key = self.get_cvar("qlx_openai_apikey")
         self.bot_name = self.get_cvar("qlx_openai_botname") or "Bob"
         self.bot_triggers = self.get_cvar("qlx_openai_bot_triggers", list) or []
-        self.bot_triggers = [
-            trigger for trigger in self.bot_triggers if len(trigger) > 0
-        ]
+        self.bot_triggers = [trigger for trigger in self.bot_triggers if len(trigger) > 0]
         self.bot_clanprefix = self.get_cvar("qlx_openai_clanprefix") or ""
         self.model = self.get_cvar("qlx_openai_model") or "gpt-3.5-turbo"
         self.max_tokens = self.get_cvar("qlx_openai_max_tokens", int) or 100
-        self.max_chat_history_tokens = (
-            self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
-        )
+        self.max_chat_history_tokens = self.get_cvar("qlx_openai_max_chat_history_tokens", int) or 512
         self.temperature = self.get_cvar("qlx_openai_temperature", float) or 1.0
         if self.temperature < 0 or self.temperature > 2:
             self.temperature = 1.0
         self.top_p = self.get_cvar("qlx_openai_top_p", float) or 1.0
         if self.top_p < 0 or self.top_p > 2:
             self.top_p = 1.0
-        self.frequency_penalty = (
-            self.get_cvar("qlx_openai_frequency_penalty", float) or 0.0
-        )
+        self.frequency_penalty = self.get_cvar("qlx_openai_frequency_penalty", float) or 0.0
         if self.frequency_penalty < -2.0 or self.frequency_penalty > 2.0:
             self.frequency_penalty = 0.0
-        self.presence_penalty = (
-            self.get_cvar("qlx_openai_presence_penalty", float) or 0.0
-        )
+        self.presence_penalty = self.get_cvar("qlx_openai_presence_penalty", float) or 0.0
         if self.presence_penalty < -2.0 or self.presence_penalty > 2.0:
             self.presence_penalty = 0.0
         self.system_context = (
-            self.get_cvar("qlx_openai_system_context")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_system_context").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_chat = (
-            self.get_cvar("qlx_openai_bot_role_chat")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_bot_role_chat").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_gamestart = (
-            self.get_cvar("qlx_openai_bot_role_gamestart")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_bot_role_gamestart").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_roundstart = (
-            self.get_cvar("qlx_openai_bot_role_roundstart")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_bot_role_roundstart").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_roundend = (
-            self.get_cvar("qlx_openai_bot_role_roundend")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_bot_role_roundend").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_gameend = (
-            self.get_cvar("qlx_openai_bot_role_gameend")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_bot_role_gameend").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_weird_stats = (
-            self.get_cvar("qlx_openai_bot_role_weird_stats")
-            .encode("raw_unicode_escape")
-            .decode("unicode_escape")
+            self.get_cvar("qlx_openai_bot_role_weird_stats").encode("raw_unicode_escape").decode("unicode_escape")
         )
-        self.extended_logging = (
-            self.get_cvar("qlx_openai_extended_logging", bool) or False
-        )
+        self.extended_logging = self.get_cvar("qlx_openai_extended_logging", bool) or False
 
         self.greet_joiners = self.get_cvar("qlx_openai_greet_joiners", bool)
         self.greeting_delay = self.get_cvar("qlx_openai_greeting_delay", int) or 60
@@ -213,9 +187,7 @@ class openai_bot(Plugin):
         self.add_hook("game_end", self.handle_game_end)
 
         self.add_command("listmodels", self.cmd_list_models, permission=5)
-        self.add_command(
-            "switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]"
-        )
+        self.add_command("switchmodel", self.cmd_switch_model, permission=5, usage="[modelname]")
 
     @minqlx.thread
     def cache_map_authors_from_db(self):
@@ -304,9 +276,7 @@ class openai_bot(Plugin):
                 )
 
     def _send_message(self, communication_channel, message):
-        communication_channel.reply(
-            f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{self._ql_cleaned_up(message)}"
-        )
+        communication_channel.reply(f"{self.bot_clanprefix}^7{self.bot_name}^7: ^2{self._ql_cleaned_up(message)}")
 
         # noinspection PyProtectedMember
         if "mydiscordbot" in Plugin._loaded_plugins:
@@ -314,9 +284,7 @@ class openai_bot(Plugin):
             discord_plugin = Plugin._loaded_plugins["mydiscordbot"]
             # noinspection PyUnresolvedReferences
             discord_plugin.discord.relay_message(
-                Plugin.clean_text(
-                    f"**{self.bot_clanprefix}{self.bot_name}**: {message}"
-                )
+                Plugin.clean_text(f"**{self.bot_clanprefix}{self.bot_name}**: {message}")
             )
 
     def _ql_cleaned_up(self, message):
@@ -335,8 +303,7 @@ class openai_bot(Plugin):
                 request = f"{chatter.clean_name}: {message}"
 
                 if not self.is_triggered_message(msg) and (
-                    not self.greet_joiners
-                    or chatter.steam_id not in self.recently_connected_steam_ids
+                    not self.greet_joiners or chatter.steam_id not in self.recently_connected_steam_ids
                 ):
                     self._record_chat_line(request, lock=self.queue_lock)
                     return
@@ -380,9 +347,7 @@ class openai_bot(Plugin):
 
     def contextualized_chat_history(self, request, *, trigger_template=None):
         game_state = self.current_game_state()
-        current_timestamp = datetime.now(
-            datetime.now(timezone.utc).astimezone().tzinfo
-        ).strftime("%m/%d/%y %H:%M %Z")
+        current_timestamp = datetime.now(datetime.now(timezone.utc).astimezone().tzinfo).strftime("%m/%d/%y %H:%M %Z")
         chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, "-INF", "+INF")
         formatted_system_context = self.system_context.format(
             bot_name=Plugin.clean_text(self.bot_name),
@@ -398,11 +363,7 @@ class openai_bot(Plugin):
         chat_history_messages = [{"role": "user", "content": request}]
         if (
             trigger_template is not None
-            and len(
-                trigger_template.format(
-                    bot_name=Plugin.clean_text(self.bot_name), game_state=game_state
-                ).strip()
-            )
+            and len(trigger_template.format(bot_name=Plugin.clean_text(self.bot_name), game_state=game_state).strip())
             > 0
         ):
             chat_history_messages.append(
@@ -416,19 +377,13 @@ class openai_bot(Plugin):
 
         for message in reversed(chat_log):
             if (
-                num_tokens_from_messages(
-                    chat_history_messages + [system_context], model=self.model
-                )
+                num_tokens_from_messages(chat_history_messages + [system_context], model=self.model)
                 >= self.max_chat_history_tokens
             ):
                 score = self.db.zscore(CHAT_BOT_LOG, message)
                 self.db.zremrangebyscore(CHAT_BOT_LOG, "-INF", score)
                 break
-            role = (
-                "assistant"
-                if message.startswith(Plugin.clean_text(self.bot_name))
-                else "user"
-            )
+            role = "assistant" if message.startswith(Plugin.clean_text(self.bot_name)) else "user"
             chat_history_messages.append({"role": role, "content": message})
         chat_history_messages.append(system_context)
         chat_history_messages.reverse()
@@ -467,18 +422,13 @@ class openai_bot(Plugin):
             return ""
 
         teams = Plugin.teams()
-        team_status = (
-            "nick|team|dmg\n" if self.game.state == "in_progress" else "nick|team\n"
-        )
+        team_status = "nick|team|dmg\n" if self.game.state == "in_progress" else "nick|team\n"
         for team in ["red", "blue", "spectator"]:
             if len(teams[team]) == 0:
                 continue
             for player in teams[team]:
                 if self.game.state == "in_progress":
-                    team_status += (
-                        f"{player.clean_name}|{player.team}|"
-                        f"{player.stats.damage_dealt}\n"
-                    )
+                    team_status += f"{player.clean_name}|{player.team}|{player.stats.damage_dealt}\n"
                 else:
                     team_status += f"{player.clean_name}|{player.team}\n"
 

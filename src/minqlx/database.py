@@ -180,9 +180,7 @@ class Redis(AbstractDatabase):
         elif isinstance(player, str):
             steam_id = int(player)
         else:
-            raise ValueError(
-                "Invalid player. Use either a minqlx.Player instance or a SteamID64."
-            )
+            raise ValueError("Invalid player. Use either a minqlx.Player instance or a SteamID64.")
 
         # If it's the owner, treat it like a 5.
         if steam_id == minqlx.owner():
@@ -298,9 +296,7 @@ class Redis(AbstractDatabase):
                         password=Redis._pass,
                         decode_responses=True,
                     )
-                    Redis._conn = redis.StrictRedis(
-                        connection_pool=Redis._pool, decode_responses=True
-                    )
+                    Redis._conn = redis.StrictRedis(connection_pool=Redis._pool, decode_responses=True)
                     # TODO: Why does self._conn get set when doing Redis._conn?
                     self._conn = None
             return Redis._conn
@@ -325,9 +321,7 @@ class Redis(AbstractDatabase):
                     password=password,
                     decode_responses=True,
                 )
-                self._conn = redis.StrictRedis(
-                    connection_pool=self._pool, decode_responses=True
-                )
+                self._conn = redis.StrictRedis(connection_pool=self._pool, decode_responses=True)
         return self._conn
 
     def close(self):

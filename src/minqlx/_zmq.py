@@ -19,7 +19,6 @@
 """Subscribes to the ZMQ stats protocol and calls the stats event dispatcher when
 we get stats from it."""
 
-
 import zmq
 import minqlx
 
@@ -77,9 +76,7 @@ class StatsListener:
                         # Dead player.
                         sid = int(stats["DATA"]["VICTIM"]["STEAM_ID"])
                         player = (
-                            minqlx.Plugin.player(sid)
-                            if sid
-                            else minqlx.Plugin.player(stats["DATA"]["VICTIM"]["NAME"])
+                            minqlx.Plugin.player(sid) if sid else minqlx.Plugin.player(stats["DATA"]["VICTIM"]["NAME"])
                         )
 
                         # Killer player.
@@ -90,30 +87,20 @@ class StatsListener:
                             if sid_killer:
                                 player_killer = minqlx.Plugin.player(sid_killer)
                             else:  # It's a bot. Forced to use name as an identifier.
-                                player_killer = minqlx.Plugin.player(
-                                    stats["DATA"]["KILLER"]["NAME"]
-                                )
+                                player_killer = minqlx.Plugin.player(stats["DATA"]["KILLER"]["NAME"])
 
-                        minqlx.EVENT_DISPATCHERS["death"].dispatch(
-                            player, player_killer, stats["DATA"]
-                        )
+                        minqlx.EVENT_DISPATCHERS["death"].dispatch(player, player_killer, stats["DATA"])
                         if player_killer:
-                            minqlx.EVENT_DISPATCHERS["kill"].dispatch(
-                                player, player_killer, stats["DATA"]
-                            )
+                            minqlx.EVENT_DISPATCHERS["kill"].dispatch(player, player_killer, stats["DATA"])
                     elif stats["TYPE"] == "PLAYER_SWITCHTEAM":
                         # No idea why they named it "KILLER" here, but whatever.
-                        player = minqlx.Plugin.player(
-                            int(stats["DATA"]["KILLER"]["STEAM_ID"])
-                        )
+                        player = minqlx.Plugin.player(int(stats["DATA"]["KILLER"]["STEAM_ID"]))
                         if player is None:
                             continue
                         old_team = stats["DATA"]["KILLER"]["OLD_TEAM"].lower()
                         new_team = stats["DATA"]["KILLER"]["TEAM"].lower()
                         if old_team != new_team:
-                            res = minqlx.EVENT_DISPATCHERS["team_switch"].dispatch(
-                                player, old_team, new_team
-                            )
+                            res = minqlx.EVENT_DISPATCHERS["team_switch"].dispatch(player, old_team, new_team)
                             if res is False:
                                 player.put(old_team)
 

@@ -30,19 +30,13 @@ class showdown(Plugin):
         self.add_command(("hurry", "showdown"), self.cmd_showdown)
 
         self.vote_showdown = self.get_cvar("qlx_showdown_vote", bool)
-        self.vote_showdown_teamsize = (
-            self.get_cvar("qlx_showdown_vote_teamsize", int) or 2
-        )
+        self.vote_showdown_teamsize = self.get_cvar("qlx_showdown_vote_teamsize", int) or 2
         self.min_opp = self.get_cvar("qlx_showdown_min", int) or 2
         self.max_opp = self.get_cvar("qlx_showdown_max", int) or 4
-        self.showdown_random_weapons = self.get_cvar(
-            "qlx_showdown_random_weapons", list
-        )
+        self.showdown_random_weapons = self.get_cvar("qlx_showdown_random_weapons", list)
         self.random_weapons_iter = random_iterator(self.showdown_random_weapons)
 
-        self.showdown_overwrite_permission_level = (
-            self.get_cvar("qlx_showdown_overwrite_permission_level", int) or 1
-        )
+        self.showdown_overwrite_permission_level = self.get_cvar("qlx_showdown_overwrite_permission_level", int) or 1
         self.between_rounds = True
 
         self.last_standing_steam_id = None
@@ -81,10 +75,7 @@ class showdown(Plugin):
 
         teams = self.teams()
 
-        if (
-            len(teams["red"]) < self.vote_showdown_teamsize
-            or len(teams["blue"]) < self.vote_showdown_teamsize
-        ):
+        if len(teams["red"]) < self.vote_showdown_teamsize or len(teams["blue"]) < self.vote_showdown_teamsize:
             return
 
         alive_r = self.alive_players(teams["red"])
@@ -98,9 +89,7 @@ class showdown(Plugin):
 
         if self.last_standing_time is None:
             self.last_standing_time = time.time()
-            self.last_standing_steam_id = (
-                alive_r[0].steam_id if len(alive_r) == 1 else alive_b[0].steam_id
-            )
+            self.last_standing_steam_id = alive_r[0].steam_id if len(alive_r) == 1 else alive_b[0].steam_id
 
         self.handle_automatic_showdown(alive_r, alive_b)
 
@@ -148,9 +137,7 @@ class showdown(Plugin):
 
         self.showdown_votes = {"hurry": [], "showdown": []}
 
-        vote_now_sound = random.choice(
-            ["sound/vo/vote_now", "sound/vo_evil/vote_now", "sound/vo_female/vote_now"]
-        )
+        vote_now_sound = random.choice(["sound/vo/vote_now", "sound/vo_evil/vote_now", "sound/vo_female/vote_now"])
         for player in teams[voting_team]:
             if player.is_alive:
                 continue
@@ -324,9 +311,7 @@ class showdown(Plugin):
         amount_alive_blue = len(alive_b)
         self.blink(
             [self.showdown_weapon.countdown_announcement, ""] * 9
-            + [
-                f"^2{amount_alive_red}vs{amount_alive_blue} - {self.showdown_weapon.start_announcement}"
-            ],
+            + [f"^2{amount_alive_red}vs{amount_alive_blue} - {self.showdown_weapon.start_announcement}"],
             callback=self.start_showdown,
         )
         self.play_sound("sound/world/turksquish22.wav")
@@ -345,9 +330,7 @@ class showdown(Plugin):
                 f"players are left standing."
             )
         else:
-            self.msg(
-                f"^7{self.showdown_weapon.longname} showdown! Weapons will be restored next round."
-            )
+            self.msg(f"^7{self.showdown_weapon.longname} showdown! Weapons will be restored next round.")
 
     def start_showdown(self):
         @minqlx.next_frame
@@ -400,10 +383,7 @@ class showdown(Plugin):
         if not self.game:
             return False
 
-        return (
-            self.game.blue_score != self.game.roundlimit - 1
-            and self.game.red_score != self.game.roundlimit - 1
-        )
+        return self.game.blue_score != self.game.roundlimit - 1 and self.game.red_score != self.game.roundlimit - 1
 
     def announce_player_died(self, alive_r, alive_b):
         if self.showdown_votes is not None:
@@ -420,9 +400,7 @@ class showdown(Plugin):
             )
         else:
             enemies_left = len(alive_b + alive_r) - 1
-            self.msg(
-                f"^7{self.showdown_weapon.longname} showdown! Kill ^6{enemies_left}^7 more enemies"
-            )
+            self.msg(f"^7{self.showdown_weapon.longname} showdown! Kill ^6{enemies_left}^7 more enemies")
 
         if self.showdown_weapon.shortname == "g":
             sound = random.choice(
@@ -516,9 +494,7 @@ class showdown(Plugin):
         if self.showdown_activated:
             return
 
-        if self.is_player_eligible_to_trigger_showdown(
-            player
-        ) and self.is_showdown_trigger_attempt(player, msg):
+        if self.is_player_eligible_to_trigger_showdown(player) and self.is_showdown_trigger_attempt(player, msg):
             if len(msg) < 2 or msg[1] == "random":
                 self.logger.debug("random showdown")
                 self.weapon_showdown()
@@ -530,13 +506,9 @@ class showdown(Plugin):
                     self.weapon_showdown(weapon.shortname)
                     return
 
-            available_weapons = sorted(
-                [weapon.shortname.lower() for weapon in ALL_WEAPONS] + ["random"]
-            )
+            available_weapons = sorted([weapon.shortname.lower() for weapon in ALL_WEAPONS] + ["random"])
             formatted_showdown_weapons = "^7, ^5".join(available_weapons)
-            player.tell(
-                f"Weapon ^5{msg[1]}^7 not available. Available weapons: ^5{formatted_showdown_weapons}"
-            )
+            player.tell(f"Weapon ^5{msg[1]}^7 not available. Available weapons: ^5{formatted_showdown_weapons}")
             return
 
         if self.showdown_votes is None:
@@ -580,9 +552,7 @@ class showdown(Plugin):
             self.showdown_votes["hurry"].remove(player.steam_id)
 
         if player.steam_id in self.showdown_votes["showdown"]:
-            player.tell(
-                f"Changing your vote from ^5random weapon showdown^7 to ^5{voted_showdown}^7"
-            )
+            player.tell(f"Changing your vote from ^5random weapon showdown^7 to ^5{voted_showdown}^7")
             self.showdown_votes["showdown"].remove(player.steam_id)
 
         self.showdown_votes[voted_showdown].append(player.steam_id)
@@ -604,9 +574,7 @@ class showdown(Plugin):
         if not self.db:
             return False
 
-        return self.db.has_permission(
-            player.steam_id, self.showdown_overwrite_permission_level
-        )
+        return self.db.has_permission(player.steam_id, self.showdown_overwrite_permission_level)
 
     def is_showdown_trigger_attempt(self, player, msg):
         if len(msg) < 1:
@@ -618,10 +586,7 @@ class showdown(Plugin):
         if len(msg) > 1:
             return True
 
-        return (
-            self.showdown_votes is not None
-            and player.steam_id in self.showdown_votes["showdown"]
-        )
+        return self.showdown_votes is not None and player.steam_id in self.showdown_votes["showdown"]
 
     def punish_last_standing_player(self):
         if self.last_standing_steam_id is None:
@@ -644,9 +609,7 @@ class showdown(Plugin):
         if len(alive_r) < 1 or len(alive_b) < 1:
             return
 
-        random_weapon = (
-            preselected_weapon if preselected_weapon else next(self.random_weapons_iter)
-        )
+        random_weapon = preselected_weapon if preselected_weapon else next(self.random_weapons_iter)
 
         self.activate_showdown(alive_r, alive_b, showdown_weapon=random_weapon)
         self.showdown_votes = None
@@ -676,17 +639,11 @@ class showdown(Plugin):
 
         if self.showdown_votes is None:
             return
-        if (
-            "hurry" in self.showdown_votes
-            and len(self.showdown_votes["hurry"]) >= votes_needed
-        ):
+        if "hurry" in self.showdown_votes and len(self.showdown_votes["hurry"]) >= votes_needed:
             self.punish_last_standing_player()
             return
 
-        if (
-            "showdown" in self.showdown_votes
-            and len(self.showdown_votes["showdown"]) >= votes_needed
-        ):
+        if "showdown" in self.showdown_votes and len(self.showdown_votes["showdown"]) >= votes_needed:
             self.weapon_showdown()
 
 
@@ -733,9 +690,7 @@ class Weapon:
         if self.longname.lower().strip() == text.lower().strip():
             return True
 
-        return any(
-            aliases.lower().strip() == text.lower().strip() for aliases in self.aliases
-        )
+        return any(aliases.lower().strip() == text.lower().strip() for aliases in self.aliases)
 
 
 ALL_WEAPONS = [
@@ -748,9 +703,7 @@ ALL_WEAPONS = [
     Weapon(7, "rg", "Rail", [], "Lube your rails...", "Go railing!"),
     Weapon(8, "pg", "Plasma", [], "Lube your plasma...", "Plasma them down!"),
     Weapon(9, "bfg", "BFG", [], "Lube your BFGs...", "Go gettem!"),
-    Weapon(
-        10, "gh", "Grappling", ["grapple"], "Lube your grapples...", "Grapple them!"
-    ),
+    Weapon(10, "gh", "Grappling", ["grapple"], "Lube your grapples...", "Grapple them!"),
     Weapon(11, "ng", "Nail", [], "Lube your nails...", "Nail them!"),
     Weapon(12, "pl", "Mining", ["mine", "mines"], "Lube your mines...", "Let's mine!"),
     Weapon(13, "cg", "Chain", ["chaingun"], "Lube your chains...", "Let's chain some!"),
