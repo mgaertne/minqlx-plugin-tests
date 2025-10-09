@@ -118,7 +118,6 @@ class AdminCog(Cog):
                     lambda ctx: not self.is_barred_from_auth(ctx),
                 ],
                 hidden=True,
-                pass_context=True,
                 help="auth with the bot",
                 require_var_positional=True,
             )
@@ -129,7 +128,6 @@ class AdminCog(Cog):
                 name=self.discord_exec_prefix,
                 checks=[self.is_private_message, self.is_authed],
                 hidden=True,
-                pass_context=True,
                 help="execute minqlx commands on the server",
                 require_var_positional=True,
             )

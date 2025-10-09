@@ -56,7 +56,6 @@ class TriggeredChat(Cog):
                 self.triggered_chat,
                 name=self.discord_trigger_triggered_channel_chat,
                 checks=[self.is_message_in_triggered_channel],
-                pass_context=True,
                 help="send [message...] to the Quake Live server",
                 require_var_positional=True,
             )

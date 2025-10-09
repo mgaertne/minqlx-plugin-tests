@@ -137,7 +137,6 @@ class Status(Cog):
                 self.trigger_status,
                 name=self.discord_trigger_status,
                 checks=[self.is_message_in_relay_or_triggered_channel],
-                pass_context=True,
                 ignore_extra=False,
                 help="display current game status information",
             )

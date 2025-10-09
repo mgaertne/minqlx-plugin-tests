@@ -69,7 +69,7 @@ class SimpleAsyncDiscord(Thread):
     logger: Logger
     discord: Bot | None
     discord_bot_token: str
-    discord_application_id: str
+    discord_application_id: int
     discord_relay_channel_ids: set[int]
     discord_relay_team_chat_channel_ids: set[int]
     discord_triggered_channel_ids: set[int]

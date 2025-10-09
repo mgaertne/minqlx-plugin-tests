@@ -463,7 +463,7 @@ class SimpleAsyncDiscord(threading.Thread):
         self.discord = None
 
         self.discord_bot_token = Plugin.get_cvar("qlx_discordBotToken") or ""
-        self.discord_application_id = Plugin.get_cvar("qlx_discordApplicationId", str) or ""
+        self.discord_application_id = Plugin.get_cvar("qlx_discordApplicationId", int) or 0
         self.discord_relay_channel_ids = SimpleAsyncDiscord.int_set(Plugin.get_cvar("qlx_discordRelayChannelIds", set))
         self.discord_relay_team_chat_channel_ids = SimpleAsyncDiscord.int_set(
             Plugin.get_cvar("qlx_discordRelayTeamchatChannelIds", set)
@@ -576,7 +576,6 @@ class SimpleAsyncDiscord(threading.Thread):
                 application_id=self.discord_application_id,
                 description=f"{self.version_information}",
                 help_command=MinqlxHelpCommand(),
-                loop=loop,
                 intents=intents,
             )
         else:
@@ -585,7 +584,6 @@ class SimpleAsyncDiscord(threading.Thread):
                 application_id=self.discord_application_id,
                 description=f"{self.version_information}",
                 help_command=None,
-                loop=loop,
                 intents=intents,
             )
 
@@ -608,7 +606,6 @@ class SimpleAsyncDiscord(threading.Thread):
                 Command(
                     self.version,
                     name="version",
-                    pass_context=True,
                     ignore_extra=False,
                     help="display the plugin's version information",
                 )
