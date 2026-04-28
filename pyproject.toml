@@ -1,5 +1,5 @@
 [build-system]
-requires = [ "setuptools>=61.2", "tox>=4.21", "tox-uv>=1.13" ]
+requires = [ "setuptools>=61.2", "tox>=4.30.3", "tox-uv>=1.13" ]
 build-backend = "setuptools.build_meta"
 
 [project]
