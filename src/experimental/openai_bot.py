@@ -31,22 +31,30 @@ DATETIMEFORMAT = "%Y%m%d%H%M%S"
 CHAT_BOT_LOG = "minqlx:openai_bot:log"
 
 
+_CHAT_HISTORY_BATCH_SIZE = 32
+_REPLY_PRIMING_TOKENS = 2
+
+
+def _token_encoding(model):
+    try:
+        return tiktoken.encoding_for_model(model)
+    except KeyError:
+        return tiktoken.get_encoding("cl100k_base")
+
+
+def _message_token_count(message, encoding):
+    num_tokens = 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+    for key, value in message.items():
+        num_tokens += len(encoding.encode(value))
+        if key == "name":  # if there's a name, the role is omitted
+            num_tokens -= 1  # role is always required and always 1 token
+    return num_tokens
+
+
 def num_tokens_from_messages(messages, *, model="gpt-3.5-turbo-0301"):
     """Returns the number of tokens used by a list of messages."""
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-    except KeyError:
-        encoding = tiktoken.get_encoding("cl100k_base")
-
-    num_tokens = 0
-    for message in messages:
-        num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
-        for key, value in message.items():
-            num_tokens += len(encoding.encode(value))
-            if key == "name":  # if there's a name, the role is omitted
-                num_tokens += -1  # role is always required and always 1 token
-    num_tokens += 2  # every reply is primed with <im_start>assistant
-    return num_tokens
+    encoding = _token_encoding(model)
+    return _REPLY_PRIMING_TOKENS + sum(_message_token_count(message, encoding) for message in messages)
 
 
 # noinspection PyPep8Naming
@@ -345,10 +353,24 @@ class openai_bot(Plugin):
         pattern = "|".join(matchers)
         return re.search(pattern, Plugin.clean_text(message), flags=re.IGNORECASE)
 
+    def _recent_chat_history(self):
+        """Read newest entries in bounded batches; callers hold queue_lock."""
+        offset = 0
+        while True:
+            batch = self.db.zrevrange(
+                CHAT_BOT_LOG,
+                offset,
+                offset + _CHAT_HISTORY_BATCH_SIZE - 1,
+                withscores=True,
+            )
+            yield from batch
+            if len(batch) < _CHAT_HISTORY_BATCH_SIZE:
+                return
+            offset += len(batch)
+
     def contextualized_chat_history(self, request, *, trigger_template=None):
         game_state = self.current_game_state()
         current_timestamp = datetime.now(datetime.now(timezone.utc).astimezone().tzinfo).strftime("%m/%d/%y %H:%M %Z")
-        chat_log = self.db.zrangebyscore(CHAT_BOT_LOG, "-INF", "+INF")
         formatted_system_context = self.system_context.format(
             bot_name=Plugin.clean_text(self.bot_name),
             game_state=game_state,
@@ -375,12 +397,18 @@ class openai_bot(Plugin):
                 }
             )
 
-        for message in reversed(chat_log):
-            if (
-                num_tokens_from_messages(chat_history_messages + [system_context], model=self.model)
-                >= self.max_chat_history_tokens
-            ):
-                score = self.db.zscore(CHAT_BOT_LOG, message)
+        history_tokens = None
+        encoding = None
+        for message, score in self._recent_chat_history():
+            if history_tokens is None:
+                encoding = _token_encoding(self.model)
+                history_tokens = _REPLY_PRIMING_TOKENS + sum(
+                    _message_token_count(entry, encoding) for entry in chat_history_messages + [system_context]
+                )
+            else:
+                # Keep the pre-append limit check; count only the newest addition.
+                history_tokens += _message_token_count(chat_history_messages[-1], encoding)
+            if history_tokens >= self.max_chat_history_tokens:
                 self.db.zremrangebyscore(CHAT_BOT_LOG, "-INF", score)
                 break
             role = "assistant" if message.startswith(Plugin.clean_text(self.bot_name)) else "user"
