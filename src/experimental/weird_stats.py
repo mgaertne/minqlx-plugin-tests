@@ -1050,29 +1050,24 @@ class weird_stats(Plugin):
             del self.join_times[player.steam_id]
 
     def handle_frame(self):
+        if not self.in_round:
+            return
+
         teams = self.teams()
         for player in teams["red"] + teams["blue"]:
+            steam_id = player.steam_id
             if not player.is_alive:
-                if player.steam_id in self.previous_positions:
-                    del self.previous_positions[player.steam_id]
+                self.previous_positions.pop(steam_id, None)
                 continue
 
-            distance = self.travelled_distances.get(player.steam_id, 0.0)
-            moved_distance = self.calculate_player_distance(player)
+            position = Position(*player.position())
+            previous_position = self.previous_positions.get(steam_id)
+            moved_distance = calculate_distance(previous_position, position) if previous_position is not None else 0.0
 
-            if self.in_round and moved_distance < 800.0:
-                self.travelled_distances[player.steam_id] = distance + moved_distance
+            if moved_distance < 800.0:
+                self.travelled_distances[steam_id] = self.travelled_distances.get(steam_id, 0.0) + moved_distance
 
-            self.previous_positions[player.steam_id] = Position(*player.position())
-
-    def calculate_player_distance(self, player):
-        if not player.is_alive:
-            return 0.0
-
-        if player.steam_id not in self.previous_positions:
-            return 0.0
-
-        return calculate_distance(self.previous_positions[player.steam_id], Position(*player.position()))
+            self.previous_positions[steam_id] = position
 
     def handle_game_countdown(self):
         self.reinitialize_game()
