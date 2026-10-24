@@ -4,15 +4,21 @@ from minqlx import Plugin
 
 if TYPE_CHECKING:
     from threading import RLock
+    from typing import Iterator
 
     from openai.types.chat import ChatCompletion
+    from tiktoken import Encoding
 
     from minqlx import Player, AbstractChannel, RoundEndData, GameEndData
     from minqlx.database import Redis
 
 DATETIMEFORMAT: str
 CHAT_BOT_LOG: str
+_CHAT_HISTORY_BATCH_SIZE: int
+_REPLY_PRIMING_TOKENS: int
 
+def _token_encoding(model: str) -> Encoding: ...
+def _message_token_count(message: dict[str, str], encoding: Encoding) -> int: ...
 def num_tokens_from_messages(messages: list[dict[str, str]], *, model: str = ...) -> int: ...
 
 # noinspection PyPep8Naming
@@ -56,6 +62,7 @@ class openai_bot(Plugin):
     def _ql_cleaned_up(self, message: str) -> str: ...
     def handle_chat(self, player: Player, msg: str, channel: AbstractChannel) -> None: ...
     def is_triggered_message(self, msg: str) -> bool: ...
+    def _recent_chat_history(self) -> Iterator[tuple[str, float]]: ...
     def contextualized_chat_history(
         self, request: str, *, trigger_template: str = ...
     ) -> str | list[dict[str, str]]: ...
