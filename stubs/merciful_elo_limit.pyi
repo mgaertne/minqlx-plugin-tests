@@ -1,11 +1,12 @@
-from typing import TYPE_CHECKING
 from threading import Thread
+from typing import TYPE_CHECKING
 
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from typing import Iterable
     from threading import Event
+    from typing import Iterable
+
     from requests import Session
 
     from minqlx import AbstractChannel, Player

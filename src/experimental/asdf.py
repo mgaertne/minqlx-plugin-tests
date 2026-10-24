@@ -1,7 +1,7 @@
 import math
 
 import minqlx
-from minqlx import Plugin, Player, NonexistentPlayerError
+from minqlx import NonexistentPlayerError, Player, Plugin
 
 WEAPON_STATS_KEY = "minqlx:{}:weaponstats"
 _name_key = "minqlx:players:{}:last_used_name"
@@ -72,12 +72,16 @@ class asdf(Plugin):
     def adjust_ammo_for_player(self, player):
         weapon_stats = self.weapon_stats_for(player.steam_id)
 
+        stats = player.stats
+        if stats is None:
+            return
+
         total_team_damage = self.red_overall_damage if player.team == "red" else self.blue_overall_damage
         self.logger.debug(f"total_team_damage: {total_team_damage}")
 
         if total_team_damage == 0.0:
-            total_team_damage = player.stats.damage_dealt
-        damage_factor = 1.0 - float(player.stats.damage_dealt) / float(total_team_damage)
+            total_team_damage = stats.damage_dealt
+        damage_factor = 1.0 - float(stats.damage_dealt) / float(total_team_damage)
 
         if damage_factor > 0.9:
             return
@@ -182,7 +186,11 @@ class asdf(Plugin):
 
     def handle_round_start(self, _round_number):
         teams = self.teams()
-        self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
+        self.stats_snapshot = {
+            player.steam_id: stats.damage_dealt
+            for player in teams["red"] + teams["blue"]
+            if (stats := player.stats) is not None
+        }
 
     def handle_round_end(self, _data):
         if self.game is None:
@@ -215,7 +223,11 @@ class asdf(Plugin):
             if minqlx_player is None:
                 continue
 
-            returned[steam_id] = minqlx_player.stats.damage_dealt - self.stats_snapshot[steam_id]
+            stats = minqlx_player.stats
+            if stats is None or steam_id not in self.stats_snapshot:
+                continue
+
+            returned[steam_id] = stats.damage_dealt - self.stats_snapshot[steam_id]
 
         return returned
 

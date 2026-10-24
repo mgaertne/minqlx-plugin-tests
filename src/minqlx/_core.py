@@ -20,20 +20,21 @@
 # Since this isn't the actual module, we define it here and export
 # it later so that it can be accessed with minqlx.__doc__ by Sphinx.
 import collections
-import subprocess
-import threading
-import traceback
-import importlib
 import datetime
+import importlib
+import logging
 import os
 import os.path
-import logging
 import shlex
+import subprocess
 import sys
+import threading
+import traceback
 from contextlib import suppress
 from functools import wraps
-
 from logging.handlers import RotatingFileHandler
+from types import ModuleType
+from typing import Dict
 
 import minqlx
 import minqlx.database
@@ -41,8 +42,6 @@ import minqlx.database
 # em92: reasons not to support older than 3.5
 # https://docs.python.org/3.5/whatsnew/3.5.html#whatsnew-ordereddict
 # plugins already assume, that they are running on python >= 3.5
-if sys.version_info < (3, 5):
-    raise AssertionError("Only python 3.5 and later is supported by minqlx")
 
 # Team number -> string
 TEAMS = {0: "free", 1: "red", 2: "blue", 3: "spectator"}
@@ -128,7 +127,7 @@ def parse_variables(varstr, ordered=False):
     :type: ordered: bool
     :returns: dict -- A dictionary with the variables added as key-value pairs.
     """
-    res = collections.OrderedDict() if ordered else {}  # type: ignore
+    res: Dict[str, str] = collections.OrderedDict() if ordered else {}
     if not varstr.strip():
         return res
 
@@ -286,7 +285,7 @@ def set_plugins_version(path) -> None:
         ) as p:
             p.wait(timeout=1)
             if p.returncode != 0:
-                setattr(minqlx, "__plugins_version__", "NOT_SET")
+                minqlx.__plugins_version__ = "NOT_SET"
                 return
 
             if p.stdout:
@@ -302,23 +301,23 @@ def set_plugins_version(path) -> None:
         ) as p:
             p.wait(timeout=1)
             if p.returncode != 0:
-                setattr(minqlx, "__plugins_version__", version)
+                minqlx.__plugins_version__ = version
                 return
 
             if p.stdout:
                 branch = p.stdout.read().decode().strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        setattr(minqlx, "__plugins_version__", "NOT_SET")
+        minqlx.__plugins_version__ = "NOT_SET"
         return
 
-    setattr(minqlx, "__plugins_version__", f"{version}-{branch}")
+    minqlx.__plugins_version__ = f"{version}-{branch}"
 
 
 def set_map_subtitles() -> None:
     # We save the actual values before setting them so that we can retrieve them in Game.
-    setattr(minqlx, "_map_title", minqlx.get_configstring(3))
-    setattr(minqlx, "_map_subtitle1", minqlx.get_configstring(678))
-    setattr(minqlx, "_map_subtitle2", minqlx.get_configstring(679))
+    minqlx._map_title = minqlx.get_configstring(3)
+    minqlx._map_subtitle1 = minqlx.get_configstring(678)
+    minqlx._map_subtitle2 = minqlx.get_configstring(679)
 
     cs = minqlx.get_configstring(678)
     if cs:
@@ -393,7 +392,7 @@ def thread(func, force=False):
             func(*args, **kwargs)
         else:
             global _thread_count
-            name = func.__name__ + f"-{str(_thread_count)}-{_thread_name}"
+            name = func.__name__ + f"-{_thread_count!s}-{_thread_name}"
             t = threading.Thread(target=func, name=name, args=args, kwargs=kwargs, daemon=True)
             t.start()
             _thread_count += 1
@@ -407,7 +406,7 @@ def thread(func, force=False):
 #                       CONFIG AND PLUGIN LOADING
 # ====================================================================
 # We need to keep track of module instances for use with importlib.reload.
-_modules = {}
+_modules: Dict[str, ModuleType] = {}
 
 
 class PluginLoadError(Exception):
@@ -572,8 +571,7 @@ def late_init():
     # Set our own exception handler so that we can log them if unhandled.
     sys.excepthook = handle_exception
 
-    if sys.version_info >= (3, 8):
-        threading.excepthook = threading_excepthook
+    threading.excepthook = threading_excepthook
 
     logger.info("Loading preset plugins...")
     load_preset_plugins()

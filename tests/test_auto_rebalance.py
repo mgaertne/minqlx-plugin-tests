@@ -1,21 +1,18 @@
 import pytest
-
-from mockito import unstub, mock, verify  # type: ignore
-from mockito.matchers import matches  # type: ignore
 from hamcrest import assert_that, equal_to
-
-from undecorated import undecorated  # type: ignore
-
 from minqlx_plugin_test import (
+    assert_player_was_put_on,
+    assert_plugin_sent_to_console,
     connected_players,
     fake_player,
-    assert_plugin_sent_to_console,
-    assert_player_was_put_on,
 )
+from mockito import mock, unstub, verify
+from mockito.matchers import matches
+from undecorated import undecorated
 
 import minqlx
-from minqlx import Plugin
 from auto_rebalance import auto_rebalance
+from minqlx import Plugin
 
 
 @pytest.mark.usefixtures("cvars")
@@ -216,7 +213,7 @@ class TestAutoRebalance:
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
-        assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
+        assert_that(self.plugin.last_new_player_id, equal_to(None))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_fourth_player_joins_teams_already_balanced(
@@ -241,7 +238,7 @@ class TestAutoRebalance:
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "blue")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
-        assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
+        assert_that(self.plugin.last_new_player_id, equal_to(None))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_team_switch_attempt_fourth_player_joins_wrong_teams(self):
@@ -264,7 +261,7 @@ class TestAutoRebalance:
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
-        assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
+        assert_that(self.plugin.last_new_player_id, equal_to(None))
         assert_player_was_put_on(new_player, "blue")
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -290,7 +287,7 @@ class TestAutoRebalance:
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "red")
 
         assert_that(return_code, equal_to(minqlx.RET_STOP_ALL))
-        assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
+        assert_that(self.plugin.last_new_player_id, equal_to(None))
         assert_player_was_put_on(new_player, "blue")
         assert_player_was_put_on(new_blue_player, "red")
 
@@ -317,7 +314,7 @@ class TestAutoRebalance:
         return_code = self.plugin.handle_team_switch_attempt(new_player, "spectator", "blue")
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
-        assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
+        assert_that(self.plugin.last_new_player_id, equal_to(None))
         assert_player_was_put_on(new_player, "blue", times=0)
         assert_player_was_put_on(new_blue_player, "red")
 
@@ -337,7 +334,7 @@ class TestAutoRebalance:
 
         self.plugin.handle_round_start(3)
 
-        assert_that(self.plugin.last_new_player_id, equal_to(None))  # type: ignore
+        assert_that(self.plugin.last_new_player_id, equal_to(None))
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_round_end_no_game_running(self):

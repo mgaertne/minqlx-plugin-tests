@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from typing import Iterator, Callable, Generic, TypeVar, Sequence
+    from typing import Callable, Generic, Iterator, Sequence, TypeVar
 
-    from minqlx import Player, AbstractChannel, RoundEndData
+    from minqlx import AbstractChannel, Player, RoundEndData
 
 SteamId = int
 

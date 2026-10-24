@@ -1,22 +1,17 @@
 import functools
-import sys
-from typing import Union, Any
+from typing import Any, Union
 
 import pytest
 from _pytest.fixtures import FixtureRequest
 
 # noinspection PyProtectedMember
-from mockito import any_, patch, mock, spy2, unstub, when, when2, verify
+from mockito import any_, mock, patch, spy2, unstub, verify, when, when2
 
 # noinspection PyProtectedMember
 from mockito.matchers import Matcher
 
 import minqlx
 from minqlx import Game, NonexistentGameError, Plugin
-
-if sys.version_info < (3, 8):
-    collect_ignore = ["test_mydiscordbot.py"]
-    collect_ignore_glob = ["discord_extensions"]
 
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)

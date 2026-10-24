@@ -1,16 +1,13 @@
 import pytest
-
 import redis
-
-from mockito import mock, when, unstub, verify  # type: ignore
-from mockito.matchers import any_, matches  # type: ignore
-
 from minqlx_plugin_test import (
-    setup_cvars,
-    fake_player,
-    connected_players,
     assert_plugin_sent_to_console,
+    connected_players,
+    fake_player,
+    setup_cvars,
 )
+from mockito import mock, unstub, verify, when
+from mockito.matchers import any_, matches
 
 from last_played import last_played
 

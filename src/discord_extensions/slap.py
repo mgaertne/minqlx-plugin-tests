@@ -1,7 +1,8 @@
 import random
+from typing import Set
 
 # noinspection PyPackageRequirements
-from discord import app_commands, PartialMessageable, Member
+from discord import Member, PartialMessageable, app_commands
 
 from minqlx import Plugin
 
@@ -43,7 +44,7 @@ async def _slap(interaction, member):
 
 
 def int_set(string_set):
-    returned = set()  # type: ignore
+    returned: Set[int] = set()
 
     if string_set is None:
         return returned

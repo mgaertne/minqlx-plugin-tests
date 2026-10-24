@@ -27,7 +27,7 @@ class NonexistentGameError(Exception):
 
 
 class Game:
-    __slots__ = ("cached", "_valid")
+    __slots__ = ("_valid", "cached")
 
     """A class representing the game. That is, stuff like what map is being played,
     if it's in warmup, and so on. It also has methods to call in timeins, aborts,

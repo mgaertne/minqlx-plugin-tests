@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from minqlx import Player, AbstractChannel
+    from minqlx import AbstractChannel, Player
 
 # noinspection PyPep8Naming
 class cmdlist(Plugin):

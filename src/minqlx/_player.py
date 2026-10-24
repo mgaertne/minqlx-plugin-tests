@@ -46,7 +46,7 @@ class Player:
 
     """
 
-    __slots__ = ("_valid", "_id", "_info", "_userinfo", "_steam_id", "_name")
+    __slots__ = ("_id", "_info", "_name", "_steam_id", "_userinfo", "_valid")
 
     def __init__(self, client_id, info=None):
         self._valid = True

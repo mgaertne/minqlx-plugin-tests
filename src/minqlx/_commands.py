@@ -19,7 +19,7 @@ import re
 from abc import abstractmethod
 
 import minqlx
-
+from minqlx._core import next_frame
 
 MAX_MSG_LENGTH = 1000
 re_color_tag = re.compile(r"\^[^\^]")
@@ -114,7 +114,7 @@ class ChatChannel(AbstractChannel):
     def receipients(self):
         pass
 
-    @minqlx.next_frame
+    @next_frame
     def reply(self, msg, limit=100, delimiter=" "):
         # We convert whatever we got to a string and replace all double quotes
         # to single quotes, since the engine doesn't support escaping them.

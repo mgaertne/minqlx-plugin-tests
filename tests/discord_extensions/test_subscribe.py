@@ -4,27 +4,26 @@ import pytest
 import redis
 
 # noinspection PyPackageRequirements
-from discord import Intents, app_commands, Member, Activity, ActivityType
+from discord import Activity, ActivityType, Intents, Member, app_commands
 from hamcrest import (
     assert_that,
-    equal_to,
-    contains_string,
-    has_entries,
     contains_inanyorder,
-    not_,
+    contains_string,
+    equal_to,
+    has_entries,
     has_item,
+    not_,
 )
+from minqlx_plugin_test import connected_players, fake_player, setup_cvars
 
 # noinspection PyProtectedMember
-from mockito import unstub, mock, patch, when, any_, verify
+from mockito import any_, mock, patch, unstub, verify, when
 
-from minqlx_plugin_test import setup_cvars, connected_players, fake_player
 import minqlx
 import minqlx.database
-from minqlx import Plugin, Player
-
 from discord_extensions import subscribe
 from discord_extensions.subscribe import SubscriberCog
+from minqlx import Player, Plugin
 
 
 def assert_interaction_deferred_thinking(interaction):
@@ -92,10 +91,10 @@ class TestSubscribe:
 
         subscribe_commands = [command.name for command in extension.subscribe_group.commands]
         # noinspection PyTypeChecker
-        assert_that(subscribe_commands, not_(has_item("member")))  # type: ignore
+        assert_that(subscribe_commands, not_(has_item("member")))
         unsubscribe_commands = [command.name for command in extension.unsubscribe_group.commands]
         # noinspection PyTypeChecker
-        assert_that(unsubscribe_commands, not_(has_item("member")))  # type: ignore
+        assert_that(unsubscribe_commands, not_(has_item("member")))
         verify(no_presences_bot).remove_listener(extension.on_presence_update)
 
     def test_member_commands_are_kept_when_bot_has_right_intents(self, presences_aware_bot, mocked_db):

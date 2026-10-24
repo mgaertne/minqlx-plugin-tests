@@ -4,7 +4,7 @@ import threading
 import discord.utils
 
 # noinspection PyPackageRequirements
-from discord import app_commands, Embed, Color, ChannelType
+from discord import ChannelType, Color, Embed, app_commands
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Command
@@ -37,7 +37,7 @@ class DiscordInteractionChannel(minqlx.AbstractChannel):
 
         await self.message.edit(embed=self.embed)
 
-    def reply(self, msg, _limit=100, _delimiter=" "):
+    def reply(self, msg, limit=100, delimiter=" "):
         """
         overwrites the ```channel.reply``` function to relay messages to discord
 
@@ -59,7 +59,7 @@ class DiscordInteractionPlayer(minqlx.AbstractDummyPlayer):
         super().__init__(name=f"Discord-{self.user.display_name}")
 
     def __repr__(self):
-        return f"{str(self)} {self.user.display_name}"
+        return f"{self!s} {self.user.display_name}"
 
     @property
     def steam_id(self):
@@ -98,8 +98,8 @@ class AdminCog(Cog):
 
         self.bot = bot
 
-        self.authed_discord_ids = set()  # type: ignore
-        self.auth_attempts = {}  # type: ignore
+        self.authed_discord_ids = set()
+        self.auth_attempts = {}
 
         self.discord_admin_password = Plugin.get_cvar("qlx_discordAdminPassword") or ""
         self.discord_auth_command = Plugin.get_cvar("qlx_discordAuthCommand") or ""
@@ -136,7 +136,7 @@ class AdminCog(Cog):
             app_commands.Command(
                 name=self.discord_exec_prefix,
                 description="execute minqlx commands on the server",
-                callback=self.slash_qlx,  # type: ignore
+                callback=self.slash_qlx,
                 parent=None,
                 nsfw=False,
             )
@@ -223,7 +223,7 @@ class AdminCog(Cog):
         if len(self.discord_commands_whitelist) > 0 and command_literal not in self.discord_commands_whitelist:
             await ctx.reply(
                 content=f"`{command_literal}` cannot be used through the bot. "
-                f"Permitted commands are ´{', '.join(self.discord_commands_whitelist)}`"
+                f"Permitted commands are `{', '.join(self.discord_commands_whitelist)}`"
             )
             return
 
@@ -253,7 +253,7 @@ class AdminCog(Cog):
         if len(self.discord_commands_whitelist) > 0 and command_literal not in self.discord_commands_whitelist:
             await interaction.response.send_message(
                 content=f"`{command_literal}` cannot be used through the bot. "
-                f"Permitted commands are ´{', '.join(self.discord_commands_whitelist)}`",
+                f"Permitted commands are `{', '.join(self.discord_commands_whitelist)}`",
                 ephemeral=interaction.channel is not None and interaction.channel.guild is not None,
             )
             return

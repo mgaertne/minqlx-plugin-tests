@@ -1,20 +1,15 @@
-import sys
 import asyncio
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
+
+# noinspection PyPackageRequirements
+from discord import ChannelType, Client, Member, User
+
+# noinspection PyPackageRequirements
+from discord.abc import GuildChannel, PrivateChannel
 from mockito import mock, unstub
-
-if sys.version_info < (3, 8):
-    __test__ = False
-else:
-    from unittest.mock import AsyncMock
-
-    # noinspection PyPackageRequirements
-    from discord import User, Member, Client, ChannelType
-
-    # noinspection PyPackageRequirements
-    from discord.abc import GuildChannel, PrivateChannel
 
 
 @pytest_asyncio.fixture(name="bot")

@@ -1,11 +1,11 @@
 import pytest
-from hamcrest import assert_that, equal_to
-from mockito import verify, mock
 
 # noinspection PyPackageRequirements
 from discord import Message
-
+from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import setup_cvars
+from mockito import mock, verify
+
 import minqlx
 from discord_extensions import triggered_chat
 from discord_extensions.triggered_chat import TriggeredChat

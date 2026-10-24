@@ -3,11 +3,11 @@ import os
 import platform
 
 import distro
-import psutil
 import humanize
+import psutil
 
-from minqlx import Plugin
 import minqlx
+from minqlx import Plugin
 
 
 # noinspection PyPep8Naming

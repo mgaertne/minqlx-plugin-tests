@@ -1,23 +1,20 @@
 import pytest
-
-from mockito import spy2, unstub, verify  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import assert_that, equal_to, has_items, not_, empty, has_item
-
-from undecorated import undecorated  # type: ignore
-
+from hamcrest import assert_that, empty, equal_to, has_item, has_items, not_
 from minqlx_plugin_test import (
-    setup_cvars,
-    connected_players,
-    fake_player,
+    assert_player_was_put_on,
     assert_player_was_told,
     assert_plugin_center_printed,
     assert_plugin_sent_to_console,
-    assert_player_was_put_on,
+    connected_players,
+    fake_player,
+    setup_cvars,
 )
+from mockito import spy2, unstub, verify
+from mockito.matchers import any_, matches
+from undecorated import undecorated
 
 import minqlx
-from duelarena import duelarena, DUELARENA_JOIN_MSG, DuelArenaGame
+from duelarena import DUELARENA_JOIN_MSG, DuelArenaGame, duelarena
 
 
 class TestDuelArenaTests:
@@ -211,7 +208,7 @@ class TestDuelArenaTests:
 
     def assert_playerset_contains(self, *players):
         player_ids = [player.steam_id for player in players]
-        assert_that(self.plugin.duelarena_game.playerset, has_items(*player_ids))  # type: ignore
+        assert_that(self.plugin.duelarena_game.playerset, has_items(*player_ids))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_when_third_player_tries_to_join_duelarena_gets_activated(self, game_in_progress):
@@ -258,7 +255,7 @@ class TestDuelArenaTests:
         # noinspection PyTypeChecker
         assert_that(
             self.plugin.duelarena_game.playerset,
-            not_(has_items([player.steam_id for player in players])),  # type: ignore
+            not_(has_items([player.steam_id for player in players])),
         )
 
     def assert_duelarena_has_been_deactivated(self):
@@ -285,7 +282,7 @@ class TestDuelArenaTests:
         # noinspection PyTypeChecker
         assert_that(
             self.plugin.duelarena_game.queue,
-            not_(has_items([player.steam_id for player in players])),  # type: ignore
+            not_(has_items([player.steam_id for player in players])),
         )
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
@@ -1052,7 +1049,7 @@ class TestDuelArenaGame:
         self.assert_players_is_in_scorelist(player_sid)
 
     def assert_players_is_in_scorelist(self, *items):
-        assert_that(self.duelarena_game.scores, has_items(*items))  # type: ignore
+        assert_that(self.duelarena_game.scores, has_items(*items))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_add_player_when_duelarena_activated_and_player_already_has_score(self, game_in_progress):
@@ -1074,7 +1071,7 @@ class TestDuelArenaGame:
         self.assert_playerset_does_not_contain(player_sid)
 
     def assert_playerset_does_not_contain(self, *items):
-        assert_that(self.duelarena_game.playerset, not_(has_items(*items)))  # type: ignore
+        assert_that(self.duelarena_game.playerset, not_(has_items(*items)))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_remove_player_when_player_is_in_playerset_and_in_queue(self, game_in_progress):
@@ -1092,7 +1089,7 @@ class TestDuelArenaGame:
         self.assert_players_are_not_enqueued(player_sid)
 
     def assert_players_are_not_enqueued(self, *items):
-        assert_that(self.duelarena_game.queue, not_(has_items(*items)))  # type: ignore
+        assert_that(self.duelarena_game.queue, not_(has_items(*items)))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_remove_player_when_player_is_not_in_playerset(self, game_in_progress):

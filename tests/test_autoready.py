@@ -1,26 +1,24 @@
-import time
 import random
+import time
 from datetime import datetime, timedelta
 
 import pytest
-from hamcrest import assert_that, equal_to, not_, is_
-
-# noinspection PyProtectedMember
-from mockito import unstub, mock, when, any_, verify, spy2, when2
-from undecorated import undecorated
-
+from hamcrest import assert_that, equal_to, is_, not_
 from minqlx_plugin_test import (
-    setup_cvars,
-    fake_player,
-    connected_players,
     assert_plugin_center_printed,
     assert_plugin_played_sound,
+    connected_players,
+    fake_player,
+    setup_cvars,
 )
 
-from minqlx import Plugin, PlayerStats
+# noinspection PyProtectedMember
+from mockito import any_, mock, spy2, unstub, verify, when, when2
+from undecorated import undecorated
 
 import autoready
 from autoready import CountdownThread, RandomIterator
+from minqlx import PlayerStats, Plugin
 
 
 @pytest.mark.usefixtures("cvars")
@@ -782,9 +780,7 @@ class TestRandomIterator:
         unstub()
 
     def test_random_iterator(self):
-        returned_sequence: list[int] = []
-        for i in range(6):
-            returned_sequence.append(next(self.random_iterator))
+        returned_sequence: list[int] = [next(self.random_iterator) for _i in range(6)]
 
         assert_that(returned_sequence, equal_to(2 * self.random_sequence))
         verify(random, times=2).sample(self.sequence, 3)

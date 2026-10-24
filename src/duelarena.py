@@ -2,7 +2,7 @@ import time
 from operator import itemgetter
 
 import minqlx
-from minqlx import Plugin, NonexistentPlayerError
+from minqlx import NonexistentPlayerError, Plugin
 
 MIN_ACTIVE_PLAYERS = 3  # min players for duelarena
 MAX_ACTIVE_PLAYERS = 4  # max players for duelarena
@@ -212,8 +212,10 @@ class DuelArenaGame:
         self.scores = {}
         self.print_reset_scores = False
 
-        self.duel_to_normal_threshold = Plugin.get_cvar("qlx_duelarenaDuelToNormalThreshold", int)
-        self.normal_to_duel_threshold = Plugin.get_cvar("qlx_duelarenaNormalToDuelThreshold", int)
+        duel_to_normal_threshold = Plugin.get_cvar("qlx_duelarenaDuelToNormalThreshold", int)
+        self.duel_to_normal_threshold: int = 6 if duel_to_normal_threshold is None else duel_to_normal_threshold
+        normal_to_duel_threshold = Plugin.get_cvar("qlx_duelarenaNormalToDuelThreshold", int)
+        self.normal_to_duel_threshold: int = 11 if normal_to_duel_threshold is None else normal_to_duel_threshold
         self.duel_to_normal_score_reset = Plugin.get_cvar("qlx_duelarenaDuelToNormalScoreReset")
 
     @property
@@ -484,7 +486,7 @@ class DuelArenaGame:
                 return
 
     def init_scores(self):
-        self.scores = {sid: 0 for sid in self.playerset}
+        self.scores = dict.fromkeys(self.playerset, 0)
 
         teams = Plugin.teams()
         if not self.game or self.game.state != "in_progress" or len(teams["red"]) != 1 or len(teams["blue"]) != 1:

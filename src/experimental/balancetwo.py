@@ -6,28 +6,25 @@ Copyright (c) 2020 ShiN0
 You are free to modify this plugin to your own one.
 """
 
+import asyncio
 import contextlib
-import os
-import math
-import random
 import itertools
+import math
+import os
+import random
 import threading
 import time
-import asyncio
-
 from abc import abstractmethod
 from ast import literal_eval
 from collections import Counter
-
-from operator import itemgetter
-
 from datetime import datetime, timedelta
+from operator import itemgetter
+from typing import Dict, List, Tuple
 
 import aiohttp.client_exceptions
 from aiohttp import ClientTimeout
-from aiohttp_retry import RetryClient, ExponentialRetry
-
-from requests import Session, RequestException, codes
+from aiohttp_retry import ExponentialRetry, RetryClient
+from requests import RequestException, Session, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
@@ -329,7 +326,7 @@ class balancetwo(Plugin):
 
         self.jointimes = {}
         self.last_new_player_id = None
-        self.previous_teams = ([], [])  # type: ignore
+        self.previous_teams: Tuple[List[int], List[int]] = ([], [])
 
         self.previous_map = None
         self.previous_gametype = None
@@ -346,7 +343,7 @@ class balancetwo(Plugin):
         self.in_countdown = False
 
         self.twovstwo_steam_ids = []
-        self.twovstwo_combinations = []  # type: ignore
+        self.twovstwo_combinations: List[Tuple[int, int]] = []
         self.twovstwo_iter = RandomIterator(self.twovstwo_combinations)
 
         self.privacy_checks_enabled = True
@@ -678,7 +675,7 @@ class balancetwo(Plugin):
             return {}
         js = result.json()
 
-        aliases = {}  # type: ignore
+        aliases: Dict[int, List[str]] = {}
         for steam_id in steam_ids:
             if str(steam_id) not in js:
                 continue
@@ -723,26 +720,22 @@ class balancetwo(Plugin):
             if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0:
                 formatted_mapname = self.game.map.lower()
                 formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
-                for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                    result.append(line)
+                result.extend(list(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  ")))
 
         formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
         if formatted_truskills is not None and len(formatted_truskills) > 0:
             formatted_line = " " * indent + "  " + f"Truskills: {formatted_truskills}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                result.append(line)
+            result.extend(list(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  ")))
 
         formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
             formatted_line = " " * indent + "  " + f"Elos: {formatted_a_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                result.append(line)
+            result.extend(list(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  ")))
 
         formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
             formatted_line = " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                result.append(line)
+            result.extend(list(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  ")))
 
         return "\n".join(result)
 
@@ -1097,7 +1090,7 @@ class balancetwo(Plugin):
 
         (
             minimum_suggestion_diff,
-            minimum_suggestion_stddev_diff,
+            _minimum_suggestion_stddev_diff,
         ) = self.minimum_suggestion_parameters()
         filtered_combinations = [
             (red_steam_ids, blue_steam_ids, diff)
@@ -1123,7 +1116,7 @@ class balancetwo(Plugin):
 
         (
             minimum_suggestion_diff,
-            minimum_suggestion_stddev_diff,
+            _minimum_suggestion_stddev_diff,
         ) = self.minimum_suggestion_parameters()
 
         configured_rating_provider_name = self.configured_rating_provider_name()
@@ -1150,8 +1143,8 @@ class balancetwo(Plugin):
                 parked_lowest_steam_id = rated_steam_ids[0]
             rated_steam_ids.remove(rated_steam_ids[0])
 
-        red_steam_ids = []  # type: ignore
-        blue_steam_ids = []  # type: ignore
+        red_steam_ids: List[int] = []
+        blue_steam_ids: List[int] = []
 
         while len(rated_steam_ids) > 0:
             player1 = rated_steam_ids.pop()
@@ -1159,24 +1152,24 @@ class balancetwo(Plugin):
 
             option1_red_average = self.team_average(
                 gametype,
-                red_steam_ids + [player1],
+                [*red_steam_ids, player1],
                 rating_provider=configured_rating_provider,
             )
             option1_blue_average = self.team_average(
                 gametype,
-                blue_steam_ids + [player2],
+                [*blue_steam_ids, player2],
                 rating_provider=configured_rating_provider,
             )
             option1_diff = abs(option1_red_average - option1_blue_average)
 
             option2_red_average = self.team_average(
                 gametype,
-                red_steam_ids + [player2],
+                [*red_steam_ids, player2],
                 rating_provider=configured_rating_provider,
             )
             option2_blue_average = self.team_average(
                 gametype,
-                blue_steam_ids + [player1],
+                [*blue_steam_ids, player1],
                 rating_provider=configured_rating_provider,
             )
             option2_diff = abs(option2_red_average - option2_blue_average)
@@ -1200,7 +1193,7 @@ class balancetwo(Plugin):
 
         option1_red_average = self.team_average(
             gametype,
-            red_steam_ids + [parked_lowest_steam_id],
+            [*red_steam_ids, parked_lowest_steam_id],
             rating_provider=configured_rating_provider,
         )
         option1_blue_average = self.team_average(gametype, blue_steam_ids, rating_provider=configured_rating_provider)
@@ -1209,7 +1202,7 @@ class balancetwo(Plugin):
         option2_red_average = self.team_average(gametype, red_steam_ids, rating_provider=configured_rating_provider)
         option2_blue_average = self.team_average(
             gametype,
-            blue_steam_ids + [parked_lowest_steam_id],
+            [*blue_steam_ids, parked_lowest_steam_id],
             rating_provider=configured_rating_provider,
         )
         option2_diff = abs(option2_red_average - option2_blue_average)
@@ -1412,8 +1405,10 @@ class balancetwo(Plugin):
         if self.unique_player_switches and len(self.switched_players) > 0:
             possible_switches = list(
                 filter(
-                    lambda suggestion: suggestion.red_player.steam_id not in self.switched_players
-                    and suggestion.blue_player.steam_id not in self.switched_players,
+                    lambda suggestion: (
+                        suggestion.red_player.steam_id not in self.switched_players
+                        and suggestion.blue_player.steam_id not in self.switched_players
+                    ),
                     possible_switches,
                 )
             )
@@ -1425,7 +1420,7 @@ class balancetwo(Plugin):
 
         (
             minimum_suggestion_diff,
-            minimum_suggestion_stddev_diff,
+            _minimum_suggestion_stddev_diff,
         ) = self.minimum_suggestion_parameters()
 
         avg_red = self.team_average(
@@ -1465,8 +1460,10 @@ class balancetwo(Plugin):
 
         return list(
             filter(
-                lambda suggestion: abs(suggestion.avg_diff) < avg_diff
-                and avg_diff - abs(suggestion.avg_diff) >= minimum_suggestion_diff,
+                lambda suggestion: (
+                    abs(suggestion.avg_diff) < avg_diff
+                    and avg_diff - abs(suggestion.avg_diff) >= minimum_suggestion_diff
+                ),
                 possible_switches,
             )
         )
@@ -1510,7 +1507,7 @@ class balancetwo(Plugin):
 
         (
             minimum_suggestion_diff,
-            minimum_suggestion_stddev_diff,
+            _minimum_suggestion_stddev_diff,
         ) = self.minimum_suggestion_parameters()
 
         switches = []
@@ -2359,13 +2356,13 @@ class balancetwo(Plugin):
             return minqlx.RET_NONE
 
         other_than_last_players_team = other_team(last_new_player.team)
-        new_player_team = teams[other_than_last_players_team].copy() + [player]
+        new_player_team = [*teams[other_than_last_players_team], player]
         proposed_diff = self.calculate_player_average_difference(
             gametype, teams[last_new_player.team].copy(), new_player_team
         )
 
         alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + [player]
-        alternative_team_b = teams[other_than_last_players_team].copy() + [last_new_player]
+        alternative_team_b = [*teams[other_than_last_players_team], last_new_player]
         alternative_diff = self.calculate_player_average_difference(gametype, alternative_team_a, alternative_team_b)
 
         self.last_new_player_id = None
@@ -2491,7 +2488,7 @@ class balancetwo(Plugin):
 
     def announce_evening_up_teams(self):
         player_movements = self.find_player_movements_to_even_teams()
-        result = {}  # type: ignore
+        result: Dict[str, List[str]] = {}
         for player, moved_to in player_movements:
             result.setdefault(moved_to, []).append(player.name)
 
@@ -2544,20 +2541,23 @@ class balancetwo(Plugin):
             if len(lowest_players) == 1:
                 lowest_player = lowest_players[0]
             else:
-                lowest_players2 = [lowest_players[0]]
-                for player in lowest_players:
-                    if player.stats.damage_dealt < lowest_players2[0].stats.damage_dealt:
-                        lowest_players2 = [player]
-                    elif player.stats.damage_dealt == lowest_players2[0].stats.damage_dealt:
-                        lowest_players2.append(player)
-
-                if len(lowest_players2) == 1:
-                    lowest_player = lowest_players2[0]
+                players_with_stats = [(player, player.stats) for player in lowest_players]
+                players_with_stats = [(player, stats) for player, stats in players_with_stats if stats is not None]
+                if not players_with_stats:
+                    lowest_player = max(lowest_players, key=lambda player: self.find_time(player.steam_id))
                 else:
-                    lowest_player = max(
-                        lowest_players2,
-                        key=lambda _player: self.find_time(_player.steam_id),
-                    )
+                    lowest_damage = min(stats.damage_dealt for _, stats in players_with_stats)
+                    lowest_players2 = [
+                        player for player, stats in players_with_stats if stats.damage_dealt == lowest_damage
+                    ]
+
+                    if len(lowest_players2) == 1:
+                        lowest_player = lowest_players2[0]
+                    else:
+                        lowest_player = max(
+                            lowest_players2,
+                            key=lambda _player: self.find_time(_player.steam_id),
+                        )
         else:
             self.msg(f"Picking someone to {self.last_action} based on join times.")
             lowest_player = max(bigger_team, key=lambda _player: self.find_time(_player.steam_id))
@@ -2637,8 +2637,12 @@ class balancetwo(Plugin):
 
             return [(player, moved_to) for player in sorted_team[:amount_players_moved]]
 
+        relevant_players = [player for player in relevant_players if player.stats is not None]
+        if not relevant_players:
+            return []
+
         sorted_team = sorted(
-            sorted(relevant_players, key=lambda player: player.stats.damage_dealt),
+            sorted(relevant_players, key=lambda player: player.stats.damage_dealt if player.stats is not None else 0),
             key=lambda player: max(player.score, 0),
         )
 
@@ -2730,7 +2734,7 @@ FILTERED_OUT_GAMETYPE_RESPONSES = ["steamid"]
 
 
 class SkillRatingProvider:
-    __slots__ = ("name", "url_base", "balance_api", "timeout")
+    __slots__ = ("balance_api", "name", "timeout", "url_base")
 
     def __init__(self, name, url_base, balance_api, timeout=7):
         self.name = name
@@ -2906,7 +2910,7 @@ class RatingProvider:
         return player_data.privacy
 
     def rated_steam_ids(self):
-        returned = []  # type: ignore
+        returned: List[int] = []
         for json_rating in self.jsons:
             if "playerinfo" not in json_rating:
                 continue
@@ -2928,7 +2932,7 @@ class RatingProvider:
 
 
 class PlayerRating:
-    __slots__ = ("ratings", "time", "local")
+    __slots__ = ("local", "ratings", "time")
 
     def __init__(self, ratings, _time=-1, local=False):
         self.ratings = ratings
@@ -2964,7 +2968,7 @@ class PlayerRating:
 
 
 class ConnectThread(threading.Thread):
-    __slots__ = ("rating_provider", "_steam_id", "fetched_result")
+    __slots__ = ("_steam_id", "fetched_result", "rating_provider")
 
     def __init__(self, steam_id, rating_provider):
         super().__init__()
@@ -2991,15 +2995,15 @@ class DiffSuggestionRatingStrategy(SuggestionRatingStrategy):
 
 
 class SuggestionQueue:
-    __slots__ = ("suggestions", "strategy")
+    __slots__ = ("strategy", "suggestions")
 
     def __init__(
         self,
         items=None,
-        strategy=DiffSuggestionRatingStrategy(),
+        strategy=None,
     ):
         self.suggestions = items if items is not None else []
-        self.strategy = strategy
+        self.strategy = strategy if strategy is not None else DiffSuggestionRatingStrategy()
 
     def __str__(self):
         formatted_suggestion = ", ".join([str(suggestion) for suggestion in self.suggestions])
@@ -3020,12 +3024,12 @@ class SuggestionQueue:
 
 class Suggestion:
     __slots__ = (
-        "red_player",
-        "blue_player",
-        "avg_diff",
-        "stddev_diff",
         "_agreed",
         "auto_switch",
+        "avg_diff",
+        "blue_player",
+        "red_player",
+        "stddev_diff",
     )
 
     def __init__(
@@ -3057,13 +3061,17 @@ class Suggestion:
         return not self.__eq__(other)
 
     def __str__(self):
+        red_stats = self.red_player.stats
+        blue_stats = self.blue_player.stats
+        red_damage = red_stats.damage_dealt if red_stats is not None else "n/a"
+        red_time = red_stats.time if red_stats is not None else "n/a"
+        blue_damage = blue_stats.damage_dealt if blue_stats is not None else "n/a"
+        blue_time = blue_stats.time if blue_stats is not None else "n/a"
         red_player = (
-            f"({self.red_player.clean_name}, score: {self.red_player.score}, "
-            f"dmg: {self.red_player.stats.damage_dealt}, time: {self.red_player.stats.time})"
+            f"({self.red_player.clean_name}, score: {self.red_player.score}, dmg: {red_damage}, time: {red_time})"
         )
         blue_player = (
-            f"({self.blue_player.clean_name}, score: {self.blue_player.score}, "
-            f"dmg: {self.blue_player.stats.damage_dealt}, time: {self.blue_player.stats.time})"
+            f"({self.blue_player.clean_name}, score: {self.blue_player.score}, dmg: {blue_damage}, time: {blue_time})"
         )
 
         return f"Switch {red_player} with {blue_player}, resulting diff: {self.avg_diff}"
@@ -3114,7 +3122,7 @@ class Suggestion:
 
 
 class KickThread(threading.Thread):
-    __slots__ = ("steam_id", "kickmsg", "go")
+    __slots__ = ("go", "kickmsg", "steam_id")
 
     def __init__(self, steam_id, kickmsg):
         threading.Thread.__init__(self)
@@ -3184,7 +3192,7 @@ class PlayerMovedToSpecError(Exception):
 
 
 class RandomIterator:
-    __slots__ = ("seq", "random_seq", "iterator")
+    __slots__ = ("iterator", "random_seq", "seq")
 
     def __init__(self, seq):
         self.seq = seq

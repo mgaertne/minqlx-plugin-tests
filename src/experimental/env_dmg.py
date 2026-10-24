@@ -1,7 +1,7 @@
 import time
 
-from minqlx import Plugin, Player
 import minqlx
+from minqlx import Player, Plugin
 
 
 # noinspection PyPep8Naming

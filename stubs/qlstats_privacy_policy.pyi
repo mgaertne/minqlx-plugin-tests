@@ -1,11 +1,12 @@
-from typing import TYPE_CHECKING
 from threading import Thread
+from typing import TYPE_CHECKING
 
 from minqlx import Plugin
 
 if TYPE_CHECKING:
     from requests import Response
-    from minqlx import Player, AbstractChannel, CancellableEventReturn
+
+    from minqlx import AbstractChannel, CancellableEventReturn, Player
 
 SteamId = int
 

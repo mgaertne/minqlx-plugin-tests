@@ -1,11 +1,11 @@
 """Exercise isolated movement logic with synthetic players, without loading plugins."""
 
 import ast
-from datetime import datetime
 import math
 import pathlib
-from typing import Dict, List, NamedTuple
 import unittest
+from datetime import datetime
+from typing import Dict, List, NamedTuple
 
 
 def isolated_movement_logic():

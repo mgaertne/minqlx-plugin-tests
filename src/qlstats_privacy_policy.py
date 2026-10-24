@@ -1,7 +1,7 @@
 from threading import Thread
 
 import requests
-from requests import Session, RequestException
+from requests import RequestException, Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
@@ -108,7 +108,7 @@ class qlstats_privacy_policy(Plugin):
 
         # noinspection PyProtectedMember
         b = minqlx.Plugin._loaded_plugins["balance"]
-        b.add_request(  # type: ignore
+        b.add_request(
             {player.steam_id: self.game.type_short},
             self.callback_connect,
             minqlx.CHAT_CHANNEL,
@@ -176,7 +176,7 @@ class qlstats_privacy_policy(Plugin):
             return
 
         # noinspection PyUnresolvedReferences
-        player_info = self._loaded_plugins["balance"].player_info  # type: ignore
+        player_info = self._loaded_plugins["balance"].player_info
 
         for sid in players:
             if sid in self.exceptions:
@@ -218,7 +218,7 @@ class qlstats_privacy_policy(Plugin):
 
         if new in ["red", "blue", "any"]:
             # noinspection PyUnresolvedReferences
-            player_info = self._loaded_plugins["balance"].player_info  # type: ignore
+            player_info = self._loaded_plugins["balance"].player_info
             if player.steam_id not in player_info:
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
                 return minqlx.RET_STOP_ALL
@@ -328,7 +328,7 @@ class qlstats_privacy_policy(Plugin):
 
         teams = self.teams()
         # noinspection PyUnresolvedReferences
-        player_info = self._loaded_plugins["balance"].player_info  # type: ignore
+        player_info = self._loaded_plugins["balance"].player_info
 
         for player in teams["red"] + teams["blue"]:
             if player.steam_id not in player_info:

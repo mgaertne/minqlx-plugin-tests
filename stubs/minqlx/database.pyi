@@ -1,18 +1,20 @@
-from typing import overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, overload
 
 if TYPE_CHECKING:
-    from typing import Mapping
     from datetime import timedelta
     from logging import Logger
+    from typing import Mapping
 
-    from redis import Redis as redisRedis, ConnectionPool
-    from minqlx import Plugin, Player
+    from redis import ConnectionPool
+    from redis import Redis as redisRedis
+
+    from minqlx import Player, Plugin
 
 class AbstractDatabase:
     _counter: int
-    plugin: Plugin
+    plugin: Plugin | str
 
-    def __init__(self, plugin: Plugin) -> None: ...
+    def __init__(self, plugin: Plugin | str) -> None: ...
     def __del__(self) -> None: ...
     @property
     def logger(self) -> Logger: ...
@@ -35,7 +37,7 @@ class Redis(AbstractDatabase):
     def __getitem__(self, key: str) -> str: ...
     def __setitem__(self, key: str, item: str | int) -> None: ...
     def __delitem__(self, key: str) -> None: ...
-    def __getattr__(self, attr: str) -> str: ...
+    def __getattr__(self, attr: str) -> Any: ...
     @property
     def r(self) -> redisRedis: ...
     def set_permission(self, player: Player | int | str, level: int) -> None: ...
@@ -54,17 +56,17 @@ class Redis(AbstractDatabase):
     def mset(self, *args: dict, **kwargs: str | int | float | bool) -> bool: ...
     def msetnx(self, *args: dict, **kwargs: str | int | float | bool) -> bool: ...
     @overload
-    async def zadd(
+    def zadd(
         self,
         name: str,
         *args: str | int | float,
         **kwargs: int | float,
     ) -> int: ...
     @overload
-    async def zadd(
+    def zadd(
         self,
         name: str,
-        mapping: Mapping[str, int | float],
+        mapping: Mapping[str | int | float, int | float],
         nx: bool = ...,
         xx: bool = ...,
         ch: bool = ...,

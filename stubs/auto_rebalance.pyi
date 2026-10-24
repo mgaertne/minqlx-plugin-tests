@@ -5,7 +5,7 @@ from minqlx import Plugin
 if TYPE_CHECKING:
     from typing import Iterable
 
-    from minqlx import Player, CancellableEventReturn, RoundEndData
+    from minqlx import CancellableEventReturn, Player, RoundEndData
 
 DEFAULT_RATING: int = 1500
 SUPPORTED_GAMETYPES: Iterable[str] = ("ca", "ctf", "dom", "ft", "tdm", "duel", "ffa")

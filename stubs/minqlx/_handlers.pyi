@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Pattern, Type
-    from sched import scheduler
     from queue import Queue
+    from sched import scheduler
     from types import TracebackType
+    from typing import Pattern, Type
 
     from minqlx import AbstractChannel
 

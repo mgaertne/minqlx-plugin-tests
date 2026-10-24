@@ -1,11 +1,12 @@
 import threading
 from ast import literal_eval
+from typing import Set
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog
 
 import minqlx
-from minqlx import Plugin, NonexistentGameError
+from minqlx import NonexistentGameError, Plugin
 
 
 def get_game_info(game):
@@ -51,7 +52,7 @@ def game_status_information(game):
 
 
 def int_set(string_set):
-    returned = set()  # type: ignore
+    returned: Set[int] = set()
 
     if string_set is None:
         return returned

@@ -1,7 +1,7 @@
 import time
+from typing import Dict, List
 
 import minqlx
-
 from minqlx import Plugin
 
 
@@ -17,7 +17,7 @@ class cmdlist(Plugin):
 
     @minqlx.thread
     def thread_reply(self, player):
-        available_commands = {  # type: ignore
+        available_commands: Dict[int, List[str]] = {
             0: [],
             1: [],
             2: [],
@@ -41,7 +41,7 @@ class cmdlist(Plugin):
                     else:
                         available_commands[command.permission].append(name.strip())
 
-        for level in range(0, 6):
+        for level in range(6):
             if len(available_commands[level]) == 0:
                 continue
 

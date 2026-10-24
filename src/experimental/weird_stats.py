@@ -1,18 +1,15 @@
-import random
-import math
-
-from typing import NamedTuple
 import itertools
-from operator import itemgetter
-
+import math
+import random
 import statistics
-
 from datetime import datetime, timedelta
+from operator import itemgetter
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import redis
 
 import minqlx
-from minqlx import Plugin, Player
+from minqlx import Player, Plugin
 
 
 class Position(NamedTuple):
@@ -594,7 +591,7 @@ def weird_facts(stats):
 
 
 class RandomIterator:
-    __slots__ = ("seq", "random_seq", "iterator")
+    __slots__ = ("iterator", "random_seq", "seq")
 
     def __init__(self, seq):
         self.seq = seq
@@ -978,23 +975,23 @@ class weird_stats(Plugin):
         cvar_value = self.get_cvar("qlx_weirdstats_openai_announce_stats", bool)
         self.openai_announce_stats = True if cvar_value is None else cvar_value
 
-        self.game_start_time = None
-        self.join_times = {}  # type: ignore
-        self.play_times = {}  # type: ignore
+        self.game_start_time: Optional[datetime] = None
+        self.join_times: Dict[int, datetime] = {}
+        self.play_times: Dict[int, float] = {}
 
         self.in_round = False
         self.game_ended = False
         self.match_end_announced = False
 
-        self.means_of_death = {}  # type: ignore
+        self.means_of_death: Dict[int, Dict[str, int]] = {}
 
-        self.round_start_datetime = None
-        self.fastest_death = -1, -1
-        self.alive_times = {}  # type: ignore
-        self.previous_positions = {}  # type: ignore
-        self.travelled_distances = {}  # type: ignore
+        self.round_start_datetime: Optional[datetime] = None
+        self.fastest_death: Tuple[int, float] = -1, -1.0
+        self.alive_times: Dict[int, float] = {}
+        self.previous_positions: Dict[int, Position] = {}
+        self.travelled_distances: Dict[int, float] = {}
 
-        self.player_stats = {}  # type: ignore
+        self.player_stats: Dict[int, PlayerStatsEntry] = {}
         self.playerstats_announcements = [
             most_accurate_railbitches_announcement,
             longest_shaftlamers_announcement,
@@ -1060,7 +1057,11 @@ class weird_stats(Plugin):
                 self.previous_positions.pop(steam_id, None)
                 continue
 
-            position = Position(*player.position())
+            raw_position = player.position()
+            if not isinstance(raw_position, tuple):
+                continue
+
+            position = Position(*raw_position)
             previous_position = self.previous_positions.get(steam_id)
             moved_distance = calculate_distance(previous_position, position) if previous_position is not None else 0.0
 
@@ -1085,7 +1086,7 @@ class weird_stats(Plugin):
         self.player_stats = {}
         self.previous_positions = {}
         self.travelled_distances = {}
-        self.fastest_death = -1, -1
+        self.fastest_death = -1, -1.0
 
     @minqlx.delay(3)
     def handle_game_start(self, _data):
@@ -1100,9 +1101,11 @@ class weird_stats(Plugin):
         self.round_start_datetime = datetime.now()
 
         teams = self.teams()
-        self.previous_positions = {
-            player.steam_id: Position(*player.position()) for player in teams["red"] + teams["blue"]
-        }
+        self.previous_positions = {}
+        for player in teams["red"] + teams["blue"]:
+            raw_position = player.position()
+            if isinstance(raw_position, tuple):
+                self.previous_positions[player.steam_id] = Position(*raw_position)
 
     def handle_death(self, victim, killer, data):
         self.record_means_of_death(victim, killer, data["MOD"])
@@ -1142,7 +1145,7 @@ class weird_stats(Plugin):
 
         for player in players:
             if self.fastest_death == (-1, -1) or self.fastest_death[1] > player_alive_time:
-                self.fastest_death = player.steam_id, player_alive_time  # type: ignore
+                self.fastest_death = player.steam_id, player_alive_time
             self.alive_times[player.steam_id] = self.alive_times.get(player.steam_id, 0.0) + player_alive_time
 
     def handle_round_end(self, _data):
@@ -1212,16 +1215,17 @@ class weird_stats(Plugin):
 
         if len(player_speed_announcements) > 0:
             announcements = [
-                f"  ^5Top {self.stats_top_display} player speeds^7 {player_speed_announcements[0]}"
-            ] + player_speed_announcements[1:]
+                f"  ^5Top {self.stats_top_display} player speeds^7 {player_speed_announcements[0]}",
+                *player_speed_announcements[1:],
+            ]
             self.msg("\n".join(announcements))
 
         team_shots_summary = self.gather_team_shots_summary()
         if len(team_shots_summary) > 0:
-            announcements = ["  ^5Top 3 team damage inflicters:"] + team_shots_summary[1:]
+            announcements = ["  ^5Top 3 team damage inflicters:", *team_shots_summary[1:]]
             self.msg("\n".join(announcements))
 
-        announcements = "\n".join(
+        announcements_str = "\n".join(
             [
                 stats
                 for stats in [
@@ -1238,11 +1242,11 @@ class weird_stats(Plugin):
             # noinspection PyProtectedMember
             openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
             # noinspection PyUnresolvedReferences
-            openai_bot_plugin.summarize_game_end_stats(announcements)
+            openai_bot_plugin.summarize_game_end_stats(announcements_str)
             return
 
-        if len(announcements) > 0:
-            self.msg(announcements)
+        if len(announcements_str) > 0:
+            self.msg(announcements_str)
 
     def gather_team_shots_summary(self):
         # noinspection PyProtectedMember
@@ -1258,13 +1262,13 @@ class weird_stats(Plugin):
         if len(team_damages) == 0:
             return []
 
-        collected_team_damages = {}
+        collected_team_damages: Dict[int, float] = {}
         for steam_id in team_damages:
             collected_team_damages[steam_id] = sum([dmg for _, dmg in team_damages[steam_id]])
 
         grouped_team_damages = itertools.groupby(
-            sorted(collected_team_damages, key=collected_team_damages.get, reverse=True),  # type: ignore
-            key=collected_team_damages.get,
+            sorted(collected_team_damages, key=collected_team_damages.__getitem__, reverse=True),
+            key=collected_team_damages.__getitem__,
         )
         grouped_team_damages_dict = {team_dmg: list(steam_ids) for team_dmg, steam_ids in grouped_team_damages}
 
@@ -1297,7 +1301,7 @@ class weird_stats(Plugin):
         return all(steam_id in steam_ids_in_stats for steam_id in steam_ids_in_teams)
 
     def player_speeds_announcements(self, *, top_entries=-1, match_end_announcements=False):
-        player_speeds = self.determine_player_speeds()
+        player_speeds: Dict[int, float] = self.determine_player_speeds()
         if len(player_speeds) == 0:
             return []
 
@@ -1320,8 +1324,8 @@ class weird_stats(Plugin):
             self.record_speeds(self.game.map.lower(), player_speeds)
 
         grouped_speeds = itertools.groupby(
-            sorted(player_speeds, key=player_speeds.get, reverse=True),
-            key=player_speeds.get,
+            sorted(player_speeds, key=player_speeds.__getitem__, reverse=True),
+            key=player_speeds.__getitem__,
         )
         grouped_speeds_dict = {speed: list(steam_ids) for speed, steam_ids in grouped_speeds}
 
@@ -1354,10 +1358,14 @@ class weird_stats(Plugin):
                 alive_time = self.alive_time_of(steam_id)
                 if match_end_announcements:
                     dmg_per_second = self.player_stats[steam_id].damage.dealt / alive_time
-                elif steam_id in self.player_stats:
-                    dmg_per_second = (player.stats.damage_dealt + self.player_stats[steam_id].damage.dealt) / alive_time
                 else:
-                    dmg_per_second = player.stats.damage_dealt / alive_time
+                    stats = player.stats
+                    if stats is None:
+                        continue
+                    if steam_id in self.player_stats:
+                        dmg_per_second = (stats.damage_dealt + self.player_stats[steam_id].damage.dealt) / alive_time
+                    else:
+                        dmg_per_second = stats.damage_dealt / alive_time
                 returned.append(
                     f"  {prefix} {player.name}^7 (^5{format_float(speed)} km/h^7, "
                     f"^5{format_float(dmg_per_second)} dmg/sec.^7)"
@@ -1386,7 +1394,7 @@ class weird_stats(Plugin):
             return {}
 
         player_speeds = {}
-        for steam_id, alive_time in self.alive_times.items():
+        for steam_id in self.alive_times:
             player_units = self.travelled_distances.get(steam_id, 0.0)
             player_alive_time = self.alive_time_of(steam_id)
             if player_alive_time == 0.0:
@@ -1412,7 +1420,7 @@ class weird_stats(Plugin):
         return f"  ^5Quickest death^7: {quickest_death_name} (^5{alive_time_delta.total_seconds():.02f} seconds^7)"
 
     def environmental_deaths(self, means_of_death, means_of_death_filter):
-        filtered_means_of_death = {}  # type: ignore
+        filtered_means_of_death: Dict[int, int] = {}
         for steam_id, death_data in means_of_death.items():
             for mod in means_of_death_filter:
                 filtered_means_of_death[steam_id] = filtered_means_of_death.get(steam_id, 0) + death_data.get(mod, 0)
@@ -1456,7 +1464,7 @@ class weird_stats(Plugin):
             self.record_personal_speed(mapname, steam_id, speed)
             if top_map_speeds_dict.get(steam_id, -1.0) < speed:
                 # noinspection PyUnresolvedReferences
-                if redis.VERSION >= (3,):
+                if int(redis.VERSION[0]) >= 3:
                     # noinspection PyTypeChecker
                     self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
                     # noinspection PyTypeChecker
@@ -1484,7 +1492,7 @@ class weird_stats(Plugin):
             return
 
         # noinspection PyUnresolvedReferences
-        if redis.VERSION >= (3,):
+        if int(redis.VERSION[0]) >= 3:
             # noinspection PyTypeChecker
             self.db.zadd(PLAYER_TOP_SPEEDS.format(steam_id), {mapname: speed})
         else:

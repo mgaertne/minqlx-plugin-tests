@@ -7,19 +7,18 @@ You are free to modify this plugin to your own one.
 """
 
 import asyncio
+from typing import Dict, List
 
 import aiohttp
 from aiohttp import ClientTimeout
-from aiohttp_retry import RetryClient, ExponentialRetry
-
-from requests import Session, RequestException, codes
+from aiohttp_retry import ExponentialRetry, RetryClient
+from requests import RequestException, Session, codes
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
 import minqlx
-from minqlx import Plugin, NonexistentPlayerError
+from minqlx import NonexistentPlayerError, Plugin
 from minqlx.database import Redis
-
 
 PLAYER_BASE = "minqlx:players:{0}"
 IPS_BASE = "minqlx:ips"
@@ -82,16 +81,16 @@ class elocheck(Plugin):
     database = Redis
 
     __slots__ = (
-        "reply_channel",
-        "show_steam_ids",
-        "use_truskill_bn",
         "balance_api",
+        "informed_players",
         "previous_gametype",
         "previous_map",
         "previous_ratings",
-        "ratings",
         "rating_diffs",
-        "informed_players",
+        "ratings",
+        "reply_channel",
+        "show_steam_ids",
+        "use_truskill_bn",
     )
 
     def __init__(self):
@@ -498,7 +497,7 @@ class elocheck(Plugin):
             return {}
         js = result.json()
 
-        aliases = {}  # type: ignore
+        aliases: Dict[int, List[str]] = {}
         for steam_id in steam_ids:
             if str(steam_id) not in js:
                 continue
@@ -543,26 +542,22 @@ class elocheck(Plugin):
             if formatted_map_based_truskills is not None and len(formatted_map_based_truskills) > 0 and self.game:
                 formatted_mapname = self.game.map.lower()
                 formatted_line = " " * indent + "  " + f"{formatted_mapname} Truskills: {formatted_map_based_truskills}"
-                for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                    result.append(line)
+                result.extend(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "))
 
         formatted_truskills = truskill.format_elos(steam_id) if truskill is not None else None
         if formatted_truskills is not None and len(formatted_truskills) > 0:
             formatted_line = " " * indent + "  " + f"Truskills: {formatted_truskills}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                result.append(line)
+            result.extend(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "))
 
         formatted_a_elos = a_elo.format_elos(steam_id) if a_elo is not None else None
         if formatted_a_elos is not None and len(formatted_a_elos) > 0:
             formatted_line = " " * indent + "  " + f"Elos: {formatted_a_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                result.append(line)
+            result.extend(list(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  ")))
 
         formatted_b_elos = b_elo.format_elos(steam_id) if b_elo is not None else None
         if formatted_b_elos is not None and len(formatted_b_elos) > 0:
             formatted_line = " " * indent + "  " + f"B-Elos: {formatted_b_elos}"
-            for line in minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  "):
-                result.append(line)
+            result.extend(list(minqlx.CHAT_CHANNEL.split_long_lines(formatted_line, delimiter="  ")))
 
         return "\n".join(result)
 
@@ -668,7 +663,7 @@ FILTERED_OUT_GAMETYPE_RESPONSES = ["steamid"]
 
 
 class SkillRatingProvider:
-    __slots__ = ("name", "url_base", "balance_api", "timeout")
+    __slots__ = ("balance_api", "name", "timeout", "url_base")
 
     def __init__(self, name, url_base, balance_api, timeout=7):
         self.name = name
@@ -845,7 +840,7 @@ class RatingProvider:
         return player_data.privacy
 
     def rated_steam_ids(self):
-        returned = []  # type: ignore
+        returned: List[int] = []
         for json_rating in self.jsons:
             if "playerinfo" not in json_rating:
                 continue
@@ -867,7 +862,7 @@ class RatingProvider:
 
 
 class PlayerRating:
-    __slots__ = ("ratings", "time", "local")
+    __slots__ = ("local", "ratings", "time")
 
     def __init__(self, ratings, _time=-1, local=False):
         self.ratings = ratings

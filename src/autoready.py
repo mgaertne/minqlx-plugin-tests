@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
-from functools import partial
-
 import random
 import time
-
+from datetime import datetime, timedelta
+from functools import partial
 from threading import RLock, Thread
 from typing import Union
 
@@ -34,7 +32,7 @@ class autoready(Plugin):
         self.timer_visible = self.get_cvar("qlx_autoready_timer_visible", int) or 60
         self.disable_player_ready = self.get_cvar("qlx_autoready_disable_manual_readyup", bool) or False
 
-        self.timer: Union["CountdownThread", None] = None
+        self.timer: Union[CountdownThread, None] = None
         self.current_timer = -1
         self.timer_lock = RLock()
 
@@ -126,7 +124,9 @@ class autoready(Plugin):
 
         if self.game and self.game.state == "warmup":
             pending_players = [
-                player for player in self.players() if player.stats.ping == -1 and player.team in ["red", "blue"]
+                player
+                for player in self.players()
+                if player.stats is not None and player.stats.ping == -1 and player.team in ["red", "blue"]
             ]
             for player in pending_players:
                 player.put("spectator")

@@ -4,24 +4,21 @@ import time
 import pytest
 import redis
 import requests
-
-from mockito import mock, when, unstub, verify, spy2, patch  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import equal_to, assert_that, has_item
-from requests import Response, RequestException
-from undecorated import undecorated
-
+from hamcrest import assert_that, equal_to, has_item
 from minqlx_plugin_test import (
+    assert_plugin_sent_to_console,
     connected_players,
     fake_player,
     setup_cvars,
-    assert_plugin_sent_to_console,
 )
+from mockito import mock, patch, spy2, unstub, verify, when
+from mockito.matchers import any_, matches
+from requests import RequestException, Response
+from undecorated import undecorated
 
 import minqlx
-from minqlx import Plugin, CHAT_CHANNEL
-
-from merciful_elo_limit import merciful_elo_limit, ConnectThread
+from merciful_elo_limit import ConnectThread, merciful_elo_limit
+from minqlx import CHAT_CHANNEL, Plugin
 
 
 class ThreadContextManager:

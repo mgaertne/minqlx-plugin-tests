@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from minqlx import Player, CancellableEventReturn, GameStartData, RoundEndData
+    from minqlx import CancellableEventReturn, GameStartData, Player, RoundEndData
 
 SteamId = int
 

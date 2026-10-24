@@ -20,6 +20,7 @@
 we get stats from it."""
 
 import zmq
+
 import minqlx
 
 

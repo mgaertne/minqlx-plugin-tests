@@ -444,11 +444,11 @@ class bday(Plugin):
     def determine_installed_maps(self):
         if "maps" in self._loaded_plugins:
             # noinspection PyUnresolvedReferences
-            return self._loaded_plugins["maps"].logged_maps  # type: ignore
+            return self._loaded_plugins["maps"].logged_maps
 
         if "maps_manager" in self._loaded_plugins:
             # noinspection PyUnresolvedReferences
-            return self._loaded_plugins["maps_manager"].installed_maps  # type: ignore
+            return self._loaded_plugins["maps_manager"].installed_maps
 
         return []
 

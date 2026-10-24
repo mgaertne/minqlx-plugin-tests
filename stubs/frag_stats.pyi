@@ -3,11 +3,10 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from typing import Sequence, Iterable
-
     from collections import Counter
+    from typing import Iterable, Sequence
 
-    from minqlx import Player, AbstractChannel, DeathData
+    from minqlx import AbstractChannel, DeathData, Player
 
 COLLECTED_SOULZ_KEY: str
 REAPERZ_KEY: str

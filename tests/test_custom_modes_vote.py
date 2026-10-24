@@ -1,12 +1,11 @@
-from mockito import spy2, unstub, verify  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
 from hamcrest import assert_that, equal_to
-
-from minqlx_plugin_test import fake_player, assert_plugin_sent_to_console, setup_cvars
+from minqlx_plugin_test import assert_plugin_sent_to_console, fake_player, setup_cvars
+from mockito import spy2, unstub, verify
+from mockito.matchers import any_, matches
 
 import minqlx
-from minqlx import Plugin
 from custom_modes_vote import custom_modes_vote
+from minqlx import Plugin
 
 
 class TestCustomModesVote:

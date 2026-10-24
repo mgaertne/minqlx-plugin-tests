@@ -1,6 +1,6 @@
-import time
 import random
 import threading
+import time
 
 import minqlx
 from minqlx import Plugin
@@ -89,5 +89,5 @@ class thirtysecwarn(Plugin):
         return self.announcerMap[qlx_thirty_second_warn_announcer]
 
     def random_announcer(self):
-        key, sound = random.choice(list(self.announcerMap.items()))
+        _key, sound = random.choice(list(self.announcerMap.items()))
         return sound

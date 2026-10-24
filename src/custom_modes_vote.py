@@ -1,5 +1,4 @@
 import minqlx
-
 from minqlx import Plugin
 
 game_settings = {

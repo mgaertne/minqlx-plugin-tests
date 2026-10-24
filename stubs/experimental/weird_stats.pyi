@@ -1,18 +1,20 @@
-from typing import NamedTuple, Generic, TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, NamedTuple
+
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from typing import Callable, TypeVar, Iterator, Sequence, Literal
     from datetime import datetime
+    from typing import Callable, Iterator, Literal, Sequence, TypeVar
+
     from minqlx import (
         AbstractChannel,
-        Player,
-        GameStartData,
         DeathData,
-        RoundEndData,
         GameEndData,
-        StatsData,
+        GameStartData,
+        Player,
         PlayerStatsStats,
+        RoundEndData,
+        StatsData,
     )
 
 SteamId = int

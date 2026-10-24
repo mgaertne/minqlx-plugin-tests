@@ -4,12 +4,12 @@ from minqlx import Plugin
 
 if TYPE_CHECKING:
     from minqlx import (
-        Player,
         AbstractChannel,
-        Game,
         CancellableEventReturn,
-        RoundEndData,
+        Game,
         GameEndData,
+        Player,
+        RoundEndData,
     )
 
 MIN_ACTIVE_PLAYERS: int

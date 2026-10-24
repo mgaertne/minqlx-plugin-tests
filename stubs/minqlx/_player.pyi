@@ -1,42 +1,39 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable, TypedDict, NotRequired
+    from typing import Iterable, NotRequired, TypedDict
+
     from minqlx import (
+        AbstractChannel,
+        Flight,
         PlayerInfo,
         PlayerState,
         PlayerStats,
+        Powerups,
         Vector3,
         Weapons,
-        Powerups,
-        Flight,
-        AbstractChannel,
     )
 
 _DUMMY_USERINFO: Iterable[str]
 
-UserInfo = TypedDict(
-    "UserInfo",
-    {
-        "ip": str,
-        "ui_singlePlayerActive": str,
-        "cg_autoAction": str,
-        "cg_autoHop": str,
-        "cg_predictItems": str,
-        "model": str,
-        "headmodel": str,
-        "cl_anonymous": str,
-        "country": str,
-        "color1": str,
-        "rate": str,
-        "color2": str,
-        "sex": str,
-        "teamtask": str,
-        "name": str,
-        "handicap": str,
-        "password": NotRequired[str],
-    },
-)
+class UserInfo(TypedDict):
+    ip: str
+    ui_singlePlayerActive: str
+    cg_autoAction: str
+    cg_autoHop: str
+    cg_predictItems: str
+    model: str
+    headmodel: str
+    cl_anonymous: str
+    country: str
+    color1: str
+    rate: str
+    color2: str
+    sex: str
+    teamtask: str
+    name: str
+    handicap: str
+    password: NotRequired[str]
 
 class NonexistentPlayerError(Exception): ...
 
@@ -121,7 +118,7 @@ class Player:
     @property
     def privileges(self) -> str: ...
     @privileges.setter
-    def privileges(self, value: None | str) -> None: ...
+    def privileges(self, value: str | None) -> None: ...
     @property
     def country(self) -> str: ...
     @country.setter

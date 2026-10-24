@@ -6,9 +6,9 @@ if TYPE_CHECKING:
     from minqlx import (
         AbstractChannel,
         Player,
+        PlayerStatsStats,
         RoundEndData,
         StatsData,
-        PlayerStatsStats,
     )
 
 SteamId = int

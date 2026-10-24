@@ -8,22 +8,21 @@ You are free to modify this plugin to your own one.
 You need to install openai in your python installation, i.e. python3 -m pip install -U openai
 """
 
+import asyncio
 import re
 import time
-import asyncio
 from datetime import datetime, timezone
 from threading import RLock
 
-import redis
-
 import emoji
+import redis
 
 # noinspection PyPackageRequirements
 import tiktoken
-from openai import OpenAIError, AsyncOpenAI
+from openai import AsyncOpenAI, OpenAIError
 
 import minqlx
-from minqlx import Plugin, CHAT_CHANNEL
+from minqlx import CHAT_CHANNEL, Plugin
 from minqlx.database import Redis
 
 DATETIMEFORMAT = "%Y%m%d%H%M%S"
@@ -107,7 +106,7 @@ class openai_bot(Plugin):
     * qlx_openai_extended_logging (default 0 or False) enable or disable extended logging of chat contexts
     """
 
-    database = Redis  # type: ignore
+    database = Redis
 
     def __init__(self):
         super().__init__()
@@ -159,25 +158,29 @@ class openai_bot(Plugin):
         if self.presence_penalty < -2.0 or self.presence_penalty > 2.0:
             self.presence_penalty = 0.0
         self.system_context = (
-            self.get_cvar("qlx_openai_system_context").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_system_context") or "").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_chat = (
-            self.get_cvar("qlx_openai_bot_role_chat").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_bot_role_chat") or "").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_gamestart = (
-            self.get_cvar("qlx_openai_bot_role_gamestart").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_bot_role_gamestart") or "").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_roundstart = (
-            self.get_cvar("qlx_openai_bot_role_roundstart").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_bot_role_roundstart") or "")
+            .encode("raw_unicode_escape")
+            .decode("unicode_escape")
         )
         self.bot_role_roundend = (
-            self.get_cvar("qlx_openai_bot_role_roundend").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_bot_role_roundend") or "").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_gameend = (
-            self.get_cvar("qlx_openai_bot_role_gameend").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_bot_role_gameend") or "").encode("raw_unicode_escape").decode("unicode_escape")
         )
         self.bot_role_weird_stats = (
-            self.get_cvar("qlx_openai_bot_role_weird_stats").encode("raw_unicode_escape").decode("unicode_escape")
+            (self.get_cvar("qlx_openai_bot_role_weird_stats") or "")
+            .encode("raw_unicode_escape")
+            .decode("unicode_escape")
         )
         self.extended_logging = self.get_cvar("qlx_openai_extended_logging", bool) or False
 
@@ -271,7 +274,7 @@ class openai_bot(Plugin):
     @minqlx.thread
     def _record_chat_line(self, message, *, lock):
         with lock:
-            if redis.VERSION >= (3,):
+            if int(redis.VERSION[0]) >= 3:
                 self.db.zadd(
                     CHAT_BOT_LOG,
                     {message: int(datetime.strftime(datetime.now(), DATETIMEFORMAT))},
@@ -348,7 +351,7 @@ class openai_bot(Plugin):
     def is_triggered_message(self, message):
         matchers = [
             rf"^{trigger}\W|\W{trigger}\W|\W{trigger}$"
-            for trigger in self.bot_triggers + [Plugin.clean_text(self.bot_name)]
+            for trigger in [*self.bot_triggers, Plugin.clean_text(self.bot_name)]
         ]
         pattern = "|".join(matchers)
         return re.search(pattern, Plugin.clean_text(message), flags=re.IGNORECASE)
@@ -403,7 +406,7 @@ class openai_bot(Plugin):
             if history_tokens is None:
                 encoding = _token_encoding(self.model)
                 history_tokens = _REPLY_PRIMING_TOKENS + sum(
-                    _message_token_count(entry, encoding) for entry in chat_history_messages + [system_context]
+                    _message_token_count(entry, encoding) for entry in [*chat_history_messages, system_context]
                 )
             else:
                 # Keep the pre-append limit check; count only the newest addition.
@@ -450,19 +453,21 @@ class openai_bot(Plugin):
             return ""
 
         teams = Plugin.teams()
-        team_status = "nick|team|dmg\n" if self.game.state == "in_progress" else "nick|team\n"
+        team_status = "nick|team|dmg\n" if game.state == "in_progress" else "nick|team\n"
         for team in ["red", "blue", "spectator"]:
             if len(teams[team]) == 0:
                 continue
             for player in teams[team]:
-                if self.game.state == "in_progress":
-                    team_status += f"{player.clean_name}|{player.team}|{player.stats.damage_dealt}\n"
+                if game.state == "in_progress":
+                    stats = player.stats
+                    damage = stats.damage_dealt if stats is not None else 0
+                    team_status += f"{player.clean_name}|{player.team}|{damage}\n"
                 else:
                     team_status += f"{player.clean_name}|{player.team}\n"
 
         team_status += (
             f"{Plugin.clean_text(self.bot_name)}|spectator|0"
-            if self.game.state == "in_progress"
+            if game.state == "in_progress"
             else f"{Plugin.clean_text(self.bot_name)}|spectator"
         )
         return team_status

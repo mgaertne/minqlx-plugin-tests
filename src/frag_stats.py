@@ -1,8 +1,7 @@
 from collections import Counter
 
-
 import minqlx
-from minqlx import Plugin, NonexistentPlayerError
+from minqlx import NonexistentPlayerError, Plugin
 
 COLLECTED_SOULZ_KEY = "minqlx:players:{}:soulz"
 REAPERZ_KEY = "minqlx:players:{}:reaperz"

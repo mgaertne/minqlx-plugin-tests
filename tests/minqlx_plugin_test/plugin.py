@@ -1,13 +1,13 @@
 import functools
-from typing import Dict, Optional, Union, Any
+from typing import Any, Dict, Optional, Union
 
-from mockito import spy2, when2, verify, mock, when  # type: ignore
+from mockito import mock, spy2, verify, when, when2
 
 # noinspection PyProtectedMember
-from mockito.matchers import any_, Matcher  # type: ignore
+from mockito.matchers import Matcher, any_
 
 import minqlx
-from minqlx import Plugin, Player
+from minqlx import Player, Plugin
 
 # Functions for setting up unit tests for a :class:`minqlx.Plugin` and checking interactions with class methods
 # provided by minqlx.
@@ -81,7 +81,11 @@ def assert_plugin_sent_to_console(
     having been sent. (default: 1).
     :param: atleast: The minimum amount of times the plugin should have sent a matching message (default: None)
     """
-    verify(Plugin, times=times, atleast=atleast).msg(matcher)
+    if atleast is None:
+        verify(Plugin, times=times).msg(matcher)
+        return
+
+    verify(Plugin, atleast=atleast).msg(matcher)
 
 
 def assert_plugin_center_printed(matcher: Union[str, Matcher], *, times: int = 1) -> None:

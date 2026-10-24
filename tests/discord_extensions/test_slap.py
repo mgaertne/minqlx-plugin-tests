@@ -4,15 +4,14 @@ from unittest.mock import AsyncMock
 import pytest
 
 # noinspection PyPackageRequirements
-from discord import Member, InteractionMessage
+from discord import InteractionMessage, Member
+from minqlx_plugin_test import setup_cvars
 
 # noinspection PyProtectedMember
-from mockito import mock, unstub, spy2, when, any_, verify
-
-from minqlx_plugin_test import setup_cvars
-from minqlx import Plugin
+from mockito import any_, mock, spy2, unstub, verify, when
 
 from discord_extensions import slap
+from minqlx import Plugin
 
 
 class TestSlap:

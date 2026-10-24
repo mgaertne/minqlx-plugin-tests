@@ -4,7 +4,8 @@ from minqlx import Plugin
 
 if TYPE_CHECKING:
     from datetime import datetime
-    from minqlx import AbstractChannel, Player, GameEndData
+
+    from minqlx import AbstractChannel, GameEndData, Player
     from minqlx.database import Redis
 
 SteamId = int

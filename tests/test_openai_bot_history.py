@@ -1,12 +1,12 @@
 """Synthetic history tests: no plugin import, chat data, Redis, or API connection."""
 
 import ast
+import re
+import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-import re
 from types import SimpleNamespace
 from typing import List
-import unittest
 
 
 def isolated_history_logic(tokenizer):

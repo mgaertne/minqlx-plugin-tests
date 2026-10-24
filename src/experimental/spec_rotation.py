@@ -79,7 +79,7 @@ class spec_rotation(Plugin):
             if autospec_plugin in self.plugins:
                 # noinspection PyProtectedMember
                 plugin = minqlx.Plugin._loaded_plugins[autospec_plugin]
-                if plugin.last_action == "ignore":  # type: ignore
+                if plugin.last_action == "ignore":
                     return False
 
         return True
@@ -276,7 +276,11 @@ class spec_rotation(Plugin):
 
     def handle_round_start(self, _round_number):
         teams = self.teams()
-        self.stats_snapshot = {player.steam_id: player.stats.damage_dealt for player in teams["red"] + teams["blue"]}
+        self.stats_snapshot = {
+            player.steam_id: stats.damage_dealt
+            for player in teams["red"] + teams["blue"]
+            if (stats := player.stats) is not None
+        }
 
     def handle_round_end(self, data):
         if not self.spec_rotation_plugin_is_enabled():
@@ -382,7 +386,11 @@ class spec_rotation(Plugin):
             if minqlx_player is None:
                 continue
 
-            returned[steam_id] = minqlx_player.stats.damage_dealt - self.stats_snapshot[steam_id]
+            stats = minqlx_player.stats
+            if stats is None or steam_id not in self.stats_snapshot:
+                continue
+
+            returned[steam_id] = stats.damage_dealt - self.stats_snapshot[steam_id]
 
         return returned
 

@@ -8,10 +8,8 @@ import humanize
 import psutil
 
 # noinspection PyPackageRequirements
-from discord import Member, User, Embed, Color
-
 # noinspection PyPackageRequirements
-from discord import app_commands
+from discord import Color, Embed, Member, User, app_commands
 
 import minqlx
 from minqlx import Plugin

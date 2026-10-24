@@ -1,23 +1,24 @@
 import threading
-from abc import abstractmethod, ABCMeta
-from typing import Generic, TYPE_CHECKING
+from abc import ABCMeta, abstractmethod
+from typing import TYPE_CHECKING, Generic
 
 from minqlx import Plugin
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from typing import (
+        Awaitable,
         Callable,
+        Iterable,
         Iterator,
+        Mapping,
         Sequence,
         TypeVar,
-        Iterable,
-        Mapping,
-        Awaitable,
     )
-    from datetime import datetime
+
     from requests import Session
 
-    from minqlx import AbstractChannel, Player, GameEndData
+    from minqlx import AbstractChannel, GameEndData, Player
     from minqlx.database import Redis
 
 SteamId = int

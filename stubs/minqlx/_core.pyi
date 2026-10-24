@@ -1,12 +1,12 @@
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from typing import Type, Callable
-    from types import TracebackType, ModuleType
     from datetime import datetime, timedelta
     from logging import Logger
+    from types import ModuleType, TracebackType
+    from typing import Callable, Type
 
-    from minqlx import StatsListener, Plugin
+    from minqlx import Plugin, StatsListener
 
 class ExceptHookArgs(Protocol):
     exc_traceback: TracebackType

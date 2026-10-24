@@ -1,17 +1,17 @@
 import asyncio
 import threading
 import time
-from datetime import timedelta, datetime, timezone
 from contextlib import suppress
+from datetime import datetime, timedelta, timezone
+
+import schedule
 
 # noinspection PyPackageRequirements
-from discord import PrivacyLevel, EntityType, EventStatus
-from discord.errors import NotFound, Forbidden
+from discord import EntityType, EventStatus, PrivacyLevel
+from discord.errors import Forbidden, NotFound
 
 # noinspection PyPackageRequirements
 from discord.utils import utcnow
-
-import schedule  # type: ignore
 
 from minqlx import Plugin
 
@@ -67,15 +67,16 @@ async def end_event(bot):
 
     now = datetime.now(timezone.utc)
 
-    end_events = []
-    for scheduled_event in bot.guilds[0].scheduled_events:
+    end_events = [
+        scheduled_event.end()
+        for scheduled_event in bot.guilds[0].scheduled_events
         if (
             event_name in scheduled_event.name
             and scheduled_event.status not in [EventStatus.scheduled, EventStatus.completed, EventStatus.cancelled]
             and scheduled_event.end_time is not None
             and scheduled_event.end_time >= now
-        ):
-            end_events.append(scheduled_event.end())
+        )
+    ]
 
     with suppress(Forbidden):
         await asyncio.gather(*end_events)

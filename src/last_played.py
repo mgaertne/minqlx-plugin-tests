@@ -1,8 +1,8 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import humanize
 
-from minqlx import Plugin, thread, parse_variables
+from minqlx import Plugin, parse_variables, thread
 from minqlx.database import Redis
 
 TIMESTAMP_FORMAT = "%Y%m%d%H%M%S%z"
@@ -89,7 +89,11 @@ class last_played(Plugin):
         self.msg(" ".join(display_strs))
 
     def get_nextmaps(self):
-        nextmaps = parse_variables(self.get_cvar("nextmaps"))
+        nextmaps_cvar = self.get_cvar("nextmaps")
+        if nextmaps_cvar is None:
+            return "", "", ""
+
+        nextmaps = parse_variables(nextmaps_cvar)
         return nextmaps["map_0"], nextmaps["map_1"], nextmaps["map_2"]
 
     def long_mapname_for(self, mapname):

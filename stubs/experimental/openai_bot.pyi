@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
     from tiktoken import Encoding
 
-    from minqlx import Player, AbstractChannel, RoundEndData, GameEndData
+    from minqlx import AbstractChannel, GameEndData, Player, RoundEndData
     from minqlx.database import Redis
 
 DATETIMEFORMAT: str

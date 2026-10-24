@@ -1,7 +1,7 @@
 import asyncio
+import contextlib
 import threading
 import time
-import contextlib
 
 # noinspection PyPackageRequirements
 import schedule
@@ -9,17 +9,17 @@ import schedule
 # noinspection PyPackageRequirements
 from discord import (
     ActivityType,
-    app_commands,
     Color,
     Embed,
     Member,
+    app_commands,
 )
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, GroupCog
 
 import minqlx
-from minqlx import Plugin, NonexistentGameError
+from minqlx import NonexistentGameError, Plugin
 from minqlx.database import Redis
 
 DISCORD_MAP_SUBSCRIPTION_KEY = "minqlx:discord:{}:subscribed_maps"
@@ -53,11 +53,11 @@ class SubscriberCog(Cog):
         # noinspection PyProtectedMember
         if "maps_manager" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps  # type: ignore
+            self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps
         # noinspection PyProtectedMember
         elif "maps" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps  # type: ignore
+            self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps
 
         self.formatted_installed_maps = {mapname: mapname for mapname in self.installed_maps}
         for mapname, long_map_name in self.long_map_names_lookup.items():
@@ -91,7 +91,7 @@ class SubscriberCog(Cog):
 
         return returned
 
-    @subscribe_group.command(name="map", description="Get notified when your favorite maps are played")  # type: ignore
+    @subscribe_group.command(name="map", description="Get notified when your favorite maps are played")
     @app_commands.describe(mapname="the name of the map to subscribe to")
     @app_commands.guild_only()
     async def subscribe_map(self, interaction, mapname: str):
@@ -159,7 +159,7 @@ class SubscriberCog(Cog):
             for mapname in filtered_candidates[:25]
         ]
 
-    @subscribe_group.command(  # type: ignore
+    @subscribe_group.command(
         name="player",
         description="Get notified when your favorite players joins the server",
     )
@@ -252,7 +252,7 @@ class SubscriberCog(Cog):
             for steam_id in filtered_candidates[:25]
         ]
 
-    @subscribe_group.command(  # type: ignore
+    @subscribe_group.command(
         name="member",
         description="Get notified when your favorite discord user starts playing",
     )
@@ -291,7 +291,7 @@ class SubscriberCog(Cog):
 
         return subscribed_users
 
-    @unsubscribe_group.command(name="map", description="Stop getting notified about a map")  # type: ignore
+    @unsubscribe_group.command(name="map", description="Stop getting notified about a map")
     @app_commands.describe(mapname="the name of the map to subscribe from")
     @app_commands.guild_only()
     async def unsubscribe_map(self, interaction, mapname: str):
@@ -338,7 +338,7 @@ class SubscriberCog(Cog):
 
         return [app_commands.Choice(name=self.format_mapname(mapname), value=mapname) for mapname in candidates[:25]]
 
-    @unsubscribe_group.command(name="player", description="Stop getting notified about a player")  # type: ignore
+    @unsubscribe_group.command(name="player", description="Stop getting notified about a player")
     @app_commands.describe(player="Name of the player you want to unsubscribe from")
     @app_commands.guild_only()
     async def unsubscribe_player(self, interaction, player: str):
@@ -415,7 +415,7 @@ class SubscriberCog(Cog):
             for steam_id in candidates[:25]
         ]
 
-    @unsubscribe_group.command(name="member", description="Stop getting notified about a discord user")  # type: ignore
+    @unsubscribe_group.command(name="member", description="Stop getting notified about a discord user")
     @app_commands.describe(member="Discord user you want to unsubscribe from")
     @app_commands.guild_only()
     async def unsubscribe_member(self, interaction, member: Member):
@@ -502,8 +502,7 @@ class SubscriberCog(Cog):
 
         players = Plugin.players()
         new_players = [player for player in players if player.steam_id not in self.notified_steam_ids]
-        for player in new_players:
-            notification_actions.append(self.notify_player_connected(player))
+        notification_actions.extend(self.notify_player_connected(player) for player in new_players)
         self.notified_steam_ids = [player.steam_id for player in players]
         await asyncio.gather(*notification_actions)
 

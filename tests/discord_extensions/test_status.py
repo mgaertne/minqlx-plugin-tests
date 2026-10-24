@@ -2,20 +2,17 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from hamcrest import assert_that, equal_to, matches_regexp
-
-from mockito import when, mock, unstub
-
 # noinspection PyPackageRequirements
 from discord import Message
 
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
+from hamcrest import assert_that, equal_to, matches_regexp
+from minqlx_plugin_test import connected_players, fake_player, setup_cvars
+from mockito import mock, unstub, when
 
-from minqlx_plugin_test import setup_cvars, connected_players, fake_player
-
-from discord_extensions.status import Status
 from discord_extensions import status
+from discord_extensions.status import Status
 
 
 class TestStatus:

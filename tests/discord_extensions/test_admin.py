@@ -8,13 +8,12 @@ import pytest
 
 # noinspection PyPackageRequirements
 from discord import ChannelType, InteractionResponse
-from hamcrest import assert_that, equal_to, matches_regexp, has_key, not_
-from mockito import unstub, patch, spy2, when2, mock, verify
+from hamcrest import assert_that, equal_to, has_key, matches_regexp, not_
+from minqlx_plugin_test import setup_cvars
+from mockito import mock, patch, spy2, unstub, verify, when2
 from undecorated import undecorated
 
-from minqlx_plugin_test import setup_cvars
 import minqlx
-
 from discord_extensions import admin
 from discord_extensions.admin import (
     AdminCog,
@@ -186,7 +185,7 @@ class TestAdmin:
             await extension.auth(auth_context)
 
         # noinspection PyTypeChecker
-        assert_that(extension.auth_attempts, not_(has_key(user.id)))  # type: ignore
+        assert_that(extension.auth_attempts, not_(has_key(user.id)))
 
     @pytest.mark.asyncio
     async def test_qlx_executes_command(self, bot, exec_context, user):
@@ -443,7 +442,7 @@ class TestDiscordInteractionChannel:
 
         message.edit.assert_awaited_once()
         assert_that(
-            message.edit.await_args.kwargs["embed"].description,  # type: ignore
+            message.edit.await_args.kwargs["embed"].description,
             equal_to("Hi there"),
         )
 
@@ -456,7 +455,7 @@ class TestDiscordInteractionChannel:
 
         message.edit.assert_awaited_once()
         assert_that(
-            message.edit.await_args.kwargs["embed"].description,  # type: ignore
+            message.edit.await_args.kwargs["embed"].description,
             equal_to("initial text\nHi there"),
         )
 

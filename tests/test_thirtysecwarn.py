@@ -1,17 +1,51 @@
+from __future__ import annotations
+
 import random
 import time
 
 import pytest
-from mockito import unstub, patch, verify, spy2, when2  # type: ignore
-from mockito.matchers import any_  # type: ignore
 from hamcrest import assert_that, equal_to
-
-from undecorated import undecorated  # type: ignore
+from minqlx_plugin_test import assert_plugin_played_sound, setup_cvar, setup_cvars
+from mockito import patch, spy2, unstub, verify, when2
+from mockito.matchers import any_
+from undecorated import undecorated
 
 import minqlx
-from minqlx_plugin_test import setup_cvars, setup_cvar, assert_plugin_played_sound
-
 from thirtysecwarn import thirtysecwarn
+
+
+@pytest.fixture
+def game_start_data() -> minqlx.GameStartData:
+    return {
+        "CAPTURE_LIMIT": 0,
+        "FACTORY": "",
+        "FACTORY_TITLE": "",
+        "FRAG_LIMIT": 0,
+        "GAME_TYPE": "ca",
+        "INFECTED": 0,
+        "INSTAGIB": 0,
+        "MAP": "campgrounds",
+        "MATCH_GUID": "test-match",
+        "MERCY_LIMIT": 0,
+        "PLAYERS": [],
+        "QUADHOG": 0,
+        "ROUND_LIMIT": 0,
+        "SCORE_LIMIT": 0,
+        "SERVER_TITLE": "test server",
+        "TIME_LIMIT": 0,
+        "TRAINING": 0,
+    }
+
+
+@pytest.fixture
+def round_end_data() -> minqlx.RoundEndData:
+    return {
+        "MATCH_GUID": "test-match",
+        "ROUND": 1,
+        "TEAM_WON": "RED",
+        "TIME": 0,
+        "WARMUP": False,
+    }
 
 
 class TestThirtySecondWarnPlugin:
@@ -134,19 +168,17 @@ class TestThirtySecondWarnPlugin:
 
         assert_plugin_played_sound(any_(str))
 
-    def test_game_start_initializes_timer_round_number(self):
+    def test_game_start_initializes_timer_round_number(self, game_start_data):
         self.warner.warner_thread_name = "test_game_start_initializes_timer_round_number1"
 
-        # noinspection PyTypeChecker
-        self.warner.handle_game_start({})
+        self.warner.handle_game_start(game_start_data)
 
         assert_that(self.warner.warner_thread_name, equal_to(None))
 
-    def test_round_end_increases_round_number(self):
+    def test_round_end_increases_round_number(self, round_end_data):
         self.warner.warner_thread_name = "test_round_end_increases_round_number1"
 
-        # noinspection PyTypeChecker
-        self.warner.handle_round_end({})
+        self.warner.handle_round_end(round_end_data)
 
         assert_that(self.warner.warner_thread_name, equal_to(None))
 

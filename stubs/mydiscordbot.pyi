@@ -1,33 +1,37 @@
-from typing import TYPE_CHECKING
 from threading import Thread
+from typing import TYPE_CHECKING
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, DefaultHelpCommand
 
-from minqlx import Plugin, Player, AbstractChannel
+from minqlx import AbstractChannel, Player, Plugin
 
 if TYPE_CHECKING:
     from logging import Logger
 
+    from discord import (
+        CategoryChannel,
+        DMChannel,
+        ForumChannel,
+        GroupChannel,
+        Member,
+        PartialMessageable,
+        StageChannel,
+        TextChannel,
+        User,
+        VoiceChannel,
+    )
+
     # noinspection PyPackageRequirements
     from discord import (
         Message as Message,
-        Member,
-        VoiceChannel,
-        StageChannel,
-        ForumChannel,
-        TextChannel,
-        CategoryChannel,
-        DMChannel,
-        PartialMessageable,
-        GroupChannel,
-        User,
     )
 
     # noinspection PyPackageRequirements
     from discord.ext.commands import Context
 
-    from minqlx import Game as minqlxGame, GameEndData
+    from minqlx import Game as minqlxGame
+    from minqlx import GameEndData
 
 plugin_version: str
 

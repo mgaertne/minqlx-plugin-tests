@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
 import redis
+
 import minqlx
 
 
@@ -366,7 +367,7 @@ class Redis(AbstractDatabase):
         return self.r.msetnx(mapping)
 
     def zadd(self, name, *args, **kwargs):
-        if redis.VERSION < (3, 0):
+        if int(redis.VERSION[0]) < 3:
             return self.r.zadd(name, *args, **kwargs)
 
         if isinstance(args[0], dict):

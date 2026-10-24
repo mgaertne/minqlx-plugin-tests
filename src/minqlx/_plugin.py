@@ -15,7 +15,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with minqlx. If not, see <http://www.gnu.org/licenses/>.
-from typing import ClassVar, Dict
+from typing import Any, ClassVar, Dict
 
 import minqlx
 
@@ -44,7 +44,7 @@ class Plugin:
     """
 
     # Static dictionary of plugins currently loaded for the purpose of inter-plugin communication.
-    _loaded_plugins: ClassVar[Dict[str, "minqlx.Plugin"]] = {}
+    _loaded_plugins: ClassVar[Dict[str, Any]] = {}
     # The database driver class the plugin should use.
     database = None
 
@@ -390,10 +390,7 @@ class Plugin:
         if not name:
             return players
 
-        res = []
-        for p in players:
-            if cls.clean_text(name.lower()) in p.clean_name.lower():
-                res.append(p)
+        res = [p for p in players if cls.clean_text(name.lower()) in p.clean_name.lower()]
 
         return res
 
@@ -402,7 +399,7 @@ class Plugin:
         """Get a dictionary with the teams as keys and players as values."""
         players = player_list if player_list else cls.players()
 
-        res = {team_value: [] for team_value in minqlx.TEAMS.values()}  # type: ignore
+        res: Dict[str, list] = {team_value: [] for team_value in minqlx.TEAMS.values()}
 
         for p in players:
             res[p.team].append(p)

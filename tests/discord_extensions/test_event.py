@@ -1,26 +1,26 @@
 import threading
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
 
 # noinspection PyPackageRequirements
 from discord import (
-    Intents,
-    Guild,
-    PrivacyLevel,
     EntityType,
-    ScheduledEvent,
     EventStatus,
+    Guild,
+    Intents,
+    PrivacyLevel,
+    ScheduledEvent,
 )
 from hamcrest import assert_that, equal_to, has_entries
+from minqlx_plugin_test import connected_players, fake_player, setup_cvars
 
 # noinspection PyProtectedMember
-from mockito import mock, any_, when2, spy2, verify, unstub
+from mockito import any_, mock, spy2, unstub, verify, when2
 
-from minqlx_plugin_test import setup_cvars, connected_players, fake_player
-from minqlx import Plugin
 from discord_extensions import event
+from minqlx import Plugin
 
 
 class TestEvent:

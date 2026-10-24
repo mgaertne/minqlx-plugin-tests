@@ -1,14 +1,16 @@
 # noinspection PyPackageRequirements
+from typing import Set
+
 import discord
 
 # noinspection PyPackageRequirements
 from discord import app_commands
 
 # noinspection PyPackageRequirements
-from discord.ext.commands import Cog, Bot, Command
+from discord.ext.commands import Bot, Cog, Command
 
 import minqlx
-from minqlx import Plugin, NonexistentGameError
+from minqlx import NonexistentGameError, Plugin
 
 
 def get_game_info(game):
@@ -91,7 +93,7 @@ def game_status_with_teams():
 
 
 def int_set(string_set):
-    returned = set()  # type: ignore
+    returned: Set[int] = set()
 
     if string_set is None:
         return returned
@@ -146,7 +148,7 @@ class Status(Cog):
         slash_status_command: app_commands.Command = app_commands.Command(
             name=self.discord_trigger_status,
             description="display current game status information",
-            callback=self.slash_trigger_status,  # type: ignore
+            callback=self.slash_trigger_status,
             parent=None,
             nsfw=False,
         )

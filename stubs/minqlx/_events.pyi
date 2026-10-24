@@ -1,18 +1,19 @@
 from typing import TYPE_CHECKING, Literal, overload
 
 if TYPE_CHECKING:
-    from typing import Type, Callable, Iterable, Pattern, Mapping
+    from typing import Any, Callable, Iterable, Mapping, Pattern, Type
+
     from minqlx import (
-        Plugin,
-        Player,
         AbstractChannel,
         Command,
-        StatsData,
-        GameStartData,
-        GameEndData,
-        RoundEndData,
-        KillData,
         DeathData,
+        GameEndData,
+        GameStartData,
+        KillData,
+        Player,
+        Plugin,
+        RoundEndData,
+        StatsData,
         UserInfoEventInput,
     )
 
@@ -53,7 +54,7 @@ class EventDispatcher:
     def return_value(self) -> str | bool | Iterable | None: ...
     @return_value.setter
     def return_value(self, value: str | bool | Iterable | None) -> None: ...
-    def dispatch(self, *args, **kwargs) -> str | bool | Iterable | None: ...  # type: ignore
+    def dispatch(self, *args: Any, **kwargs: Any) -> str | bool | Iterable | None: ...
     def handle_return(self, handler: Callable, value: int | str | None) -> str | None: ...
     def add_hook(self, plugin: Plugin | str, handler: Callable, priority: int = ...) -> None: ...
     def remove_hook(self, plugin: Plugin | str, handler: Callable, priority: int = ...) -> None: ...

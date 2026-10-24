@@ -1,15 +1,14 @@
-from typing import TYPE_CHECKING, Generic
-
 from threading import Thread
+from typing import TYPE_CHECKING, Generic
 
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from typing import Callable, Iterator, Sequence, TypeVar
-    from threading import RLock
     from datetime import datetime
+    from threading import RLock
+    from typing import Callable, Iterator, Sequence, TypeVar
 
-    from minqlx import Player, GameStartData
+    from minqlx import GameStartData, Player
 
 THIRTY_SECOND_WARNINGS: Sequence[str]
 

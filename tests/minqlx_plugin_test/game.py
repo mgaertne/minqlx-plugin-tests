@@ -1,7 +1,7 @@
 import functools
 from typing import Optional
 
-from mockito import when2, mock, verify  # type: ignore
+from mockito import mock, verify, when2
 
 import minqlx
 from minqlx import Game, NonexistentGameError

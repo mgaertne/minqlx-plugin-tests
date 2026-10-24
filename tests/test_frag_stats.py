@@ -1,17 +1,14 @@
 import pytest
-
 import redis
-
-from mockito import mock, when, unstub, verify  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import assert_that, equal_to, not_, contains_inanyorder, contains_exactly
-
+from hamcrest import assert_that, contains_exactly, contains_inanyorder, equal_to, not_
 from minqlx_plugin_test import (
-    setup_cvars,
-    fake_player,
-    connected_players,
     assert_player_was_told,
+    connected_players,
+    fake_player,
+    setup_cvars,
 )
+from mockito import mock, unstub, verify, when
+from mockito.matchers import any_, matches
 
 import minqlx
 from frag_stats import frag_stats
@@ -64,7 +61,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder((killer.steam_id, victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder((killer.steam_id, victim.steam_id)))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_death_records_soulz_in_db(self, fragstats_db):
@@ -107,7 +104,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, victim, {"MOD": "ROCKET"})
 
-        assert_that(self.plugin.frag_log, not_(contains_exactly(victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, not_(contains_exactly(victim.steam_id)))
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_death_in_warmup_does_not_record_frag_log_entry(self):
@@ -119,7 +116,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, killer, {"MOD": "ROCKET"})
 
-        assert_that(self.plugin.frag_log, not_(contains_inanyorder((killer.steam_id, victim.steam_id))))  # type: ignore
+        assert_that(self.plugin.frag_log, not_(contains_inanyorder((killer.steam_id, victim.steam_id))))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_death_by_lava_records_frag_log_entry(self, fragstats_db):
@@ -131,7 +128,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "LAVA"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder(("lava", victim.steam_id)))
         verify(fragstats_db).zincrby("minqlx:players:lava:soulz", amount=1, value=str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="lava")
 
@@ -145,7 +142,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "HURT"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder(("void", victim.steam_id)))
         verify(fragstats_db).zincrby("minqlx:players:void:soulz", amount=1, value=str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="void")
 
@@ -159,7 +156,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "SLIME"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder(("acid", victim.steam_id)))
         verify(fragstats_db).zincrby("minqlx:players:acid:soulz", amount=1, value=str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="acid")
 
@@ -173,7 +170,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "WATER"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder(("drowning", victim.steam_id)))
         verify(fragstats_db).zincrby("minqlx:players:drowning:soulz", amount=1, value=str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="drowning")
 
@@ -187,7 +184,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "CRUSH"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder(("squished", victim.steam_id)))
         verify(fragstats_db).zincrby("minqlx:players:squished:soulz", amount=1, value=str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="squished")
 
@@ -201,7 +198,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, None, {"MOD": "UNKNOWN"})
 
-        assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))  # type: ignore
+        assert_that(self.plugin.frag_log, contains_inanyorder(("unknown", victim.steam_id)))
         verify(fragstats_db).zincrby("minqlx:players:unknown:soulz", amount=1, value=str(victim.steam_id))
         verify(fragstats_db).zincrby(f"minqlx:players:{victim.steam_id}:reaperz", amount=1, value="unknown")
 
@@ -215,7 +212,7 @@ class TestFragStats:
         # noinspection PyTypeChecker
         self.plugin.handle_death(victim, victim, {"MOD": "SWITCHTEAM"})
 
-        assert_that(self.plugin.frag_log, not_(contains_inanyorder((victim.steam_id, victim.steam_id))))  # type: ignore
+        assert_that(self.plugin.frag_log, not_(contains_inanyorder((victim.steam_id, victim.steam_id))))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_mapsoulz_with_no_frags(self, mock_channel):
@@ -366,7 +363,7 @@ class TestFragStats:
 
         self.plugin.cmd_mapsoulz(player, f"!mapsoulz {fragging_player.steam_id}".split(), mock_channel)
 
-        mock_channel.assert_was_replied(any_, times=0)  # type: ignore
+        mock_channel.assert_was_replied(any_, times=0)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_mapsoulz_for_another_non_existent_player(self, mock_channel):
@@ -387,7 +384,7 @@ class TestFragStats:
         self.plugin.cmd_mapsoulz(player, ["!mapsoulz", "lava"], mock_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
-        mock_channel.assert_was_replied(any_, times=0)  # type: ignore
+        mock_channel.assert_was_replied(any_, times=0)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_mapsoulz_for_more_than_one_matching_other_player(self, mock_channel):
@@ -867,7 +864,7 @@ class TestFragStats:
 
         self.plugin.cmd_soulzbalance(player, f"!soulz {fragging_player.steam_id}".split(), mock_channel)
 
-        mock_channel.assert_was_replied(any_, times=0)  # type: ignore
+        mock_channel.assert_was_replied(any_, times=0)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_soulzbalance_for_another_non_existent_player(self, mock_channel):
@@ -888,7 +885,7 @@ class TestFragStats:
         self.plugin.cmd_soulzbalance(player, ["!soulz", "lava"], mock_channel)
 
         assert_player_was_told(player, matches(".*no players matched.*"))
-        mock_channel.assert_was_replied(any_, times=0)  # type: ignore
+        mock_channel.assert_was_replied(any_, times=0)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_soulzbalance_for_more_than_one_matching_other_player(self, mock_channel):

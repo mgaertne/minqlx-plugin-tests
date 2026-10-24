@@ -6,11 +6,10 @@ import pytest
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
 from hamcrest import assert_that, equal_to, matches_regexp
+from minqlx_plugin_test import connected_players, fake_player, setup_cvars
 
 # noinspection PyProtectedMember
-from mockito import when, mock, unstub, verify, when2, spy2, any_
-
-from minqlx_plugin_test import setup_cvars, connected_players, fake_player
+from mockito import any_, mock, spy2, unstub, verify, when, when2
 
 from discord_extensions import topic_updater
 from discord_extensions.topic_updater import TopicUpdater

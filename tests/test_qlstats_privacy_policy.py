@@ -1,25 +1,22 @@
 import pytest
-from mockito import unstub, mock, spy2, verify, when  # type: ignore
-from mockito.matchers import matches, any_  # type: ignore
-from hamcrest import assert_that, equal_to, not_, contains_exactly
-
-from undecorated import undecorated  # type: ignore
-
 import requests
-from requests import Response
-
+from hamcrest import assert_that, contains_exactly, equal_to, not_
 from minqlx_plugin_test import (
-    setup_cvars,
-    fake_player,
-    assert_plugin_sent_to_console,
-    connected_players,
-    assert_player_was_told,
     assert_player_received_center_print,
     assert_player_was_put_on,
+    assert_player_was_told,
+    assert_plugin_sent_to_console,
+    connected_players,
+    fake_player,
+    setup_cvars,
 )
+from mockito import mock, spy2, unstub, verify, when
+from mockito.matchers import any_, matches
+from requests import Response
+from undecorated import undecorated
 
 import minqlx
-from qlstats_privacy_policy import qlstats_privacy_policy, ConnectThread
+from qlstats_privacy_policy import ConnectThread, qlstats_privacy_policy
 
 
 class ThreadContextManager:
@@ -409,7 +406,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_player_disconnect(player, "quit")
 
-        assert_that(self.plugin.exceptions, not_(contains_exactly(player.steam_id)))  # type: ignore
+        assert_that(self.plugin.exceptions, not_(contains_exactly(player.steam_id)))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_disconnect_that_has_no_exception(self):
@@ -485,7 +482,7 @@ class TestQlstatsPrivacyPolicy:
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "any")
 
@@ -502,7 +499,7 @@ class TestQlstatsPrivacyPolicy:
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
         self.plugin.max_num_join_attempts = -1
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "any")
@@ -520,7 +517,7 @@ class TestQlstatsPrivacyPolicy:
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         self.plugin.handle_team_switch_attempt(specced_player, "red", "blue")
 
@@ -537,7 +534,7 @@ class TestQlstatsPrivacyPolicy:
         connected_players(kicked_player)
         self.plugin.join_attempts[kicked_player.steam_id] = 0
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {kicked_player.steam_id: {"privacy": "private"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {kicked_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(kicked_player, "spec", "blue")
 
@@ -550,7 +547,7 @@ class TestQlstatsPrivacyPolicy:
         connected_players(specced_player)
         self.plugin.join_attempts[specced_player.steam_id] = 3
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
 
@@ -562,7 +559,7 @@ class TestQlstatsPrivacyPolicy:
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "public"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "public"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "spectator", "blue")
 
@@ -573,7 +570,7 @@ class TestQlstatsPrivacyPolicy:
         specced_player = fake_player(123, "Test Player")
         connected_players(specced_player)
         # noinspection PyUnresolvedReferences
-        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}  # type: ignore
+        self.plugin.plugins["balance"].player_info = {specced_player.steam_id: {"privacy": "private"}}
 
         return_code = self.plugin.handle_team_switch_attempt(specced_player, "red", "spectator")
 

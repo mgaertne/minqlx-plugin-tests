@@ -1,4 +1,4 @@
-from minqlx import Plugin, Player
+from minqlx import Player, Plugin
 
 
 def warn_player(player, warning):

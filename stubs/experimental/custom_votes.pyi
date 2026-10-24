@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from minqlx import Player, CancellableEventReturn
+    from minqlx import CancellableEventReturn, Player
 
 # noinspection PyPep8Naming
 class custom_votes(Plugin):

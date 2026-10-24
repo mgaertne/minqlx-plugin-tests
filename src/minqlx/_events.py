@@ -189,7 +189,7 @@ class EventDispatcher:
             raise AssertionError(f"{self.name} hook requires zmq_stats_enabled cvar to have nonzero value")
 
         if self.name in hot_plugged_events and len(self.plugins) == 0:
-            minqlx.register_handler(self.name, getattr(minqlx, f"handle_{self.name}"))  # type: ignore
+            minqlx.register_handler(self.name, getattr(minqlx, f"handle_{self.name}"))
 
         if plugin not in self.plugins:
             # Initialize tuple.
@@ -219,7 +219,7 @@ class EventDispatcher:
             if handler == hook:
                 self.plugins[plugin][priority].remove(handler)
                 if self.name in hot_plugged_events and len(self.plugins) == 0:
-                    minqlx.register_handler(self.name, None)  # type: ignore
+                    minqlx.register_handler(self.name, None)
 
                 return
 
@@ -326,7 +326,7 @@ class ClientCommandDispatcher(EventDispatcher):
 
         """
         if isinstance(value, str):
-            player, cmd = self.args
+            player, _cmd = self.args
             self.args = (player, value)
             self.return_value = value
         else:
@@ -350,7 +350,7 @@ class ServerCommandDispatcher(EventDispatcher):
 
         """
         if isinstance(value, str):
-            player, cmd = self.args
+            player, _cmd = self.args
             self.args = (player, value)
             self.return_value = value
         else:
@@ -387,7 +387,7 @@ class SetConfigstringDispatcher(EventDispatcher):
 
         """
         if isinstance(value, str):
-            index, old_value = self.args
+            index, _old_value = self.args
             self.args = (index, value)
             self.return_value = value
         else:

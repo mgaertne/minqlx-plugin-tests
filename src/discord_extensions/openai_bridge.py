@@ -1,12 +1,13 @@
 # noinspection PyPackageRequirements
-from discord.ext.commands import Cog
+from typing import Set
 
+from discord.ext.commands import Cog
 
 from minqlx import Plugin
 
 
 def int_set(string_set):
-    returned = set()  # type: ignore
+    returned: Set[int] = set()
 
     if string_set is None:
         return returned
@@ -34,7 +35,7 @@ class OpenAIBridge(Cog):
         self.bot_triggers = Plugin.get_cvar("qlx_openai_bot_triggers", list) or []
         self.bot_triggers = [trigger for trigger in self.bot_triggers if len(trigger) > 0]
         self.bot_role_chat = (
-            Plugin.get_cvar("qlx_openai_bot_role_chat").encode("raw_unicode_escape").decode("unicode_escape")
+            (Plugin.get_cvar("qlx_openai_bot_role_chat") or "").encode("raw_unicode_escape").decode("unicode_escape")
         )
 
     @Cog.listener(name="on_message")

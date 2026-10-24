@@ -2,7 +2,7 @@ import time
 from ast import literal_eval
 from operator import itemgetter
 
-from minqlx import Plugin, Player
+from minqlx import Player, Plugin
 
 
 # noinspection PyPep8Naming

@@ -1,7 +1,8 @@
-import time
-import random
-from datetime import datetime
 import math
+import random
+import time
+from datetime import datetime
+
 import redis
 
 import minqlx
@@ -423,9 +424,9 @@ class showdown(Plugin):
         opponents_left = len(alive_r) if other_team == "red" else len(alive_b)
 
         if opponents_left == 1:
-            self.blink(([f"{opponents_left} {other_team} left!"] + [""]) * 6)
+            self.blink(([f"{opponents_left} {other_team} left!", ""]) * 6)
         else:
-            self.blink(([f"{opponents_left} {other_team}s left!"] + [""]) * 6)
+            self.blink(([f"{opponents_left} {other_team}s left!", ""]) * 6)
 
     # noinspection PyMethodMayBeStatic
     def other_team(self, team):
@@ -462,7 +463,7 @@ class showdown(Plugin):
             last_standing_time = int(time.time() - self.last_standing_time)
             # noinspection PyUnresolvedReferences
             if self.db:
-                if redis.VERSION >= (3,):
+                if int(redis.VERSION[0]) >= 3:
                     # noinspection PyTypeChecker
                     self.db.zadd(base_key, {timestamp: last_standing_time})
                 else:

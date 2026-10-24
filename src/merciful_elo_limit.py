@@ -1,13 +1,14 @@
+import threading
 import time
 from datetime import datetime, timedelta
-import threading
+
 import requests
 from requests import RequestException, Session
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry  # type: ignore
 
 import minqlx
-from minqlx import Plugin, CHAT_CHANNEL
+from minqlx import CHAT_CHANNEL, Plugin
 from minqlx.database import Redis
 
 APPLICATION_GAMES_KEY = "minqlx:players:{}:minelo:games"
@@ -322,7 +323,7 @@ class merciful_elo_limit(Plugin):
         def logic(target, msg):
             target.center_print(f"^3{msg}")
 
-        for msg_number in range(count):
+        for _msg_number in range(count):
             logic(player, message)
             time.sleep(interval)
             logic(player, "")
@@ -405,6 +406,9 @@ class merciful_elo_limit(Plugin):
         self.db.zrem(APPLICATION_GAMES_KEY.format(steam_id), games[len(games) - 1])
 
         granted_player = self.player(steam_id)
+        if granted_player is None:
+            reply_channel.reply("The player is no longer connected.")
+            return minqlx.RET_NONE
         reply_channel.reply(f"{granted_player.clean_name}^7 has been granted another application game")
         return minqlx.RET_NONE
 
@@ -434,6 +438,8 @@ class merciful_elo_limit(Plugin):
                 return player_id
 
             target_player = self.player(player_id)
+            if target_player is None:
+                return None
             return target_player.steam_id
 
         except ValueError:

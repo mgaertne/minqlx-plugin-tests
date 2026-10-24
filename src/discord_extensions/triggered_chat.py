@@ -1,10 +1,11 @@
 import re
+from typing import Set
+
+# noinspection PyPackageRequirements
+from discord import Color, Embed, Member, app_commands
 
 # noinspection PyPackageRequirements
 from discord.abc import GuildChannel
-
-# noinspection PyPackageRequirements
-from discord import app_commands, Color, Embed, Member
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog, Command
@@ -14,7 +15,7 @@ from minqlx import Plugin
 
 
 def int_set(string_set):
-    returned = set()  # type: ignore
+    returned: Set[int] = set()
 
     if string_set is None:
         return returned
@@ -61,10 +62,10 @@ class TriggeredChat(Cog):
             )
         )
 
-        slash_triggered_chat_command = app_commands.Command(  # type: ignore
+        slash_triggered_chat_command: app_commands.Command = app_commands.Command(
             name=self.discord_trigger_triggered_channel_chat,
             description="send a message to the Quake Live server",
-            callback=self.slash_triggered_chat,  # type: ignore
+            callback=self.slash_triggered_chat,
             parent=None,
             nsfw=False,
         )

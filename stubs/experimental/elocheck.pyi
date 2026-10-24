@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from typing import Callable, Awaitable, Iterable, Iterator
+    from typing import Awaitable, Callable, Iterable, Iterator
+
     from requests import Session
 
-    from minqlx import AbstractChannel, Player, GameEndData
+    from minqlx import AbstractChannel, GameEndData, Player
     from minqlx.database import Redis
 
 SteamId = int

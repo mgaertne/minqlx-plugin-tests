@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from minqlx import Plugin
 
 if TYPE_CHECKING:
-    from minqlx import AbstractChannel, Player, CancellableEventReturn
+    from minqlx import AbstractChannel, CancellableEventReturn, Player
 
 game_settings: dict[str, dict[str, str]]
 

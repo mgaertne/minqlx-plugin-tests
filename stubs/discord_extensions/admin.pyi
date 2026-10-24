@@ -9,13 +9,14 @@ if TYPE_CHECKING:
     from asyncio import AbstractEventLoop
 
     # noinspection PyPackageRequirements
-    from discord import Interaction as Interaction, Message, User, Embed
+    import discord.utils
+    from discord import Embed, Message, User
+
+    # noinspection PyPackageRequirements
+    from discord import Interaction as Interaction
 
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot, Context
-
-    # noinspection PyPackageRequirements
-    import discord.utils
 
 class DiscordInteractionChannel(AbstractChannel):
     user: User

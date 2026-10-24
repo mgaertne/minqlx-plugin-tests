@@ -107,13 +107,13 @@ class auto_rebalance(Plugin):
             return minqlx.RET_NONE
 
         other_than_last_players_team = self.other_team(last_new_player.team)
-        new_player_team = teams[other_than_last_players_team].copy() + [player]
+        new_player_team = [*teams[other_than_last_players_team], player]
         proposed_diff = self.calculate_player_average_difference(
             gametype, teams[last_new_player.team].copy(), new_player_team
         )
 
         alternative_team_a = [player for player in teams[last_new_player.team] if player != last_new_player] + [player]
-        alternative_team_b = teams[other_than_last_players_team].copy() + [last_new_player]
+        alternative_team_b = [*teams[other_than_last_players_team], last_new_player]
         alternative_diff = self.calculate_player_average_difference(gametype, alternative_team_a, alternative_team_b)
 
         self.last_new_player_id = None

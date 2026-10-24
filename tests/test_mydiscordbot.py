@@ -1,36 +1,32 @@
 import asyncio
 import logging
-
 from typing import Set
 from unittest.mock import AsyncMock
 
-import pytest
-from mockito import mock, unstub, verify, when  # type: ignore
-from mockito.matchers import matches, arg_that  # type: ignore
-from hamcrest import assert_that, equal_to
-
-from undecorated import undecorated  # type: ignore
-
 # noinspection PyPackageRequirements
 import discord
+import pytest
 
 # noinspection PyPackageRequirements
-from discord import ChannelType, User, Message, TextChannel, Status
+from discord import ChannelType, Message, Status, TextChannel, User
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot
-
+from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import (
-    connected_players,
-    setup_cvars,
     assert_plugin_sent_to_console,
+    connected_players,
     fake_player,
     player_that_matches,
     setup_cvar,
+    setup_cvars,
 )
+from mockito import mock, unstub, verify, when
+from mockito.matchers import arg_that, matches
+from undecorated import undecorated
 
 import minqlx
-from mydiscordbot import mydiscordbot, MinqlxHelpCommand, SimpleAsyncDiscord
+from mydiscordbot import MinqlxHelpCommand, SimpleAsyncDiscord, mydiscordbot
 
 
 class TestMyDiscordBotTests:
@@ -395,15 +391,15 @@ def mocked_discord_channel(_id=666, name="channel-name", channel_type=ChannelTyp
 
 def mocked_discord_message(
     content="message content",
-    user=mocked_discord_user(),
-    channel=mocked_discord_channel(),
+    user=None,
+    channel=None,
 ):
     message = mock(spec=Message)
 
     message.content = content
     message.clean_content = content
-    message.author = user
-    message.channel = channel
+    message.author = user if user is not None else mocked_discord_user()
+    message.channel = channel if channel is not None else mocked_discord_channel()
 
     return message
 
@@ -501,7 +497,7 @@ class TestSimpleAsyncDiscord:
         self,
         prefix="%",
         bot=None,
-        message=mocked_discord_message(),
+        message=None,
         invoked_with="asdf",
     ):
         context = mock({"send": AsyncMock()})
@@ -509,7 +505,7 @@ class TestSimpleAsyncDiscord:
         context.bot = self.discord_client
         if bot is not None:
             context.bot = bot
-        context.message = message
+        context.message = message if message is not None else mocked_discord_message()
         context.invoked_with = invoked_with
 
         return context

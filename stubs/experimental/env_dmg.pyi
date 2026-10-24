@@ -1,4 +1,4 @@
-from minqlx import Plugin, Player, DeathData
+from minqlx import DeathData, Player, Plugin
 
 SteamId = int
 Timestamp = int

@@ -1,7 +1,7 @@
 import pytest
 from hamcrest import assert_that, equal_to
-
 from minqlx_plugin_test import setup_cvars
+
 from discord_extensions import qlstats
 
 

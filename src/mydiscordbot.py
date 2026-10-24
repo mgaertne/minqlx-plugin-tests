@@ -12,25 +12,25 @@ fragstealers_inc discord tech channel of the Bus Station server(s).
 You need to install discord.py in your python installation, i.e. python3 -m pip install -U discord.py
 """
 
-import re
 import asyncio
-import threading
-
 import logging
 import os
+import re
+import threading
 from logging.handlers import RotatingFileHandler
+from typing import Set
 
 # noinspection PyPackageRequirements
 import discord
 
 # noinspection PyPackageRequirements
-from discord import ChannelType, AllowedMentions
+import discord.ext.tasks
+
+# noinspection PyPackageRequirements
+from discord import AllowedMentions, ChannelType
 
 # noinspection PyPackageRequirements
 from discord.ext.commands import Bot, Command, DefaultHelpCommand
-
-# noinspection PyPackageRequirements
-import discord.ext.tasks
 
 import minqlx
 from minqlx import Plugin
@@ -515,7 +515,7 @@ class SimpleAsyncDiscord(threading.Thread):
 
     @staticmethod
     def int_set(string_set):
-        int_set = set()  # type: ignore
+        int_set: Set[int] = set()
 
         if string_set is None:
             return int_set
@@ -639,10 +639,12 @@ class SimpleAsyncDiscord(threading.Thread):
         if hasattr(author, "nick") and author.nick is not None:
             sender = author.nick
 
-        channel_name = "" if isinstance(channel, (discord.DMChannel, discord.PartialMessageable)) else channel.name
+        full_width_percent = "\uff05"
+        channel_name = getattr(channel, "name", "")
+        content = content.replace("%", full_width_percent)
         if not self.discord_show_relay_channel_names and channel.id in self.discord_relay_channel_ids:
-            return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content.replace('%', '％')}"
-        return f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content.replace('%', '％')}"
+            return f"{self.discord_message_prefix} ^6{sender}^7:^2 {content}"
+        return f"{self.discord_message_prefix} ^5#{channel_name} ^6{sender}^7:^2 {content}"
 
     async def on_ready(self):
         """
@@ -653,12 +655,11 @@ class SimpleAsyncDiscord(threading.Thread):
             return
 
         extensions = Plugin.get_cvar("qlx_discord_extensions", list) or []
-        ready_actions = []
-        for extension in extensions:
-            if len(extension.strip()) > 0:
-                ready_actions.append(
-                    self.discord.load_extension(f".{extension}", package="minqlx-plugins.discord_extensions")
-                )
+        ready_actions = [
+            self.discord.load_extension(f".{extension}", package="minqlx-plugins.discord_extensions")
+            for extension in extensions
+            if extension.strip()
+        ]
 
         if self.discord.user is not None:
             self.logger.info(f"Logged in to discord as: {self.discord.user.name} ({self.discord.user.id})")
@@ -697,7 +698,7 @@ class SimpleAsyncDiscord(threading.Thread):
         """
         overrides the default command error handler so that no exception is produced for command errors
 
-        Might be changed in the future to log those problems to the ´´`minqlx.logger```
+        Might be changed in the future to log those problems to the ```minqlx.logger```
         """
 
     def is_discord_logged_in(self):
@@ -855,7 +856,7 @@ class SimpleAsyncDiscord(threading.Thread):
             or (user.nick is not None and user.nick.lower().find(match.lower()) != -1)
         ]
         if len(member) == 1:
-            return list(member)[0]
+            return next(iter(member))
 
         # we found more than one matching member, let's tell the player about this.
         if len(member) > 1 and player is not None:
@@ -977,7 +978,11 @@ class SimpleAsyncDiscord(threading.Thread):
             if self.discord is None
             else [self.discord.get_channel(channel_id) for channel_id in self.discord_triggered_channel_ids]
         )
-        channel_names = [f"#{channel.name}" for channel in triggered_channels if channel is not None]
+        channel_names = [
+            f"#{channel_name}"
+            for channel in triggered_channels
+            if (channel_name := getattr(channel, "name", None)) is not None
+        ]
 
         formatted_channel_names = "^7, ^5".join(channel_names)
         if len(channel_names) == 1:
