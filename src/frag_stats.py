@@ -63,19 +63,25 @@ class frag_stats(Plugin):
 
         recorded_killer = self.determine_killer(killer, data["MOD"])
 
-        self.record_frag(recorded_killer, victim.steam_id)
+        frags = [(recorded_killer, victim.steam_id)]
         if data["MOD"] == "TELEFRAG":
-            self.record_frag(recorded_killer, "telefrag")
-            self.record_frag("telefrag", victim.steam_id)
+            frags.extend(((recorded_killer, "telefrag"), ("telefrag", victim.steam_id)))
+        self.record_frags(frags)
 
     def record_frag(self, recorded_killer, victim):
-        self.frag_log.append((recorded_killer, victim))
+        self.record_frags([(recorded_killer, victim)])
+
+    def record_frags(self, frags):
+        self.frag_log.extend(frags)
 
         if self.db is None:
             return
 
-        self.db.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), value=str(victim), amount=1)
-        self.db.zincrby(REAPERZ_KEY.format(victim), value=str(recorded_killer), amount=1)
+        pipeline = self.db.pipeline(transaction=False)
+        for recorded_killer, victim in frags:
+            pipeline.zincrby(COLLECTED_SOULZ_KEY.format(recorded_killer), value=str(victim), amount=1)
+            pipeline.zincrby(REAPERZ_KEY.format(victim), value=str(recorded_killer), amount=1)
+        pipeline.execute()
 
     # noinspection PyMethodMayBeStatic
     def determine_killer(self, killer, means_of_death):

@@ -1483,12 +1483,8 @@ class weird_stats(Plugin):
         if speed == 0:
             return
 
-        previous_top_speeds = self.db_get_top_speed_for_player(steam_id)
-
-        previous_map_player_top_speeds = [topspeed for _mapname, topspeed in previous_top_speeds if mapname == _mapname]
-        previous_map_player_top_speeds.sort(reverse=True)
-
-        if len(previous_map_player_top_speeds) > 0 and previous_map_player_top_speeds[0] >= speed:
+        previous_top_speed = self.db.zscore(PLAYER_TOP_SPEEDS.format(steam_id), mapname)
+        if previous_top_speed is not None and float(previous_top_speed) >= speed:
             return
 
         # noinspection PyUnresolvedReferences

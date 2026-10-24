@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 # noinspection PyPackageRequirements
@@ -8,7 +10,7 @@ from mockito import mock, verify
 
 import minqlx
 from discord_extensions import triggered_chat
-from discord_extensions.triggered_chat import TriggeredChat
+from discord_extensions.triggered_chat import TriggeredChat, int_set
 
 
 class TestTriggeredChat:
@@ -26,6 +28,10 @@ class TestTriggeredChat:
                 "qlx_discordMessagePrefix": "[DISCORD]",
             }
         )
+
+    def test_int_set_handles_none_empty_and_duplicate_values(self):
+        assert int_set(None) == set()
+        assert int_set(["", "123", "123", "456"]) == {123, 456}
 
     @pytest.mark.asyncio
     async def test_message_from_wrong_channel_is_not_forwarded(self, bot, chat_context, private_channel):
@@ -134,6 +140,47 @@ class TestTriggeredChat:
         verify(minqlx.CHAT_CHANNEL).reply(
             "[DISCORD] ^5#DiscordGuildChannel ^6MemberNick^7:^2 message from discord to quake"
         )
+
+    @pytest.mark.asyncio
+    async def test_slash_message_resolves_member_channel_and_role_mentions(
+        self, bot, interaction, member, guild_channel, mock_channel
+    ):
+        minqlx.CHAT_CHANNEL = mock_channel
+        interaction.guild = SimpleNamespace(
+            get_member=lambda _identifier: member,
+            get_channel=lambda _identifier: guild_channel,
+            get_role=lambda _identifier: SimpleNamespace(name="Moderator"),
+        )
+        interaction.channel = guild_channel
+        interaction.user = member
+        extension = TriggeredChat(bot)
+        message = "Hi <@123456789012345>, <#123456789012345> and <@&123456789012345>"
+
+        await extension.slash_triggered_chat(interaction, message=message)
+
+        verify(minqlx.CHAT_CHANNEL).reply(
+            "[DISCORD] ^5#DiscordGuildChannel ^6DiscordMember^7:^2 Hi @DiscordMember, "
+            "#DiscordGuildChannel and @&Moderator"
+        )
+
+    @pytest.mark.asyncio
+    async def test_slash_message_replaces_deleted_member_and_returns_for_dm(
+        self, bot, interaction, member, guild_channel, mock_channel
+    ):
+        minqlx.CHAT_CHANNEL = mock_channel
+        interaction.guild = SimpleNamespace(get_member=lambda _identifier: None)
+        interaction.channel = guild_channel
+        interaction.user = member
+        extension = TriggeredChat(bot)
+
+        await extension.slash_triggered_chat(interaction, message="Hi <@!123456789012345>")
+
+        verify(minqlx.CHAT_CHANNEL).reply("[DISCORD] ^5#DiscordGuildChannel ^6DiscordMember^7:^2 Hi @deleted-user")
+
+        interaction.guild = None
+        interaction.response.send_message.reset_mock()
+        await extension.slash_triggered_chat(interaction, message="ignored")
+        interaction.response.send_message.assert_not_awaited()
 
     @pytest.mark.parametrize("channel_id,expected", [(1234, True), (5678, False)])
     def test_is_message_inconfigured_triggered_channel(self, channel_id, expected, chat_context, bot, guild_channel):

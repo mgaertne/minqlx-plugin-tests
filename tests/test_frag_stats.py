@@ -22,6 +22,7 @@ class TestFragStats:
         self.plugin._db_instance = db
 
         when(db).zincrby(any_, any_, any_).thenReturn(None)
+        when(db).pipeline(transaction=False).thenReturn(db)
         when(db).set(any_, any_).thenReturn(None)
         yield db
         unstub()
@@ -94,6 +95,31 @@ class TestFragStats:
             amount=1,
             value=str(killer.steam_id),
         )
+
+    @pytest.mark.usefixtures("game_in_progress")
+    def test_handle_telefrag_batches_all_counter_updates(self, fragstats_db):
+        victim = fake_player(123, "Fragged Player", team="red")
+        killer = fake_player(456, "Fragging Player", team="blue")
+        connected_players(victim, killer)
+
+        self.plugin.handle_death(victim, killer, {"MOD": "TELEFRAG"})
+
+        assert_that(
+            self.plugin.frag_log,
+            contains_exactly(
+                (killer.steam_id, victim.steam_id),
+                (killer.steam_id, "telefrag"),
+                ("telefrag", victim.steam_id),
+            ),
+        )
+        verify(fragstats_db).pipeline(transaction=False)
+        verify(fragstats_db).zincrby("minqlx:players:456:soulz", value="123", amount=1)
+        verify(fragstats_db).zincrby("minqlx:players:123:reaperz", value="456", amount=1)
+        verify(fragstats_db).zincrby("minqlx:players:456:soulz", value="telefrag", amount=1)
+        verify(fragstats_db).zincrby("minqlx:players:telefrag:reaperz", value="456", amount=1)
+        verify(fragstats_db).zincrby("minqlx:players:telefrag:soulz", value="123", amount=1)
+        verify(fragstats_db).zincrby("minqlx:players:123:reaperz", value="telefrag", amount=1)
+        verify(fragstats_db).execute()
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_death_on_own_death_does_nothing(self):

@@ -87,6 +87,21 @@ class TestEvent:
         mocked_guild.create_scheduled_event.assert_not_awaited()
 
     @pytest.mark.asyncio
+    async def test_create_and_start_event_deletes_duplicate_active_events(self, bot, mocked_guild, mocked_active_event):
+        duplicate_event = mock(spec=ScheduledEvent)
+        duplicate_event.end_time = datetime.now(timezone.utc) + timedelta(hours=1)
+        duplicate_event.status = EventStatus.active
+        duplicate_event.name = "duplicate event name"
+        duplicate_event.delete = AsyncMock()
+        mocked_guild.scheduled_events.extend((mocked_active_event, duplicate_event))
+
+        await event.create_and_start_event(bot)
+
+        mocked_active_event.delete.assert_not_awaited()
+        duplicate_event.delete.assert_awaited_once()
+        mocked_guild.create_scheduled_event.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_create_and_start_event_with_existing_event_that_did_not_start_yet(
         self, bot, mocked_guild, mocked_active_event
     ):

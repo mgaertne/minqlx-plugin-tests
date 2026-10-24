@@ -5,6 +5,7 @@ import math
 import pathlib
 import unittest
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Dict, List, NamedTuple
 
 
@@ -19,10 +20,11 @@ def isolated_movement_logic():
     methods: List[ast.stmt] = [
         node
         for node in plugin.body
-        if isinstance(node, ast.FunctionDef) and node.name in {"handle_frame", "handle_round_start"}
+        if isinstance(node, ast.FunctionDef)
+        and node.name in {"handle_frame", "handle_round_start", "record_personal_speed"}
     ]
-    if len(methods) != 2:
-        raise AssertionError("Expected frame and round-start handlers")
+    if len(methods) != 3:
+        raise AssertionError("Expected frame, round-start, and personal-speed methods")
     isolated_class = ast.parse("class MovementLogic: pass").body[0]
     assert isinstance(isolated_class, ast.ClassDef)
     isolated_class.body = methods
@@ -30,7 +32,13 @@ def isolated_movement_logic():
         body=[position, distance, isolated_class],
         type_ignores=[],
     )
-    namespace = {"NamedTuple": NamedTuple, "math": math, "datetime": datetime}
+    namespace = {
+        "NamedTuple": NamedTuple,
+        "math": math,
+        "datetime": datetime,
+        "PLAYER_TOP_SPEEDS": "minqlx:players:{}:topspeed",
+        "redis": SimpleNamespace(VERSION=["4"]),
+    }
     exec(compile(ast.fix_missing_locations(isolated), str(path), "exec"), namespace)
     return namespace["MovementLogic"], namespace["Position"]
 
@@ -103,6 +111,44 @@ class WeirdStatsFrameTests(unittest.TestCase):
             self.assertEqual(player.alive_reads, 1)
         self.assertEqual(spectator.position_reads, 0)
         self.assertEqual(spectator.identifier_reads, 0)
+
+    def test_personal_speed_reads_only_the_score_for_the_current_map(self):
+        class Database:
+            def __init__(self):
+                self.read = None
+
+            def zscore(self, key, member):
+                self.read = (key, member)
+                return 420.0
+
+            def zrevrangebyscore(self, *_args, **_kwargs):
+                raise AssertionError("Personal speed recording must not read all map scores")
+
+            def zadd(self, *_args, **_kwargs):
+                raise AssertionError("An existing higher speed must not be overwritten")
+
+        self.plugin.db = Database()
+
+        self.plugin.record_personal_speed("campgrounds", 123, 400.0)
+
+        self.assertEqual(self.plugin.db.read, ("minqlx:players:123:topspeed", "campgrounds"))
+
+    def test_personal_speed_stores_a_new_map_record(self):
+        class Database:
+            def __init__(self):
+                self.added = None
+
+            def zscore(self, _key, _member):
+                return None
+
+            def zadd(self, key, values):
+                self.added = (key, values)
+
+        self.plugin.db = Database()
+
+        self.plugin.record_personal_speed("campgrounds", 123, 400.0)
+
+        self.assertEqual(self.plugin.db.added, ("minqlx:players:123:topspeed", {"campgrounds": 400.0}))
 
     def test_first_sample_sets_origin_without_counting_spawn_distance(self):
         player = FakePlayer(101, (10000, 0, 0))

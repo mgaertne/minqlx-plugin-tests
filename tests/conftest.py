@@ -16,6 +16,7 @@ from minqlx import Game, NonexistentGameError, Plugin
 
 @pytest.fixture(name="minqlx_plugin", autouse=True)
 def _plugin():
+    original_chat_channel = minqlx.CHAT_CHANNEL
     spy2(Plugin.msg)
     when2(Plugin.msg, any_(str)).thenReturn(None)
     spy2(Plugin.center_print)
@@ -39,6 +40,7 @@ def _plugin():
 
     yield
 
+    minqlx.CHAT_CHANNEL = original_chat_channel
     unstub()
 
 

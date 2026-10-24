@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, Mock
+
 import pytest
 from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import setup_cvars
@@ -30,3 +32,12 @@ class TestQLStats:
         await qlstats.setup(bot)
 
         bot.tree.add_command.assert_called_once_with(qlstats.qlstats)
+
+    @pytest.mark.asyncio
+    async def test_context_menu_calls_qlstats(self, interaction, monkeypatch):
+        send_qlstats = AsyncMock()
+        monkeypatch.setattr(qlstats, "_qlstats", send_qlstats)
+
+        await qlstats.qlstats.callback(interaction, Mock())
+
+        send_qlstats.assert_awaited_once_with(interaction)

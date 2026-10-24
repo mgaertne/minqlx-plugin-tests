@@ -29,6 +29,10 @@ class TestSlap:
     def teardown_method(self):
         unstub()
 
+    def test_int_set_handles_missing_empty_and_duplicate_values(self):
+        assert slap.int_set(None) == set()
+        assert slap.int_set(["", "123", "123", "456"]) == {123, 456}
+
     @pytest.mark.asyncio
     @pytest.mark.usefixtures("bot")
     async def test_hidden_slap(self, interaction, member):
