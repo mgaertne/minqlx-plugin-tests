@@ -2,7 +2,7 @@ on: [push, pull_request]
 
 jobs:
   static_code_checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v7
@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-24.04]
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
         include:
         - os: ubuntu-22.04
@@ -42,7 +42,7 @@ jobs:
       run: tox -r
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v7
@@ -57,7 +57,7 @@ jobs:
     - name: Run coverage with tox
       run: tox -r -e coverage
     - name: Upload coverage.xml
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tox-gh-actions-coverage
         path: coverage.xml
