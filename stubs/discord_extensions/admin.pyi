@@ -31,6 +31,7 @@ class DiscordInteractionPlayer(AbstractDummyPlayer):
     user: User
     message: Message
     loop: AbstractEventLoop
+    _channel: DiscordInteractionChannel | None
     def __init__(self, user: User, message: Message, *, loop: AbstractEventLoop) -> None: ...
     @property
     def steam_id(self) -> int | None: ...

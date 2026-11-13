@@ -499,3 +499,22 @@ class TestDiscordInteractionPlayer:
             await asyncio.sleep(0.1)
         message.edit.assert_awaited_once()
         assert_that(message.edit.await_args.kwargs["embed"].description, equal_to("Hi there"))
+
+    @pytest.mark.asyncio
+    async def test_tell_appends_to_earlier_lines(self, user, message):
+        event_loop = asyncio.get_event_loop()
+        player = DiscordInteractionPlayer(user, message, loop=event_loop)
+
+        player.tell("first line")
+        player.tell("second line")
+
+        while len(asyncio.all_tasks(loop=event_loop)) > 1:
+            await asyncio.sleep(0.1)
+        assert_that(message.edit.await_count, equal_to(2))
+        assert_that(message.edit.await_args.kwargs["embed"].description, equal_to("first line\nsecond line"))
+
+    @pytest.mark.asyncio
+    async def test_channel_is_the_same_for_every_access(self, user, message):
+        player = DiscordInteractionPlayer(user, message, loop=asyncio.get_running_loop())
+
+        assert_that(player.channel is player.channel)

@@ -55,6 +55,7 @@ class DiscordInteractionPlayer(minqlx.AbstractDummyPlayer):
         self.user = user
         self.message = message
         self.loop = loop
+        self._channel = None
 
         super().__init__(name=f"Discord-{self.user.display_name}")
 
@@ -67,7 +68,11 @@ class DiscordInteractionPlayer(minqlx.AbstractDummyPlayer):
 
     @property
     def channel(self):
-        return DiscordInteractionChannel(self.user, self.message, loop=self.loop)
+        if self._channel is None:
+            channel = DiscordInteractionChannel.__new__(DiscordInteractionChannel)
+            channel.__init__(self.user, self.message, loop=self.loop)
+            self._channel = channel
+        return self._channel
 
     def tell(self, msg, **_kwargs):
         """
@@ -232,7 +237,9 @@ class AdminCog(Cog):
 
     @minqlx.next_frame
     def execute_qlx_command(self, user, message, qlx_command):
-        interaction_player = DiscordInteractionPlayer(user, message, loop=self.bot.loop)
+        # shinqlx's __new__ expects the player name as first argument, so it must not see user and message
+        interaction_player = DiscordInteractionPlayer.__new__(DiscordInteractionPlayer)
+        interaction_player.__init__(user, message, loop=self.bot.loop)
         try:
             minqlx.COMMANDS.handle_input(interaction_player, qlx_command, interaction_player.channel)
         except Exception as e:
