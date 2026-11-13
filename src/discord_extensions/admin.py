@@ -70,7 +70,7 @@ class DiscordInteractionPlayer(minqlx.AbstractDummyPlayer):
     def channel(self):
         if self._channel is None:
             channel = DiscordInteractionChannel.__new__(DiscordInteractionChannel)
-            channel.__init__(self.user, self.message, loop=self.loop)
+            DiscordInteractionChannel.__init__(channel, self.user, self.message, loop=self.loop)
             self._channel = channel
         return self._channel
 
@@ -239,7 +239,7 @@ class AdminCog(Cog):
     def execute_qlx_command(self, user, message, qlx_command):
         # shinqlx's __new__ expects the player name as first argument, so it must not see user and message
         interaction_player = DiscordInteractionPlayer.__new__(DiscordInteractionPlayer)
-        interaction_player.__init__(user, message, loop=self.bot.loop)
+        DiscordInteractionPlayer.__init__(interaction_player, user, message, loop=self.bot.loop)
         try:
             minqlx.COMMANDS.handle_input(interaction_player, qlx_command, interaction_player.channel)
         except Exception as e:
