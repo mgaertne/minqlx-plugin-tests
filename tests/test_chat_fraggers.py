@@ -2,10 +2,11 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
-from minqlx_plugin_test import connected_players, fake_player
+from minqlx_plugin_test import connected_players, fake_player, kill_data, stand_in
 from mockito import unstub
 
 from chat_fraggers import chat_fraggers, punish_player, warn_player
+from minqlx import Player
 
 
 class TestChatFraggers:
@@ -29,14 +30,16 @@ class TestChatFraggers:
 
     def test_damage_event_ignores_missing_game(self, no_minqlx_game):
         plugin = chat_fraggers()
-        assert plugin.handle_damage_event(object(), object(), 1, 0, 0) is None
+        plugin.handle_damage_event(stand_in(Player), stand_in(Player), 1, 0, 0)
+
+        assert plugin.chat_tracker == {}
 
     def test_kill_event_ignores_untracked_or_non_chatting(self, game_in_progress):
         plugin = chat_fraggers()
         victim = fake_player(2, "Victim", team="blue")
         killer = fake_player(1, "Killer", team="red")
         victim.state = SimpleNamespace(is_chatting=False)
-        plugin.handle_kill(victim, killer, {})
+        plugin.handle_kill(victim, killer, kill_data())
         assert plugin.chat_tracker == {}
 
     @pytest.mark.usefixtures("game_in_progress")
@@ -65,6 +68,6 @@ class TestChatFraggers:
         connected_players(attacker, target)
         plugin.chat_tracker = {attacker.steam_id: {target.steam_id: 5}}
 
-        plugin.handle_kill(target, attacker, {})
+        plugin.handle_kill(target, attacker, kill_data())
 
         assert attacker.center_print.call_count == 1

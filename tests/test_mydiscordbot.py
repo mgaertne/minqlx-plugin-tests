@@ -55,7 +55,7 @@ class TestMyDiscordBotTests:
 
     def test_handle_ql_chat_message_relayed(self):
         chatter = fake_player(1, "Chatter")
-        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.ChatChannel())
+        self.plugin.handle_ql_chat(fake_player(1, "Chatter"), "relayed message", minqlx.CHAT_CHANNEL)
 
         verify(self.discord).relay_chat_message(player_that_matches(chatter), "", "relayed message")
 
@@ -663,7 +663,6 @@ class TestSimpleAsyncDiscord:
     async def test_on_message_without_message(self, mock_channel):
         minqlx.CHAT_CHANNEL = mock_channel
 
-        # noinspection PyTypeChecker
         await self.discord.on_message(None)
 
         verify(minqlx.CHAT_CHANNEL, times=0).reply(any)

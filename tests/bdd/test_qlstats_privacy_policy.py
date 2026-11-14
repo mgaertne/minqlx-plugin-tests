@@ -57,7 +57,7 @@ def _alice_tries_to_join(players, team):
     target_fixture="join_allowed",
 )
 def _alice_tries_to_join_repeatedly(players, team, times):
-    allowed = True
+    allowed: object = True
     for _ in range(times):
         allowed = minqlx.EVENT_DISPATCHERS["team_switch_attempt"].dispatch(players["Alice"], "spectator", team)
     return allowed

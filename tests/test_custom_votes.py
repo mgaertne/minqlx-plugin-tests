@@ -17,7 +17,7 @@ class TestCustomVotes:
     def test_thrufloors_on_calls_vote_and_accepts_it(self, monkeypatch):
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
         callvote = Mock()
         client_command = Mock()
@@ -31,10 +31,10 @@ class TestCustomVotes:
         client_command.assert_called_once_with(caller.id, "vote yes")
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_thrufloors_invalid_args_explain_usage(self):
+    def test_thrufloors_invalid_args_explain_usage(self, monkeypatch):
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
 
         result = plugin.handle_vote_called(caller, "thrufloors", "maybe")
@@ -45,7 +45,7 @@ class TestCustomVotes:
     def test_allready_starts_vote_during_warmup(self, monkeypatch):
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
         callvote = Mock()
         monkeypatch.setattr(minqlx, "callvote", callvote)
@@ -56,10 +56,10 @@ class TestCustomVotes:
         assert result == minqlx.RET_STOP_ALL
         callvote.assert_called_once_with("qlx !allready", "Ready all players?")
 
-    def test_unknown_vote_is_ignored(self):
+    def test_unknown_vote_is_ignored(self, monkeypatch):
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
 
         assert plugin.handle_vote_called(caller, "unknown", "") == minqlx.RET_NONE
@@ -69,8 +69,8 @@ class TestCustomVotes:
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
         target = SimpleNamespace(id=456, name="Target", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
-        plugin.find_target_player_or_list_alternatives = lambda _caller, _target: target
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
+        monkeypatch.setattr(plugin, "find_target_player_or_list_alternatives", lambda _caller, _target: target)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
         callvote = Mock()
         monkeypatch.setattr(minqlx, "callvote", callvote)
@@ -84,8 +84,8 @@ class TestCustomVotes:
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
         target = SimpleNamespace(id=456, name="Target", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
-        plugin.find_target_player_or_list_alternatives = lambda _caller, _target: target
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
+        monkeypatch.setattr(plugin, "find_target_player_or_list_alternatives", lambda _caller, _target: target)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
         callvote = Mock()
         monkeypatch.setattr(minqlx, "callvote", callvote)
@@ -95,10 +95,10 @@ class TestCustomVotes:
         assert callvote.call_count == 1
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_allready_rejects_active_match(self):
+    def test_allready_rejects_active_match(self, monkeypatch):
         plugin = custom_votes()
         caller = fake_player(123, "Caller", team="red")
-        plugin.get_cvar = lambda _name, _kind: True
+        monkeypatch.setattr(plugin, "get_cvar", lambda _name, _kind: True)
         when(minqlx.Plugin).is_vote_active().thenReturn(False)
 
         assert plugin.handle_vote_called(caller, "allready", "") == minqlx.RET_STOP_ALL

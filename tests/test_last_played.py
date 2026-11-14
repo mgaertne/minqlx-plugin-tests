@@ -4,7 +4,10 @@ from minqlx_plugin_test import (
     assert_plugin_sent_to_console,
     connected_players,
     fake_player,
+    game_end_data,
     setup_cvars,
+    stats_data,
+    use_database,
 )
 from mockito import mock, unstub, verify, when
 from mockito.matchers import any_, matches
@@ -15,9 +18,8 @@ from last_played import last_played
 class TestLastPlayed:
     @pytest.fixture(name="lastplayed_db")
     def lastplayed_db(self):
-        self.plugin.database = redis.Redis  # type: ignore
         db = mock(spec=redis.StrictRedis)
-        self.plugin._db_instance = db
+        use_database(self.plugin, db, redis.Redis)
 
         when(db).exists(any_).thenReturn(False)
         when(db).set(any_, any_).thenReturn(None)
@@ -36,67 +38,48 @@ class TestLastPlayed:
         unstub()
 
     def test_handle_stats_match_report_for_aborted_match(self, lastplayed_db):
-        match_report = {
-            "DATA": {"ABORTED": True, "MAP": "thunderstruck"},
-            "TYPE": "MATCH_REPORT",
-        }
+        match_report = stats_data("MATCH_REPORT", {"ABORTED": True, "MAP": "thunderstruck"})
         self.plugin.handle_stats(match_report)
 
         verify(lastplayed_db, times=0).set("minqlx:maps:thunderstruck:last_played", any_)
 
     def test_handle_stats_match_report_is_logged(self, lastplayed_db):
-        match_report = {
-            "DATA": {"ABORTED": False, "MAP": "thunderstruck"},
-            "TYPE": "MATCH_REPORT",
-        }
+        match_report = stats_data("MATCH_REPORT", {"ABORTED": False, "MAP": "thunderstruck"})
         self.plugin.handle_stats(match_report)
 
         verify(lastplayed_db).set("minqlx:maps:thunderstruck:last_played", any_)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_stats_player_stats_for_aborted_match(self, lastplayed_db):
-        match_report = {
-            "DATA": {"ABORTED": True, "WARMUP": False, "STEAM_ID": "1234"},
-            "TYPE": "PLAYER_STATS",
-        }
+        match_report = stats_data("PLAYER_STATS", {"ABORTED": True, "WARMUP": False, "STEAM_ID": "1234"})
         self.plugin.handle_stats(match_report)
 
         verify(lastplayed_db, times=0).hset("minqlx:players:1234:last_played", any_, any_)
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_stats_player_stats_for_warmup_stats(self, lastplayed_db):
-        match_report = {
-            "DATA": {"ABORTED": False, "WARMUP": True, "STEAM_ID": "1234"},
-            "TYPE": "PLAYER_STATS",
-        }
+        match_report = stats_data("PLAYER_STATS", {"ABORTED": False, "WARMUP": True, "STEAM_ID": "1234"})
         self.plugin.handle_stats(match_report)
 
         verify(lastplayed_db, times=0).hset("minqlx:players:1234:last_played", any_, any_)
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_stats_player_stats_no_game_running(self, lastplayed_db):
-        match_report = {
-            "DATA": {"ABORTED": False, "WARMUP": False, "STEAM_ID": "1234"},
-            "TYPE": "PLAYER_STATS",
-        }
+        match_report = stats_data("PLAYER_STATS", {"ABORTED": False, "WARMUP": False, "STEAM_ID": "1234"})
         self.plugin.handle_stats(match_report)
 
         verify(lastplayed_db, times=0).hset("minqlx:players:1234:last_played", any_, any_)
 
     def test_handle_stats_player_stats_is_logged(self, lastplayed_db, game_in_progress):
         game_in_progress.map = "thunderstruck"
-        match_report = {
-            "DATA": {"ABORTED": False, "WARMUP": False, "STEAM_ID": "1234"},
-            "TYPE": "PLAYER_STATS",
-        }
+        match_report = stats_data("PLAYER_STATS", {"ABORTED": False, "WARMUP": False, "STEAM_ID": "1234"})
         self.plugin.handle_stats(match_report)
 
         verify(lastplayed_db).hset("minqlx:players:1234:last_played", "thunderstruck", any_)
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_game_end_no_game_running(self):
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_end({})
+        self.plugin.handle_game_end(game_end_data())
 
         assert_plugin_sent_to_console(any_, times=0)
 
@@ -105,8 +88,7 @@ class TestLastPlayed:
         game_in_progress.red_score = 2
         game_in_progress.blue_score = 1
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_end({})
+        self.plugin.handle_game_end(game_end_data())
 
         assert_plugin_sent_to_console(any_, times=0)
 
@@ -117,8 +99,7 @@ class TestLastPlayed:
         game_in_progress.red_score = 2
         game_in_progress.blue_score = 8
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_end({})
+        self.plugin.handle_game_end(game_end_data())
 
         assert_plugin_sent_to_console(matches(".*VOTE.*"))
         assert_plugin_sent_to_console(matches(".*campgrounds.*thunderstruck.*asylum.*"))
@@ -140,8 +121,7 @@ class TestLastPlayed:
         game_in_progress.red_score = 2
         game_in_progress.blue_score = 8
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_end({})
+        self.plugin.handle_game_end(game_end_data())
 
         assert_plugin_sent_to_console(matches(".*VOTE.*"))
         assert_plugin_sent_to_console(

@@ -1,12 +1,13 @@
-from types import SimpleNamespace
+from minqlx_plugin_test import stand_in
 
+from minqlx import Player
 from showdown import ALL_WEAPONS, random_iterator, showdown
 
 
 def test_showdown_pure_helpers():
     plugin = showdown.__new__(showdown)
-    alive = SimpleNamespace(is_alive=True)
-    dead = SimpleNamespace(is_alive=False)
+    alive = stand_in(Player, is_alive=True)
+    dead = stand_in(Player, is_alive=False)
     assert plugin.alive_players([alive, dead]) == [alive]
     assert plugin.other_team("red") == "blue"
     assert plugin.other_team("blue") == "red"
@@ -15,11 +16,13 @@ def test_showdown_pure_helpers():
 
 def test_showdown_reactivation_conditions():
     plugin = showdown.__new__(showdown)
+    alive = stand_in(Player, is_alive=True)
+    dead = stand_in(Player, is_alive=False)
     plugin.min_opp = 1
     plugin.vote_showdown = False
     plugin.showdown_activated = True
     assert plugin.should_reactivate_normal_game([], [])
-    assert not plugin.should_reactivate_normal_game([1, 2], [])
+    assert not plugin.should_reactivate_normal_game([alive, dead], [])
     plugin.vote_showdown = True
     assert not plugin.should_reactivate_normal_game([], [])
     plugin.vote_showdown = False

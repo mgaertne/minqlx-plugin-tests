@@ -1,5 +1,7 @@
 from unittest.mock import Mock
 
+from requests.adapters import HTTPAdapter
+
 import minqlx
 from experimental.balancetwo import (
     format_team,
@@ -29,7 +31,9 @@ def test_identify_reply_channel():
 
 def test_requests_retry_session_configures_adapters():
     session = requests_retry_session(retries=1)
-    assert session.adapters["http://"].max_retries.total == 1
+    adapter = session.get_adapter("http://")
+    assert isinstance(adapter, HTTPAdapter)
+    assert adapter.max_retries.total == 1
 
 
 def test_report_ratings_for_empty_team_does_not_reply():

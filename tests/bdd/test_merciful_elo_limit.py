@@ -37,7 +37,7 @@ def _ratings():
     ),
     target_fixture="plugin",
 )
-def _plugin_loaded(db, ratings, min_elo, games):
+def _plugin_loaded(db, ratings, min_elo, games, monkeypatch):
     setup_cvars(
         {
             "qlx_commandPrefix": "!",
@@ -47,7 +47,7 @@ def _plugin_loaded(db, ratings, min_elo, games):
     )
     plugin = merciful_elo_limit()
     plugin._db_instance = db
-    plugin.blink2 = lambda *_args, **_kwargs: None
+    monkeypatch.setattr(plugin, "blink2", lambda *_args, **_kwargs: None)
     return plugin
 
 

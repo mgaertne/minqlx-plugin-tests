@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from minqlx_plugin_test import setup_cvars
+from minqlx_plugin_test import kill_data, setup_cvars
 from mockito import any_, forget_invocations, verify
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -81,12 +81,12 @@ def _damages(plugin, players, attacker, target, damage):
 
 @when_step(parsers.parse("{killer:w} kills {victim:w}"))
 def _kills(plugin, players, killer, victim):
-    minqlx.EVENT_DISPATCHERS["kill"].dispatch(players[victim], players[killer], {})
+    minqlx.EVENT_DISPATCHERS["kill"].dispatch(players[victim], players[killer], kill_data())
 
 
 @when_step(parsers.parse("{victim:w} dies without a killer"))
 def _dies_alone(plugin, players, victim):
-    minqlx.EVENT_DISPATCHERS["kill"].dispatch(players[victim], None, {})
+    minqlx.EVENT_DISPATCHERS["kill"].dispatch(players[victim], None, kill_data())
 
 
 @then(parsers.parse('{name:w} sees "{text}"'))

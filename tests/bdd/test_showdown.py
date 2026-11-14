@@ -6,7 +6,10 @@ import pytest
 from minqlx_plugin_test import (
     assert_plugin_played_sound,
     connected_players,
+    death_data,
     fake_player,
+    fake_runtime,
+    round_end_data,
     setup_cvars,
     setup_game_in_progress,
 )
@@ -112,8 +115,8 @@ def load_plugin(db, **cvars):
 
 def flush_game_frames(clock):
     clock.running.set()
-    minqlx.join_minqlx_threads()
-    minqlx.run_next_frame_tasks()
+    fake_runtime.join_minqlx_threads()
+    fake_runtime.run_next_frame_tasks()
 
 
 def stand_on(player, team, alive):
@@ -156,8 +159,8 @@ def _round_started(number):
 @given("the round ended")
 @when_step("the round ends")
 def _round_ends():
-    minqlx.EVENT_DISPATCHERS["round_end"].dispatch({"ROUND": 1, "TEAM_WON": "RED"})
-    minqlx.run_delayed_tasks()
+    minqlx.EVENT_DISPATCHERS["round_end"].dispatch(round_end_data(ROUND=1, TEAM_WON="RED"))
+    fake_runtime.run_delayed_tasks()
 
 
 @given(parsers.parse("the {team} team has {points:d} points"))
@@ -237,7 +240,7 @@ def _seconds_passed(clock, seconds):
 
 @given(parsers.parse("the Redis driver has the version {version}"))
 def _redis_version(monkeypatch, version):
-    monkeypatch.setattr(showdown_module.redis, "VERSION", tuple(int(part) for part in version.split(".")))
+    monkeypatch.setattr("showdown.redis.VERSION", tuple(int(part) for part in version.split(".")))
 
 
 @when_step("one of the extra players dies")
@@ -245,7 +248,7 @@ def _extra_player_dies(plugin, players):
     extra = next(player for name, player in players.items() if name.startswith("Extra") and player.is_alive)
     extra.is_alive = False
     extra.health = 0
-    minqlx.EVENT_DISPATCHERS["death"].dispatch(extra, None, {})
+    minqlx.EVENT_DISPATCHERS["death"].dispatch(extra, None, death_data())
 
 
 @given(parsers.re(rf"(?P<name>{NAMES}) died"))
@@ -253,7 +256,7 @@ def _extra_player_dies(plugin, players):
 def _dies(plugin, players, name):
     players[name].is_alive = False
     players[name].health = 0
-    minqlx.EVENT_DISPATCHERS["death"].dispatch(players[name], None, {})
+    minqlx.EVENT_DISPATCHERS["death"].dispatch(players[name], None, death_data())
 
 
 @when_step(parsers.re(rf'(?P<name>{NAMES}) switches to the "(?P<team>{TEAMS})" team'))

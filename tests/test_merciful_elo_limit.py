@@ -6,12 +6,13 @@ import time
 import pytest
 import redis
 import requests
-from hamcrest import assert_that, equal_to, has_item
+from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import (
     assert_plugin_sent_to_console,
     connected_players,
     fake_player,
     setup_cvars,
+    stand_in,
 )
 from mockito import mock, patch, spy2, unstub, verify, when
 from mockito.matchers import any_, matches
@@ -69,7 +70,7 @@ class TestMercifulEloLimit:
         )
 
         self.plugin = merciful_elo_limit()
-        self.plugin.remove_thread = lambda _: None
+        when(self.plugin).remove_thread(any_).thenReturn(None)
 
     def teardown_method(self):
         if "mybalance" in self.plugin._loaded_plugins:
@@ -546,8 +547,7 @@ class TestMercifulEloLimit:
 
         self.plugin.handle_round_start(1)
 
-        # noinspection PyTypeChecker
-        assert_that(self.plugin.tracked_player_sids, has_item(player2.steam_id))
+        assert player2.steam_id in self.plugin.tracked_player_sids
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_round_start_resets_above_games_for_low_elo_player(self, merciful_db):
@@ -771,8 +771,7 @@ class TestMercifulEloLimit:
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_removes_existing_connect_thread(self):
         plugin = merciful_elo_limit()
-        # noinspection PyTypeChecker
-        plugin.connectthreads[1234] = "asdf"
+        plugin.connectthreads[1234] = stand_in(ConnectThread)
 
         inspect.unwrap(plugin.remove_thread)(plugin, 1234)
 
@@ -781,12 +780,12 @@ class TestMercifulEloLimit:
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_does_nothing_if_thread_does_not_exist(self):
         plugin = merciful_elo_limit()
-        # noinspection PyTypeChecker
-        plugin.connectthreads[1234] = "asdf"
+        existing_thread = stand_in(ConnectThread)
+        plugin.connectthreads[1234] = existing_thread
 
         inspect.unwrap(plugin.remove_thread)(plugin, 12345)
 
-        assert_that(plugin.connectthreads, equal_to({1234: "asdf"}))
+        assert_that(plugin.connectthreads, equal_to({1234: existing_thread}))
 
 
 class TestConnectThread:

@@ -2,7 +2,7 @@ import threading
 import time
 
 import pytest
-from minqlx_plugin_test import connected_players, setup_cvars
+from minqlx_plugin_test import connected_players, game_start_data, setup_cvars
 from mockito import mock
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -112,7 +112,7 @@ def _disconnects(plugin, players, name):
 
 @when_step("the match starts")
 def _match_starts(plugin):
-    minqlx.EVENT_DISPATCHERS["game_start"].dispatch({})
+    minqlx.EVENT_DISPATCHERS["game_start"].dispatch(game_start_data())
 
 
 @given(parsers.parse('{name:w} is still loading on the "{team}" team'))

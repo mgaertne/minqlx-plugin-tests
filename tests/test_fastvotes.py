@@ -81,8 +81,7 @@ class TestFastVotes:
     def test_handle_vote_ended_resets_tracking(self):
         self.plugin.track_vote = True
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_vote_ended([3, 2], "map", "campgrounds", True)
+        self.plugin.handle_vote_ended((3, 2), "map", "campgrounds", True)
 
         assert_that(self.plugin.track_vote, equal_to(False))
 

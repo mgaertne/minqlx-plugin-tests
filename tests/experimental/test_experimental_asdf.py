@@ -1,8 +1,11 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from minqlx_plugin_test import stand_in
+
 import minqlx
 from experimental.asdf import Weapon, WeaponStatsEntry, asdf, identify_reply_channel
+from minqlx import Player
 
 
 def test_weapon_maps_names_to_ammo_types():
@@ -19,12 +22,12 @@ def test_weapon_stats_entry_accuracy_and_repr():
     assert WeaponStatsEntry(Weapon("ROCKET"), 0, 0, 0, 0, 0, 0, 0, 0).accuracy() == 0
 
 
-def test_asdf_calculates_damage_deltas_and_team_totals():
+def test_asdf_calculates_damage_deltas_and_team_totals(monkeypatch):
     plugin = asdf()
-    red = SimpleNamespace(steam_id=1, stats=SimpleNamespace(damage_dealt=30))
+    red = stand_in(Player, steam_id=1, stats=SimpleNamespace(damage_dealt=30))
     plugin.stats_snapshot = {1: 10, 2: 5}
-    plugin.player = lambda steam_id: red if steam_id == 1 else None
-    plugin.teams = lambda: {"red": [red], "blue": []}
+    monkeypatch.setattr(plugin, "player", lambda steam_id: red if steam_id == 1 else None)
+    monkeypatch.setattr(plugin, "teams", lambda: {"red": [red], "blue": []})
 
     assert plugin.calculate_damage_deltas() == {1: 20}
     plugin.calculate_team_round_damages()

@@ -1,5 +1,6 @@
 import functools
-from typing import Optional
+from types import SimpleNamespace
+from typing import Optional, cast
 
 from mockito import mock, verify, when2
 
@@ -7,6 +8,14 @@ import minqlx
 from minqlx import Game, NonexistentGameError
 
 # Functions for setting up the state of the game currently active on the server.
+
+
+def editable_game() -> SimpleNamespace:
+    """The game of the test fake of ``minqlx``, whose attributes can be assigned (unlike the ones of ``minqlx.Game``).
+
+    :return: the current game, typed as a namespace so type checkers allow assigning its attributes
+    """
+    return cast("SimpleNamespace", minqlx.Game())
 
 
 def setup_no_game():

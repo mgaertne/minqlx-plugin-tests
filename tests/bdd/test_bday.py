@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from minqlx_plugin_test import setup_cvars
+from minqlx_plugin_test import fake_runtime, game_end_data, setup_cvars
 from mockito import any_, mock, verify, when, when2
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -61,7 +61,7 @@ def _database_knows(db, name, steam_id):
 
 @given("the delayed tasks run")
 def _delayed_tasks_run():
-    minqlx.run_delayed_tasks()
+    fake_runtime.run_delayed_tasks()
 
 
 @given(parsers.parse("{name:w} picked {amount:d} birthday map this year"))
@@ -108,18 +108,18 @@ def _map_changes(mapname):
 def _types_in_red_team_chat(players, name, message):
     when(minqlx.CHAT_CHANNEL).reply(any_).thenReturn(None)
     minqlx.COMMANDS.handle_input(players[name], message, minqlx.RED_TEAM_CHAT_CHANNEL)
-    minqlx.join_minqlx_threads()
+    fake_runtime.join_minqlx_threads()
 
 
 @when_step(parsers.parse("{name:w} has loaded"))
 def _has_loaded(plugin, players, name):
     minqlx.EVENT_DISPATCHERS["player_loaded"].dispatch(players[name])
-    minqlx.run_delayed_tasks()
+    fake_runtime.run_delayed_tasks()
 
 
 @when_step("the game ends")
 def _game_ends(plugin):
-    minqlx.EVENT_DISPATCHERS["game_end"].dispatch({})
+    minqlx.EVENT_DISPATCHERS["game_end"].dispatch(game_end_data())
 
 
 @when_step(parsers.parse('{name:w} joins the "{team}" team'))
@@ -159,13 +159,13 @@ def _birthday_stored_for_steam_id(db, steam_id, birthday):
 
 @then(parsers.parse('the server changes to "{command}" three seconds later'))
 def _server_changes_map(command):
-    minqlx.run_delayed_tasks()
+    fake_runtime.run_delayed_tasks()
     verify(Plugin).change_map(command)
 
 
 @then("the server does not change the map")
 def _server_does_not_change_map():
-    minqlx.run_delayed_tasks()
+    fake_runtime.run_delayed_tasks()
     verify(Plugin, times=0).change_map(any_)
 
 

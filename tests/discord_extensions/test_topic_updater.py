@@ -172,9 +172,9 @@ class TestTopicUpdater:
         verify(threading).Timer(305, extension._topic_updater)
         verify(timer_mock.start).__call__()
 
-    def test_when_bot_is_none_discord_is_not_logged_in(self, bot):
+    def test_when_bot_is_none_discord_is_not_logged_in(self, bot, monkeypatch):
         extension = TopicUpdater(bot)
-        extension.bot = None
+        monkeypatch.setattr(extension, "bot", None)
 
         assert_that(extension.is_discord_logged_in(), equal_to(False))
 

@@ -12,9 +12,8 @@ from hamcrest import (
     equal_to,
     has_entries,
     has_item,
-    not_,
 )
-from minqlx_plugin_test import connected_players, fake_player, setup_cvars
+from minqlx_plugin_test import connected_players, fake_player, negated, setup_cvars
 
 # noinspection PyProtectedMember
 from mockito import any_, mock, patch, unstub, verify, when
@@ -64,15 +63,14 @@ class TestSubscribe:
         yield bot
 
     @pytest.fixture(name="mocked_db", autouse=True)
-    def mocked_db(self):
+    def mocked_db(self, monkeypatch):
         redis_mock = mock(spec=redis.StrictRedis)
         when(redis_mock).exists(any_).thenReturn(False)
         when(redis_mock).keys(any_).thenReturn([])
         when(redis_mock).sadd(any_, any_).thenReturn(True)
         when(redis_mock).srem(any_, any_).thenReturn(True)
         when(redis_mock).smembers(any_).thenReturn([])
-        # noinspection PyPropertyAccess
-        minqlx.database.Redis.r = redis_mock
+        monkeypatch.setattr(minqlx.database.Redis, "r", redis_mock, raising=False)
 
         yield redis_mock
 
@@ -90,11 +88,9 @@ class TestSubscribe:
         extension = SubscriberCog(no_presences_bot, mocked_db)
 
         subscribe_commands = [command.name for command in extension.subscribe_group.commands]
-        # noinspection PyTypeChecker
-        assert_that(subscribe_commands, not_(has_item("member")))
+        assert_that(subscribe_commands, negated(has_item("member")))
         unsubscribe_commands = [command.name for command in extension.unsubscribe_group.commands]
-        # noinspection PyTypeChecker
-        assert_that(unsubscribe_commands, not_(has_item("member")))
+        assert_that(unsubscribe_commands, negated(has_item("member")))
         verify(no_presences_bot).remove_listener(extension.on_presence_update)
 
     def test_member_commands_are_kept_when_bot_has_right_intents(self, presences_aware_bot, mocked_db):

@@ -1,5 +1,6 @@
 from threading import Lock
 from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -7,6 +8,13 @@ from minqlx_plugin_test import setup_cvars
 
 from discord_extensions.openai_bridge import OpenAIBridge, int_set
 from minqlx import Plugin
+
+if TYPE_CHECKING:
+    from discord import Message
+
+
+def as_message(message: SimpleNamespace) -> "Message":
+    return cast("Message", message)
 
 
 def test_int_set_handles_missing_empty_and_duplicate_values():
@@ -41,7 +49,7 @@ async def test_on_message_ignores_unconfigured_channel_or_missing_bot_user(chann
     message = SimpleNamespace(channel=SimpleNamespace(id=channel_id), author=SimpleNamespace(id=2))
 
     with patch.object(Plugin, "_loaded_plugins", {}):
-        await bridge.on_message(message)
+        await bridge.on_message(as_message(message))
 
 
 @pytest.mark.asyncio
@@ -52,11 +60,11 @@ async def test_on_message_ignores_own_messages_and_missing_plugin():
     message = SimpleNamespace(channel=SimpleNamespace(id=12), author=SimpleNamespace(id=1))
 
     with patch.object(Plugin, "_loaded_plugins", {}):
-        await bridge.on_message(message)
+        await bridge.on_message(as_message(message))
 
     message.author.id = 2
     with patch.object(Plugin, "_loaded_plugins", {}):
-        await bridge.on_message(message)
+        await bridge.on_message(as_message(message))
 
 
 @pytest.mark.asyncio
@@ -76,7 +84,7 @@ async def test_on_message_records_untriggered_relay_chat():
     )
 
     with patch.object(Plugin, "_loaded_plugins", {"openai_bot": plugin}):
-        await bridge.on_message(message)
+        await bridge.on_message(as_message(message))
 
     plugin._record_chat_line.assert_called_once_with("Player: ordinary chat", lock=plugin.queue_lock)
 
@@ -105,7 +113,7 @@ async def test_on_message_completes_trigger_and_sends_response():
     with patch.object(Plugin, "_loaded_plugins", {"openai_bot": plugin}), patch.object(
         Plugin, "clean_text", side_effect=lambda text: text
     ), patch.object(Plugin, "msg") as send_game_message:
-        await bridge.on_message(message)
+        await bridge.on_message(as_message(message))
 
     plugin.contextualized_chat_history.assert_called_once_with("Player: !hello", trigger_template="")
     plugin._completion.assert_awaited_once_with(["history"])
@@ -134,7 +142,7 @@ async def test_on_message_stops_when_completion_has_no_response():
     )
 
     with patch.object(Plugin, "_loaded_plugins", {"openai_bot": plugin}):
-        await bridge.on_message(message)
+        await bridge.on_message(as_message(message))
 
     plugin._record_chat_line.assert_called_once()
     message.channel.send.assert_not_awaited()

@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 import pytest
-from minqlx_plugin_test import connected_players, fake_player
+from minqlx_plugin_test import connected_players, death_data, fake_player
 from mockito import unstub
 
 import minqlx
@@ -26,32 +26,32 @@ class TestEnvDamage:
         attacker = fake_player(123, "Attacker", team="red")
         victim = fake_player(456, "Victim", team="blue")
         connected_players(attacker, victim)
-        entity = object()
+        entity = 1234
         entities = iter(([entity], []))
         monkeypatch.setattr(minqlx, "get_targetting_entities", lambda _entity: next(entities), raising=False)
-        monkeypatch.setattr(minqlx, "MOD_HURT", 1, raising=False)
         monkeypatch.setattr(minqlx, "MOD_ROCKET", 2, raising=False)
-        plugin.player = lambda steam_id: attacker if steam_id == attacker.steam_id else None
+        monkeypatch.setattr(plugin, "player", lambda steam_id: attacker if steam_id == attacker.steam_id else None)
 
         plugin.handle_damage(entity, attacker, 20, 0, minqlx.MOD_ROCKET)
-        plugin.scan_targetting_entities(entity, minqlx.MOD_HURT, 0)
+        plugin.scan_targetting_entities(entity, minqlx.MOD_TRIGGER_HURT, 0)
 
         assert plugin.recorded_entity_dmg[entity][0][1] == attacker.steam_id
 
     @pytest.mark.usefixtures("game_in_progress")
-    def test_environment_death_ignores_unattributed_and_non_environment_deaths(self):
+    def test_environment_death_ignores_unattributed_and_non_environment_deaths(self, monkeypatch):
         plugin = env_dmg()
         victim = fake_player(456, "Victim", team="blue")
-        plugin.msg = Mock()
+        msg = Mock()
+        monkeypatch.setattr(plugin, "msg", msg)
 
-        plugin.handle_death(victim, victim, {"MOD": "HURT"})
-        plugin.handle_death(victim, None, {"MOD": "ROCKET"})
+        plugin.handle_death(victim, victim, death_data(MOD="HURT"))
+        plugin.handle_death(victim, None, death_data(MOD="ROCKET"))
 
-        plugin.msg.assert_not_called()
+        msg.assert_not_called()
 
     def test_environment_scan_records_unique_recent_inflictor(self, monkeypatch):
         plugin = env_dmg()
-        entity = object()
+        entity = 1234
         plugin.recorded_entity_dmg = {entity: [(100, 123)]}
         entities = iter(([entity], []))
         monkeypatch.setattr(
@@ -65,16 +65,15 @@ class TestEnvDamage:
 
         assert plugin.means_of_death_watchlist[7] == 123
 
-    def test_environment_death_reports_attributed_kill(self):
+    def test_environment_death_reports_attributed_kill(self, monkeypatch):
         plugin = env_dmg()
         victim = fake_player(456, "Victim", team="blue")
         killer = fake_player(123, "Killer", team="red")
-        plugin.player = lambda _steam_id: killer
-        plugin.means_of_death_watchlist[1] = killer.steam_id
-        plugin.msg = Mock()
-        original = getattr(minqlx, "MOD_HURT", 1)
-        minqlx.MOD_HURT = original
+        monkeypatch.setattr(plugin, "player", lambda _steam_id: killer)
+        plugin.means_of_death_watchlist[minqlx.MOD_TRIGGER_HURT] = killer.steam_id
+        msg = Mock()
+        monkeypatch.setattr(plugin, "msg", msg)
 
-        plugin.handle_death(victim, None, {"MOD": "HURT"})
+        plugin.handle_death(victim, None, death_data(MOD="HURT"))
 
-        plugin.msg.assert_called_once()
+        msg.assert_called_once()

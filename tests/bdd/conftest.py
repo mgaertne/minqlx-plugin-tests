@@ -6,6 +6,7 @@ from minqlx_plugin_test import (
     assert_plugin_sent_to_console,
     connected_players,
     fake_player,
+    fake_runtime,
     setup_cvar,
     setup_game_in_progress,
     setup_game_in_warmup,
@@ -76,7 +77,7 @@ def _db():
 @pytest.fixture(autouse=True)
 def _forget_plugin_registrations():
     yield
-    minqlx.reset_registrations()
+    fake_runtime.reset_registrations()
 
 
 @pytest.fixture(name="players")
@@ -124,7 +125,7 @@ def _no_game_is_running():
 @when_step(parsers.parse('{name} types "{message}"'))
 def _types(players, mock_channel, name, message):
     minqlx.COMMANDS.handle_input(players[name], message, mock_channel)
-    minqlx.join_minqlx_threads()
+    fake_runtime.join_minqlx_threads()
 
 
 @then(parsers.parse('the channel is told "{text}"'))

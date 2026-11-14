@@ -1,5 +1,8 @@
 from types import SimpleNamespace
 
+from minqlx_plugin_test import stand_in, use_database
+from openai.types.chat import ChatCompletion
+
 import minqlx
 from experimental import openai_bot as openai_module
 from experimental.openai_bot import openai_bot
@@ -12,7 +15,7 @@ def test_openai_response_cleanup_removes_attribution_and_quotes():
 
 
 def test_openai_pick_choice_strips_last_choice():
-    completion = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="  answer  "))])
+    completion = stand_in(ChatCompletion, choices=[SimpleNamespace(message=SimpleNamespace(content="  answer  "))])
 
     assert openai_bot._pick_choice(completion) == "answer"
 
@@ -52,8 +55,7 @@ def test_openai_text_cleanup_applies_emoji_and_database_replacements():
         def hgetall(self, _key):
             return {"bad": "good"}
 
-    plugin._db_instance = Database()
-    plugin.database = Database
+    use_database(plugin, Database(), Database)
 
     assert plugin._ql_cleaned_up("bad :smile:") == "good :smile:"
 
@@ -72,9 +74,11 @@ def test_openai_token_count_and_encoding_fallback(monkeypatch):
         def encode(self, value):
             return list(value)
 
-    monkeypatch.setattr(openai_module.tiktoken, "encoding_for_model", lambda _model: Encoding())
+    monkeypatch.setattr("experimental.openai_bot.tiktoken.encoding_for_model", lambda _model: Encoding())
     assert openai_module.num_tokens_from_messages([{"role": "user", "content": "hi"}]) == 12
 
-    monkeypatch.setattr(openai_module.tiktoken, "encoding_for_model", lambda _model: (_ for _ in ()).throw(KeyError()))
-    monkeypatch.setattr(openai_module.tiktoken, "get_encoding", lambda _name: Encoding())
+    monkeypatch.setattr(
+        "experimental.openai_bot.tiktoken.encoding_for_model", lambda _model: (_ for _ in ()).throw(KeyError())
+    )
+    monkeypatch.setattr("experimental.openai_bot.tiktoken.get_encoding", lambda _name: Encoding())
     assert openai_module.num_tokens_from_messages([{"role": "user", "name": "a"}]) == 10

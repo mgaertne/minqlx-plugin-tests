@@ -1,7 +1,8 @@
 import inspect
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
-from hamcrest import assert_that, empty, equal_to, has_item, has_items, not_
+from hamcrest import assert_that, empty, equal_to, has_item, has_items
 from minqlx_plugin_test import (
     assert_player_was_put_on,
     assert_player_was_told,
@@ -9,13 +10,23 @@ from minqlx_plugin_test import (
     assert_plugin_sent_to_console,
     connected_players,
     fake_player,
+    negated,
     setup_cvars,
+    stand_in,
 )
-from mockito import spy2, unstub, verify
+from mockito import spy2, unstub, verify, when
 from mockito.matchers import any_, matches
 
 import minqlx
 from duelarena import DUELARENA_JOIN_MSG, DuelArenaGame, duelarena
+from minqlx import AbstractChannel, Player
+
+if TYPE_CHECKING:
+    from minqlx import GameEndData
+
+
+def game_end_data(**items: Any) -> "GameEndData":
+    return cast("GameEndData", items)
 
 
 class TestDuelArenaTests:
@@ -30,7 +41,7 @@ class TestDuelArenaTests:
         connected_players()
         self.plugin = duelarena()
         spy2(self.plugin.duelarena_game.reset)
-        self.plugin.ensure_duel_players = lambda: None
+        when(self.plugin).ensure_duel_players().thenReturn(None)
         self.activate_duelarena()
 
     def activate_duelarena(self):
@@ -253,11 +264,8 @@ class TestDuelArenaTests:
             self.plugin.duelarena_game.scores[player.steam_id] = scores[player]
 
     def assert_playerset_does_not_contain(self, *players):
-        # noinspection PyTypeChecker
-        assert_that(
-            self.plugin.duelarena_game.playerset,
-            not_(has_items([player.steam_id for player in players])),
-        )
+        for player in players:
+            assert_that(self.plugin.duelarena_game.playerset, negated(has_item(player.steam_id)))
 
     def assert_duelarena_has_been_deactivated(self):
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(False))
@@ -280,11 +288,8 @@ class TestDuelArenaTests:
         self.assert_playerset_does_not_contain(switching_player)
 
     def assert_queue_does_not_contain(self, *players):
-        # noinspection PyTypeChecker
-        assert_that(
-            self.plugin.duelarena_game.queue,
-            not_(has_items([player.steam_id for player in players])),
-        )
+        for player in players:
+            assert_that(self.plugin.duelarena_game.queue, negated(has_item(player.steam_id)))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_when_player_switch_to_spec_inititiated_by_plugin_clear_field(self, game_in_progress):
@@ -849,28 +854,25 @@ class TestDuelArenaTests:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_game_end_with_no_game_ending(self):
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.handle_game_end({})
+        self.plugin.handle_game_end(game_end_data())
 
-        assert_that(return_code, equal_to(None))
+        assert_plugin_sent_to_console("DuelArena results:", times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_handle_game_end_which_was_aborted(self, game_in_progress):
         self.activate_duelarena()
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.handle_game_end({"ABORTED": True})
+        self.plugin.handle_game_end(game_end_data(ABORTED=True))
 
-        assert_that(return_code, equal_to(None))
+        assert_plugin_sent_to_console("DuelArena results:", times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_handle_game_end_with_not_duelarena_active(self, game_in_progress):
         self.deactivate_duelarena()
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.handle_game_end({"ABORTED": False})
+        self.plugin.handle_game_end(game_end_data(ABORTED=False))
 
-        assert_that(return_code, equal_to(None))
+        assert_plugin_sent_to_console("DuelArena results:", times=0)
 
     def assert_queue_contains(self, *players):
         player_ids = [player.steam_id for player in players]
@@ -887,8 +889,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 7, blue_player: 5, spec_player: 7})
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 8, "TSCORE1": 5})
+        self.plugin.handle_game_end(game_end_data(ABORTED=False, TSCORE0=8, TSCORE1=5))
 
         assert_plugin_sent_to_console("DuelArena results:")
         assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^28^7)")
@@ -903,10 +904,9 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 8, "TSCORE1": 3})
+        self.plugin.handle_game_end(game_end_data(ABORTED=False, TSCORE0=8, TSCORE1=3))
 
-        assert_that(return_code, equal_to(None))
+        assert_plugin_sent_to_console("DuelArena results:")
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_handle_game_end_loser_already_quit(self, game_in_progress):
@@ -916,19 +916,17 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(fake_player(1, "Red Player", "red"), blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.handle_game_end({"ABORTED": False, "TSCORE0": 6, "TSCORE1": 8})
+        self.plugin.handle_game_end(game_end_data(ABORTED=False, TSCORE0=6, TSCORE1=8))
 
-        assert_that(return_code, equal_to(None))
+        assert_plugin_sent_to_console("DuelArena results:")
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_join_cmd_while_duelarena_is_deactivated(self, game_in_progress):
         self.deactivate_duelarena()
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.cmd_join(None, None, None)
+        self.plugin.cmd_join(stand_in(Player), [], stand_in(AbstractChannel))
 
-        assert_that(return_code, equal_to(None))
+        assert_plugin_sent_to_console("DuelArena results:", times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_join_cmd_player_already_player_in_duelarena(self, game_in_progress):
@@ -940,10 +938,9 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player, spec_player, joining_player)
         self.queue_up_players(spec_player, joining_player)
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.cmd_join(joining_player, None, None)
+        self.plugin.cmd_join(joining_player, [], stand_in(AbstractChannel))
 
-        assert_that(return_code, equal_to(None))
+        assert_player_was_told(joining_player, any_, times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_join_cmd_player_on_wrong_team(self, game_in_progress):
@@ -955,10 +952,9 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.queue_up_players(spec_player)
 
-        # noinspection PyNoneFunctionAssignment,PyTypeChecker
-        return_code = self.plugin.cmd_join(joining_player, None, None)
+        self.plugin.cmd_join(joining_player, [], stand_in(AbstractChannel))
 
-        assert_that(return_code, equal_to(None))
+        assert_player_was_told(joining_player, any_, times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_join_cmd_player_pending_to_join(self, mock_channel, game_in_progress):
@@ -1050,7 +1046,7 @@ class TestDuelArenaGame:
         self.assert_players_is_in_scorelist(player_sid)
 
     def assert_players_is_in_scorelist(self, *items):
-        assert_that(self.duelarena_game.scores, has_items(*items))
+        assert_that(list(self.duelarena_game.scores), has_items(*items))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_add_player_when_duelarena_activated_and_player_already_has_score(self, game_in_progress):
@@ -1072,7 +1068,7 @@ class TestDuelArenaGame:
         self.assert_playerset_does_not_contain(player_sid)
 
     def assert_playerset_does_not_contain(self, *items):
-        assert_that(self.duelarena_game.playerset, not_(has_items(*items)))
+        assert_that(self.duelarena_game.playerset, negated(has_items(*items)))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_remove_player_when_player_is_in_playerset_and_in_queue(self, game_in_progress):
@@ -1090,7 +1086,7 @@ class TestDuelArenaGame:
         self.assert_players_are_not_enqueued(player_sid)
 
     def assert_players_are_not_enqueued(self, *items):
-        assert_that(self.duelarena_game.queue, not_(has_items(*items)))
+        assert_that(self.duelarena_game.queue, negated(has_items(*items)))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_remove_player_when_player_is_not_in_playerset(self, game_in_progress):
@@ -1647,10 +1643,9 @@ class TestDuelArenaGame:
     def test_ensure_duelarena_players_with_plugin_deactivated(self, game_in_progress):
         self.duelarena_game.duelmode = False
 
-        # noinspection PyNoneFunctionAssignment
-        return_code = self.duelarena_game.ensure_duelarena_players()
+        self.duelarena_game.ensure_duelarena_players()
 
-        assert_that(return_code, equal_to(None))
+        assert_that(self.duelarena_game.player_spec, empty())
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_ensure_duelarena_player_with_too_few_players(self, game_in_progress):
@@ -1658,10 +1653,9 @@ class TestDuelArenaGame:
 
         connected_players(fake_player(1, "Red Player", "red"), fake_player(2, "Blue Player", "blue"))
 
-        # noinspection PyNoneFunctionAssignment
-        return_code = self.duelarena_game.ensure_duelarena_players()
+        self.duelarena_game.ensure_duelarena_players()
 
-        assert_that(return_code, equal_to(None))
+        assert_that(self.duelarena_game.player_spec, empty())
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_ensure_duelarena_player_with_too_many_players(self, game_in_progress):
@@ -1674,10 +1668,9 @@ class TestDuelArenaGame:
             fake_player(4, "Blue Player2", "blue"),
         )
 
-        # noinspection PyNoneFunctionAssignment
-        return_code = self.duelarena_game.ensure_duelarena_players()
+        self.duelarena_game.ensure_duelarena_players()
 
-        assert_that(return_code, equal_to(None))
+        assert_that(self.duelarena_game.player_spec, empty())
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_ensure_duelarena_player_with_one_extra_player_in_red(self, game_in_progress):

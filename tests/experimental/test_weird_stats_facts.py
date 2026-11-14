@@ -1,4 +1,5 @@
 import pytest
+from minqlx_plugin_test import player_stats_stats
 
 from experimental.weird_stats import (
     PlayerStatsEntry,
@@ -46,22 +47,16 @@ def test_weapon_stats_properties_and_filtering():
 
 
 def test_player_stats_entry_sums_entries_and_combines_matching_rounds():
-    first = {
-        "TYPE": "PLAYER_STATS",
-        "DATA": {
-            "STEAM_ID": "123",
-            "NAME": "Player",
-            "MATCH_GUID": "match",
-            "WARMUP": False,
-            "KILLS": 2,
-            "DAMAGE": {"DEALT": 10, "TAKEN": 4},
-            "WEAPONS": {"RAILGUN": {"D": 1, "DG": 10, "DR": 4, "H": 5, "K": 2, "P": 1, "S": 10, "T": 20}},
-        },
-    }
-    second = {
-        "TYPE": "PLAYER_STATS",
-        "DATA": {"STEAM_ID": "123", "NAME": "Player", "MATCH_GUID": "match", "WARMUP": False, "KILLS": 3},
-    }
+    first = player_stats_stats(
+        STEAM_ID="123",
+        NAME="Player",
+        MATCH_GUID="match",
+        WARMUP=False,
+        KILLS=2,
+        DAMAGE={"DEALT": 10, "TAKEN": 4},
+        WEAPONS={"RAILGUN": {"D": 1, "DG": 10, "DR": 4, "H": 5, "K": 2, "P": 1, "S": 10, "T": 20}},
+    )
+    second = player_stats_stats(STEAM_ID="123", NAME="Player", MATCH_GUID="match", WARMUP=False, KILLS=3)
     stats = PlayerStatsEntry(first)
     stats.combine(PlayerStatsEntry(second))
     assert stats.kills == 5
@@ -71,40 +66,33 @@ def test_player_stats_entry_sums_entries_and_combines_matching_rounds():
 
 
 def test_player_stats_rejects_invalid_combinations():
-    stats = PlayerStatsEntry({"TYPE": "PLAYER_STATS", "DATA": {"STEAM_ID": "1", "MATCH_GUID": "a", "WARMUP": False}})
+    stats = PlayerStatsEntry(player_stats_stats(STEAM_ID="1", MATCH_GUID="a", WARMUP=False))
     with pytest.raises(ValueError):
-        PlayerStatsEntry({"TYPE": "OTHER", "DATA": {}})
+        PlayerStatsEntry(player_stats_stats("OTHER"))
     with pytest.raises(ValueError):
-        stats.combine(
-            PlayerStatsEntry({"TYPE": "PLAYER_STATS", "DATA": {"STEAM_ID": "2", "MATCH_GUID": "a", "WARMUP": False}})
-        )
+        stats.combine(PlayerStatsEntry(player_stats_stats(STEAM_ID="2", MATCH_GUID="a", WARMUP=False)))
 
 
 def test_railgun_announcement_handles_empty_and_positive_stats():
-    empty = PlayerStatsEntry({"TYPE": "PLAYER_STATS", "DATA": {"STEAM_ID": "1", "NAME": "Empty"}})
+    empty = PlayerStatsEntry(player_stats_stats(STEAM_ID="1", NAME="Empty"))
     assert most_accurate_railbitches_announcement([empty]) is None
-    positive = PlayerStatsEntry(
-        {"TYPE": "PLAYER_STATS", "DATA": {"STEAM_ID": "1", "NAME": "Railer", "WEAPONS": {"RAILGUN": {"H": 5, "S": 10}}}}
-    )
-    assert "Railer" in most_accurate_railbitches_announcement([positive])
+    positive = PlayerStatsEntry(player_stats_stats(STEAM_ID="1", NAME="Railer", WEAPONS={"RAILGUN": {"H": 5, "S": 10}}))
+    assert "Railer" in str(most_accurate_railbitches_announcement([positive]))
 
 
 def test_weird_stats_announcements_cover_medals_and_weapon_facts():
     stats = PlayerStatsEntry(
-        {
-            "TYPE": "PLAYER_STATS",
-            "DATA": {
-                "STEAM_ID": "1",
-                "NAME": "Player",
-                "MEDALS": {"IMPRESSIVE": 2},
-                "PICKUPS": {"HASTE": 3},
-                "WEAPONS": {"LIGHTNING": {"D": 0, "DG": 0, "DR": 0, "H": 5, "K": 0, "P": 0, "S": 10, "T": 8}},
-            },
-        }
+        player_stats_stats(
+            STEAM_ID="1",
+            NAME="Player",
+            MEDALS={"IMPRESSIVE": 2},
+            PICKUPS={"HASTE": 3},
+            WEAPONS={"LIGHTNING": {"D": 0, "DG": 0, "DR": 0, "H": 5, "K": 0, "P": 0, "S": 10, "T": 8}},
+        )
     )
 
     assert "impressive" in formatted_medal_fact([stats], "impressive")
-    assert "Haste" in most_honorable_haste_pickup_announcement([stats])
-    assert "Shaftlamer" in longest_shaftlamers_announcement([stats])
+    assert "Haste" in str(most_honorable_haste_pickup_announcement([stats]))
+    assert "Shaftlamer" in str(longest_shaftlamers_announcement([stats]))
     assert most_weapon_hits_announcement([stats]) is not None
     assert random_medal_facts([stats], count=1)

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from minqlx_plugin_test import setup_cvars
+from minqlx_plugin_test import editable_game, fake_runtime, game_start_data, round_end_data, setup_cvars
 from mockito import any_, mock, verify
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -40,7 +40,7 @@ def _balance_plugin_ignores(monkeypatch, name):
 
 @given(parsers.parse('a game on "{mapname}" is counting down'))
 def _game_is_counting_down(mapname):
-    minqlx.Game().state = "countdown"
+    editable_game().state = "countdown"
 
 
 @given(parsers.parse("the {team} team has {points:d} points"))
@@ -83,7 +83,7 @@ def _has_score(players, name, score):
 @when_step("the countdown runs")
 def _countdown_runs(plugin):
     minqlx.EVENT_DISPATCHERS["game_countdown"].dispatch()
-    minqlx.run_delayed_tasks()
+    fake_runtime.run_delayed_tasks()
 
 
 @given(parsers.re(rf'(?P<name>{NAMES}) tried to join the "(?P<team>{TEAMS})" team'))
@@ -105,7 +105,7 @@ def _switches_team(plugin, players, name, new, old):
 @when_step(parsers.re(rf'(?P<name>{NAMES}) sends the client command "(?P<command>.*)"'))
 def _sends_client_command(plugin, players, name, command):
     minqlx.EVENT_DISPATCHERS["client_command"].dispatch(players[name], command)
-    minqlx.join_minqlx_threads()
+    fake_runtime.join_minqlx_threads()
 
 
 @when_step(parsers.re(rf"(?P<name>{NAMES}) disconnects"))
@@ -116,12 +116,12 @@ def _disconnects(plugin, players, name):
 @when_step(parsers.re(rf"(?P<name>{NAMES}) has loaded"))
 def _has_loaded(plugin, players, name):
     minqlx.EVENT_DISPATCHERS["player_loaded"].dispatch(players[name])
-    minqlx.run_delayed_tasks()
+    fake_runtime.run_delayed_tasks()
 
 
 @when_step("the game starts")
 def _game_starts(plugin):
-    minqlx.EVENT_DISPATCHERS["game_start"].dispatch({})
+    minqlx.EVENT_DISPATCHERS["game_start"].dispatch(game_start_data())
 
 
 @when_step(parsers.parse("round {number:d} counts down"))
@@ -131,13 +131,13 @@ def _round_counts_down(plugin, number):
 
 @when_step(parsers.parse("round {number:d} ends with a win for {winner}"))
 def _round_ends_with_win(plugin, number, winner):
-    minqlx.EVENT_DISPATCHERS["round_end"].dispatch({"ROUND": number, "TEAM_WON": winner.upper()})
+    minqlx.EVENT_DISPATCHERS["round_end"].dispatch(round_end_data(ROUND=number, TEAM_WON=winner.upper()))
 
 
 @given(parsers.parse("round {number:d} ended in a draw"))
 @when_step(parsers.parse("round {number:d} ends in a draw"))
 def _round_ends_in_draw(plugin, number):
-    minqlx.EVENT_DISPATCHERS["round_end"].dispatch({"ROUND": number, "TEAM_WON": "DRAW"})
+    minqlx.EVENT_DISPATCHERS["round_end"].dispatch(round_end_data(ROUND=number, TEAM_WON="DRAW"))
 
 
 @when_step("the map changes")

@@ -9,8 +9,8 @@ import pytest
 
 # noinspection PyPackageRequirements
 from discord import ChannelType, InteractionResponse
-from hamcrest import assert_that, equal_to, has_key, matches_regexp, not_
-from minqlx_plugin_test import setup_cvars
+from hamcrest import assert_that, equal_to, has_key, matches_regexp
+from minqlx_plugin_test import negated, setup_cvars
 from mockito import mock, patch, spy2, unstub, verify, when2
 
 import minqlx
@@ -185,10 +185,10 @@ class TestAdmin:
             await extension.auth(auth_context)
 
         # noinspection PyTypeChecker
-        assert_that(extension.auth_attempts, not_(has_key(user.id)))
+        assert_that(extension.auth_attempts, negated(has_key(user.id)))
 
     @pytest.mark.asyncio
-    async def test_qlx_executes_command(self, bot, exec_context, user):
+    async def test_qlx_executes_command(self, bot, exec_context, user, monkeypatch):
         exec_context.message.content = "!exec exec to minqlx"
         exec_context.message.author = user
         exec_context.author = user
@@ -197,14 +197,18 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
 
         await extension.qlx(exec_context)
 
         verify(minqlx.COMMANDS).handle_input(any, "exec to minqlx", any)
 
     @pytest.mark.asyncio
-    async def test_qlx_fails_to_execute_command(self, bot, exec_context, user):
+    async def test_qlx_fails_to_execute_command(self, bot, exec_context, user, monkeypatch):
         exec_context.message.content = "!exec exec to minqlx"
         exec_context.message.author = user
         exec_context.author = user
@@ -215,7 +219,11 @@ class TestAdmin:
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
 
         await extension.qlx(exec_context)
 
@@ -227,7 +235,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_qlx_notifies_discord_user_about_execution(self, bot, exec_context, user):
+    async def test_qlx_notifies_discord_user_about_execution(self, bot, exec_context, user, monkeypatch):
         exec_context.message.content = "!exec exec to minqlx"
         exec_context.message.author = user
         exec_context.author = user
@@ -236,7 +244,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
 
         await extension.qlx(exec_context)
 
@@ -247,7 +259,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_qlx_execute_for_command_not_in_whitelist(self, bot, exec_context, user):
+    async def test_qlx_execute_for_command_not_in_whitelist(self, bot, exec_context, user, monkeypatch):
         setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         exec_context.message.content = "!exec !blocked_commmand exec to minqlx"
@@ -258,7 +270,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
 
         await extension.qlx(exec_context)
 
@@ -269,7 +285,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_qlx_execute_for_command_allowed_in_whitelist(self, bot, exec_context, user):
+    async def test_qlx_execute_for_command_allowed_in_whitelist(self, bot, exec_context, user, monkeypatch):
         setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         exec_context.message.content = "!exec !allowed_command exec to minqlx"
@@ -280,14 +296,20 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
 
         await extension.qlx(exec_context)
 
         verify(minqlx.COMMANDS).handle_input(any, "!allowed_command exec to minqlx", any)
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_executes_command_when_user_is_not_authed(self, bot, interaction, user, guild_channel):
+    async def test_slash_qlx_executes_command_when_user_is_not_authed(
+        self, bot, interaction, user, guild_channel, monkeypatch
+    ):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -296,7 +318,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
 
         await extension.slash_qlx(interaction, "exec to minqlx")
 
@@ -307,7 +333,7 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_executes_command(self, bot, interaction, user, guild_channel):
+    async def test_slash_qlx_executes_command(self, bot, interaction, user, guild_channel, monkeypatch):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -316,7 +342,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -324,7 +354,7 @@ class TestAdmin:
         verify(minqlx.COMMANDS).handle_input(any, "exec to minqlx", any)
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_fails_to_execute_command(self, bot, interaction, user, guild_channel):
+    async def test_slash_qlx_fails_to_execute_command(self, bot, interaction, user, guild_channel, monkeypatch):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -335,7 +365,11 @@ class TestAdmin:
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -349,7 +383,9 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_notifies_discord_user_about_execution(self, bot, interaction, user, guild_channel):
+    async def test_slash_qlx_notifies_discord_user_about_execution(
+        self, bot, interaction, user, guild_channel, monkeypatch
+    ):
         interaction.user = user
         guild_channel.guild = 123
         interaction.channel = guild_channel
@@ -358,7 +394,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -370,7 +410,9 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_execute_for_command_not_in_whitelist(self, bot, interaction, user, guild_channel):
+    async def test_slash_qlx_execute_for_command_not_in_whitelist(
+        self, bot, interaction, user, guild_channel, monkeypatch
+    ):
         setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         interaction.user = user
@@ -381,7 +423,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "!blocked_command")
@@ -393,7 +439,9 @@ class TestAdmin:
         )
 
     @pytest.mark.asyncio
-    async def test_slash_qlx_execute_for_command_allowed_in_whitelist(self, bot, interaction, user, guild_channel):
+    async def test_slash_qlx_execute_for_command_allowed_in_whitelist(
+        self, bot, interaction, user, guild_channel, monkeypatch
+    ):
         setup_cvars({"qlx_discordCommandsWhitelist": "allowed_command, another_allowed_command"})
 
         interaction.user = user
@@ -404,7 +452,11 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
+        monkeypatch.setattr(
+            extension,
+            "execute_qlx_command",
+            functools.partial(inspect.unwrap(extension.execute_qlx_command), extension),
+        )
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "!allowed_command exec to minqlx")

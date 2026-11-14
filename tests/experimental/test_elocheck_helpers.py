@@ -1,5 +1,7 @@
 from unittest.mock import Mock
 
+from requests.adapters import HTTPAdapter
+
 import minqlx
 from experimental.elocheck import (
     identify_reply_channel,
@@ -18,4 +20,6 @@ def test_elocheck_helpers():
 
 def test_elocheck_retry_session():
     session = requests_retry_session(retries=2)
-    assert session.adapters["https://"].max_retries.total == 2
+    adapter = session.get_adapter("https://")
+    assert isinstance(adapter, HTTPAdapter)
+    assert adapter.max_retries.total == 2

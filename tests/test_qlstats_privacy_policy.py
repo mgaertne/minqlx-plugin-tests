@@ -2,7 +2,7 @@ import inspect
 
 import pytest
 import requests
-from hamcrest import assert_that, contains_exactly, equal_to, not_
+from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import (
     assert_player_received_center_print,
     assert_player_was_put_on,
@@ -11,12 +11,14 @@ from minqlx_plugin_test import (
     connected_players,
     fake_player,
     setup_cvars,
+    stand_in,
 )
 from mockito import mock, spy2, unstub, verify, when
 from mockito.matchers import any_, matches
 from requests import Response
 
 import minqlx
+from minqlx import AbstractChannel, Player
 from qlstats_privacy_policy import ConnectThread, qlstats_privacy_policy
 
 
@@ -47,7 +49,7 @@ class TestQlstatsPrivacyPolicy:
         )
         self.setup_balance_playerprivacy([])
         self.plugin = qlstats_privacy_policy()
-        self.plugin.remove_thread = lambda _: None
+        when(self.plugin).remove_thread(any_).thenReturn(None)
         spy2(minqlx.console_command)
 
     def teardown_method(self):
@@ -326,14 +328,12 @@ class TestQlstatsPrivacyPolicy:
     def test_callback_connect_players_plugin_disabled(self):
         self.plugin.plugin_enabled = False
 
-        # noinspection PyTypeChecker
-        self.plugin.callback_connect([123], None)
+        self.plugin.callback_connect({123: "private"}, stand_in(AbstractChannel))
 
         assert_plugin_sent_to_console(any, times=0)
 
     def test_callback_connect_players_not_kicked(self):
-        # noinspection PyTypeChecker
-        self.plugin.callback_connect([123], None)
+        self.plugin.callback_connect({123: "private"}, stand_in(AbstractChannel))
 
         assert_plugin_sent_to_console(any_, times=0)
 
@@ -344,11 +344,9 @@ class TestQlstatsPrivacyPolicy:
         connected_players(not_kicked_player)
         self.plugin.exceptions.add(not_kicked_player.steam_id)
         self.setup_balance_playerprivacy([(not_kicked_player, "private")])
-        self.plugin.delayed_kick = mock()
         when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
-        # noinspection PyTypeChecker
-        self.plugin.callback_connect([not_kicked_player.steam_id], None)
+        self.plugin.callback_connect({not_kicked_player.steam_id: "private"}, stand_in(AbstractChannel))
 
         verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any_)
 
@@ -358,11 +356,9 @@ class TestQlstatsPrivacyPolicy:
         not_kicked_player = fake_player(123, "Test Player")
         connected_players(not_kicked_player)
         self.setup_balance_playerprivacy({})
-        self.plugin.delayed_kick = mock()
         when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
-        # noinspection PyTypeChecker
-        self.plugin.callback_connect([not_kicked_player.steam_id], None)
+        self.plugin.callback_connect({not_kicked_player.steam_id: "private"}, stand_in(AbstractChannel))
 
         verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any_)
 
@@ -372,11 +368,9 @@ class TestQlstatsPrivacyPolicy:
         kicked_player = fake_player(123, "Test Player")
         connected_players(kicked_player)
         self.setup_balance_playerprivacy([(kicked_player, "private")])
-        self.plugin.delayed_kick = mock()
         when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
-        # noinspection PyTypeChecker
-        self.plugin.callback_connect([kicked_player.steam_id], None)
+        self.plugin.callback_connect({kicked_player.steam_id: "private"}, stand_in(AbstractChannel))
 
         verify(self.plugin).delayed_kick(kicked_player.steam_id, any_)
 
@@ -386,11 +380,9 @@ class TestQlstatsPrivacyPolicy:
         not_kicked_player = fake_player(123, "Test Player")
         connected_players(not_kicked_player)
         self.setup_balance_playerprivacy([(not_kicked_player, "public")])
-        self.plugin.delayed_kick = mock()
         when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
-        # noinspection PyTypeChecker
-        self.plugin.callback_connect([not_kicked_player.steam_id], None)
+        self.plugin.callback_connect({not_kicked_player.steam_id: "private"}, stand_in(AbstractChannel))
 
         verify(self.plugin, times=0).delayed_kick(not_kicked_player.steam_id, any)
 
@@ -407,7 +399,7 @@ class TestQlstatsPrivacyPolicy:
 
         self.plugin.handle_player_disconnect(player, "quit")
 
-        assert_that(self.plugin.exceptions, not_(contains_exactly(player.steam_id)))
+        assert player.steam_id not in self.plugin.exceptions
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_handle_player_disconnect_that_has_no_exception(self):
@@ -618,8 +610,7 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_disable_policy_check(self, mock_channel):
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*QLStats policy check disabled.*"))
         assert_that(self.plugin.plugin_enabled, equal_to(False))
@@ -630,8 +621,7 @@ class TestQlstatsPrivacyPolicy:
         self.plugin.plugin_enabled = False
         connected_players()
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy"], mock_channel)
 
         assert_that(self.plugin.plugin_enabled, equal_to(False))
 
@@ -640,8 +630,7 @@ class TestQlstatsPrivacyPolicy:
         self.plugin.plugin_enabled = False
         connected_players()
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy"], mock_channel)
 
         assert_that(self.plugin.plugin_enabled, equal_to(True))
         mock_channel.assert_was_replied(matches(".*QLStats policy check enabled.*"))
@@ -654,8 +643,7 @@ class TestQlstatsPrivacyPolicy:
         connected_players(red_player, blue_player)
         self.setup_balance_playerprivacy([(red_player, "public"), (blue_player, "private")])
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy"], mock_channel)
 
         assert_player_was_put_on(red_player, "spectator", times=0)
         assert_player_was_told(red_player, any, times=0)
@@ -673,8 +661,7 @@ class TestQlstatsPrivacyPolicy:
         )
         self.setup_balance_playerprivacy([])
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy"], mock_channel)
 
         assert_player_was_put_on(red_player, "spectator")
         assert_player_was_told(red_player, matches(".*couldn't fetch your ratings.*"))
@@ -686,11 +673,9 @@ class TestQlstatsPrivacyPolicy:
         kicked_player = fake_player(123, "Test Player")
         connected_players(kicked_player)
         self.setup_balance_playerprivacy([(kicked_player, "private")])
-        self.plugin.delayed_kick = mock()
         when(self.plugin).delayed_kick(any_, any_(str)).thenReturn(None)
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy"], mock_channel)
 
         verify(self.plugin).delayed_kick(kicked_player.steam_id, any_)
 
@@ -698,8 +683,7 @@ class TestQlstatsPrivacyPolicy:
     def test_cmd_switch_plugin_enabled(self, mock_channel):
         self.plugin.plugin_enabled = True
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy", "status"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy", "status"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*enabled.*"))
 
@@ -707,30 +691,28 @@ class TestQlstatsPrivacyPolicy:
     def test_cmd_switch_plugin_disabled(self, mock_channel):
         self.plugin.plugin_enabled = False
 
-        # noinspection PyTypeChecker
-        self.plugin.cmd_switch_plugin(None, ["!policy", "status"], mock_channel)
+        self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy", "status"], mock_channel)
 
         mock_channel.assert_was_replied(matches(".*disabled.*"))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_shows_usage(self, mock_channel):
-        # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_plugin(None, ["!policy", "asdf"], mock_channel)
+        return_code = self.plugin.cmd_switch_plugin(stand_in(Player), ["!policy", "asdf"], mock_channel)
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_cmd_switch_plugin_shows_usage_for_too_many_parameters(self, mock_channel):
-        # noinspection PyTypeChecker
-        return_code = self.plugin.cmd_switch_plugin(None, ["!policy", "too", "many", "parameters"], mock_channel)
+        return_code = self.plugin.cmd_switch_plugin(
+            stand_in(Player), ["!policy", "too", "many", "parameters"], mock_channel
+        )
 
         assert_that(return_code, equal_to(minqlx.RET_USAGE))
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_removes_existing_connect_thread(self):
         plugin = qlstats_privacy_policy()
-        # noinspection PyTypeChecker
-        plugin.connectthreads[1234] = "asdf"
+        plugin.connectthreads[1234] = stand_in(ConnectThread)
 
         inspect.unwrap(plugin.remove_thread)(plugin, 1234)
 
@@ -739,9 +721,9 @@ class TestQlstatsPrivacyPolicy:
     @pytest.mark.usefixtures("game_in_progress")
     def test_remove_thread_does_nothing_if_thread_does_not_exist(self):
         plugin = qlstats_privacy_policy()
-        # noinspection PyTypeChecker
-        plugin.connectthreads[1234] = "asdf"
+        existing_thread = stand_in(ConnectThread)
+        plugin.connectthreads[1234] = existing_thread
 
         inspect.unwrap(plugin.remove_thread)(plugin, 12345)
 
-        assert_that(plugin.connectthreads, equal_to({1234: "asdf"}))
+        assert_that(plugin.connectthreads, equal_to({1234: existing_thread}))

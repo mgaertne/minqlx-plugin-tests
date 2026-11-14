@@ -2,7 +2,7 @@ import inspect
 import time
 
 import pytest
-from minqlx_plugin_test import assert_plugin_sent_to_console, setup_cvars
+from minqlx_plugin_test import assert_plugin_sent_to_console, editable_game, game_end_data, setup_cvars
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
 
@@ -50,7 +50,7 @@ def _plugin_loaded():
 def _match_is_running(players):
     plugin = _load_plugin()
     _try_to_join(players["Carol"], "red")
-    game = minqlx.Game()
+    game = editable_game()
     game.red_score = 0
     game.blue_score = 0
     game.state = "countdown"
@@ -61,7 +61,7 @@ def _match_is_running(players):
 
 @given(parsers.parse("the score is red {red:d}, blue {blue:d}"))
 def _score_is(red, blue):
-    game = minqlx.Game()
+    game = editable_game()
     game.red_score = red
     game.blue_score = blue
 
@@ -92,12 +92,12 @@ def _disconnects(plugin, players, name):
 
 @when_step(parsers.parse("the match ends with {red:d} to {blue:d}"))
 def _match_ends(plugin, red, blue):
-    minqlx.EVENT_DISPATCHERS["game_end"].dispatch({"ABORTED": False, "TSCORE0": red, "TSCORE1": blue})
+    minqlx.EVENT_DISPATCHERS["game_end"].dispatch(game_end_data(ABORTED=False, TSCORE0=red, TSCORE1=blue))
 
 
 @when_step("the match is aborted")
 def _match_is_aborted(plugin):
-    minqlx.EVENT_DISPATCHERS["game_end"].dispatch({"ABORTED": True, "TSCORE0": 0, "TSCORE1": 0})
+    minqlx.EVENT_DISPATCHERS["game_end"].dispatch(game_end_data(ABORTED=True, TSCORE0=0, TSCORE1=0))
 
 
 @then(parsers.parse('{name:w} is put on the "{team}" team'))

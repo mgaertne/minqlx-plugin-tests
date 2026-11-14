@@ -4,7 +4,6 @@ from minqlx_plugin_test import setup_cvars
 from pytest_bdd import given, parsers, scenarios
 
 import minqlx
-import uptime as uptime_module
 from uptime import uptime
 
 scenarios("features/uptime.feature")
@@ -21,7 +20,7 @@ class NoonDatetime(datetime.datetime):
 
 @given("it is noon on the 15th of June 2025")
 def _it_is_noon(monkeypatch):
-    monkeypatch.setattr(uptime_module.datetime, "datetime", NoonDatetime)
+    monkeypatch.setattr("uptime.datetime.datetime", NoonDatetime)
 
 
 @given("the uptime plugin is loaded", target_fixture="plugin")
@@ -32,8 +31,8 @@ def _plugin_loaded():
 
 @given(parsers.parse('the machine runs "{description}" with Python {python_version}'))
 def _machine_runs(monkeypatch, description, python_version):
-    monkeypatch.setattr(uptime_module.distro, "lsb_release_info", lambda: {"description": description})
-    monkeypatch.setattr(uptime_module.platform, "python_version", lambda: python_version)
+    monkeypatch.setattr("uptime.distro.lsb_release_info", lambda: {"description": description})
+    monkeypatch.setattr("uptime.platform.python_version", lambda: python_version)
 
 
 def _ago(amounts):
@@ -45,14 +44,14 @@ def _ago(amounts):
 @given(parsers.parse("the machine booted {amounts} ago"))
 def _machine_booted(monkeypatch, amounts):
     boot_time = (NOON - _ago(amounts)).timestamp()
-    monkeypatch.setattr(uptime_module.psutil, "boot_time", lambda: boot_time)
+    monkeypatch.setattr("uptime.psutil.boot_time", lambda: boot_time)
 
 
 @given(parsers.parse("the Quake Live server started {amounts} ago"))
 def _server_started(monkeypatch, amounts):
     create_time = (NOON - _ago(amounts)).timestamp()
     monkeypatch.setattr(
-        uptime_module.psutil, "Process", lambda _pid: type("Process", (), {"create_time": lambda _self: create_time})()
+        "uptime.psutil.Process", lambda _pid: type("Process", (), {"create_time": lambda _self: create_time})()
     )
 
 

@@ -10,6 +10,7 @@ from minqlx_plugin_test import (
     assert_plugin_played_sound,
     connected_players,
     fake_player,
+    game_start_data,
     setup_cvars,
 )
 
@@ -54,7 +55,7 @@ class TestAutoReady:
 
     def setup_method(self):
         self.plugin = autoready.autoready()
-        self.plugin.make_sure_game_really_starts = lambda _: None
+        when(self.plugin).make_sure_game_really_starts(any_).thenReturn(None)
 
     # noinspection PyMethodMayBeStatic
     def teardown_method(self):
@@ -226,8 +227,7 @@ class TestAutoReady:
     def test_handle_game_start_with_no_timer(self, timer):
         self.plugin.timer = None
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_start({})
+        self.plugin.handle_game_start(game_start_data())
 
         verify(timer, times=0).stop()
 
@@ -238,8 +238,7 @@ class TestAutoReady:
 
         self.plugin.current_timer = 45
 
-        # noinspection PyTypeChecker
-        self.plugin.handle_game_start({})
+        self.plugin.handle_game_start(game_start_data())
 
         verify(timer).stop()
         assert_that(self.plugin.current_timer, equal_to(-1))

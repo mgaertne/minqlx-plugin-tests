@@ -1,10 +1,11 @@
 from datetime import datetime
 from unittest.mock import Mock
 
-from minqlx_plugin_test import fake_player
+from minqlx_plugin_test import fake_player, stand_in, use_database
 
 import minqlx
 from bday import BDAY_KEY, bday
+from minqlx import AbstractChannel
 
 
 class TestBday:
@@ -32,7 +33,7 @@ class TestBday:
             def __getitem__(self, key):
                 return values[key]
 
-        plugin._db_instance = Database()
+        use_database(plugin, Database())
         plugin.number_of_bday_maps = 1
 
         assert plugin.has_birthday_set(player)
@@ -40,13 +41,14 @@ class TestBday:
         values[f"{BDAY_KEY.format(player.steam_id)}:{datetime.today().year}"] = "1"
         assert not plugin.can_still_pick_bday_map(player)
 
-    def test_resolve_short_map_name_uses_installed_map_and_reports_ambiguity(self):
+    def test_resolve_short_map_name_uses_installed_map_and_reports_ambiguity(self, monkeypatch):
         plugin = bday()
-        plugin._loaded_plugins = {"maps": Mock(logged_maps=["campgrounds", "camps"])}
+        monkeypatch.setattr(plugin, "_loaded_plugins", {"maps": Mock(logged_maps=["campgrounds", "camps"])})
         player = fake_player(123, "Player")
         player.tell = Mock()
-        plugin._db_instance = Mock()
-        plugin._db_instance.hgetall.return_value = {}
+        db = Mock()
+        db.hgetall.return_value = {}
+        use_database(plugin, db)
 
         assert plugin.resolve_short_mapname("campgrounds", player) == "campgrounds"
         assert plugin.resolve_short_mapname("camp", player) is None
@@ -57,12 +59,12 @@ class TestBday:
         player = fake_player(123, "Player")
         player.tell = Mock()
         plugin.pending_bday_confirmations[player.steam_id] = "1.1."
-        plugin.database = dict
-        plugin._db_instance = {}
+        db: dict = {}
+        use_database(plugin, db, dict)
 
-        plugin.cmd_confirmbday(player, [], None)
+        plugin.cmd_confirmbday(player, [], stand_in(AbstractChannel))
 
-        assert plugin._db_instance[BDAY_KEY.format(player.steam_id)] == "1.1."
+        assert db[BDAY_KEY.format(player.steam_id)] == "1.1."
         assert player.steam_id not in plugin.pending_bday_confirmations
 
     def test_confirm_birthday_without_pending_confirmation_notifies_player(self):
@@ -70,14 +72,13 @@ class TestBday:
         player = fake_player(123, "Player")
         player.tell = Mock()
 
-        plugin.cmd_confirmbday(player, [], None)
+        plugin.cmd_confirmbday(player, [], stand_in(AbstractChannel))
 
         player.tell.assert_called_once()
 
     def test_bday_command_rejects_invalid_argument_count(self):
         plugin = bday()
-        plugin.database = dict
-        plugin._db_instance = {}
+        use_database(plugin, {}, dict)
         player = fake_player(123, "Player")
 
-        assert plugin.cmd_bday(player, ["!bday"], None) == minqlx.RET_USAGE
+        assert plugin.cmd_bday(player, ["!bday"], stand_in(AbstractChannel)) == minqlx.RET_USAGE

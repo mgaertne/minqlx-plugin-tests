@@ -2,7 +2,7 @@ import inspect
 from typing import Dict
 
 import pytest
-from minqlx_plugin_test import setup_cvars
+from minqlx_plugin_test import editable_game, setup_cvars
 from mockito import any_, mock, verify
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -65,7 +65,7 @@ def _new_round_starts(plugin):
 
 @given(parsers.parse("the score is red {red:d}, blue {blue:d}"))
 def _score_is(red, blue):
-    game = minqlx.Game()
+    game = editable_game()
     game.red_score = red
     game.blue_score = blue
 

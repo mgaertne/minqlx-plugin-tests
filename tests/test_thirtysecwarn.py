@@ -119,10 +119,9 @@ class TestThirtySecondWarnPlugin:
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_plays_no_sound_when_next_round_started(self, game_in_progress):
-        calling_round_number = 4
-        self.warner.timer_round_number = calling_round_number + 1
+        self.warner.warner_thread_name = "thread of the next round"
 
-        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, "thread of the previous round")
 
         assert_plugin_played_sound(any_(str), times=0)
 

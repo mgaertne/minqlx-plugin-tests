@@ -1,6 +1,6 @@
 import pytest
 import redis
-from minqlx_plugin_test import setup_cvars
+from minqlx_plugin_test import death_data, setup_cvars
 from mockito import mock, verify, when
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -32,7 +32,7 @@ def _plugin_loaded(db):
 
 
 def _death(victim, killer, means_of_death):
-    minqlx.EVENT_DISPATCHERS["death"].dispatch(victim, killer, {"MOD": means_of_death})
+    minqlx.EVENT_DISPATCHERS["death"].dispatch(victim, killer, death_data(MOD=means_of_death))
 
 
 @given(parsers.parse("{killer:w} fragged {victim:w}"))

@@ -2,7 +2,7 @@ import threading
 import time
 
 import pytest
-from minqlx_plugin_test import setup_cvars, setup_game_in_progress
+from minqlx_plugin_test import game_start_data, round_end_data, setup_cvars, setup_game_in_progress
 from mockito import any_, verify, when2
 from pytest_bdd import given, parsers, scenarios, then
 from pytest_bdd import when as when_step
@@ -100,12 +100,12 @@ def _round_starts(plugin, clock):
 
 @when_step("the round ends")
 def _round_ends(plugin):
-    minqlx.EVENT_DISPATCHERS["round_end"].dispatch({"TEAM_WON": "RED", "ROUND": 1})
+    minqlx.EVENT_DISPATCHERS["round_end"].dispatch(round_end_data(TEAM_WON="RED", ROUND=1))
 
 
 @when_step("the match starts")
 def _match_starts(plugin):
-    minqlx.EVENT_DISPATCHERS["game_start"].dispatch({})
+    minqlx.EVENT_DISPATCHERS["game_start"].dispatch(game_start_data())
 
 
 @when_step("30 seconds are left in the round")
