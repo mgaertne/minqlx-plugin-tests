@@ -1,0 +1,11 @@
+from typing import final
+
+@final
+class StatsListener:
+    done: bool
+    address: str
+    password: str | None
+
+    def __init__(self) -> None: ...
+    def keep_receiving(self) -> None: ...
+    def stop(self) -> None: ...

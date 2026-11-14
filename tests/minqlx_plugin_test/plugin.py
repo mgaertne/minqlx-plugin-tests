@@ -8,6 +8,7 @@ from mockito.matchers import Matcher, any_
 
 import minqlx
 from minqlx import Player, Plugin
+from shinqlx._decorators import register_decorated_handlers as register
 
 # Functions for setting up unit tests for a :class:`minqlx.Plugin` and checking interactions with class methods
 # provided by minqlx.
@@ -184,3 +185,8 @@ def assert_channel_was_replied(
     :param: times: The amount of times the plugin should have replied to the channel. (default: 1).
     """
     verify(channel, times=times).reply(matcher)
+
+
+def register_decorated_handlers(plugin: Plugin) -> None:
+    """Register the methods of a plugin marked with the shinqlx decorators, like the shinqlx plugin loader does."""
+    register(plugin)

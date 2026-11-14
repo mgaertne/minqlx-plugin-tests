@@ -1,0 +1,120 @@
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
+from re import Pattern
+from typing import Callable, SupportsIndex, TypedDict, final
+
+from typing_extensions import Self, disjoint_base
+
+from shinqlx import Player, Plugin
+
+class ReplyKwargs(TypedDict, total=False):
+    limit: int
+    delimiter: str
+
+MAX_MSG_LENGTH: int
+
+re_color_tag: Pattern
+
+@disjoint_base
+class AbstractChannel(ABC):
+    def __init__(self, name: str) -> None: ...
+    def __eq__(self, other: object, /) -> bool: ...
+    def __ne__(self, other: object, /) -> bool: ...
+    @property
+    def name(self) -> str: ...
+    @abstractmethod
+    def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
+    @classmethod
+    def split_long_lines(cls, msg: str, limit: int = ..., delimiter: str = ...) -> list[str]: ...
+
+@disjoint_base
+class ChatChannel(AbstractChannel):
+    def __init__(self, name: str = ..., fmt: str = ...) -> None: ...
+    @property
+    def fmt(self) -> str: ...
+    @abstractmethod
+    def recipients(self) -> list[int] | None: ...
+    def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
+
+@disjoint_base
+class TeamChatChannel(ChatChannel):
+    def __init__(self, team: str = ..., name: str = ..., fmt: str = ...) -> None: ...
+    @property
+    def team(self) -> str: ...
+    def recipients(self) -> list[int] | None: ...
+
+@disjoint_base
+class TellChannel(ChatChannel):
+    def __init__(self, player: Player) -> None: ...
+    @property
+    def client_id(self) -> int: ...
+    @property
+    def recipient(self) -> Player: ...
+    def recipients(self) -> list[int] | None: ...
+
+class ConsoleChannel(AbstractChannel):
+    def __init__(self) -> None: ...
+    def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
+
+@disjoint_base
+class ClientCommandChannel(AbstractChannel):
+    def __init__(self, player: Player) -> None: ...
+    @property
+    def client_id(self) -> int: ...
+    @property
+    def recipient(self) -> Player: ...
+    @property
+    def tell_channel(self) -> ChatChannel: ...
+    def reply(self, msg: str, limit: int = ..., delimiter: str = ...) -> None: ...
+
+CHAT_CHANNEL: AbstractChannel
+RED_TEAM_CHAT_CHANNEL: AbstractChannel
+BLUE_TEAM_CHAT_CHANNEL: AbstractChannel
+FREE_CHAT_CHANNEL: AbstractChannel
+SPECTATOR_CHAT_CHANNEL: AbstractChannel
+CONSOLE_CHANNEL: AbstractChannel
+
+@final
+class Command:
+    name: list[str]
+    plugin: Plugin
+    handler: Callable
+    permission: int
+    channels: list[AbstractChannel]
+    exclude_channels: list[AbstractChannel]
+    client_cmd_pass: bool
+    client_cmd_perm: int
+    prefix: bool
+    usage: str
+
+    def __new__(
+        cls,
+        plugin: Plugin,
+        name: str | Iterable[str],
+        handler: Callable,
+        permission: SupportsIndex,
+        channels: Iterable[AbstractChannel] | None,
+        exclude_channels: Iterable[AbstractChannel] | None,
+        client_cmd_pass: bool,
+        client_cmd_perm: SupportsIndex,
+        prefix: bool,
+        usage: str,
+    ) -> Self: ...
+    def execute(self, player: Player, msg: str, channel: AbstractChannel) -> int | None: ...
+    def is_eligible_name(self, name: str) -> bool: ...
+    def is_eligible_channel(self, channel: AbstractChannel) -> bool: ...
+    def is_eligible_player(self, player: Player, is_client_cmd: bool) -> bool: ...
+
+@final
+class CommandInvoker:
+    _commands: tuple[list[Command], list[Command], list[Command], list[Command], list[Command]]
+
+    def __init__(self) -> None: ...
+    @property
+    def commands(self) -> list[Command]: ...
+    def add_command(self, command: Command, priority: SupportsIndex) -> None: ...
+    def remove_command(self, command: Command) -> None: ...
+    def is_registered(self, command: Command) -> bool: ...
+    def handle_input(self, player: Player, msg: str, channel: AbstractChannel) -> bool: ...
+
+COMMANDS: CommandInvoker
