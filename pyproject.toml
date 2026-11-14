@@ -203,6 +203,8 @@ mypy_path = ["stubs"]
 files = ["src", "stubs", "tests"]
 exclude = ["tests/fakes/"]
 check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 ignore_missing_imports = true
 no_implicit_optional = true
 show_error_codes = true
@@ -212,5 +214,6 @@ warn_unused_configs = true
 no_implicit_reexport = true
 
 [[tool.mypy.overrides]]
-module = "tests.*"
+module = ["src.*", "tests.*"]
 disallow_untyped_defs = false
+disallow_incomplete_defs = false
