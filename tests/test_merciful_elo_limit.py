@@ -1,5 +1,6 @@
 import inspect
 import logging
+import threading
 import time
 
 import pytest
@@ -449,6 +450,9 @@ class TestMercifulEloLimit:
         when(merciful_db).zrangebyscore(any_, any_, any_).thenReturn([123, 456])
 
         self.plugin.callback_ratings([player1, player2, player3], minqlx.CHAT_CHANNEL)
+        for plugin_thread in threading.enumerate():
+            if plugin_thread.name.endswith("minqlxthread"):
+                plugin_thread.join(timeout=2)
 
         verify(player2, times=12).center_print(matches(".*Skill warning.*8.*matches left.*"))
         verify(player2).tell(matches(".*Skill Warning.*qlstats.*below.*800.*8.*of 10 application matches.*"))
