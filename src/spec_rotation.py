@@ -114,6 +114,10 @@ class spec_rotation(Plugin):
         return minqlx.RET_STOP_ALL
 
     def handle_team_switch(self, player, old_team, new_team):
+        switched_by_plugin = player.steam_id in self.scheduled_switches
+        if switched_by_plugin:
+            self.scheduled_switches.remove(player.steam_id)
+
         if not self.spec_rotation_plugin_is_enabled():
             return
 
@@ -136,8 +140,7 @@ class spec_rotation(Plugin):
         if len(self.spec_rotation) == 0:
             return
 
-        if player.steam_id in self.scheduled_switches:
-            self.scheduled_switches.remove(player.steam_id)
+        if switched_by_plugin:
             return
 
         teams = self.teams()

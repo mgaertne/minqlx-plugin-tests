@@ -167,6 +167,14 @@ Feature: Rotating spectators into a running match
     Then Eve is not put on any team
     And the spec rotation holds Eve
 
+  Scenario: The switch the plugin made itself is forgotten when the rotation ran empty
+    Given Carol waits in the spec rotation
+    And Dave switched to the "red" team from the "spectator" team
+    And Carol switched to the "blue" team from the "spectator" team
+    And Eve waits in the spec rotation
+    When Carol switches to the "spectator" team from the "blue" team
+    Then Eve is put on the "blue" team
+
   Scenario: A returning player brings back the team score
     Given Dave is on the "red" team
     And Carol waits in the spec rotation
