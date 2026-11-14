@@ -67,7 +67,7 @@ from ._events import (
     MapDispatcher,
     NewGameDispatcher,
     PlayerConnectDispatcher,
-    PlayerDisonnectDispatcher,
+    PlayerDisconnectDispatcher,
     PlayerLoadedDispatcher,
     PlayerSpawnDispatcher,
     RoundCountdownDispatcher,

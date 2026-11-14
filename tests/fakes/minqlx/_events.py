@@ -440,7 +440,7 @@ class PlayerLoadedDispatcher(EventDispatcher):
         return super().dispatch(player)
 
 
-class PlayerDisonnectDispatcher(EventDispatcher):
+class PlayerDisconnectDispatcher(EventDispatcher):
     """Event that triggers whenever a player disconnects. Cannot be cancelled."""
 
     name = "player_disconnect"
@@ -716,7 +716,7 @@ EVENT_DISPATCHERS.add_dispatcher(ChatEventDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(UnloadDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(PlayerConnectDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(PlayerLoadedDispatcher)
-EVENT_DISPATCHERS.add_dispatcher(PlayerDisonnectDispatcher)
+EVENT_DISPATCHERS.add_dispatcher(PlayerDisconnectDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(PlayerSpawnDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(KamikazeUseDispatcher)
 EVENT_DISPATCHERS.add_dispatcher(KamikazeExplodeDispatcher)
