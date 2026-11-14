@@ -515,8 +515,6 @@ class Plugin:
     @classmethod
     def shuffle(cls) -> None: ...
     @classmethod
-    def cointoss(cls) -> None: ...
-    @classmethod
     def change_map(cls, new_map: str, factory: str | None = ...) -> None: ...
     @classmethod
     def switch(cls, player: Player, other_player: Player) -> None: ...
@@ -823,13 +821,6 @@ class Plugin:
     @overload
     def add_hook(
         self,
-        event: Literal["player_items_toss"],
-        handler: Callable[[Player], CancellableEventReturn],
-        priority: int = ...,
-    ) -> None: ...
-    @overload
-    def add_hook(
-        self,
         event: Literal["damage"],
         handler: Callable[
             [Player | int | None, Player | int | None, int, int, int],
@@ -1065,13 +1056,6 @@ class Plugin:
         self,
         event: Literal["kamikaze_explde"],
         handler: Callable[[Player, bool], CancellableEventReturn],
-        priority: int = ...,
-    ) -> None: ...
-    @overload
-    def remove_hook(
-        self,
-        event: Literal["player_items_toss"],
-        handler: Callable[[Player], CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload

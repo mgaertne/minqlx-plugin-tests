@@ -478,11 +478,6 @@ class Plugin:
         minqlx.Game().shuffle()
 
     @classmethod
-    def cointoss(cls):
-        # TODO: Call cointoss directly and implement cointoss().
-        pass
-
-    @classmethod
     def change_map(cls, new_map, factory=None):
         if not factory:
             minqlx.Game().map = new_map
