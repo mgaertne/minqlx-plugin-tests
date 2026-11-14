@@ -16,9 +16,13 @@ def test_showdown_pure_helpers():
 def test_showdown_reactivation_conditions():
     plugin = showdown.__new__(showdown)
     plugin.min_opp = 1
+    plugin.vote_showdown = False
     plugin.showdown_activated = True
     assert plugin.should_reactivate_normal_game([], [])
     assert not plugin.should_reactivate_normal_game([1, 2], [])
+    plugin.vote_showdown = True
+    assert not plugin.should_reactivate_normal_game([], [])
+    plugin.vote_showdown = False
     plugin.showdown_activated = False
     assert not plugin.should_reactivate_normal_game([], [])
 

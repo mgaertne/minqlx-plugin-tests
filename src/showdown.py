@@ -37,7 +37,8 @@ class showdown(Plugin):
 
         self.vote_showdown = self.get_cvar("qlx_showdown_vote", bool)
         self.vote_showdown_teamsize = self.get_cvar("qlx_showdown_vote_teamsize", int) or 2
-        self.min_opp = self.get_cvar("qlx_showdown_min", int) or 2
+        min_opp = self.get_cvar("qlx_showdown_min", int)
+        self.min_opp = 2 if min_opp is None else min_opp
         self.max_opp = self.get_cvar("qlx_showdown_max", int) or 4
         self.showdown_random_weapons = self.get_cvar("qlx_showdown_random_weapons", list)
         self.random_weapons_iter = random_iterator(self.showdown_random_weapons)
@@ -187,8 +188,11 @@ class showdown(Plugin):
     def alive_players(self, players):
         return [player for player in players if player.is_alive]
 
+    def restores_weapons_during_the_round(self):
+        return not self.vote_showdown and self.min_opp > 0
+
     def should_reactivate_normal_game(self, alive_r, alive_b):
-        if not self.showdown_activated:
+        if not self.showdown_activated or not self.restores_weapons_during_the_round():
             return False
 
         return len(alive_r) <= self.min_opp and len(alive_b) <= self.min_opp
@@ -329,7 +333,7 @@ class showdown(Plugin):
             if amount_alive_blue == 1:
                 alive_b[0].holdable = "kamikaze"
 
-        if not self.vote_showdown and self.min_opp > 0:
+        if self.restores_weapons_during_the_round():
             restore_opponents = self.min_opp + 1
             self.msg(
                 f"^7{self.showdown_weapon.longname} showdown! Weapons will be restored when ^6{restore_opponents}^7 "
@@ -398,7 +402,7 @@ class showdown(Plugin):
         if self.showdown_weapon is None:
             return
 
-        if not self.vote_showdown and self.min_opp > 0:
+        if self.restores_weapons_during_the_round():
             enemies_left_for_restoring = len(alive_b + alive_r) - 1 - self.min_opp
             self.msg(
                 f"^7{self.showdown_weapon.longname} showdown! Kill ^6{enemies_left_for_restoring}^7 "

@@ -20,7 +20,7 @@ import showdown as showdown_module
 from minqlx import Plugin
 from showdown import ALL_WEAPONS, showdown
 
-scenarios("features/showdown.feature", "features/showdown_votes.feature")
+scenarios("features/showdown.feature", "features/showdown_votes.feature", "features/showdown_to_the_end.feature")
 
 NAMES = "Alice|Bob|Carol|Dave|Eve"
 TEAMS = "red|blue|spectator"
@@ -130,6 +130,14 @@ def _plugin_loaded(db, weapons):
     return load_plugin(db, qlx_showdown_random_weapons=weapons)
 
 
+@given(
+    parsers.parse('the showdown plugin is loaded with the random weapons "{weapons}" and no early restoring'),
+    target_fixture="plugin",
+)
+def _plugin_loaded_without_restoring(db, weapons):
+    return load_plugin(db, qlx_showdown_random_weapons=weapons, qlx_showdown_min="0")
+
+
 @given("the showdown plugin is loaded with showdown votes", target_fixture="plugin")
 def _plugin_loaded_with_votes(db):
     return load_plugin(db, qlx_showdown_vote="1", qlx_showdown_random_weapons="gl")
@@ -172,13 +180,13 @@ def _is_spectator(players, name):
     stand_on(players[name], "spectator", alive=False)
 
 
-@given(parsers.parse("{count:d} more living players are on the blue team"))
-def _more_living_players(players, count):
+@given(parsers.parse("{count:d} more living players are on the {team} team"))
+def _more_living_players(players, count, team):
     for _ in range(count):
         name = f"Extra {len(players)}"
         players[name] = fake_player(1000 + len(players), name, _id=len(players))
         players[name].stats = None
-        stand_on(players[name], "blue", alive=True)
+        stand_on(players[name], team, alive=True)
     connected_players(*players.values())
 
 
@@ -230,6 +238,14 @@ def _seconds_passed(clock, seconds):
 @given(parsers.parse("the Redis driver has the version {version}"))
 def _redis_version(monkeypatch, version):
     monkeypatch.setattr(showdown_module.redis, "VERSION", tuple(int(part) for part in version.split(".")))
+
+
+@when_step("one of the extra players dies")
+def _extra_player_dies(plugin, players):
+    extra = next(player for name, player in players.items() if name.startswith("Extra") and player.is_alive)
+    extra.is_alive = False
+    extra.health = 0
+    minqlx.EVENT_DISPATCHERS["death"].dispatch(extra, None, {})
 
 
 @given(parsers.re(rf"(?P<name>{NAMES}) died"))
@@ -352,6 +368,12 @@ def _sees_in_the_middle(players, name, text):
 @then(parsers.parse('the server console runs "{command}"'))
 def _console_runs(command):
     verify(minqlx).console_command(command)
+
+
+@then("the weapons are not restored")
+def _weapons_are_not_restored():
+    verify(minqlx, times=0).console_command("g_guidedRocket 0")
+    verify(Plugin, times=0).stop_sound()
 
 
 @then("the dropped items are removed")

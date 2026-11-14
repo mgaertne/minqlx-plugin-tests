@@ -110,3 +110,26 @@ Feature: Letting the team decide on a showdown
     And Eve died
     When Bob types "!showdown"
     Then everybody is told "Too late for showdown votes!"
+
+  Scenario: The weapons stay until the round ends and the last opponent is announced
+    Given Carol died
+    And Bob typed "!showdown"
+    And Carol typed "!showdown"
+    And the countdown is over
+    When Dave dies
+    Then the countdown announces "1 blue left!"
+    And the weapons are not restored
+
+  Scenario: The last opponent of a blue player is announced as well
+    Given Alice is alive on the "blue" team
+    And Bob is dead on the "blue" team
+    And Carol is alive on the "blue" team
+    And Dave is alive on the "red" team
+    And Eve is alive on the "red" team
+    And Carol died
+    And Bob typed "!showdown"
+    And Carol typed "!showdown"
+    And the countdown is over
+    When Dave dies
+    Then the countdown announces "1 red left!"
+    And the weapons are not restored

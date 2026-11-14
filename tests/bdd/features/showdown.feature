@@ -192,6 +192,16 @@ Feature: Deciding a clan arena round with a showdown
     Then everybody is told "^7Nade showdown! Kill ^62^7 more enemies to restore weapons"
     And the countdown announces "4 blues left!"
 
+  Scenario: Every death is announced with the opponents of a last standing blue player
+    Given Eve is dead on the "blue" team
+    And 3 more living players are on the red team
+    And the dice favour a showdown
+    And Carol died
+    And the countdown is over
+    When Alice dies
+    Then everybody is told "^7Nade showdown! Kill ^62^7 more enemies to restore weapons"
+    And the countdown announces "4 reds left!"
+
   Scenario: Deaths during the countdown are not announced
     Given 2 more living players are on the blue team
     And the dice favour a showdown
