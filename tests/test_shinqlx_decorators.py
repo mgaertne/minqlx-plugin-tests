@@ -1,5 +1,11 @@
 import pytest
-from minqlx_plugin_test import connected_players, fake_player, mocked_channel, register_decorated_handlers
+from minqlx_plugin_test import (
+    connected_players,
+    fake_player,
+    mocked_channel,
+    register_decorated_handlers,
+    setup_cvar,
+)
 from mockito import any_, verify, when2
 
 import minqlx
@@ -230,3 +236,21 @@ def test_command_rejects_methods_that_cannot_take_the_parsed_arguments():
 
     with pytest.raises(TypeError):
         shinqlx.command("x", args=(int,))(method)
+
+
+@pytest.mark.parametrize(
+    ("value", "kind", "expected"),
+    [
+        ("2, 4 ,6", list, ["2", "4", "6"]),
+        ("a,,b", list, ["a", "", "b"]),
+        ("a, a ,b", set, {"a", "b"}),
+        ("x , y", tuple, ("x", "y")),
+        ("", list, []),
+        ("  ", set, set()),
+        (" ", tuple, ()),
+    ],
+)
+def test_collection_cvars_are_stripped_and_empty_values_give_empty_collections(value, kind, expected):
+    setup_cvar("qlx_values", value)
+
+    assert shinqlx.Plugin.get_cvar("qlx_values", kind) == expected

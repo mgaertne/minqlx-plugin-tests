@@ -182,11 +182,11 @@ class Plugin:
         if return_type is bool:
             return bool(int(res)) if res else False
         if return_type is list:
-            return [s.strip() for s in res.split(",")] if res else []
+            return [s.strip() for s in res.split(",")] if res and res.strip() else []
         if return_type is set:
-            return {s.strip() for s in res.split(",")} if res else set()
+            return {s.strip() for s in res.split(",")} if res and res.strip() else set()
         if return_type is tuple:
-            return ([s.strip() for s in res.split(",")]) if res else ()
+            return tuple(s.strip() for s in res.split(",")) if res and res.strip() else ()
 
         raise ValueError(f"Invalid return type: {return_type}")
 
