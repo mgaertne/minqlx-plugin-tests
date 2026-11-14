@@ -27,7 +27,7 @@ class uptime(Plugin):
         qlserver_starttime = datetime.datetime.fromtimestamp(myself_process.create_time())
         qlserver_uptime = humanize.precisedelta(now - qlserver_starttime, minimum_unit="minutes", format="%d")
 
-        minqlx_version = str(minqlx.__version__)[1:-1]
+        minqlx_version = str(minqlx.__version__).strip('"').lstrip("v")
 
         self.msg(f"^6Operating system^7: ^5{lsb_info['description']}^7, ^6uptime^7: ^5{os_uptime}^7")
         self.msg(

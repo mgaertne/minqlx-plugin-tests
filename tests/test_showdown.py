@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from experimental.showdown import showdown
+from showdown import ALL_WEAPONS, random_iterator, showdown
 
 
 def test_showdown_pure_helpers():
@@ -21,3 +21,17 @@ def test_showdown_reactivation_conditions():
     assert not plugin.should_reactivate_normal_game([1, 2], [])
     plugin.showdown_activated = False
     assert not plugin.should_reactivate_normal_game([], [])
+
+
+def test_random_iterator_serves_every_element_before_repeating():
+    iterator = random_iterator(["g", "gl", "rl"])
+
+    assert sorted(next(iterator) for _ in range(3)) == ["g", "gl", "rl"]
+    assert sorted(next(iterator) for _ in range(3)) == ["g", "gl", "rl"]
+
+
+def test_weapon_is_identified_by_short_name_long_name_and_alias_ignoring_case():
+    pummel = next(weapon for weapon in ALL_WEAPONS if weapon.shortname == "g")
+
+    assert all(pummel.is_identified_by(text) for text in ["g", " G ", "pummel", "Gauntlet"])
+    assert not pummel.is_identified_by("rl")
