@@ -1,7 +1,7 @@
 from operator import itemgetter
 
 import minqlx
-from minqlx import Player, Plugin
+from minqlx import Plugin
 from minqlx.database import Redis
 
 
@@ -161,7 +161,7 @@ class spec_rotation(Plugin):
 
         if new_team == "spectator" and old_team in ["red", "blue"] and player.steam_id not in self.spec_rotation:
             next_steam_id = self.spec_rotation.pop(0)
-            self.switch_player(next_steam_id, player.team)
+            self.switch_player(next_steam_id, old_team)
 
     def switch_player(self, steam_id, team, msg=None):
         switching_player = self.player(steam_id)
@@ -271,10 +271,10 @@ class spec_rotation(Plugin):
     def find_player_to_spec(self, players):
         return min(players, key=self.find_games_here)
 
-    def find_games_here(self, player: Player):
+    def find_games_here(self, player):
         completed_key = f"minqlx:players:{player.steam_id}:games_completed"
 
-        if self.db is None or not self.db.exists(completed_key):
+        if not self.db.exists(completed_key):
             return 0
 
         return int(self.db[completed_key])
