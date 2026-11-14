@@ -4,13 +4,15 @@ from typing import TYPE_CHECKING
 from discord.ext.commands import Cog
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     # noinspection PyPackageRequirements
     from discord import Interaction
 
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot, Context
 
-def int_set(string_set: set[str] | None) -> set[int]: ...
+def int_set(string_set: Iterable[str] | None) -> set[int]: ...
 
 class TriggeredChat(Cog):
     bot: Bot

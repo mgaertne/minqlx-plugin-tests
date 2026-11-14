@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from minqlx import Plugin
 
@@ -19,7 +19,7 @@ def birthdate_in_year(birthday: datetime, year: int) -> datetime: ...
 
 # noinspection PyPep8Naming
 class bday(Plugin):
-    database: Redis
+    database: ClassVar[type[Redis]]
     bmap_steamid: SteamId | None
     bmap_map: str | None
     number_of_bday_maps: int

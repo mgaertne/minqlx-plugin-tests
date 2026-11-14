@@ -10,6 +10,7 @@ if TYPE_CHECKING:
         Mapping,
         Type,
         TypedDict,
+        Unpack,
     )
 
     from minqlx import (
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
         Command,
         Game,
         Player,
+        ReplyKwargs,
         UncancellableEventReturn,
         UserInfo,
     )
@@ -420,7 +422,7 @@ StatsData = (
 
 class Plugin:
     _loaded_plugins: ClassVar[dict[str, Any]] = ...
-    database: Type[Redis] | None = ...
+    database: ClassVar[type[Redis] | None] = ...
     _hooks: list[tuple[str, Callable, int]]
     _commands: list[Command]
     _db_instance: Redis | None = ...
@@ -483,7 +485,7 @@ class Plugin:
     @classmethod
     def player(cls, name: str | int | Player, player_list: Iterable[Player] | None = ...) -> Player | None: ...
     @classmethod
-    def msg(cls, msg: str, chat_channel: str = ..., **kwargs: str) -> None: ...
+    def msg(cls, msg: str, chat_channel: str = ..., **kwargs: Unpack[ReplyKwargs]) -> None: ...
     @classmethod
     def console(cls, text: str) -> None: ...
     @classmethod
@@ -499,7 +501,7 @@ class Plugin:
     @classmethod
     def center_print(cls, msg: str, recipient: str | int | Player | None = ...) -> None: ...
     @classmethod
-    def tell(cls, msg: str, recipient: str | int | Player, **kwargs: str) -> None: ...
+    def tell(cls, msg: str, recipient: str | int | Player, **kwargs: Unpack[ReplyKwargs]) -> None: ...
     @classmethod
     def is_vote_active(cls) -> bool: ...
     @classmethod

@@ -3,6 +3,12 @@ import time
 import minqlx
 from minqlx import Player, Plugin
 
+ENVIRONMENT_DEATHS = {
+    "UNKNOWN": "MOD_UNKNOWN",
+    "HURT": "MOD_TRIGGER_HURT",
+    "CRUSH": "MOD_CRUSH",
+}
+
 
 # noinspection PyPep8Naming
 class env_dmg(Plugin):
@@ -46,10 +52,10 @@ class env_dmg(Plugin):
             return
 
         means_of_death_str = data["MOD"]
-        if means_of_death_str not in ["UNKNOWN", "HURT", "CRUSH"]:
+        if means_of_death_str not in ENVIRONMENT_DEATHS:
             return
 
-        means_of_death = getattr(minqlx, f"MOD_{means_of_death_str}")
+        means_of_death = getattr(minqlx, ENVIRONMENT_DEATHS[means_of_death_str])
         if means_of_death not in self.means_of_death_watchlist:
             return
 

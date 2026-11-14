@@ -9,7 +9,7 @@ game_settings: dict[str, dict[str, str]]
 
 # noinspection PyPep8Naming
 class custom_modes_vote(Plugin):
-    default_mode: str
+    default_mode: str | None
     mode: str
 
     def __init__(self) -> None: ...

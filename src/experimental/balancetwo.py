@@ -2541,8 +2541,9 @@ class balancetwo(Plugin):
             if len(lowest_players) == 1:
                 lowest_player = lowest_players[0]
             else:
-                players_with_stats = [(player, player.stats) for player in lowest_players]
-                players_with_stats = [(player, stats) for player, stats in players_with_stats if stats is not None]
+                players_with_stats = [
+                    (player, stats) for player in lowest_players if (stats := player.stats) is not None
+                ]
                 if not players_with_stats:
                     lowest_player = max(lowest_players, key=lambda player: self.find_time(player.steam_id))
                 else:

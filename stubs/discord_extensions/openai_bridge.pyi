@@ -4,13 +4,15 @@ from typing import TYPE_CHECKING
 from discord.ext.commands import Cog
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     # noinspection PyPackageRequirements
     from discord import Message
 
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot
 
-def int_set(string_set: set[str]) -> set[int]: ...
+def int_set(string_set: Iterable[str] | None) -> set[int]: ...
 
 class OpenAIBridge(Cog):
     bot: Bot

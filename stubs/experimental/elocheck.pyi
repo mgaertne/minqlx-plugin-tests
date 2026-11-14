@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from minqlx import Plugin
 
@@ -25,7 +25,7 @@ def remove_trailing_color_code(text: str) -> str: ...
 
 # noinspection PyPep8Naming
 class elocheck(Plugin):
-    database: Redis
+    database: ClassVar[type[Redis]]
     reply_channel: str
     show_steam_ids: bool
     use_truskill_bn: bool

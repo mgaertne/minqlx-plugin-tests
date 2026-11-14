@@ -199,7 +199,8 @@ root = ["src"]
 include = ["src"]
 
 [tool.mypy]
-packages = ["stubs","src","tests"]
+mypy_path = ["stubs"]
+files = ["src", "stubs", "tests"]
 exclude = ["tests/fakes/"]
 check_untyped_defs = true
 ignore_missing_imports = true
@@ -209,11 +210,6 @@ strict_equality = true
 warn_redundant_casts = true
 warn_unused_configs = true
 no_implicit_reexport = true
-
-[[tool.mypy.overrides]]
-module = "stubs.*"
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"

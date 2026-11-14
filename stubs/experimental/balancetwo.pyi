@@ -1,6 +1,6 @@
 import threading
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Generic
+from typing import TYPE_CHECKING, ClassVar, Generic
 
 from minqlx import Plugin
 
@@ -49,7 +49,7 @@ def report_ratings_for_team(
 
 # noinspection PyPep8Naming
 class balancetwo(Plugin):
-    database: Redis
+    database: ClassVar[type[Redis]]
     rating_system: str
     ratingLimit_kick: bool
     ratingLimit_min: dict[str, int | float]

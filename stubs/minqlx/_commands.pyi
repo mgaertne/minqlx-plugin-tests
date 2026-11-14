@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
     from typing import Callable, Iterable, Pattern
@@ -8,6 +8,10 @@ if TYPE_CHECKING:
 
 MAX_MSG_LENGTH: int
 re_color_tag: Pattern
+
+class ReplyKwargs(TypedDict, total=False):
+    limit: int
+    delimiter: str
 
 class AbstractChannel:
     _name: str

@@ -77,7 +77,7 @@ class chat_fraggers(Plugin):
         if target.health <= 0:
             return
 
-        if not hasattr(target.state, "is_chatting") or not target.state.is_chatting:
+        if not getattr(target.state, "is_chatting", False):
             return
 
         if attacker.steam_id not in self.chat_tracker:
@@ -99,7 +99,7 @@ class chat_fraggers(Plugin):
         if self.game.state != "in_progress":
             return
 
-        if not hasattr(victim.state, "is_chatting") or not victim.state.is_chatting:
+        if not getattr(victim.state, "is_chatting", False):
             return
 
         if killer is None:

@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 from discord.ext.commands import Cog
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot
 
@@ -11,7 +13,7 @@ if TYPE_CHECKING:
 
 def get_game_info(game: Game) -> str: ...
 def game_status_information(game: Game) -> str: ...
-def int_set(string_set: set[str] | None) -> set[int]: ...
+def int_set(string_set: Iterable[str] | None) -> set[int]: ...
 
 class TopicUpdater(Cog):
     bot: Bot

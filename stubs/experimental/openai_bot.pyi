@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from minqlx import Plugin
 
@@ -23,7 +23,7 @@ def num_tokens_from_messages(messages: list[dict[str, str]], *, model: str = ...
 
 # noinspection PyPep8Naming
 class openai_bot(Plugin):
-    database: Redis
+    database: ClassVar[type[Redis]]
     queue_lock: RLock
     bot_api_key: str
     bot_name: str

@@ -53,9 +53,8 @@ class auto_rebalance(Plugin):
         self.add_hook("team_switch_attempt", self.handle_team_switch_attempt)
         self.add_hook("round_start", self.handle_round_start, priority=minqlx.PRI_LOWEST)
         self.add_hook("round_end", self.handle_round_end, priority=minqlx.PRI_LOWEST)
-        for event in ["map", "game_countdown"]:
-            # noinspection PyTypeChecker
-            self.add_hook(event, self.handle_reset_winning_teams)
+        self.add_hook("map", self.handle_reset_winning_teams)
+        self.add_hook("game_countdown", self.handle_reset_winning_teams)
         self.winning_teams = []
 
         self.plugin_version = f"{self.name} Version: v0.1.1"
