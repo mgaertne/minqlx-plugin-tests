@@ -107,7 +107,7 @@ commands = [["pytest", { replace = "posargs", default = [], extend = true }]]
 extras = [ "coverage" ]
 commands = [
     ["pytest", "--cov=src", "--cov-report=", { replace = "posargs", default = ["tests"], extend = true }],
-    ["coverage", "report", "--omit=src/minqlx/*,src/experimental/*,tests/*", "--fail-under=90"],
+    ["coverage", "report", "--omit=src/experimental/*,tests/*", "--fail-under=90"],
     ["coverage", "report", "--include=src/experimental/*"],
     ["coverage", "xml"],
     ["coverage", "html"],
@@ -150,7 +150,6 @@ source = [
 
 [tool.coverage.run]
 omit = [
-    "src/minqlx/*",
     "tests/*",
     "tests/minqlx_plugin_test/*",
 ]
@@ -198,7 +197,6 @@ root = ["src"]
 
 [tool.ty.src]
 include = ["src"]
-exclude = ["src/minqlx/**"]
 
 [tool.mypy]
 packages = ["stubs","src","tests"]
