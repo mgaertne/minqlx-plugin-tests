@@ -33,7 +33,7 @@ def _players():
 
 @given(parsers.parse('player "{name}" is connected'))
 def _player_connected(players, name):
-    players[name] = fake_player(STEAM_IDS[name], name)
+    players[name] = fake_player(STEAM_IDS[name], name, _id=len(players))
     players[name].stats = None
     connected_players(*players.values())
 
@@ -67,6 +67,7 @@ def _no_game_is_running():
     when2(minqlx.Game).thenRaise(minqlx.NonexistentGameError("no game"))
 
 
+@given(parsers.parse('{name} typed "{message}"'))
 @when_step(parsers.parse('{name} types "{message}"'))
 def _types(players, mock_channel, name, message):
     minqlx.COMMANDS.handle_input(players[name], message, mock_channel)
