@@ -47,9 +47,12 @@ class autoready(Plugin):
 
     def handle_client_command(self, _player, command):
         if len(self.players()) < self.min_players:
-            return True
+            return minqlx.RET_NONE
 
-        return not self.disable_player_ready or command != "readyup"
+        if self.disable_player_ready and command == "readyup":
+            return minqlx.RET_STOP_EVENT
+
+        return minqlx.RET_NONE
 
     def handle_map_change(self, _mapname, _factory):
         if self.timer is None or not self.timer.is_alive():

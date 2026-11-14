@@ -17,6 +17,7 @@ from minqlx_plugin_test import (
 from mockito import any_, mock, spy2, unstub, verify, when, when2
 
 import autoready
+import minqlx
 from autoready import CountdownThread, RandomIterator
 from minqlx import PlayerStats, Plugin
 
@@ -77,7 +78,7 @@ class TestAutoReady:
 
         return_val = self.plugin.handle_client_command(player, "readyup")
 
-        assert_that(return_val, equal_to(True))
+        assert_that(return_val, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_disallows_readyup_when_configured(self):
@@ -110,7 +111,7 @@ class TestAutoReady:
 
         return_val = plugin.handle_client_command(player, "readyup")
 
-        assert_that(return_val, equal_to(False))
+        assert_that(return_val, equal_to(minqlx.RET_STOP_EVENT))
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_allows_readyup_when_configured_with_too_few_players(
@@ -143,7 +144,7 @@ class TestAutoReady:
 
         return_val = plugin.handle_client_command(player, "readyup")
 
-        assert_that(return_val, equal_to(True))
+        assert_that(return_val, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_client_command_allows_other_commands(self):
@@ -176,7 +177,7 @@ class TestAutoReady:
 
         return_val = plugin.handle_client_command(player, "score")
 
-        assert_that(return_val, equal_to(True))
+        assert_that(return_val, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_handle_map_change_with_no_running_timer(self, alive_timer):
