@@ -47,7 +47,6 @@ tests = [
     "pytest-clarity>=1.0.0",
     "PyHamcrest>=2.1.0",
     "mockito>=2.0",
-    "undecorated>=0.1.0"
 ]
 coverage = [
     "minqlx_plugin_tests[tests]",

@@ -1,3 +1,4 @@
+import inspect
 import logging
 import time
 
@@ -14,7 +15,6 @@ from minqlx_plugin_test import (
 from mockito import mock, patch, spy2, unstub, verify, when
 from mockito.matchers import any_, matches
 from requests import RequestException, Response
-from undecorated import undecorated
 
 import minqlx
 from merciful_elo_limit import ConnectThread, merciful_elo_limit
@@ -770,7 +770,7 @@ class TestMercifulEloLimit:
         # noinspection PyTypeChecker
         plugin.connectthreads[1234] = "asdf"
 
-        undecorated(plugin.remove_thread)(plugin, 1234)
+        inspect.unwrap(plugin.remove_thread)(plugin, 1234)
 
         assert_that(plugin.connectthreads, equal_to({}))
 
@@ -780,7 +780,7 @@ class TestMercifulEloLimit:
         # noinspection PyTypeChecker
         plugin.connectthreads[1234] = "asdf"
 
-        undecorated(plugin.remove_thread)(plugin, 12345)
+        inspect.unwrap(plugin.remove_thread)(plugin, 12345)
 
         assert_that(plugin.connectthreads, equal_to({1234: "asdf"}))
 

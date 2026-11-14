@@ -1,3 +1,4 @@
+import inspect
 import random
 import time
 from datetime import datetime, timedelta
@@ -14,7 +15,6 @@ from minqlx_plugin_test import (
 
 # noinspection PyProtectedMember
 from mockito import any_, mock, spy2, unstub, verify, when, when2
-from undecorated import undecorated
 
 import autoready
 from autoready import CountdownThread, RandomIterator
@@ -500,7 +500,7 @@ class TestAutoReady:
         plugin = autoready.autoready()
         plugin.timer = None
 
-        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+        inspect.unwrap(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
 
         verify(alive_timer, times=0).stop()
 
@@ -512,7 +512,7 @@ class TestAutoReady:
         plugin = autoready.autoready()
         plugin.timer = alive_timer
 
-        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+        inspect.unwrap(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
 
         verify(alive_timer, times=0).stop()
 
@@ -525,7 +525,7 @@ class TestAutoReady:
         plugin = autoready.autoready()
         plugin.timer = alive_timer
 
-        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+        inspect.unwrap(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
 
         verify(alive_timer).stop()
         verify(autoready).CountdownThread(30, timed_actions=any_())
@@ -563,7 +563,7 @@ class TestAutoReady:
         plugin = autoready.autoready()
         plugin.timer = alive_timer
 
-        undecorated(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
+        inspect.unwrap(plugin.make_sure_game_really_starts)(plugin, "campgrounds")
 
         pending_player1.assert_was_put_on("spectator")
         pending_player2.assert_was_put_on("spectator")

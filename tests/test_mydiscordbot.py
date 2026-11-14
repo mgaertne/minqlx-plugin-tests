@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import logging
 from typing import Set
 from unittest.mock import AsyncMock
@@ -23,7 +24,6 @@ from minqlx_plugin_test import (
 )
 from mockito import mock, unstub, verify, when
 from mockito.matchers import arg_that, matches
-from undecorated import undecorated
 
 import minqlx
 from mydiscordbot import MinqlxHelpCommand, SimpleAsyncDiscord, mydiscordbot
@@ -78,43 +78,45 @@ class TestMyDiscordBotTests:
         verify(self.discord, times=0).relay_chat_message(any, any, any)
 
     def test_handle_player_connects(self):
-        undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting Player"))
+        inspect.unwrap(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting Player"))
 
         verify(self.discord).relay_message("_Connecting Player connected._")
 
     def test_handle_player_with_asterisk_connects(self):
-        undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
+        inspect.unwrap(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting*Player"))
 
         verify(self.discord).relay_message(r"_Connecting\*Player connected._")
 
     def test_handle_player_with_underscore_connects(self):
-        undecorated(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting_Player"))
+        inspect.unwrap(self.plugin.handle_player_connect)(self.plugin, fake_player(1, "Connecting_Player"))
 
         verify(self.discord).relay_message(r"_Connecting\_Player connected._")
 
     def test_handle_player_disconnects(self):
-        undecorated(self.plugin.handle_player_disconnect)(
+        inspect.unwrap(self.plugin.handle_player_disconnect)(
             self.plugin, fake_player(1, "Disconnecting Player"), "disconnected"
         )
 
         verify(self.discord).relay_message("_Disconnecting Player disconnected._")
 
     def test_handle_player_times_out(self):
-        undecorated(self.plugin.handle_player_disconnect)(
+        inspect.unwrap(self.plugin.handle_player_disconnect)(
             self.plugin, fake_player(1, "Disconnecting Player"), "timed out"
         )
 
         verify(self.discord).relay_message("_Disconnecting Player timed out._")
 
     def test_handle_player_is_kicked(self):
-        undecorated(self.plugin.handle_player_disconnect)(
+        inspect.unwrap(self.plugin.handle_player_disconnect)(
             self.plugin, fake_player(1, "Disconnecting Player"), "was kicked"
         )
 
         verify(self.discord).relay_message("_Disconnecting Player was kicked._")
 
     def test_handle_player_is_kicked_with_reason(self):
-        undecorated(self.plugin.handle_player_disconnect)(self.plugin, fake_player(1, "Disconnecting Player"), "llamah")
+        inspect.unwrap(self.plugin.handle_player_disconnect)(
+            self.plugin, fake_player(1, "Disconnecting Player"), "llamah"
+        )
 
         verify(self.discord).relay_message("_Disconnecting Player was kicked (llamah)._")
 
@@ -157,13 +159,13 @@ class TestMyDiscordBotTests:
     )
     def test_game_countdown(self, game_in_warmup):
         connected_players()
-        undecorated(self.plugin.handle_game_countdown_or_end)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown_or_end)(self.plugin)
 
         verify(self.discord).relay_message("Warmup on **Campgrounds** (CA) with **0/16** players. ")
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_game_countdown_with_no_game(self):
-        undecorated(self.plugin.handle_game_countdown_or_end)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown_or_end)(self.plugin)
 
         verify(self.discord, times=0).relay_message(any)
 

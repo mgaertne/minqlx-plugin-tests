@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import random
 import time
 
@@ -8,7 +9,6 @@ from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import assert_plugin_played_sound, setup_cvar, setup_cvars
 from mockito import patch, spy2, unstub, verify, when2
 from mockito.matchers import any_
-from undecorated import undecorated
 
 import minqlx
 from thirtysecwarn import thirtysecwarn
@@ -101,19 +101,19 @@ class TestThirtySecondWarnPlugin:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_plays_no_sound_when_game_equal_tonot_running_anymore(self):
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ft"], indirect=True)
     def test_plays_no_sound_when_game_equal_tonot_clan_arena(self, game_in_progress):
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
     @pytest.mark.usefixtures("game_in_warmup")
     def test_plays_no_sound_when_game_not_in_progress(self):
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, 4)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, 4)
 
         assert_plugin_played_sound(any_(str), times=0)
 
@@ -122,7 +122,7 @@ class TestThirtySecondWarnPlugin:
         calling_round_number = 4
         self.warner.timer_round_number = calling_round_number + 1
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, calling_round_number)
 
         assert_plugin_played_sound(any_(str), times=0)
 
@@ -133,7 +133,7 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str), times=0)
 
@@ -144,7 +144,7 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str), times=0)
 
@@ -155,7 +155,7 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str))
 
@@ -164,7 +164,7 @@ class TestThirtySecondWarnPlugin:
         warner_thread_name = "test_plays_sound_when_round_still_running1"
         self.warner.warner_thread_name = warner_thread_name
 
-        undecorated(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
+        inspect.unwrap(self.warner.play_thirty_second_warning)(self.warner, warner_thread_name)
 
         assert_plugin_played_sound(any_(str))
 
@@ -186,7 +186,7 @@ class TestThirtySecondWarnPlugin:
         setup_cvar("roundtimelimit", "180")
         patch(time.sleep, lambda _int: None)
 
-        undecorated(self.warner.warntimer)(self.warner)
+        inspect.unwrap(self.warner.warntimer)(self.warner)
 
         assert_that(self.warner.warner_thread_name, any_(str))
 
@@ -194,6 +194,6 @@ class TestThirtySecondWarnPlugin:
         setup_cvar("roundtimelimit", "180")
         patch(time.sleep, lambda _int: None)
 
-        undecorated(self.warner.warntimer)(self.warner)
+        inspect.unwrap(self.warner.warntimer)(self.warner)
 
         verify(time).sleep(150)

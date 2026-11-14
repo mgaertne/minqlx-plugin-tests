@@ -1,3 +1,5 @@
+import inspect
+
 import pytest
 from hamcrest import assert_that, empty, equal_to, has_item, has_items, not_
 from minqlx_plugin_test import (
@@ -11,7 +13,6 @@ from minqlx_plugin_test import (
 )
 from mockito import spy2, unstub, verify
 from mockito.matchers import any_, matches
-from undecorated import undecorated
 
 import minqlx
 from duelarena import DUELARENA_JOIN_MSG, DuelArenaGame, duelarena
@@ -51,7 +52,7 @@ class TestDuelArenaTests:
         connected_players(loaded_player)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(loaded_player, any_, times=0)
 
@@ -67,7 +68,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(loaded_player, any_, times=0)
 
@@ -80,7 +81,7 @@ class TestDuelArenaTests:
         loaded_player = fake_player(4, "Loaded Player", "spectator")
         connected_players(loaded_player)
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(loaded_player, any_(str), times=0)
 
@@ -92,7 +93,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(loaded_player, any_, times=0)
 
@@ -105,7 +106,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(
             loaded_player,
@@ -122,7 +123,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(loaded_player, any_, times=0)
 
@@ -140,7 +141,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player, spec_player)
         self.queue_up_players(spec_player)
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(
             loaded_player,
@@ -158,7 +159,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(loaded_player, any_, times=0)
 
@@ -181,7 +182,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player, spec_player1)
         self.queue_up_players(spec_player1)
 
-        undecorated(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
+        inspect.unwrap(self.plugin.handle_player_loaded)(self.plugin, loaded_player)
 
         assert_player_was_told(
             loaded_player,
@@ -420,7 +421,7 @@ class TestDuelArenaTests:
         connected_players(red_player, blue_player, spec_player)
         self.setup_duelarena_players(red_player, blue_player, spec_player)
 
-        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown)(self.plugin)
 
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
 
@@ -431,7 +432,7 @@ class TestDuelArenaTests:
         connected_players(red_player, blue_player)
         self.setup_duelarena_players(red_player, blue_player)
 
-        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown)(self.plugin)
 
         self.assert_duelarena_has_been_deactivated()
 
@@ -443,7 +444,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown)(self.plugin)
 
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(False))
 
@@ -455,7 +456,7 @@ class TestDuelArenaTests:
         connected_players(red_player, blue_player1, blue_player2)
         self.setup_duelarena_players(red_player, blue_player1, blue_player2)
 
-        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown)(self.plugin)
 
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
 
@@ -468,7 +469,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player1, blue_player2)
         self.deactivate_duelarena()
 
-        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown)(self.plugin)
 
         self.assert_duelarena_has_been_activated()
 
@@ -482,7 +483,7 @@ class TestDuelArenaTests:
         connected_players(red_player, blue_player, spec_player1, spec_player2)
         self.setup_duelarena_players(red_player, blue_player)
 
-        undecorated(self.plugin.handle_game_countdown)(self.plugin)
+        inspect.unwrap(self.plugin.handle_game_countdown)(self.plugin)
 
         self.assert_duelarena_has_been_deactivated()
 
@@ -525,13 +526,13 @@ class TestDuelArenaTests:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_round_end_with_no_game(self):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
         assert_that(return_code, equal_to(None))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ft"], indirect=True)
     def test_handle_round_end_with_wrong_gametype(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
         assert_that(return_code, equal_to(None))
 
@@ -541,7 +542,7 @@ class TestDuelArenaTests:
         indirect=True,
     )
     def test_handle_round_end_with_red_team_hit_roundlimit(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(None))
 
@@ -551,7 +552,7 @@ class TestDuelArenaTests:
         indirect=True,
     )
     def test_handle_round_end_with_blue_team_hit_roundlimit(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(None))
 
@@ -566,7 +567,7 @@ class TestDuelArenaTests:
         self.setup_scores({red_player: 5, blue_player: 2, speccing_player: 2})
         self.plugin.duelarena_game.print_reset_scores = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, None)
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, None)
 
         assert_plugin_sent_to_console("DuelArena results:")
         assert_plugin_sent_to_console("Place ^31.^7 Red Player ^7(Wins:^25^7)")
@@ -583,7 +584,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
         assert_that(self.plugin.duelarena_game.initduel, equal_to(False))
@@ -601,7 +602,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         self.assert_queue_contains(red_player)
 
@@ -615,7 +616,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(spec_player, "spectator")
 
@@ -629,7 +630,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, "spectator")
         assert_player_was_put_on(blue_player, any_(str), times=0)
@@ -645,7 +646,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(blue_player, "spectator")
         assert_player_was_put_on(red_player, any_(str), times=0)
@@ -661,7 +662,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, "blue")
@@ -676,7 +677,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, any_(str), times=0)
         assert_player_was_put_on(blue_player, "red")
@@ -691,7 +692,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, "red")
         assert_player_was_put_on(blue_player, any_(str), times=0)
@@ -706,7 +707,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, "red")
         assert_player_was_put_on(blue_player, "spectator")
@@ -722,7 +723,7 @@ class TestDuelArenaTests:
         self.queue_up_players(red_player, blue_player, spec_player)
         self.plugin.duelarena_game.initduel = True
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_player_was_put_on(red_player, "red")
         assert_player_was_put_on(blue_player, "blue")
@@ -731,13 +732,13 @@ class TestDuelArenaTests:
     def test_handle_round_end_with_no_duelarena_active(self, game_in_progress):
         self.deactivate_duelarena()
 
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         assert_that(return_code, equal_to(None))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=ca"], indirect=True)
     def test_handle_round_end_with_a_draw(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "DRAW"})
 
         assert_that(return_code, equal_to(None))
 
@@ -751,7 +752,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         self.assert_scores_are({red_player: 6, blue_player: 3, spec_player: 7})
 
@@ -769,7 +770,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "BLUE"})
 
         self.assert_scores_are({red_player: 5, blue_player: 4, spec_player: 7})
 
@@ -783,7 +784,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(self.plugin.duelarena_game.is_activated(), equal_to(True))
 
@@ -797,7 +798,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_player_was_put_on(spec_player, "blue")
         assert_player_was_put_on(blue_player, "spectator")
@@ -817,7 +818,7 @@ class TestDuelArenaTests:
         self.queue_up_players(spec_player)
         self.setup_scores({red_player: 5, blue_player: 3, spec_player: 7})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         game_in_progress.assert_addteamscore(team="blue", score=4)
 
@@ -829,7 +830,7 @@ class TestDuelArenaTests:
         self.setup_duelarena_players(red_player, blue_player)
         self.setup_scores({red_player: 5, blue_player: 3})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         self.assert_duelarena_has_been_deactivated()
 
@@ -842,7 +843,7 @@ class TestDuelArenaTests:
         self.queue_up_players(fake_player(42, "no longer connected Player"))
         self.setup_scores({red_player: 5, blue_player: 3})
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         self.assert_duelarena_has_been_deactivated()
 

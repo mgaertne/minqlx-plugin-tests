@@ -1,3 +1,5 @@
+import inspect
+
 import pytest
 from hamcrest import assert_that, equal_to
 from minqlx_plugin_test import (
@@ -8,7 +10,6 @@ from minqlx_plugin_test import (
 )
 from mockito import mock, unstub, verify
 from mockito.matchers import matches
-from undecorated import undecorated
 
 import minqlx
 from auto_rebalance import auto_rebalance
@@ -338,25 +339,25 @@ class TestAutoRebalance:
 
     @pytest.mark.usefixtures("no_minqlx_game")
     def test_handle_round_end_no_game_running(self):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.parametrize("game_in_progress", ["game_type=rr"], indirect=True)
     def test_handle_round_end_wrong_gametype(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=8,blue_score=3"], indirect=True)
     def test_handle_round_end_roundlimit_reached(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
     @pytest.mark.parametrize("game_in_progress", ["roundlimit=8,red_score=4,blue_score=3"], indirect=True)
     def test_handle_round_end_suggestion_threshold_not_met(self, game_in_progress):
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
@@ -372,7 +373,7 @@ class TestAutoRebalance:
             blue_player1,
         )
 
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
@@ -390,7 +391,7 @@ class TestAutoRebalance:
             blue_player2,
         )
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
@@ -411,7 +412,7 @@ class TestAutoRebalance:
             blue_player2,
         )
 
-        return_code = undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        return_code = inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(return_code, equal_to(minqlx.RET_NONE))
 
@@ -430,7 +431,7 @@ class TestAutoRebalance:
         )
         self.plugin.winning_teams = ["red", "blue", "red"]
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         assert_that(self.plugin.winning_teams, equal_to(["red", "blue", "red", "red"]))
 
@@ -449,7 +450,7 @@ class TestAutoRebalance:
         )
         self.plugin.winning_teams = ["blue", "red", "red"]
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin).add_request(players, mocked_balance_plugin.callback_teams, minqlx.CHAT_CHANNEL)
@@ -471,7 +472,7 @@ class TestAutoRebalance:
         )
         self.plugin.winning_teams = ["blue", "blue", "blue", "red", "red", "red", "red"]
 
-        undecorated(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
+        inspect.unwrap(self.plugin.handle_round_end)(self.plugin, {"TEAM_WON": "RED"})
 
         players = {p.steam_id: "ca" for p in [red_player1, red_player2, blue_player1, blue_player2]}
         verify(mocked_balance_plugin, times=0).add_request(

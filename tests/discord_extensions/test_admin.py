@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import threading
 import time
 from unittest.mock import AsyncMock
@@ -11,7 +12,6 @@ from discord import ChannelType, InteractionResponse
 from hamcrest import assert_that, equal_to, has_key, matches_regexp, not_
 from minqlx_plugin_test import setup_cvars
 from mockito import mock, patch, spy2, unstub, verify, when2
-from undecorated import undecorated
 
 import minqlx
 from discord_extensions import admin
@@ -197,7 +197,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -215,7 +215,7 @@ class TestAdmin:
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -236,7 +236,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -258,7 +258,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -280,7 +280,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
 
         await extension.qlx(exec_context)
 
@@ -296,7 +296,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
 
@@ -316,7 +316,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -335,7 +335,7 @@ class TestAdmin:
         patch(minqlx.log_exception, lambda: None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -358,7 +358,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "exec to minqlx")
@@ -381,7 +381,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "!blocked_command")
@@ -404,7 +404,7 @@ class TestAdmin:
         when2(minqlx.COMMANDS.handle_input, any, any, any).thenReturn(None)
 
         extension = AdminCog(bot)
-        extension.execute_qlx_command = functools.partial(undecorated(extension.execute_qlx_command), extension)
+        extension.execute_qlx_command = functools.partial(inspect.unwrap(extension.execute_qlx_command), extension)
         extension.authed_discord_ids.add(user.id)
 
         await extension.slash_qlx(interaction, "!allowed_command exec to minqlx")

@@ -1,3 +1,5 @@
+import inspect
+
 import pytest
 import requests
 from hamcrest import assert_that, contains_exactly, equal_to, not_
@@ -13,7 +15,6 @@ from minqlx_plugin_test import (
 from mockito import mock, spy2, unstub, verify, when
 from mockito.matchers import any_, matches
 from requests import Response
-from undecorated import undecorated
 
 import minqlx
 from qlstats_privacy_policy import ConnectThread, qlstats_privacy_policy
@@ -395,7 +396,7 @@ class TestQlstatsPrivacyPolicy:
 
     @pytest.mark.usefixtures("game_in_progress")
     def test_callback_delayed_kick_kicks_player(self):
-        undecorated(self.plugin.delayed_kick)(self.plugin, 123, "kicked")
+        inspect.unwrap(self.plugin.delayed_kick)(self.plugin, 123, "kicked")
 
         verify(minqlx.Plugin).kick(123, "kicked")
 
@@ -731,7 +732,7 @@ class TestQlstatsPrivacyPolicy:
         # noinspection PyTypeChecker
         plugin.connectthreads[1234] = "asdf"
 
-        undecorated(plugin.remove_thread)(plugin, 1234)
+        inspect.unwrap(plugin.remove_thread)(plugin, 1234)
 
         assert_that(plugin.connectthreads, equal_to({}))
 
@@ -741,6 +742,6 @@ class TestQlstatsPrivacyPolicy:
         # noinspection PyTypeChecker
         plugin.connectthreads[1234] = "asdf"
 
-        undecorated(plugin.remove_thread)(plugin, 12345)
+        inspect.unwrap(plugin.remove_thread)(plugin, 12345)
 
         assert_that(plugin.connectthreads, equal_to({1234: "asdf"}))
