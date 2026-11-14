@@ -1,6 +1,7 @@
 from fnmatch import fnmatch
 
 import pytest
+import redis
 from minqlx_plugin_test import (
     assert_plugin_sent_to_console,
     connected_players,
@@ -26,6 +27,7 @@ class FakeRedis:
     def __init__(self):
         self.data = {}
         self.hashes = {}
+        self.sorted_sets = {}
 
     def __contains__(self, key):
         return key in self.data
@@ -51,8 +53,19 @@ class FakeRedis:
     def hgetall(self, key):
         return dict(self.hashes.get(key, {}))
 
+    def zadd(self, key, *args):
+        if int(redis.VERSION[0]) >= 3:
+            (members,) = args
+        else:
+            score, member = args
+            members = {member: score}
+        self.sorted_sets.setdefault(key, {}).update(members)
+
     def get_permission(self, _player):
         return 0
+
+    def has_permission(self, steam_id, level=5):
+        return int(self.data.get(f"minqlx:players:{steam_id}:permission", 0)) >= level
 
 
 @pytest.fixture(name="db")

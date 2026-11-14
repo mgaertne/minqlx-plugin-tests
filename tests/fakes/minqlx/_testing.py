@@ -22,6 +22,13 @@ def run_delayed_tasks():
         event.action(*event.argument, **event.kwargs)
 
 
+def run_next_frame_tasks():
+    """Runs every task queued by ``@minqlx.next_frame``, as the next game frame would."""
+    while not minqlx.next_frame_tasks.empty():
+        func, args, kwargs = minqlx.next_frame_tasks.get(block=False)
+        func(*args, **kwargs)
+
+
 def join_minqlx_threads():
     """Waits for the threads started by ``@minqlx.thread``."""
     for thread in threading.enumerate():
