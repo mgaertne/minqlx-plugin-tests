@@ -11,6 +11,8 @@ TIMESTAMP_FORMAT = "%Y%m%d%H%M%S%z"
 # noinspection PyPep8Naming
 class last_played(Plugin):
     database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
 
     def __init__(self):
         super().__init__()

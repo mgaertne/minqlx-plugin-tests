@@ -10,6 +10,7 @@ import redis
 
 import minqlx
 from minqlx import Player, Plugin
+from minqlx.database import Redis
 
 
 class Position(NamedTuple):
@@ -957,6 +958,10 @@ MAP_SPEED_LOG = "minqlx:maps:{}:speedlog"
 
 # noinspection PyPep8Naming
 class weird_stats(Plugin):
+    database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
+
     def __init__(self) -> None:
         super().__init__()
 

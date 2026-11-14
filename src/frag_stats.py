@@ -2,6 +2,7 @@ from collections import Counter
 
 import minqlx
 from minqlx import NonexistentPlayerError, Plugin
+from minqlx.database import Redis
 
 COLLECTED_SOULZ_KEY = "minqlx:players:{}:soulz"
 REAPERZ_KEY = "minqlx:players:{}:reaperz"
@@ -24,6 +25,10 @@ SPECIAL_KILLERS = [
 
 # noinspection PyPep8Naming
 class frag_stats(Plugin):
+    database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
+
     def __init__(self):
         super().__init__()
 

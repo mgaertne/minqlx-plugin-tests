@@ -107,6 +107,8 @@ class openai_bot(Plugin):
     """
 
     database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
 
     def __init__(self):
         super().__init__()

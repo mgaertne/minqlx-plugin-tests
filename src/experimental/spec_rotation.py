@@ -2,6 +2,7 @@ from operator import itemgetter
 
 import minqlx
 from minqlx import Player, Plugin
+from minqlx.database import Redis
 
 
 def other_team(team):
@@ -31,6 +32,10 @@ def damage_this_round(damages, steam_id):
 
 # noinspection PyPep8Naming
 class spec_rotation(Plugin):
+    database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
+
     def __init__(self):
         super().__init__()
 

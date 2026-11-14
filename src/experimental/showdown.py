@@ -7,12 +7,17 @@ import redis
 
 import minqlx
 from minqlx import Plugin
+from minqlx.database import Redis
 
 LAST_STANDING_LOG = "minqlx:players:{}:last_standings"
 
 
 # noinspection PyPep8Naming
 class showdown(Plugin):
+    database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
+
     def __init__(self):
         super().__init__()
 

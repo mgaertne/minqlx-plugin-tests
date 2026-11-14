@@ -2,6 +2,7 @@ import math
 
 import minqlx
 from minqlx import NonexistentPlayerError, Player, Plugin
+from minqlx.database import Redis
 
 WEAPON_STATS_KEY = "minqlx:{}:weaponstats"
 _name_key = "minqlx:players:{}:last_used_name"
@@ -21,6 +22,10 @@ def identify_reply_channel(channel):
 
 # noinspection PyPep8Naming
 class asdf(Plugin):
+    database = Redis
+    # type checkers see Plugin.db as Redis | None; database = Redis guarantees an instance
+    db: Redis
+
     def __init__(self):
         super().__init__()
 
