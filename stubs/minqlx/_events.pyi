@@ -14,7 +14,7 @@ if TYPE_CHECKING:
         Plugin,
         RoundEndData,
         StatsData,
-        UserInfoEventInput,
+        UserinfoEventInput,
     )
 
 _re_vote: Pattern
@@ -232,7 +232,7 @@ class DeathDispatcher(EventDispatcher):
     def dispatch(self, victim: Player, killer: Player | None, data: DeathData) -> str | bool | Iterable | None: ...
 
 class UserinfoDispatcher(EventDispatcher):
-    def dispatch(self, playe: Player, changed: UserInfoEventInput) -> str | bool | Iterable | None: ...
+    def dispatch(self, player: Player, changed: UserinfoEventInput) -> str | bool | Iterable | None: ...
     def handle_return(self, handler: Callable, value: int | str | None) -> str | None: ...
 
 class KamikazeUseDispatcher(EventDispatcher):

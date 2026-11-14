@@ -192,8 +192,8 @@ class DeathData(TypedDict):
     TIME: int
     WARMUP: bool
 
-UserInfoEventInput = TypedDict(
-    "UserInfoEventInput",
+UserinfoEventInput = TypedDict(
+    "UserinfoEventInput",
     {
         "ip": str,
         "ui_singlePlayerActive": str,
@@ -801,7 +801,7 @@ class Plugin:
     def add_hook(
         self,
         event: Literal["userinfo"],
-        handler: Callable[[Player, UserInfoEventInput], UserInfo | CancellableEventReturn],
+        handler: Callable[[Player, UserinfoEventInput], UserInfo | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
@@ -1041,7 +1041,7 @@ class Plugin:
     def remove_hook(
         self,
         event: Literal["userinfo"],
-        handler: Callable[[Player, UserInfoEventInput], UserInfo | CancellableEventReturn],
+        handler: Callable[[Player, UserinfoEventInput], UserInfo | CancellableEventReturn],
         priority: int = ...,
     ) -> None: ...
     @overload
