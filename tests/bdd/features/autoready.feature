@@ -55,19 +55,17 @@ Feature: Starting the match automatically after the warmup
     When the game is about to start
     Then Dave is put on the "spectator" team
 
-  Scenario: The remaining time is kept over a map change
+  Scenario Outline: The remaining time is kept over a map change, but at least 30 seconds
     Given Alice joined the "red" team
-    And the countdown has 100 seconds left
+    And the countdown has <left> seconds left
     And the map changes
     When Bob joins the "blue" team
-    Then a countdown of 100 seconds is running
+    Then a countdown of <kept> seconds is running
 
-  Scenario: Little remaining time is raised to 30 seconds after a map change
-    Given Alice joined the "red" team
-    And the countdown has 10 seconds left
-    And the map changes
-    When Bob joins the "blue" team
-    Then a countdown of 30 seconds is running
+    Examples:
+      | left | kept |
+      | 100  | 100  |
+      | 10   | 30   |
 
   Scenario: Players can ready up by hand when that is allowed
     When Alice sends the client command "readyup"

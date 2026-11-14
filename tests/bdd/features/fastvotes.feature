@@ -3,33 +3,22 @@ Feature: Deciding votes before the time is up
   Map and kick votes end as soon as the result is clear, depending on the strategy: either when one side leads by
   enough votes, or when enough connected players have voted and it is not a draw.
 
-  Scenario: A vote passes as soon as the yes votes lead by 6
+  Scenario Outline: Votes are decided by the lead with the threshold strategy
     Given the fastvotes plugin is loaded with the "threshold" strategy
     And player "Alice" is connected
-    And a "map" vote is running with 5 yes and 0 no votes
-    When Alice votes yes
-    Then the vote is passed immediately
+    And a "<vote>" vote is running with <yes> yes and <no> no votes
+    When Alice votes <answer>
+    Then the vote is <outcome>
 
-  Scenario: A vote fails as soon as the no votes lead by 5
-    Given the fastvotes plugin is loaded with the "threshold" strategy
-    And player "Alice" is connected
-    And a "kick" vote is running with 0 yes and 4 no votes
-    When Alice votes no
-    Then the vote is failed immediately
+    Examples: Passing needs a lead of 6, failing a lead of 5
+      | vote     | yes | no | answer | outcome            |
+      | map      | 5   | 0  | yes    | passed immediately |
+      | kick     | 0   | 4  | no     | failed immediately |
 
-  Scenario: A vote without a clear lead is left running
-    Given the fastvotes plugin is loaded with the "threshold" strategy
-    And player "Alice" is connected
-    And a "map" vote is running with 2 yes and 1 no votes
-    When Alice votes yes
-    Then the vote is left running
-
-  Scenario: Other kinds of votes are not decided early
-    Given the fastvotes plugin is loaded with the "threshold" strategy
-    And player "Alice" is connected
-    And a "teamsize" vote is running with 5 yes and 0 no votes
-    When Alice votes yes
-    Then the vote is left running
+    Examples: Nothing is decided early
+      | vote     | yes | no | answer | outcome      |
+      | map      | 2   | 1  | yes    | left running |
+      | teamsize | 5   | 0  | yes    | left running |
 
   Scenario: Votes arriving before the server ends a decided vote do not decide it again
     Given the fastvotes plugin is loaded with the "threshold" strategy
@@ -48,42 +37,22 @@ Feature: Deciding votes before the time is up
     When Alice votes yes
     Then the vote is left running
 
-  Scenario: A vote passes when enough players voted and yes leads
+  Scenario Outline: Votes are decided by the participation with the participation strategy
     Given the fastvotes plugin is loaded with the "participation" strategy
     And player "Alice" is connected
     And player "Bob" is connected
     And player "Carol" is connected
     And player "Dave" is connected
-    And a "map" vote is running with 2 yes and 0 no votes
-    When Alice votes yes
-    Then the vote is passed immediately
+    And a "<vote>" vote is running with <yes> yes and <no> no votes
+    When Alice votes <answer>
+    Then the vote is <outcome>
 
-  Scenario: A vote fails when enough players voted and no leads
-    Given the fastvotes plugin is loaded with the "participation" strategy
-    And player "Alice" is connected
-    And player "Bob" is connected
-    And player "Carol" is connected
-    And player "Dave" is connected
-    And a "kick" vote is running with 0 yes and 2 no votes
-    When Alice votes no
-    Then the vote is failed immediately
+    Examples: Enough players voted and one side leads
+      | vote | yes | no | answer | outcome            |
+      | map  | 2   | 0  | yes    | passed immediately |
+      | kick | 0   | 2  | no     | failed immediately |
 
-  Scenario: A vote waits while too few players voted
-    Given the fastvotes plugin is loaded with the "participation" strategy
-    And player "Alice" is connected
-    And player "Bob" is connected
-    And player "Carol" is connected
-    And player "Dave" is connected
-    And a "map" vote is running with 1 yes and 0 no votes
-    When Alice votes yes
-    Then the vote is left running
-
-  Scenario: A draw is not decided even if everybody voted
-    Given the fastvotes plugin is loaded with the "participation" strategy
-    And player "Alice" is connected
-    And player "Bob" is connected
-    And player "Carol" is connected
-    And player "Dave" is connected
-    And a "map" vote is running with 1 yes and 2 no votes
-    When Alice votes yes
-    Then the vote is left running
+    Examples: Too few players voted or it is a draw
+      | vote | yes | no | answer | outcome      |
+      | map  | 1   | 0  | yes    | left running |
+      | map  | 1   | 2  | yes    | left running |

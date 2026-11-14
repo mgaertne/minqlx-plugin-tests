@@ -1,3 +1,5 @@
+import threading
+
 import minqlx
 
 
@@ -11,3 +13,17 @@ def reset_registrations():
         minqlx.frame_tasks.cancel(event)
     while not minqlx.next_frame_tasks.empty():
         minqlx.next_frame_tasks.get(block=False)
+
+
+def run_delayed_tasks():
+    """Runs every task queued by ``@minqlx.delay`` right away, whatever its delay is."""
+    for event in sorted(minqlx.frame_tasks.queue):
+        minqlx.frame_tasks.cancel(event)
+        event.action(*event.argument, **event.kwargs)
+
+
+def join_minqlx_threads():
+    """Waits for the threads started by ``@minqlx.thread``."""
+    for thread in threading.enumerate():
+        if thread.name.endswith("minqlxthread"):
+            thread.join(timeout=2)

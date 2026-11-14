@@ -13,23 +13,27 @@ Feature: Announcing the last 30 seconds of a round
     Then the announcer plays "sound/vo/30_second_warning.ogg"
     And the warning waited 120 seconds
 
-  Scenario: A longer round time limit moves the warning
-    Given the round time limit is 180 seconds
+  Scenario Outline: Another round time limit moves the warning
+    Given the round time limit is <limit> seconds
     When a round starts
     And 30 seconds are left in the round
-    Then the warning waited 150 seconds
+    Then the warning waited <wait> seconds
 
-  Scenario: The female announcer can be chosen
-    Given the announcer "female" is chosen
-    When a round starts
-    And 30 seconds are left in the round
-    Then the announcer plays "sound/vo_female/30_second_warning.ogg"
+    Examples:
+      | limit | wait |
+      | 180   | 150  |
+      | 90    | 60   |
 
-  Scenario: An unknown announcer falls back to the standard one
-    Given the announcer "robot" is chosen
+  Scenario Outline: The announcer can be chosen and falls back to the standard one
+    Given the announcer "<announcer>" is chosen
     When a round starts
     And 30 seconds are left in the round
-    Then the announcer plays "sound/vo/30_second_warning.ogg"
+    Then the announcer plays "<sound>"
+
+    Examples:
+      | announcer | sound                                 |
+      | female    | sound/vo_female/30_second_warning.ogg |
+      | robot     | sound/vo/30_second_warning.ogg        |
 
   Scenario: A round that ended early gets no warning
     When a round starts
@@ -50,23 +54,17 @@ Feature: Announcing the last 30 seconds of a round
     And 30 seconds are left in the round
     Then nothing is announced
 
-  Scenario: A timeout during the round cancels the warning
-    Given a timeout was called during the round
+  Scenario Outline: Only a timeout during the round cancels the warning
+    Given <timeout>
     When a round starts
     And 30 seconds are left in the round
-    Then nothing is announced
+    Then <outcome>
 
-  Scenario: A timeout that ended before the round started does not matter
-    Given a timeout ended before the round started
-    When a round starts
-    And 30 seconds are left in the round
-    Then the announcer plays "sound/vo/30_second_warning.ogg"
-
-  Scenario: A timeout that ended after the round started cancels the warning
-    Given a timeout ended after the round started
-    When a round starts
-    And 30 seconds are left in the round
-    Then nothing is announced
+    Examples:
+      | timeout                                  | outcome                                                |
+      | a timeout was called during the round    | nothing is announced                                   |
+      | a timeout ended after the round started  | nothing is announced                                   |
+      | a timeout ended before the round started | the announcer plays "sound/vo/30_second_warning.ogg"   |
 
   Scenario: The start of the match cancels a pending warning
     When a round starts

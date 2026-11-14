@@ -1,4 +1,4 @@
-import threading
+from fnmatch import fnmatch
 
 import pytest
 from minqlx_plugin_test import (
@@ -17,7 +17,47 @@ from pytest_bdd import when as when_step
 import minqlx
 from minqlx.database import Redis
 
-STEAM_IDS = {"Alice": 123, "Bob": 456, "Carol": 789, "Dave": 321}
+STEAM_IDS = {"Alice": 123, "Bob": 456, "Carol": 789, "Dave": 321, "Eve": 654}
+
+
+class FakeRedis:
+    """A dict-backed stand-in for the Redis driver, for plugins that read back what they wrote."""
+
+    def __init__(self):
+        self.data = {}
+        self.hashes = {}
+
+    def __contains__(self, key):
+        return key in self.data
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __setitem__(self, key, value):
+        self.data[key] = str(value)
+
+    def exists(self, key):
+        return key in self.data
+
+    def get(self, key):
+        return self.data.get(key)
+
+    def incr(self, key):
+        self.data[key] = str(int(self.data.get(key, 0)) + 1)
+
+    def scan_iter(self, match):
+        return [key for key in self.data if fnmatch(key, match)]
+
+    def hgetall(self, key):
+        return dict(self.hashes.get(key, {}))
+
+    def get_permission(self, _player):
+        return 0
+
+
+@pytest.fixture(name="db")
+def _db():
+    return FakeRedis()
 
 
 @pytest.fixture(autouse=True)
@@ -71,9 +111,7 @@ def _no_game_is_running():
 @when_step(parsers.parse('{name} types "{message}"'))
 def _types(players, mock_channel, name, message):
     minqlx.COMMANDS.handle_input(players[name], message, mock_channel)
-    for thread in threading.enumerate():
-        if thread.name.endswith("minqlxthread"):
-            thread.join(timeout=2)
+    minqlx.join_minqlx_threads()
 
 
 @then(parsers.parse('the channel is told "{text}"'))

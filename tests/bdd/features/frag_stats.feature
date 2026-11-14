@@ -58,17 +58,13 @@ Feature: Frag statistics between players
     When Alice fragged Bob
     Then the database counted Alice's soul of Bob once
 
-  Scenario: Alice leads over Bob
-    Given the database says Alice fragged Bob 5 times and Bob fragged Alice 3 times
+  Scenario Outline: The overall statistics against another player tell who leads
+    Given the database says Alice fragged Bob <alice_frags> times and Bob fragged Alice <bob_frags> times
     When Alice types "!soulz Bob"
-    Then the channel is told "Alice^7 leads by ^22^7 soulz vs. Bob^7 (5/3)"
+    Then the channel is told "<message>"
 
-  Scenario: Bob leads over Alice
-    Given the database says Alice fragged Bob 2 times and Bob fragged Alice 4 times
-    When Alice types "!soulz Bob"
-    Then the channel is told "Bob^7 leads by ^12^7 soulz vs. Alice^7 (4/2)"
-
-  Scenario: Alice and Bob are even
-    Given the database says Alice fragged Bob 3 times and Bob fragged Alice 3 times
-    When Alice types "!soulz Bob"
-    Then the channel is told "Alice^7 is even with Bob^7 (3/3)"
+    Examples:
+      | alice_frags | bob_frags | message                                    |
+      | 5           | 3         | Alice^7 leads by ^22^7 soulz vs. Bob^7 (5/3) |
+      | 2           | 4         | Bob^7 leads by ^12^7 soulz vs. Alice^7 (4/2) |
+      | 3           | 3         | Alice^7 is even with Bob^7 (3/3)           |

@@ -43,13 +43,16 @@ Feature: Celebrating birthdays
     When Bob types "!bday 31.13."
     Then Bob is told "^7Invalid date given"
 
-  Scenario: The date is required
-    When Bob types "!bday"
+  Scenario Outline: Commands with missing or unknown arguments show their usage
+    When <player> types "<command>"
     Then the channel is told the usage of the command
 
-  Scenario: Unknown arguments are rejected
-    When Bob types "!bday 20.07. maybe"
-    Then the channel is told the usage of the command
+    Examples:
+      | player | command            |
+      | Bob    | !bday              |
+      | Bob    | !bday 20.07. maybe |
+      | Alice  | !bdayedit Bob      |
+      | Carol  | !when              |
 
   Scenario: Confirming in the same command is accepted
     When Bob types "!bday 20.07. confirm"
@@ -77,17 +80,14 @@ Feature: Celebrating birthdays
     Then Alice is told "^7Invalid date given"
     And the birthday of Bob is not stored yet
 
-  Scenario: An admin is told when nobody matches
-    When Alice types "!bdayedit Zoe 1.5."
-    Then Alice is told "Sorry, but no players matched your tokens: Zoe."
+  Scenario Outline: An admin is told when no single player matches
+    When Alice types "!bdayedit <target> 1.5."
+    Then Alice is told "<message>"
 
-  Scenario: An admin is told when several players match
-    When Alice types "!bdayedit a 1.5."
-    Then Alice is told "A total of ^62^7 players matched for a:"
-
-  Scenario: The admin command needs a player and a date
-    When Alice types "!bdayedit Bob"
-    Then the channel is told the usage of the command
+    Examples:
+      | target | message                                        |
+      | Zoe    | Sorry, but no players matched your tokens: Zoe. |
+      | a      | A total of ^62^7 players matched for a:         |
 
   Scenario: Players without admin rights cannot set birthdays
     When Bob types "!bdayedit Carol 24.12."
@@ -112,25 +112,20 @@ Feature: Celebrating birthdays
     When Alice types "!nextbday"
     Then the channel is told "Next birthday: Bob^7 (20.7.) in 35 days."
 
-  Scenario: A birthday tomorrow is announced as such
-    Given the birthday of Bob is "16.6."
+  Scenario Outline: The next birthday is announced depending on how far away it is
+    Given the birthday of Bob is "<birthday>"
     When Alice types "!nextbday"
-    Then the channel is told "Next birthday: Bob^7 (16.6.) will be tomorrow!"
+    Then the channel is told "<announcement>"
 
-  Scenario: A birthday today is celebrated
-    Given the birthday of Bob is "15.6."
-    When Alice types "!nextbday"
-    Then the channel is told "Next birthday: Bob^7 has her/his birthday today! (15.6.) Happy Birthday!"
+    Examples: Within the year
+      | birthday | announcement                                                               |
+      | 16.6.    | Next birthday: Bob^7 (16.6.) will be tomorrow!                             |
+      | 15.6.    | Next birthday: Bob^7 has her/his birthday today! (15.6.) Happy Birthday!   |
 
-  Scenario: A birthday that has passed this year comes up next year
-    Given the birthday of Bob is "14.6."
-    When Alice types "!nextbday"
-    Then the channel is told "Next birthday: Bob^7 (14.6.) in 364 days."
-
-  Scenario: A leap day is celebrated on the 28th in other years
-    Given the birthday of Bob is "29.2."
-    When Alice types "!nextbday"
-    Then the channel is told "Next birthday: Bob^7 (29.2.) in 258 days."
+    Examples: Already passed this year, and a leap day that is celebrated on the 28th in other years
+      | birthday | announcement                                   |
+      | 14.6.    | Next birthday: Bob^7 (14.6.) in 364 days.      |
+      | 29.2.    | Next birthday: Bob^7 (29.2.) in 258 days.      |
 
   Scenario: Nothing is announced without birthdays
     When Alice types "!nextbday"

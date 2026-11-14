@@ -13,18 +13,17 @@ Feature: Custom call votes
     And Bob is on the "blue" team
     And Carol is on the "red" team
 
-  Scenario: Damage through floors can be switched off
-    When Alice calls the vote "thrufloors off"
-    Then the vote "g_forceDmgThroughSurface 0" is started as "Turn off damage through floors?"
+  Scenario Outline: Damage through floors can be switched on and off
+    When Alice calls the vote "thrufloors <switch>"
+    Then the vote "g_forceDmgThroughSurface <value>" is started as "<question>"
     And Alice votes yes for it
     And everybody is told "Alice^7 called a vote."
     And the vote is taken over by the plugin
 
-  Scenario: Damage through floors can be switched on
-    When Alice calls the vote "thrufloors on"
-    Then the vote "g_forceDmgThroughSurface 1" is started as "Turn on damage through floors?"
-    And Alice votes yes for it
-    And the vote is taken over by the plugin
+    Examples:
+      | switch | value | question                           |
+      | off    | 0     | Turn off damage through floors?    |
+      | on     | 1     | Turn on damage through floors?     |
 
   Scenario: The thrufloors vote needs on or off
     When Alice calls the vote "thrufloors maybe"
@@ -32,16 +31,17 @@ Feature: Custom call votes
     And no vote is started
     And the vote is taken over by the plugin
 
-  Scenario: A player can be voted into the spectators by name
-    When Alice calls the vote "spec Bob"
+  Scenario Outline: A player can be voted into the spectators by name or Steam ID
+    When Alice calls the vote "spec <target>"
     Then the vote "put 1 spec" is started as "spec Bob^7?"
     And Alice votes yes for it
     And everybody is told "Alice^7 called a vote."
     And the vote is taken over by the plugin
 
-  Scenario: A player can be voted into the spectators by Steam ID
-    When Alice calls the vote "spec 456"
-    Then the vote "put 1 spec" is started as "spec Bob^7?"
+    Examples:
+      | target |
+      | Bob    |
+      | 456    |
 
   Scenario: Players who are already spectators cannot be voted into the spectators
     Given Bob is on the "spectator" team
@@ -50,11 +50,16 @@ Feature: Custom call votes
     And no vote is started
     And the vote is taken over by the plugin
 
-  Scenario: Nobody matching the name is reported
-    When Alice calls the vote "spec Zoe"
+  Scenario Outline: Nobody matching the name is reported
+    When Alice calls the vote "<vote> Zoe"
     Then Alice is told "Sorry, but no players matched your tokens: Zoe."
     And no vote is started
     And the vote is taken over by the plugin
+
+    Examples:
+      | vote |
+      | spec |
+      | mute |
 
   Scenario: Several matching players are listed
     When Alice calls the vote "spec a"
@@ -68,11 +73,6 @@ Feature: Custom call votes
     Then the vote "qlx !silence 1 10 minutes You were call-voted silent for 10 minutes.;mute 1" is started as "Mute Bob^7 for 10 minutes?"
     And Alice votes yes for it
     And everybody is told "Alice^7 called a vote."
-
-  Scenario: Muting somebody unknown is reported
-    When Alice calls the vote "mute Zoe"
-    Then Alice is told "Sorry, but no players matched your tokens: Zoe."
-    And no vote is started
 
   Scenario: Everybody can be readied up during the warmup
     When Alice calls the vote "allready"

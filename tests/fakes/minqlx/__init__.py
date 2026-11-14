@@ -89,7 +89,7 @@ from ._game import Game, NonexistentGameError
 from ._handlers import frame_tasks, handle_frame, next_frame_tasks
 from ._player import AbstractDummyPlayer, NonexistentPlayerError, Player, RconDummyPlayer
 from ._plugin import Plugin
-from ._testing import reset_registrations
+from ._testing import join_minqlx_threads, reset_registrations, run_delayed_tasks
 
 __version__ = _minqlx.__version__
 __version_info__ = (999, 999, 999)

@@ -1,8 +1,5 @@
-import threading
 from datetime import datetime
-from fnmatch import fnmatch
 
-import pytest
 from minqlx_plugin_test import setup_cvars
 from mockito import any_, mock, verify, when, when2
 from pytest_bdd import given, parsers, scenarios, then
@@ -32,52 +29,8 @@ class FrozenDatetime(datetime):
         return NOW
 
 
-class FakeRedis:
-    def __init__(self):
-        self.data = {}
-        self.hashes = {}
-
-    def __contains__(self, key):
-        return key in self.data
-
-    def __getitem__(self, key):
-        return self.data[key]
-
-    def __setitem__(self, key, value):
-        self.data[key] = str(value)
-
-    def exists(self, key):
-        return key in self.data
-
-    def get(self, key):
-        return self.data.get(key)
-
-    def incr(self, key):
-        self.data[key] = str(int(self.data.get(key, 0)) + 1)
-
-    def scan_iter(self, match):
-        return [key for key in self.data if fnmatch(key, match)]
-
-    def hgetall(self, key):
-        return dict(self.hashes.get(key, {}))
-
-    def get_permission(self, _player):
-        return 0
-
-
-def run_delayed_tasks():
-    for event in sorted(minqlx.frame_tasks.queue):
-        minqlx.frame_tasks.cancel(event)
-        event.action(*event.argument, **event.kwargs)
-
-
 def birthday_picks_key(name):
     return f"{BDAY_KEY.format(STEAM_IDS[name])}:{NOW.year}"
-
-
-@pytest.fixture(name="db")
-def _db():
-    return FakeRedis()
 
 
 @given("today is the 15th of June 2025 around noon")
@@ -108,7 +61,7 @@ def _database_knows(db, name, steam_id):
 
 @given("the delayed tasks run")
 def _delayed_tasks_run():
-    run_delayed_tasks()
+    minqlx.run_delayed_tasks()
 
 
 @given(parsers.parse("{name:w} picked {amount:d} birthday map this year"))
@@ -155,15 +108,13 @@ def _map_changes(mapname):
 def _types_in_red_team_chat(players, name, message):
     when(minqlx.CHAT_CHANNEL).reply(any_).thenReturn(None)
     minqlx.COMMANDS.handle_input(players[name], message, minqlx.RED_TEAM_CHAT_CHANNEL)
-    for thread in threading.enumerate():
-        if thread.name.endswith("minqlxthread"):
-            thread.join(timeout=2)
+    minqlx.join_minqlx_threads()
 
 
 @when_step(parsers.parse("{name:w} has loaded"))
 def _has_loaded(plugin, players, name):
     minqlx.EVENT_DISPATCHERS["player_loaded"].dispatch(players[name])
-    run_delayed_tasks()
+    minqlx.run_delayed_tasks()
 
 
 @when_step("the game ends")
@@ -208,13 +159,13 @@ def _birthday_stored_for_steam_id(db, steam_id, birthday):
 
 @then(parsers.parse('the server changes to "{command}" three seconds later'))
 def _server_changes_map(command):
-    run_delayed_tasks()
+    minqlx.run_delayed_tasks()
     verify(Plugin).change_map(command)
 
 
 @then("the server does not change the map")
 def _server_does_not_change_map():
-    run_delayed_tasks()
+    minqlx.run_delayed_tasks()
     verify(Plugin, times=0).change_map(any_)
 
 

@@ -98,19 +98,21 @@ Feature: Balancing the teams when players join and when a team dominates
     Then the join is allowed
     And everybody is told "^1balance^7 plugin not loaded, ^1auto rebalance^7 not possible."
 
-  Scenario: A lead of three rounds asks the balance plugin for a suggestion
+  Scenario Outline: The lead decides whether the balance plugin is asked for a suggestion
     Given Alice is on the "red" team with a rating of 2000
     And Bob is on the "blue" team with a rating of 1000
-    And the score is red 3, blue 0
+    And the score is red <red>, blue <blue>
     When the "red" team wins a round
-    Then the balance plugin is asked to suggest a rebalance
+    Then the balance plugin <reaction>
 
-  Scenario: A small lead does not need a suggestion
-    Given Alice is on the "red" team with a rating of 2000
-    And Bob is on the "blue" team with a rating of 1000
-    And the score is red 2, blue 1
-    When the "red" team wins a round
-    Then the balance plugin is not asked
+    Examples: A lead of three rounds is enough
+      | red | blue | reaction                           |
+      | 3   | 0    | is asked to suggest a rebalance    |
+
+    Examples: A small lead or a decided match needs no suggestion
+      | red | blue | reaction      |
+      | 2   | 1    | is not asked  |
+      | 8   | 0    | is not asked  |
 
   Scenario: Three won rounds in a row ask for a suggestion even with a small lead
     Given Alice is on the "red" team with a rating of 2000
@@ -125,12 +127,5 @@ Feature: Balancing the teams when players join and when a team dominates
     And Bob is on the "red" team with a rating of 1000
     And Carol is on the "blue" team with a rating of 1500
     And the score is red 3, blue 0
-    When the "red" team wins a round
-    Then the balance plugin is not asked
-
-  Scenario: A decided match does not get a suggestion
-    Given Alice is on the "red" team with a rating of 2000
-    And Bob is on the "blue" team with a rating of 1000
-    And the score is red 8, blue 0
     When the "red" team wins a round
     Then the balance plugin is not asked
