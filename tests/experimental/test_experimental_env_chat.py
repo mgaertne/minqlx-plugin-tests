@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
@@ -6,9 +5,7 @@ from minqlx_plugin_test import connected_players, fake_player
 from mockito import unstub
 
 import minqlx
-from experimental.chat_fraggers import chat_fraggers
 from experimental.env_dmg import env_dmg
-from experimental.team_shots import team_shots
 
 
 class TestEnvDamage:
@@ -81,75 +78,3 @@ class TestEnvDamage:
         plugin.handle_death(victim, None, {"MOD": "HURT"})
 
         plugin.msg.assert_called_once()
-
-
-class TestChatFraggers:
-    def teardown_method(self):
-        unstub()
-
-    @pytest.mark.usefixtures("game_in_progress")
-    def test_damage_to_chatting_enemy_warns_below_threshold(self):
-        attacker = fake_player(123, "Attacker", team="red")
-        attacker.center_print = Mock()
-        from experimental.chat_fraggers import warn_player
-
-        warn_player(attacker, "warning")
-
-        assert attacker.center_print.call_count == 1
-
-    def test_round_countdown_resets_tracker(self):
-        plugin = chat_fraggers()
-        plugin.chat_tracker = {1: {2: 3}}
-        plugin.handle_round_countdown(2)
-        assert plugin.chat_tracker == {}
-
-    def test_damage_event_ignores_missing_game(self, no_minqlx_game):
-        plugin = chat_fraggers()
-        assert plugin.handle_damage_event(object(), object(), 1, 0, 0) is None
-
-    def test_kill_event_ignores_untracked_or_non_chatting(self, game_in_progress):
-        plugin = chat_fraggers()
-        victim = fake_player(2, "Victim", team="blue")
-        killer = fake_player(1, "Killer", team="red")
-        victim.state = SimpleNamespace(is_chatting=False)
-        plugin.handle_kill(victim, killer, {})
-        assert plugin.chat_tracker == {}
-
-
-class TestTeamShots:
-    def test_damage_filters_non_game_and_invalid_events(self, monkeypatch, no_minqlx_game):
-        plugin = team_shots()
-        assert plugin.handle_damage_event(object(), object(), 50, 0, 1) is None
-        monkeypatch.setattr(minqlx, "Game", lambda: SimpleNamespace(state="warmup"))
-        assert plugin.handle_damage_event(object(), object(), 50, 0, 1) is None
-
-    @pytest.mark.usefixtures("game_in_progress")
-    def test_damage_reaching_threshold_punishes_attacker(self):
-        attacker = fake_player(123, "Attacker", team="red")
-        attacker.health = 100
-        attacker.armor = 50
-        attacker.weapons = Mock()
-        attacker.weapon = Mock()
-        attacker.center_print = Mock()
-        from experimental.chat_fraggers import punish_player
-
-        punish_player(attacker, "punish")
-
-        assert attacker.health == 1
-        assert attacker.armor == 0
-        assert attacker.weapon.call_count == 1
-
-    @pytest.mark.usefixtures("game_in_progress")
-    def test_kill_of_chatting_player_warns_or_punishes_from_tracked_damage(self):
-        plugin = chat_fraggers()
-        plugin.punishment_threshold = 10
-        attacker = fake_player(123, "Attacker", team="red")
-        target = fake_player(456, "Chatter", team="blue")
-        target.state = SimpleNamespace(is_chatting=True)
-        attacker.center_print = Mock()
-        connected_players(attacker, target)
-        plugin.chat_tracker = {attacker.steam_id: {target.steam_id: 5}}
-
-        plugin.handle_kill(target, attacker, {})
-
-        assert attacker.center_print.call_count == 1

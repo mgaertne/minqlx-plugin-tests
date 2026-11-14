@@ -6,7 +6,7 @@ from minqlx_plugin_test import fake_player
 from mockito import unstub, when
 
 import minqlx
-from experimental.custom_votes import custom_votes
+from custom_votes import custom_votes
 
 
 class TestCustomVotes:

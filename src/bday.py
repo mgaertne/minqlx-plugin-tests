@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime
 
 import minqlx
@@ -9,6 +10,19 @@ _name_key = "minqlx:players:{}:last_used_name"
 
 # redis db key where we store all meaningful longmapnames
 LONG_MAP_NAMES_KEY = "minqlx:maps:longnames"
+
+LEAP_YEAR = 2000
+
+
+def parse_birthday(text):
+    # a day of month without a year is rejected by newer Pythons and cannot be a leap day anyway
+    return datetime.strptime(f"{text}{LEAP_YEAR}", "%d.%m.%Y")
+
+
+def birthdate_in_year(birthday, year):
+    if birthday.month == 2 and birthday.day == 29 and not calendar.isleap(year):
+        return birthday.replace(year=year, day=28)
+    return birthday.replace(year=year)
 
 
 # noinspection PyPep8Naming
@@ -65,7 +79,7 @@ class bday(Plugin):
     @minqlx.thread
     def parse_date(self, player, msg):
         try:
-            birthday = datetime.strptime(msg[1], "%d.%m.")
+            birthday = parse_birthday(msg[1])
         except ValueError:
             player.tell("^7Invalid date given")
             return minqlx.RET_USAGE
@@ -146,7 +160,7 @@ class bday(Plugin):
             return minqlx.RET_NONE
 
         try:
-            _bday = datetime.strptime(msg[2], "%d.%m.")
+            _bday = parse_birthday(msg[2])
         except ValueError:
             admin.tell("^7Invalid date given")
             return minqlx.RET_USAGE
@@ -264,7 +278,7 @@ class bday(Plugin):
         min_delta = 367
         min_player_sid = None
         for birthday_key in birthday_keys:
-            birthdate = datetime.strptime(self.db[birthday_key], "%d.%m.")
+            birthdate = parse_birthday(self.db[birthday_key])
             next_birthdate = self.next_birthdate(birthdate)
             delta = next_birthdate - today
 
@@ -294,9 +308,9 @@ class bday(Plugin):
     # noinspection PyMethodMayBeStatic
     def next_birthdate(self, birthday):
         today = datetime.now()
-        if today > birthday.replace(year=today.year):
-            return birthday.replace(year=today.year + 1)
-        return birthday.replace(year=today.year)
+        if today > birthdate_in_year(birthday, today.year):
+            return birthdate_in_year(birthday, today.year + 1)
+        return birthdate_in_year(birthday, today.year)
 
     # noinspection PyMethodMayBeStatic
     def identify_reply_channel(self, channel):
@@ -375,7 +389,7 @@ class bday(Plugin):
         if not self.has_birthday_set(player):
             return False
 
-        birthday = datetime.strptime(self.db[BDAY_KEY.format(player.steam_id)], "%d.%m.")
+        birthday = parse_birthday(self.db[BDAY_KEY.format(player.steam_id)])
         today = datetime.now()
 
         return birthday.day == today.day and birthday.month == today.month

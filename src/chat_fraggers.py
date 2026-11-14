@@ -40,7 +40,7 @@ class chat_fraggers(Plugin):
         self.warning_text = self.get_cvar("qlx_chatFraggers_warning_text") or "^1Shoot Chatters = Insta-Ban"
 
         self.set_cvar_once("qlx_chatFraggers_punish_text", "^1You have been warned!")
-        self.punish_text = self.get_cvar("qlx_chatFraggers_warning_text") or "^1You have been warned!"
+        self.punish_text = self.get_cvar("qlx_chatFraggers_punish_text") or "^1You have been warned!"
 
         self.chat_tracker = {}
 

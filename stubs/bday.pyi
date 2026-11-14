@@ -12,6 +12,10 @@ SteamId = int
 
 BDAY_KEY: str
 LONG_MAP_NAMES_KEY: str
+LEAP_YEAR: int
+
+def parse_birthday(text: str) -> datetime: ...
+def birthdate_in_year(birthday: datetime, year: int) -> datetime: ...
 
 # noinspection PyPep8Naming
 class bday(Plugin):

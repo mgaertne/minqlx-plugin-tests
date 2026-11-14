@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from minqlx_plugin_test import fake_player
 
 import minqlx
-from experimental.bday import BDAY_KEY, bday
+from bday import BDAY_KEY, bday
 
 
 class TestBday:
@@ -15,7 +15,7 @@ class TestBday:
 
     def test_next_birthdate_moves_past_birthdays_to_next_year(self, monkeypatch):
         plugin = bday()
-        monkeypatch.setattr("experimental.bday.datetime", Mock(now=lambda: datetime(2025, 6, 1)))
+        monkeypatch.setattr("bday.datetime", Mock(now=lambda: datetime(2025, 6, 1)))
 
         assert plugin.next_birthdate(datetime(2000, 5, 31)).year == 2026
         assert plugin.next_birthdate(datetime(2000, 6, 15)).year == 2025

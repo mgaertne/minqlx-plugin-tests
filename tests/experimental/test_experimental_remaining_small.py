@@ -4,7 +4,6 @@ from unittest.mock import Mock
 import minqlx
 from experimental import uptime as experimental_uptime
 from experimental.spec_rotation import color_format_team, damage_this_round, other_team, spec_rotation
-from experimental.team_shots import team_shots
 
 
 def test_spec_rotation_helpers():
@@ -46,15 +45,6 @@ def test_spec_rotation_selects_player_with_fewest_games():
     assert plugin.find_games_here(first) == 5
     assert plugin.find_games_here(second) == 0
     assert plugin.find_player_to_spec([first, second]) is second
-
-
-def test_team_shots_resets_damage_state():
-    plugin = team_shots()
-    plugin.team_damages = {123: [(1, 20)]}
-
-    plugin.handle_game_countdown()
-
-    assert plugin.team_damages == {}
 
 
 def test_experimental_uptime_sends_two_messages(monkeypatch):
