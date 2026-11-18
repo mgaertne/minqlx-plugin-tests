@@ -42,19 +42,19 @@ dependencies = [
 tests = [
     "redis>=3.0",
     "pytest>=7.0.1,<8.4.2; python_version < '3.9'",
-    "pytest>=8.4.2; python_version >= '3.9'",
-    "pytest-asyncio>=0.24; python_version >= '3.8'",
+    "pytest>=9.2.0; python_version >= '3.9'",
+    "pytest-asyncio>=1.5.0; python_version >= '3.8'",
     "pytest-bdd==7.3.0; python_version < '3.9'",
-    "pytest-bdd>=8.1,<9; python_version == '3.9'",
-    "pytest-bdd>=9; python_version >= '3.10'",
-    "pytest-clarity>=1.0.0",
+    "pytest-bdd>=9.0.1,<10; python_version == '3.9'",
+    "pytest-bdd>=9.0.1; python_version >= '3.10'",
+    "pytest-clarity>=1.0.1",
     "PyHamcrest>=2.1.0",
-    "mockito>=2.0",
+    "mockito>=2.0.4",
 ]
 coverage = [
     "minqlx_plugin_tests[tests]",
     "pytest-cov>=5.0,<6.0; python_version < '3.9'",
-    "pytest-cov>=7.0; python_version >= '3.9'",
+    "pytest-cov>=7.1.0; python_version >= '3.9'",
 ]
 ruff = [ "ruff>=0.17" ]
 mypy = [
