@@ -1,19 +1,5 @@
 version: 2
 updates:
-  - package-ecosystem: "uv"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      dev-tools:
-        patterns: ["ruff", "mypy", "ty", "types-*", "tox*", "pre-commit"]
-      tests:
-        patterns: ["pytest*", "mockito", "PyHamcrest"]
-      runtime:
-        patterns: ["*"]
-    commit-message:
-      prefix: "uv"
-      include: "scope"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
