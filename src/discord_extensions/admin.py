@@ -1,4 +1,5 @@
 import threading
+from typing import Any, cast
 
 # noinspection PyPackageRequirements
 import discord.utils
@@ -238,7 +239,7 @@ class AdminCog(Cog):
     @minqlx.next_frame
     def execute_qlx_command(self, user, message, qlx_command):
         # shinqlx's __new__ expects the player name as first argument, so it must not see user and message
-        interaction_player = DiscordInteractionPlayer.__new__(DiscordInteractionPlayer)
+        interaction_player = cast("Any", DiscordInteractionPlayer).__new__(DiscordInteractionPlayer)
         DiscordInteractionPlayer.__init__(interaction_player, user, message, loop=self.bot.loop)
         try:
             minqlx.COMMANDS.handle_input(interaction_player, qlx_command, interaction_player.channel)

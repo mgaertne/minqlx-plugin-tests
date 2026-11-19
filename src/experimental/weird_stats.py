@@ -4,7 +4,7 @@ import random
 import statistics
 from datetime import datetime, timedelta
 from operator import itemgetter
-from typing import Dict, NamedTuple, Optional, Tuple
+from typing import Any, Dict, NamedTuple, Optional, Tuple, cast
 
 import redis
 
@@ -1245,7 +1245,7 @@ class weird_stats(Plugin):
         # noinspection PyProtectedMember
         if "openai_bot" in Plugin._loaded_plugins and self.openai_announce_stats:
             # noinspection PyProtectedMember
-            openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
+            openai_bot_plugin = cast("Any", Plugin._loaded_plugins["openai_bot"])
             # noinspection PyUnresolvedReferences
             openai_bot_plugin.summarize_game_end_stats(announcements_str)
             return
@@ -1260,7 +1260,7 @@ class weird_stats(Plugin):
 
         returned = ["  ^5Top 3 team damage inflicters:"]
         # noinspection PyProtectedMember
-        team_shots_plugin = Plugin._loaded_plugins["team_shots"]
+        team_shots_plugin = cast("Any", Plugin._loaded_plugins["team_shots"])
         # noinspection PyUnresolvedReferences
         team_damages = team_shots_plugin.team_damages
 

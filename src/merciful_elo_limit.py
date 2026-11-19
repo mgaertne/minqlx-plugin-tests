@@ -1,6 +1,7 @@
 import threading
 import time
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 import requests
 from requests import RequestException, Session
@@ -52,14 +53,14 @@ def is_player_in_exception_list(player):
     # noinspection PyProtectedMember
     if "mybalance" in Plugin._loaded_plugins:
         # noinspection PyProtectedMember
-        mybalance_plugin = Plugin._loaded_plugins["mybalance"]
+        mybalance_plugin = cast("Any", Plugin._loaded_plugins["mybalance"])
         # noinspection PyUnresolvedReferences
         return player.steam_id in mybalance_plugin.exceptions
 
     # noinspection PyProtectedMember
     if "balancetwo" in Plugin._loaded_plugins:
         # noinspection PyProtectedMember
-        balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]
+        balancetwo_plugin = cast("Any", Plugin._loaded_plugins["balancetwo"])
         # noinspection PyUnresolvedReferences
         return player.steam_id in balancetwo_plugin.exceptions
 
@@ -207,7 +208,7 @@ class merciful_elo_limit(Plugin):
             return
 
         # noinspection PyProtectedMember
-        balance_plugin = Plugin._loaded_plugins["balance"]
+        balance_plugin = cast("Any", Plugin._loaded_plugins["balance"])
 
         player_ratings = {p.steam_id: gametype for p in players}
         # noinspection PyUnresolvedReferences
@@ -275,7 +276,7 @@ class merciful_elo_limit(Plugin):
         # noinspection PyProtectedMember
         if "balancetwo" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember
-            balancetwo_plugin = Plugin._loaded_plugins["balancetwo"]
+            balancetwo_plugin = cast("Any", Plugin._loaded_plugins["balancetwo"])
             balance_api = self.get_cvar("qlx_balanceApi")
             # noinspection PyUnresolvedReferences
             ratings = balancetwo_plugin.ratings["Elo"] if balance_api == "elo" else balancetwo_plugin.ratings["B-Elo"]
@@ -285,7 +286,7 @@ class merciful_elo_limit(Plugin):
             return ratings.rating_for(player.steam_id, gametype)
 
         # noinspection PyProtectedMember
-        balance_plugin = Plugin._loaded_plugins["balance"]
+        balance_plugin = cast("Any", Plugin._loaded_plugins["balance"])
         # noinspection PyUnresolvedReferences
         ratings = balance_plugin.ratings
 

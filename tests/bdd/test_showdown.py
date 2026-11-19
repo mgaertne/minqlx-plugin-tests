@@ -424,4 +424,4 @@ def _countdown_announces(clock, text):
 def _database_records_standing_time(db, players, name, seconds, second):
     ended_at = NOON.replace(second=int(second)).timestamp()
     record = db.sorted_sets[f"minqlx:players:{players[name].steam_id}:last_standings"]
-    assert record == {ended_at: int(seconds)}
+    assert record == {str(ended_at): int(seconds)}

@@ -13,6 +13,7 @@ import re
 import time
 from datetime import datetime, timezone
 from threading import RLock
+from typing import Any, cast
 
 import emoji
 import redis
@@ -294,7 +295,7 @@ class openai_bot(Plugin):
         # noinspection PyProtectedMember
         if "mydiscordbot" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember
-            discord_plugin = Plugin._loaded_plugins["mydiscordbot"]
+            discord_plugin = cast("Any", Plugin._loaded_plugins["mydiscordbot"])
             # noinspection PyUnresolvedReferences
             discord_plugin.discord.relay_message(
                 Plugin.clean_text(f"**{self.bot_clanprefix}{self.bot_name}**: {message}")

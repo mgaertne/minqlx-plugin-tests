@@ -1,5 +1,5 @@
 # noinspection PyPackageRequirements
-from typing import Set
+from typing import Any, Set, cast
 
 from discord.ext.commands import Cog
 
@@ -53,7 +53,7 @@ class OpenAIBridge(Cog):
             return
 
         # noinspection PyProtectedMember
-        openai_bot_plugin = Plugin._loaded_plugins["openai_bot"]
+        openai_bot_plugin = cast("Any", Plugin._loaded_plugins["openai_bot"])
 
         # noinspection PyUnresolvedReferences
         with openai_bot_plugin.queue_lock:

@@ -1,7 +1,7 @@
 """Test fake of the minqlx interface.
 
 Real logic (commands, event dispatchers, plugin base class, decorators) is kept; everything that needs the Quake Live
-server (players, games, database, handlers, zmq) is generated from the stubs in stubs/minqlx and raises
+server (players, games, database, handlers, zmq) is generated from the installed shinqlx-stubs package and raises
 NotImplementedError until a test replaces it.
 """
 

@@ -50,6 +50,7 @@ tests = [
     "pytest-clarity>=1.0.0",
     "PyHamcrest>=2.1.0",
     "mockito>=2.0",
+    "minqlx-stubs==0.8.*",
 ]
 coverage = [
     "minqlx_plugin_tests[tests]",
@@ -61,12 +62,13 @@ mypy = [
     "mypy>=1.14,<1.20; python_version < '3.9'",
     "mypy>=1.19,<2; python_version == '3.9'",
     "mypy>=1.20; python_version >= '3.10'",
+    "minqlx-stubs==0.8.*",
     "types-redis>=4.3",
     "types-requests>=2.32,<2.33; python_version < '3.9'",
     "types-requests>=2.32.4,<2.33; python_version == '3.9'",
     "types-requests>=2.33; python_version >= '3.10'",
 ]
-ty = [ "ty>=0.0.91" ]
+ty = [ "ty>=0.0.91", "minqlx-stubs==0.8.*" ]
 
 [project.readme]
 file = "README.md"
@@ -194,6 +196,9 @@ skip-magic-trailing-comma = false
 extra-paths = ["stubs"]
 python-version = "3.8"
 root = ["src"]
+
+[tool.ty.rules]
+redundant-condition = "ignore"
 
 [tool.ty.src]
 include = ["src"]

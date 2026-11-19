@@ -1068,7 +1068,8 @@ class TestSubscribe:
         )
 
     @pytest.mark.asyncio
-    async def test_bot_setup_called(self, no_presences_bot):
+    async def test_bot_setup_called(self, no_presences_bot, monkeypatch):
+        monkeypatch.setitem(Plugin._loaded_plugins, "mydiscordbot", mock(spec=Plugin))
         thread_nock = mock(spec=threading.Thread)
         when(thread_nock).start().thenReturn()
         patch(threading.Thread, lambda target: thread_nock)

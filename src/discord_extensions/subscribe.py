@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import threading
 import time
+from typing import Any, cast
 
 # noinspection PyPackageRequirements
 import schedule
@@ -53,11 +54,11 @@ class SubscriberCog(Cog):
         # noinspection PyProtectedMember
         if "maps_manager" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            self.installed_maps = Plugin._loaded_plugins["maps_manager"].installed_maps
+            self.installed_maps = cast("Any", Plugin._loaded_plugins["maps_manager"]).installed_maps
         # noinspection PyProtectedMember
         elif "maps" in Plugin._loaded_plugins:
             # noinspection PyProtectedMember,PyUnresolvedReferences
-            self.installed_maps = Plugin._loaded_plugins["maps"].logged_maps
+            self.installed_maps = cast("Any", Plugin._loaded_plugins["maps"]).logged_maps
 
         self.formatted_installed_maps = {mapname: mapname for mapname in self.installed_maps}
         for mapname, long_map_name in self.long_map_names_lookup.items():
@@ -553,8 +554,8 @@ def check_subscriptions(cog):
 
 
 async def setup(bot):
-    # noinspection PyTypeChecker
-    subscriber_cog = SubscriberCog(bot, Redis("mydiscordbot"))
+    # noinspection PyTypeChecker,PyProtectedMember
+    subscriber_cog = SubscriberCog(bot, Redis(Plugin._loaded_plugins["mydiscordbot"]))
     await bot.add_cog(subscriber_cog)
     schedule.every(1).minute.do(check_subscriptions, subscriber_cog)
     threading.Thread(target=run_schedule).start()

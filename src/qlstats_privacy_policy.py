@@ -1,4 +1,5 @@
 from threading import Thread
+from typing import Any, cast
 
 import requests
 from requests import RequestException, Session
@@ -107,7 +108,7 @@ class qlstats_privacy_policy(Plugin):
             return minqlx.RET_NONE
 
         # noinspection PyProtectedMember
-        b = minqlx.Plugin._loaded_plugins["balance"]
+        b = cast("Any", minqlx.Plugin._loaded_plugins["balance"])
         b.add_request(
             {player.steam_id: self.game.type_short},
             self.callback_connect,
@@ -176,7 +177,7 @@ class qlstats_privacy_policy(Plugin):
             return
 
         # noinspection PyUnresolvedReferences
-        player_info = self._loaded_plugins["balance"].player_info
+        player_info = cast("Any", self._loaded_plugins["balance"]).player_info
 
         for sid in players:
             if sid in self.exceptions:
@@ -218,7 +219,7 @@ class qlstats_privacy_policy(Plugin):
 
         if new in ["red", "blue", "any"]:
             # noinspection PyUnresolvedReferences
-            player_info = self._loaded_plugins["balance"].player_info
+            player_info = cast("Any", self._loaded_plugins["balance"]).player_info
             if player.steam_id not in player_info:
                 player.tell("We couldn't fetch your ratings, yet. You will not be able to join, until we did.")
                 return minqlx.RET_STOP_ALL
@@ -328,7 +329,7 @@ class qlstats_privacy_policy(Plugin):
 
         teams = self.teams()
         # noinspection PyUnresolvedReferences
-        player_info = self._loaded_plugins["balance"].player_info
+        player_info = cast("Any", self._loaded_plugins["balance"]).player_info
 
         for player in teams["red"] + teams["blue"]:
             if player.steam_id not in player_info:

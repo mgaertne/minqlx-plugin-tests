@@ -472,10 +472,10 @@ class showdown(Plugin):
             last_standing_time = int(time.time() - self.last_standing_time)
             if int(redis.VERSION[0]) >= 3:
                 # noinspection PyTypeChecker
-                self.db.zadd(base_key, {timestamp: last_standing_time})
+                self.db.zadd(base_key, {str(timestamp): last_standing_time})
             else:
                 # noinspection PyTypeChecker
-                self.db.zadd(base_key, last_standing_time, timestamp)
+                self.db.zadd(base_key, last_standing_time, str(timestamp))
             self.last_standing_steam_id = None
             self.last_standing_time = None
 

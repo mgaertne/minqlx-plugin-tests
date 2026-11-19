@@ -1,5 +1,6 @@
 import calendar
 from datetime import datetime
+from typing import Any, cast
 
 import minqlx
 from minqlx import Plugin
@@ -373,7 +374,7 @@ class bday(Plugin):
     def play_birthday_song(self):
         if "karaoke" in self.plugins:
             # noinspection PyProtectedMember
-            karaoke_plugin = minqlx.Plugin._loaded_plugins["karaoke"]
+            karaoke_plugin = cast("Any", minqlx.Plugin._loaded_plugins["karaoke"])
             karaoke_plugin.double = True
             karaoke_plugin.currentsong = "happybirthday"
             # noinspection PyUnresolvedReferences
@@ -458,11 +459,11 @@ class bday(Plugin):
     def determine_installed_maps(self):
         if "maps" in self._loaded_plugins:
             # noinspection PyUnresolvedReferences
-            return self._loaded_plugins["maps"].logged_maps
+            return cast("Any", self._loaded_plugins["maps"]).logged_maps
 
         if "maps_manager" in self._loaded_plugins:
             # noinspection PyUnresolvedReferences
-            return self._loaded_plugins["maps_manager"].installed_maps
+            return cast("Any", self._loaded_plugins["maps_manager"]).installed_maps
 
         return []
 

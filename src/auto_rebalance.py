@@ -11,6 +11,8 @@ It's intended to run with the default balance plugin, and will print an error on
 balance plugin is not loaded together with this one.
 """
 
+from typing import Any, cast
+
 import minqlx
 from minqlx import Plugin
 
@@ -189,7 +191,7 @@ class auto_rebalance(Plugin):
             return 0
 
         # noinspection PyUnresolvedReferences
-        ratings = self.plugins["balance"].ratings
+        ratings = cast("Any", self.plugins["balance"]).ratings
 
         average = 0.0
         for p in team:
@@ -246,7 +248,7 @@ class auto_rebalance(Plugin):
         # noinspection PyProtectedMember
         if "balance" in minqlx.Plugin._loaded_plugins:
             # noinspection PyProtectedMember
-            b = Plugin._loaded_plugins["balance"]
+            b = cast("Any", Plugin._loaded_plugins["balance"])
             players = {p.steam_id: gametype for p in teams["red"] + teams["blue"]}
             # noinspection PyUnresolvedReferences
             b.add_request(players, b.callback_teams, minqlx.CHAT_CHANNEL)

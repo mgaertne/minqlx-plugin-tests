@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Unpack
 # noinspection PyPackageRequirements
 from discord.ext.commands import Cog
 
-from minqlx import AbstractChannel, AbstractDummyPlayer, ReplyKwargs
+from minqlx import AbstractChannel, AbstractDummyPlayer
 
 if TYPE_CHECKING:
     from asyncio import AbstractEventLoop
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     # noinspection PyPackageRequirements
     from discord.ext.commands import Bot, Context
+    from shinqlx._commands import ReplyKwargs
 
 class DiscordInteractionChannel(AbstractChannel):
     user: User

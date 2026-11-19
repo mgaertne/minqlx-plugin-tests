@@ -1,4 +1,5 @@
 from operator import itemgetter
+from typing import Any, cast
 
 import minqlx
 from minqlx import Plugin
@@ -83,7 +84,7 @@ class spec_rotation(Plugin):
         for autospec_plugin in ["balancetwo", "mybalance"]:
             if autospec_plugin in self.plugins:
                 # noinspection PyProtectedMember
-                plugin = minqlx.Plugin._loaded_plugins[autospec_plugin]
+                plugin = cast("Any", minqlx.Plugin._loaded_plugins[autospec_plugin])
                 if plugin.last_action == "ignore":
                     return False
 

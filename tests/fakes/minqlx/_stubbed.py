@@ -1,4 +1,4 @@
-"""Builds runtime classes from the type stubs in stubs/minqlx.
+"""Builds runtime classes from the installed shinqlx-stubs package.
 
 The stubs stay the single description of the minqlx interface: every class, property and method that they declare
 exists here and raises NotImplementedError. Tests replace what they need with mockito or monkeypatch.
@@ -6,9 +6,10 @@ exists here and raises NotImplementedError. Tests replace what they need with mo
 
 import ast
 import builtins
-from pathlib import Path
+from abc import ABC
+from importlib.metadata import distribution
 
-STUB_DIRECTORY = Path(__file__).resolve().parents[3] / "stubs" / "minqlx"
+STUB_DIRECTORY = distribution("shinqlx-stubs").locate_file("shinqlx-stubs")
 
 
 def _unavailable(class_name, member):
@@ -28,7 +29,9 @@ def _decorator_name(decorator):
 
 
 def _bases(node, known):
-    bases = tuple(known.get(base.id) or getattr(builtins, base.id, None) for base in node.bases)
+    bases = tuple(
+        known.get(base.id) or getattr(builtins, base.id, None) or {"ABC": ABC}.get(base.id) for base in node.bases
+    )
     return None if None in bases else bases
 
 
@@ -40,7 +43,7 @@ def _members(node):
             continue
         kinds = {_decorator_name(decorator) for decorator in item.decorator_list}
         function = _unavailable(node.name, item.name)
-        if item.name == "__init__":
+        if item.name in {"__init__", "__new__"}:
             members["__init__"] = _accept_any_arguments
         elif item.name.startswith("__"):
             continue
@@ -61,7 +64,7 @@ def _members(node):
 
 def build(module, namespace):
     """Adds the classes that the stub of the module declares to namespace, skipping those with unknown bases."""
-    for node in ast.parse((STUB_DIRECTORY / f"{module}.pyi").read_text()).body:
+    for node in ast.parse(STUB_DIRECTORY.joinpath(f"{module}.pyi").read_text()).body:
         if not isinstance(node, ast.ClassDef):
             continue
         bases = _bases(node, namespace)
